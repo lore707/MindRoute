@@ -1,7 +1,4 @@
-import { db } from "./db";
-import { destinations, itineraries } from "@shared/schema";
 import type { Destination, Itinerary, InsertDestination, InsertItinerary } from "@shared/schema";
-import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getDestinations(): Promise<Destination[]>;
@@ -12,35 +9,42 @@ export interface IStorage {
   clearAll(): Promise<void>;
 }
 
-export class DatabaseStorage implements IStorage {
+export class MemoryStorage implements IStorage {
+  private destinations: Destination[] = [];
+  private itineraries: Itinerary[] = [];
+  private destIdCounter = 1;
+  private itinIdCounter = 1;
+
   async getDestinations(): Promise<Destination[]> {
-    return await db.select().from(destinations);
+    return this.destinations;
   }
 
   async getDestination(id: number): Promise<Destination | undefined> {
-    const [dest] = await db.select().from(destinations).where(eq(destinations.id, id));
-    return dest;
+    return this.destinations.find(d => d.id === id);
   }
 
   async createDestination(destination: InsertDestination): Promise<Destination> {
-    const [newDest] = await db.insert(destinations).values(destination).returning();
+    const newDest: Destination = { ...destination, id: this.destIdCounter++ };
+    this.destinations.push(newDest);
     return newDest;
   }
 
   async getItinerary(destinationId: number): Promise<Itinerary | undefined> {
-    const [itin] = await db.select().from(itineraries).where(eq(itineraries.destinationId, destinationId));
-    return itin;
+    return this.itineraries.find(i => i.destinationId === destinationId);
   }
 
   async createItinerary(itinerary: InsertItinerary): Promise<Itinerary> {
-    const [newItin] = await db.insert(itineraries).values(itinerary).returning();
+    const newItin: Itinerary = { ...itinerary, id: this.itinIdCounter++ };
+    this.itineraries.push(newItin);
     return newItin;
   }
 
   async clearAll(): Promise<void> {
-    await db.delete(itineraries);
-    await db.delete(destinations);
+    this.destinations = [];
+    this.itineraries = [];
+    this.destIdCounter = 1;
+    this.itinIdCounter = 1;
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemoryStorage();
