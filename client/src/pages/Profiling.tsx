@@ -1,0 +1,1195 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, ChevronDown, Moon, Sun, HelpCircle as QuestionIcon } from "lucide-react";
+import { useSubmitProfiling } from "@/hooks/use-profiling";
+import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
+import { Link } from "wouter";
+import LangDropdown from "@/components/LangDropdown";
+import { useTheme } from "@/components/ThemeProvider";
+
+interface ImageOption {
+  src: string;
+  label: string;
+  sub: string;
+  value: string;
+}
+
+interface TextQuestion {
+  text: string;
+  hint: string;
+  type: "text";
+  placeholder: string;
+  why: string;
+  tags: string[];
+  section: string;
+  optional?: boolean;
+}
+
+interface ChipsQuestion {
+  text: string;
+  hint: string;
+  type: "chips";
+  options: string[];
+  multi: boolean;
+  max?: number;
+  addendum?: string;
+  why: string;
+  tags: string[];
+  section: string;
+}
+
+interface ImagesQuestion {
+  text: string;
+  hint: string;
+  type: "images";
+  options: ImageOption[];
+  why: string;
+  tags: string[];
+  section: string;
+}
+
+interface SliderQuestion {
+  text: string;
+  hint: string;
+  type: "slider";
+  why: string;
+  tags: string[];
+  section: string;
+}
+
+type Question = TextQuestion | ChipsQuestion | ImagesQuestion | SliderQuestion;
+
+const drainChipKeys = ['guided', 'crowded', 'museums', 'resort', 'nightlife', 'touristy', 'transits', 'mornings', 'schedules', 'smalltalk', 'unfamiliarfood', 'toomuchwalking', 'tooisolated', 'tooexpensive', 'toolong'];
+const drainSubsetKeys = ['guided', 'crowded', 'museums', 'resort', 'nightlife', 'touristy', 'transits', 'mornings', 'schedules', 'smalltalk'];
+
+const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
+  <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
+    <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85" />
+    <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55" />
+    <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85" />
+    <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55" />
+    <ellipse cx="60" cy="60" rx="5" ry="6" fill="var(--text-primary)" />
+    <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7" />
+    <circle cx="60" cy="48" r="3.5" fill="var(--text-primary)" />
+  </svg>
+);
+
+export default function Profiling() {
+  const { t } = useI18n();
+  const { theme, toggleTheme } = useTheme();
+
+  const ThemeToggle = () => (
+    <button
+      onClick={toggleTheme}
+      data-testid="button-theme"
+      className="flex items-center justify-center w-8 h-8 rounded-full border border-[var(--border-input)] text-[var(--text-secondary)] hover:border-[#E94560] hover:text-[#E94560] transition-all bg-transparent cursor-pointer"
+      aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+    >
+      {theme === "light" ? <Moon className="w-[15px] h-[15px]" /> : <Sun className="w-[15px] h-[15px]" />}
+    </button>
+  );
+
+  const pathAStyleChipKeys = ['wild', 'quiet', 'chaotic', 'intimate', 'solitary', 'regenerating', 'authentic', 'quietluxury', 'spiritual', 'festive', 'adventure', 'romantic', 'cultural', 'explorative'];
+  const pathADistanceChipKeys = ['close', 'continent', 'far', 'anywhere'];
+  const pathBGeoChipKeys = ['close', 'europe', 'asia', 'americas', 'africa', 'oceania'];
+  const pathBTypeChipKeys = ['culture', 'nature', 'food', 'beach', 'city', 'offgrid', 'roadtrip', 'trekking', 'wellness', 'discovery'];
+
+  const buildPathA = (): Question[] => [
+    { text: t('a.q1.text'), hint: t('a.q1.hint'), type: 'chips', options: pathAStyleChipKeys.map(k => t(`a.q1.chips.${k}`)), multi: true, max: 3, why: t('a.q1.why'), tags: ['vibe', 'emotional tone', 'trip color'], section: t('section.a.style') },
+    { text: t('a.q2.text'), hint: t('a.q2.hint'), type: 'text', placeholder: t('a.q2.placeholder'), why: t('a.q2.why'), tags: ['core need', 'life phase', 'emotional state'], section: t('section.a.need') },
+    { text: t('a.q3.text'), hint: t('a.q3.hint'), type: 'chips', options: drainChipKeys.map(k => t(`chips.${k}`)), multi: true, addendum: t('a.q3.addendum'), why: t('a.q3.why'), tags: ['anti-patterns', 'boundaries', 'identity'], section: t('section.a.drains') },
+    {
+      text: t('a.q4.text'), hint: t('a.q4.hint'), type: 'images', options: [
+        { src: 'https://images.unsplash.com/photo-1545459720-aac8509eb02c?w=600&q=85', label: t('q4.medina'), sub: t('q4.medina.sub'), value: 'medina' },
+        { src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=85', label: t('q4.nordic'), sub: t('q4.nordic.sub'), value: 'nordic' },
+        { src: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=85', label: t('q4.temple'), sub: t('q4.temple.sub'), value: 'temple' },
+        { src: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=600&q=85', label: t('q4.desert'), sub: t('q4.desert.sub'), value: 'desert' }
+      ], why: t('a.q4.why'), tags: ['aesthetic signature', 'visual instinct', 'subconscious'], section: t('section.a.visual')
+    },
+    { text: t('a.q5.text'), hint: t('a.q5.hint'), type: 'slider', why: t('a.q5.why'), tags: ['chaos tolerance', 'control need', 'rhythm'], section: t('section.a.chaos') },
+    { text: t('a.q6.text'), hint: t('a.q6.hint'), type: 'text', placeholder: t('a.q6.placeholder'), why: t('a.q6.why'), tags: ['identity filter', 'rejection', 'self-knowledge'], section: t('section.a.rejection'), optional: true },
+    { text: t('a.q7.text'), hint: t('a.q7.hint'), type: 'chips', options: pathADistanceChipKeys.map(k => t(`a.q7.chips.${k}`)), multi: false, why: t('a.q7.why'), tags: ['geography', 'comfort zone', 'openness'], section: t('section.a.distance') },
+  ];
+
+  const buildPathB = (): Question[] => [
+    { text: t('b.q1.text'), hint: t('b.q1.hint'), type: 'chips', options: pathBGeoChipKeys.map(k => t(`b.q1.chips.${k}`)), multi: false, why: t('b.q1.why'), tags: ['geography', 'constraint'], section: t('section.b.where') },
+    { text: t('b.q2.text'), hint: t('b.q2.hint'), type: 'chips', options: pathBTypeChipKeys.map(k => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t('b.q2.why'), tags: ['trip type', 'category', 'combination'], section: t('section.b.type') },
+    { text: t('b.q3.text'), hint: t('b.q3.hint'), type: 'text', placeholder: t('b.q3.placeholder'), why: t('b.q3.why'), tags: ['specific desire', 'experience level'], section: t('section.b.specific'), optional: true },
+    {
+      text: t('b.q4.text'), hint: t('b.q4.hint'), type: 'images', options: [
+        { src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=85', label: t('b.q4.seaside'), sub: t('b.q4.seaside.sub'), value: 'seaside' },
+        { src: 'https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=600&q=85', label: t('b.q4.market'), sub: t('b.q4.market.sub'), value: 'market' },
+        { src: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=85', label: t('b.q4.trail'), sub: t('b.q4.trail.sub'), value: 'trail' },
+        { src: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=85', label: t('b.q4.cafe'), sub: t('b.q4.cafe.sub'), value: 'cafe' }
+      ], why: t('b.q4.why'), tags: ['aesthetic', 'atmosphere', 'emotional tone'], section: t('section.b.atmosphere')
+    },
+    { text: t('b.q5.text'), hint: t('b.q5.hint'), type: 'slider', why: t('b.q5.why'), tags: ['rhythm', 'control', 'pace'], section: t('section.b.rhythm') },
+    { text: t('b.q6.text'), hint: t('b.q6.hint'), type: 'text', placeholder: t('b.q6.placeholder'), why: t('b.q6.why'), tags: ['emotional need', 'life phase', 'core desire'], section: t('section.b.feeling') },
+    { text: t('b.q7.text'), hint: t('b.q7.hint'), type: 'chips', options: drainSubsetKeys.map(k => t(`chips.${k}`)), multi: true, addendum: t('b.q7.addendum'), why: t('b.q7.why'), tags: ['anti-patterns', 'quick filter'], section: t('section.b.avoid') },
+  ];
+
+  const sliderLabels = [t('slider.s1'), t('slider.s2'), t('slider.s3'), t('slider.s4'), t('slider.s5'), t('slider.s6'), t('slider.s7')];
+  const microReactions = [t('micro.1'), t('micro.2'), t('micro.3'), t('micro.4'), t('micro.5'), t('micro.6'), t('micro.7')];
+  const months = monthKeys.map(k => t(`months.${k}`));
+  const analyzeTraits = [t('analyze.t1'), t('analyze.t2'), t('analyze.t3'), t('analyze.t4'), t('analyze.t5'), t('analyze.t6')];
+
+  const [selectedPath, setSelectedPath] = useState<'a' | 'b' | null>(null);
+  const [showSplit, setShowSplit] = useState(true);
+  const [splitExiting, setSplitExiting] = useState(false);
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [chipSelections, setChipSelections] = useState<Record<number, string[]>>({});
+  const [imageSelections, setImageSelections] = useState<string[]>([]);
+  const [sliderValue, setSliderValue] = useState(50);
+  const [reaction, setReaction] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [showAnalyzing, setShowAnalyzing] = useState(false);
+  const [visibleTraits, setVisibleTraits] = useState<string[]>([]);
+  const [mobileWhyOpen, setMobileWhyOpen] = useState(false);
+  const { toast } = useToast();
+  const submitMutation = useSubmitProfiling();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const transitionBusy = useRef(false);
+  const analyzeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const [formData, setFormData] = useState({
+    budget: "",
+    selectedMonths: [] as string[],
+    dateMode: "flexible-month" as "exact" | "flexible-month" | "flexible-period",
+    dateFrom: "",
+    dateTo: "",
+    selectedPeriods: [] as string[],
+    duration: "",
+    departure: "",
+    companions: "",
+    accommodation: "",
+    food: "",
+    effort: "",
+    dietary: [] as string[],
+    constraints: "",
+  });
+  const [formFocus, setFormFocus] = useState<string>("budget");
+
+  const questions = selectedPath === 'a' ? buildPathA() : buildPathB();
+  const currentQ = questions[step];
+
+  useEffect(() => {
+    if (!showSplit && textareaRef.current && currentQ?.type === 'text') {
+      setTimeout(() => textareaRef.current?.focus(), 300);
+    }
+  }, [step, showSplit]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey && !showForm && !reaction && !showSplit && !showAnalyzing) {
+        e.preventDefault();
+        if (canContinue()) handleNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [step, answers, chipSelections, imageSelections, sliderValue, showForm, reaction, showSplit, showAnalyzing]);
+
+  useEffect(() => {
+    return () => { analyzeTimers.current.forEach(t => clearTimeout(t)); };
+  }, []);
+
+  const choosePath = (path: 'a' | 'b') => {
+    setSelectedPath(path);
+    setSplitExiting(true);
+    setTimeout(() => {
+      setShowSplit(false);
+      setSplitExiting(false);
+    }, 600);
+  };
+
+  const canContinue = () => {
+    if (!currentQ) return false;
+    if (currentQ.type === 'text') {
+      if ((currentQ as TextQuestion).optional) return true;
+      return (answers[step] || '').trim().length >= 5;
+    }
+    if (currentQ.type === 'chips') return (chipSelections[step] || []).length > 0;
+    if (currentQ.type === 'images') return imageSelections.length > 0;
+    if (currentQ.type === 'slider') return true;
+    return false;
+  };
+
+  const saveCurrentAnswer = () => {
+    if (!currentQ) return;
+    if (currentQ.type === 'chips') {
+      const selected = chipSelections[step] || [];
+      const addendum = answers[`${step}_addendum`] || '';
+      setAnswers(prev => ({ ...prev, [step]: selected.join(', ') + (addendum ? ` | ${addendum}` : '') }));
+    } else if (currentQ.type === 'images') {
+      setAnswers(prev => ({ ...prev, [step]: imageSelections.join(', ') }));
+    } else if (currentQ.type === 'slider') {
+      const addendum = answers[`${step}_addendum`] || '';
+      setAnswers(prev => ({ ...prev, [step]: `${sliderValue}${addendum ? ` | ${addendum}` : ''}` }));
+    }
+  };
+
+  const startAnalyzing = () => {
+    analyzeTimers.current.forEach(t => clearTimeout(t));
+    analyzeTimers.current = [];
+    setVisibleTraits([]);
+    setShowAnalyzing(true);
+    analyzeTraits.forEach((trait, i) => {
+      const timer = setTimeout(() => {
+        setVisibleTraits(prev => [...prev, trait]);
+      }, 400 + i * 300);
+      analyzeTimers.current.push(timer);
+    });
+    const nav = setTimeout(() => {
+      setShowAnalyzing(false);
+      doFinalSubmit();
+    }, 3200);
+    analyzeTimers.current.push(nav);
+  };
+
+  const handleNext = () => {
+    if (transitionBusy.current) return;
+    transitionBusy.current = true;
+    saveCurrentAnswer();
+    setReaction(microReactions[step % microReactions.length]);
+    setTimeout(() => {
+      setReaction(null);
+      if (step >= questions.length - 1) {
+        setShowForm(true);
+      } else {
+        setStep(prev => prev + 1);
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      transitionBusy.current = false;
+    }, 1100);
+  };
+
+  const goToStep = (target: number) => {
+    if (target <= step) {
+      saveCurrentAnswer();
+      setStep(target);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const goBack = () => {
+    if (showForm) {
+      setShowForm(false);
+      setStep(questions.length - 1);
+    } else if (step > 0) {
+      saveCurrentAnswer();
+      setStep(step - 1);
+    } else {
+      setShowSplit(true);
+      setSelectedPath(null);
+      setStep(0);
+      setAnswers({});
+      setChipSelections({});
+      setImageSelections([]);
+      setSliderValue(50);
+    }
+  };
+
+  const toggleMonth = (month: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedMonths: prev.selectedMonths.includes(month)
+        ? prev.selectedMonths.filter(m => m !== month)
+        : [...prev.selectedMonths, month]
+    }));
+  };
+
+  const togglePeriod = (period: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedPeriods: prev.selectedPeriods.includes(period)
+        ? prev.selectedPeriods.filter(p => p !== period)
+        : [...prev.selectedPeriods, period]
+    }));
+  };
+
+  const toggleDietary = (diet: string) => {
+    setFormData(prev => ({
+      ...prev,
+      dietary: prev.dietary.includes(diet)
+        ? prev.dietary.filter(d => d !== diet)
+        : [...prev.dietary, diet]
+    }));
+  };
+
+  const getDateString = () => {
+    if (formData.dateMode === "exact") return `${formData.dateFrom} — ${formData.dateTo}`;
+    if (formData.dateMode === "flexible-month") return formData.selectedMonths.join(", ");
+    return formData.selectedPeriods.join(", ");
+  };
+
+  const isDateValid = () => {
+    if (formData.dateMode === "exact") return formData.dateFrom && formData.dateTo;
+    if (formData.dateMode === "flexible-month") return formData.selectedMonths.length > 0;
+    return formData.selectedPeriods.length > 0;
+  };
+
+  const doFinalSubmit = () => {
+    const quizAnswersArray = [`path_${selectedPath}`, ...questions.map((_, i) => answers[i] || "")];
+    const durationMap: Record<string, number> = { "weekend": 4, "week": 7, "10-14": 12, "long": 15 };
+
+    const enrichedConstraints = [
+      formData.constraints,
+      formData.accommodation ? `accommodation: ${formData.accommodation}` : '',
+      formData.food ? `food: ${formData.food}` : '',
+      formData.effort ? `effort: ${formData.effort}` : '',
+      formData.dietary.length > 0 ? `dietary: ${formData.dietary.join(', ')}` : '',
+    ].filter(Boolean).join(' | ');
+
+    submitMutation.mutate({
+      answers: quizAnswersArray,
+      budget: formData.budget,
+      departure: formData.departure,
+      days: durationMap[formData.duration] || 7,
+      leaveDate: getDateString(),
+      companions: formData.companions,
+      constraints: enrichedConstraints,
+    });
+  };
+
+  const handleFinalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.budget || !isDateValid() || !formData.duration || !formData.departure || !formData.companions) {
+      toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
+      return;
+    }
+    startAnalyzing();
+  };
+
+  const toggleChip = (chip: string) => {
+    const q = currentQ as ChipsQuestion;
+    setChipSelections(prev => {
+      const current = prev[step] || [];
+      if (q.multi) {
+        if (current.includes(chip)) return { ...prev, [step]: current.filter(c => c !== chip) };
+        if (q.max && current.length >= q.max) return { ...prev, [step]: [...current.slice(1), chip] };
+        return { ...prev, [step]: [...current, chip] };
+      } else {
+        return { ...prev, [step]: current.includes(chip) ? [] : [chip] };
+      }
+    });
+  };
+
+  const selectImage = (value: string) => {
+    setImageSelections(prev => {
+      if (prev.includes(value)) return prev.filter(v => v !== value);
+      if (prev.length >= 2) return [...prev.slice(1), value];
+      return [...prev, value];
+    });
+  };
+
+  const Nav = () => (
+    <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-2 backdrop-blur-xl transition-colors duration-300" style={{ background: 'var(--nav-bg)', borderBottom: '1px solid var(--nav-border)' }}>
+      <Link href="/" className="flex items-center gap-2.5 no-underline text-[var(--text-primary)]" data-testid="link-home">
+        <MindRouteLogo />
+        <span className="font-serif text-[18px]">MindRoute</span>
+      </Link>
+      <div className="flex items-center gap-3">
+        <ThemeToggle />
+        <LangDropdown />
+        <Link href="/" className="hidden sm:inline-flex px-4 py-[7px] border border-[var(--border-input)] text-[var(--text-secondary)] rounded-full text-[13px] no-underline hover:border-[#E94560] hover:text-[#E94560] transition-all bg-transparent cursor-pointer" data-testid="link-exit">
+          {t('nav.saveExit')}
+        </Link>
+        <Link href="/" className="sm:hidden flex items-center justify-center w-8 h-8 rounded-full border border-[var(--border-input)] text-[var(--text-secondary)] no-underline hover:border-[#E94560] hover:text-[#E94560] transition-all" data-testid="link-exit-mobile">
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+      </div>
+    </nav>
+  );
+
+  const TopProgressBar = () => (
+    <div className="fixed top-[57px] left-0 right-0 z-[99] pt-10 pb-4 px-4 md:px-8 transition-colors duration-300" style={{ background: 'var(--surface)' }}>
+      <div className="relative flex items-center justify-center max-w-[700px] mx-auto">
+        <span className="absolute left-0 text-[11px] font-bold tracking-[2px] uppercase text-[#E94560] hidden sm:block" data-testid="text-section-label">
+          {currentQ?.section}
+        </span>
+        <div className="flex items-center gap-[6px] w-full max-w-[320px]">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => i < step && goToStep(i)}
+              data-testid={`progress-step-${i + 1}`}
+              className="flex-1 border-none p-0 rounded-full transition-all duration-500"
+              style={{
+                height: i === step ? 7 : 5,
+                background: i <= step ? '#E94560' : 'var(--border-subtle)',
+                opacity: i < step ? 0.5 : 1,
+                cursor: i < step ? 'pointer' : 'default',
+                boxShadow: i === step ? '0 0 10px rgba(233,69,96,0.35)' : 'none'
+              }}
+            />
+          ))}
+        </div>
+        <span className="absolute right-0 text-[14px] text-[var(--text-secondary)] font-semibold tabular-nums" data-testid="text-step-counter">
+          {step + 1}<span className="text-[var(--text-muted)] font-normal">/7</span>
+        </span>
+      </div>
+    </div>
+  );
+
+  if (showSplit) {
+    return (
+      <div
+        className={`fixed inset-0 z-[300] flex flex-col transition-all duration-600 ${splitExiting ? 'opacity-0' : 'opacity-100'}`}
+        style={{ background: 'var(--surface-alt)' }}
+        data-testid="split-overlay"
+      >
+        <Nav />
+
+        <style>{`
+          @keyframes introDrift { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+          @keyframes introBreath { 0%,100% { opacity: 0.08; } 50% { opacity: 0.14; } }
+          @keyframes introFloat1 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(12px,-18px) rotate(8deg); } }
+          @keyframes introFloat2 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-15px,14px) rotate(-6deg); } }
+        `}</style>
+
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
+          <path d="M-20 120 C 200 60, 450 220, 720 140 S 1050 30, 1300 160 S 1420 250, 1460 120" fill="none" stroke="#E94560" strokeWidth="2" opacity="0.18" style={{ animation: 'introDrift 8s ease-in-out infinite' }} />
+          <path d="M-20 780 C 250 720, 480 840, 700 760 S 980 680, 1200 800 S 1380 860, 1460 780" fill="none" stroke="#E94560" strokeWidth="2" opacity="0.15" style={{ animation: 'introDrift 10s ease-in-out infinite 1s' }} />
+          <circle cx="720" cy="140" r="6" fill="#E94560" style={{ animation: 'introBreath 4s ease-in-out infinite' }} />
+          <circle cx="700" cy="760" r="6" fill="#E94560" style={{ animation: 'introBreath 5.5s ease-in-out infinite 0.5s' }} />
+        </svg>
+
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <svg viewBox="0 0 120 120" fill="none" className="w-[280px] h-[280px] md:w-[500px] md:h-[500px] opacity-[0.04]">
+            <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" />
+            <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" />
+            <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" />
+            <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" />
+            <ellipse cx="60" cy="60" rx="5" ry="6" fill="#E94560" />
+            <path d="M58 66L60 108L62 66" fill="#E94560" />
+            <circle cx="60" cy="48" r="3.5" fill="#E94560" />
+          </svg>
+        </div>
+
+        <svg className="hidden md:block absolute top-[8%] left-[6%] pointer-events-none opacity-[0.18]" width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.2" strokeLinecap="round" style={{ animation: 'introFloat1 7s ease-in-out infinite' }}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+        </svg>
+
+        <svg className="hidden md:block absolute bottom-[10%] right-[7%] pointer-events-none opacity-[0.16]" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.3" strokeLinecap="round" style={{ animation: 'introFloat2 9s ease-in-out infinite 0.5s' }}>
+          <polygon points="3 11 22 2 13 21 11 13 3 11" />
+        </svg>
+
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 md:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="text-center max-w-[700px]"
+          >
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-6">
+              {t('split.label')}
+            </span>
+
+            <h1 className="font-serif text-[clamp(28px,5vw,46px)] leading-[1.2] tracking-tight mb-4 text-[var(--text-primary)]">
+              <span dangerouslySetInnerHTML={{ __html: t('split.title') }} />
+            </h1>
+
+            <p className="text-[15px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-10">
+              {t('split.hint')}
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[560px] mx-auto">
+              <button
+                onClick={() => choosePath('a')}
+                data-testid="button-path-a"
+                className="bg-[var(--surface-card)] border-2 border-[var(--border-input)] rounded-[20px] p-8 md:p-10 text-center cursor-pointer transition-all duration-400 hover:border-[#E94560] hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(233,69,96,0.1)] group"
+              >
+                <div className="w-14 h-14 rounded-full bg-[rgba(233,69,96,0.07)] flex items-center justify-center mx-auto mb-5">
+                  <QuestionIcon className="w-7 h-7 text-[#E94560]" />
+                </div>
+                <h3 className="font-serif text-[20px] mb-2 text-[var(--text-primary)]">{t('split.a.title')}</h3>
+                <p className="text-[13px] text-[var(--text-secondary)] font-light leading-[1.6]">{t('split.a.desc')}</p>
+              </button>
+
+              <button
+                onClick={() => choosePath('b')}
+                data-testid="button-path-b"
+                className="bg-[var(--surface-card)] border-2 border-[var(--border-input)] rounded-[20px] p-8 md:p-10 text-center cursor-pointer transition-all duration-400 hover:border-[#E94560] hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(233,69,96,0.1)] group"
+              >
+                <div className="w-14 h-14 rounded-full bg-[rgba(233,69,96,0.07)] flex items-center justify-center mx-auto mb-5">
+                  <MapPin className="w-7 h-7 text-[#E94560]" />
+                </div>
+                <h3 className="font-serif text-[20px] mb-2 text-[var(--text-primary)]">{t('split.b.title')}</h3>
+                <p className="text-[13px] text-[var(--text-secondary)] font-light leading-[1.6]">{t('split.b.desc')}</p>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-center gap-6 mt-10 flex-wrap">
+              {[t('intro.questions'), t('intro.time'), t('intro.private')].map((chip, i) => (
+                <span key={i} className="text-[12px] text-[var(--text-muted)] font-medium tracking-wide uppercase">
+                  {chip}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        <footer className="relative z-10 px-4 md:px-8 py-6 flex items-center justify-between">
+          <span className="text-[12px] md:text-[13px] text-[var(--text-muted)] font-light italic max-w-[70%]">
+            "{t('intro.quote')}"
+          </span>
+          <div className="hidden sm:flex items-center gap-4 text-[12px] text-[var(--text-muted)]">
+            <span>{t('nav.privacy')}</span>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  if (showAnalyzing) {
+    return (
+      <div className="fixed inset-0 z-[300] flex items-center justify-center transition-colors duration-300" style={{ background: 'var(--surface)' }}>
+        <div className="text-center max-w-[440px] px-6">
+          <h2 className="font-serif text-[28px] leading-[1.3] mb-5 text-[var(--text-primary)]">
+            <span dangerouslySetInnerHTML={{ __html: t('analyze.title') }} />
+          </h2>
+          <div className="flex gap-2 justify-center mb-6">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="w-2.5 h-2.5 rounded-full bg-[#E94560]" style={{
+                animation: `analyzeDot 1.4s ease-in-out infinite ${i * 0.2}s`
+              }} />
+            ))}
+          </div>
+          <style>{`@keyframes analyzeDot { 0%,80%,100% { opacity:.2; transform:scale(.8); } 40% { opacity:1; transform:scale(1.2); } }`}</style>
+          <div className="flex flex-wrap gap-2 justify-center mt-5">
+            {visibleTraits.map((trait, i) => (
+              <motion.span
+                key={trait}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="text-[12px] px-3.5 py-1.5 rounded-full bg-[rgba(233,69,96,0.07)] text-[#E94560] font-medium"
+              >
+                {trait}
+              </motion.span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showForm) {
+    const formSidebarContent = () => {
+      const configs: Record<string, { title: string; desc: string }> = {
+        budget: { title: t('form.sidebarBudgetTitle'), desc: t('form.sidebarBudgetDesc') },
+        dates: { title: t('form.sidebarDateTitle'), desc: t('form.sidebarDateDesc') },
+        duration: { title: t('form.sidebarDurationTitle'), desc: t('form.sidebarDurationDesc') },
+        departure: { title: t('form.sidebarDepartureTitle'), desc: t('form.sidebarDepartureDesc') },
+        companions: { title: t('form.sidebarCompanionsTitle'), desc: t('form.sidebarCompanionsDesc') },
+        accommodation: { title: t('form.sidebarAccommodationTitle'), desc: t('form.sidebarAccommodationDesc') },
+        food: { title: t('form.sidebarFoodTitle'), desc: t('form.sidebarFoodDesc') },
+        effort: { title: t('form.sidebarEffortTitle'), desc: t('form.sidebarEffortDesc') },
+        constraints: { title: t('form.sidebarConstraintsTitle'), desc: t('form.sidebarConstraintsDesc') },
+      };
+      const c = configs[formFocus] || configs.budget;
+      return c;
+    };
+
+    const sideInfo = formSidebarContent();
+
+    const FormChip = ({ label, selected, onClick, testId }: { label: string; selected: boolean; onClick: () => void; testId: string }) => (
+      <button
+        type="button"
+        data-testid={testId}
+        onClick={onClick}
+        className={`px-5 py-3 rounded-full text-[14px] border-[1.5px] transition-all duration-300 cursor-pointer ${selected
+          ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)]'
+          : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560] hover:text-[var(--text-primary)] hover:-translate-y-0.5'
+          }`}
+      >
+        {label}
+      </button>
+    );
+
+    return (
+      <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
+        <Nav />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] min-h-screen" style={{ paddingTop: 80 }}>
+          <main className="relative py-12 px-4 sm:px-14 pb-[100px] max-w-[740px]">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-5">
+                {t('form.step')}
+              </span>
+              <h1 className="font-serif text-[clamp(24px,3.5vw,34px)] leading-[1.3] tracking-tight mb-2 text-[var(--text-primary)]">
+                {t('form.title')}
+              </h1>
+              <p className="text-[14px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-10">
+                {t('form.desc')}
+              </p>
+
+              <form onSubmit={handleFinalSubmit} className="space-y-10">
+                <div onFocus={() => setFormFocus('budget')}>
+                  <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.budget')}</h3>
+                  <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.budgetSub')}</p>
+                  <div className="flex flex-wrap gap-2.5">
+                    {[['low', t('form.budgetLow')], ['medium', t('form.budgetMed')], ['high', t('form.budgetHigh')], ['unlimited', t('form.budgetUnlimited')]].map(([val, label]) => (
+                      <FormChip key={val} label={label} selected={formData.budget === val} onClick={() => setFormData(p => ({ ...p, budget: val }))} testId={`budget-${val}`} />
+                    ))}
+                  </div>
+                </div>
+
+                <div onFocus={() => setFormFocus('dates')}>
+                  <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.when')}</h3>
+                  <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.whenSub')}</p>
+                  <div className="flex gap-2 mb-4 flex-wrap">
+                    {(['exact', 'flexible-month', 'flexible-period'] as const).map(mode => (
+                      <button key={mode} type="button" onClick={() => setFormData(p => ({ ...p, dateMode: mode }))}
+                        data-testid={`date-mode-${mode}`}
+                        className={`px-4 py-2 rounded-full text-[13px] border transition-all cursor-pointer ${formData.dateMode === mode ? 'border-[#E94560] text-[#E94560] bg-[rgba(233,69,96,0.07)] font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-transparent hover:border-[#E94560]'}`}
+                      >
+                        {mode === 'exact' ? t('form.dateExact') : mode === 'flexible-month' ? t('form.dateFlexMonth') : t('form.dateFlexPeriod')}
+                      </button>
+                    ))}
+                  </div>
+                  {formData.dateMode === 'exact' && (
+                    <div className="flex gap-3 flex-wrap">
+                      <div className="flex-1 min-w-[140px]">
+                        <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateFrom')}</label>
+                        <input type="date" data-testid="input-date-from" value={formData.dateFrom} onChange={e => setFormData(p => ({ ...p, dateFrom: e.target.value }))}
+                          className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
+                      </div>
+                      <div className="flex-1 min-w-[140px]">
+                        <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateTo')}</label>
+                        <input type="date" data-testid="input-date-to" value={formData.dateTo} onChange={e => setFormData(p => ({ ...p, dateTo: e.target.value }))}
+                          className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
+                      </div>
+                    </div>
+                  )}
+                  {formData.dateMode === 'flexible-month' && (
+                    <>
+                      <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.dateMonthSub')}</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {months.map((m, i) => (
+                          <button key={i} type="button" data-testid={`month-${monthKeys[i]}`} onClick={() => toggleMonth(m)}
+                            className={`px-3 py-2.5 rounded-xl text-[13px] border transition-all cursor-pointer ${formData.selectedMonths.includes(m) ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}
+                          >{m}</button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {formData.dateMode === 'flexible-period' && (
+                    <>
+                      <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.datePeriodSub')}</p>
+                      <div className="flex flex-wrap gap-2.5">
+                        {[['Spring', t('form.periodSpring')], ['Summer', t('form.periodSummer')], ['Autumn', t('form.periodAutumn')], ['Winter', t('form.periodWinter')], ['Anytime', t('form.periodAnytime')]].map(([val, label]) => (
+                          <FormChip key={val} label={label} selected={formData.selectedPeriods.includes(val)} onClick={() => togglePeriod(val)} testId={`period-${val.toLowerCase()}`} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div onFocus={() => setFormFocus('duration')}>
+                  <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.duration')}</h3>
+                  <div className="flex flex-wrap gap-2.5 mt-3">
+                    {[['weekend', t('form.durationWeekend')], ['week', t('form.durationWeek')], ['10-14', t('form.duration1014')], ['long', t('form.durationLong')]].map(([val, label]) => (
+                      <FormChip key={val} label={label} selected={formData.duration === val} onClick={() => setFormData(p => ({ ...p, duration: val }))} testId={`duration-${val}`} />
+                    ))}
+                  </div>
+                </div>
+
+                <div onFocus={() => setFormFocus('departure')}>
+                  <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.departure')}</h3>
+                  <input type="text" data-testid="input-departure" value={formData.departure} onChange={e => setFormData(p => ({ ...p, departure: e.target.value }))} placeholder={t('form.departurePlaceholder')}
+                    className="w-full mt-2 px-5 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl text-[15px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_4px_20px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all" />
+                </div>
+
+                <div onFocus={() => setFormFocus('companions')}>
+                  <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.companions')}</h3>
+                  <div className="flex flex-wrap gap-2.5 mt-3">
+                    {[['solo', t('form.solo')], ['couple', t('form.partner')], ['friends', t('form.friends')], ['family', t('form.family')]].map(([val, label]) => (
+                      <FormChip key={val} label={label} selected={formData.companions === val} onClick={() => setFormData(p => ({ ...p, companions: val }))} testId={`companions-${val}`} />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-[var(--border-input)] pt-8">
+                  <p className="text-[11px] font-semibold tracking-[2px] uppercase text-[#E94560] mb-6 opacity-70">
+                    {selectedPath === 'a' ? 'Optional details' : 'Refine your trip'}
+                  </p>
+
+                  <div className="space-y-8" onFocus={() => setFormFocus('accommodation')}>
+                    <div>
+                      <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.accommodation')}</h3>
+                      <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.accommodationSub')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[['hostel', t('form.accHostel')], ['budget', t('form.accBudget')], ['mid', t('form.accMid')], ['boutique', t('form.accBoutique')], ['luxury', t('form.accLuxury')], ['mix', t('form.accMix')]].map(([val, label]) => (
+                          <FormChip key={val} label={label} selected={formData.accommodation === val} onClick={() => setFormData(p => ({ ...p, accommodation: val }))} testId={`acc-${val}`} />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div onFocus={() => setFormFocus('food')}>
+                      <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.food')}</h3>
+                      <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.foodSub')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[['street', t('form.foodStreet')], ['budget', t('form.foodBudget')], ['mid', t('form.foodMid')], ['foodie', t('form.foodFoodie')], ['mix', t('form.foodMix')]].map(([val, label]) => (
+                          <FormChip key={val} label={label} selected={formData.food === val} onClick={() => setFormData(p => ({ ...p, food: val }))} testId={`food-${val}`} />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div onFocus={() => setFormFocus('effort')}>
+                      <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.effort')}</h3>
+                      <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.effortSub')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[['low', t('form.effortLow')], ['normal', t('form.effortNormal')], ['high', t('form.effortHigh')], ['extreme', t('form.effortExtreme')]].map(([val, label]) => (
+                          <FormChip key={val} label={label} selected={formData.effort === val} onClick={() => setFormData(p => ({ ...p, effort: val }))} testId={`effort-${val}`} />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.dietary')}</h3>
+                      <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.dietarySub')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {[['none', t('form.dietNone')], ['vegetarian', t('form.dietVegetarian')], ['vegan', t('form.dietVegan')], ['gluten', t('form.dietGluten')], ['lactose', t('form.dietLactose')], ['halal', t('form.dietHalal')], ['kosher', t('form.dietKosher')], ['allergies', t('form.dietAllergies')]].map(([val, label]) => (
+                          <FormChip key={val} label={label} selected={formData.dietary.includes(val)} onClick={() => toggleDietary(val)} testId={`diet-${val}`} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div onFocus={() => setFormFocus('constraints')}>
+                  <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.constraints')}</h3>
+                  <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.constraintsSub')}</p>
+                  <textarea data-testid="input-constraints" value={formData.constraints} onChange={e => setFormData(p => ({ ...p, constraints: e.target.value }))} placeholder={t('form.constraintsPlaceholder')}
+                    className="w-full px-5 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl text-[14px] leading-[1.7] text-[var(--text-primary)] outline-none resize-none min-h-[90px] focus:border-[#E94560] focus:shadow-[0_4px_20px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all" />
+                </div>
+
+                <div className="flex items-center justify-between pt-4">
+                  <button type="button" onClick={goBack} data-testid="button-form-back"
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border-none cursor-pointer rounded-lg hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] transition-all">
+                    <ArrowLeft className="w-4 h-4" /> {t('q.back')}
+                  </button>
+                  <button type="submit" data-testid="button-submit"
+                    className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_4px_20px_rgba(233,69,96,0.2)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(233,69,96,0.3)] transition-all group">
+                    {t('form.discover')}
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </main>
+
+          <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[80px] h-[calc(100vh-80px)] justify-center pr-7 py-12 overflow-y-auto">
+            <div className="bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both' }}>
+              <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
+                <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
+                {sideInfo.title}
+              </div>
+              <p className="text-[13px] text-[var(--text-secondary)] leading-[1.7] font-light">{sideInfo.desc}</p>
+            </div>
+            <div className="flex items-start gap-2 p-3.5 bg-[var(--surface-alt)] rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both' }}>
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              {t('sidebar.privacy')}
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
+
+  const renderQuestionInput = () => {
+    if (!currentQ) return null;
+
+    if (currentQ.type === 'text') {
+      return (
+        <div>
+          <textarea
+            ref={textareaRef}
+            data-testid="input-answer"
+            placeholder={currentQ.placeholder}
+            value={answers[step] || ''}
+            onChange={(e) => setAnswers(prev => ({ ...prev, [step]: e.target.value }))}
+            className="w-full min-h-[140px] p-5 text-[15px] leading-[1.8] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl resize-vertical outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
+          />
+          <div className="flex justify-between mt-2 text-[12px] text-[var(--text-muted)]">
+            <span>{(currentQ as TextQuestion).optional ? t('q.optional') : t('q.writeTrue')}</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentQ.type === 'chips') {
+      const q = currentQ as ChipsQuestion;
+      const selected = chipSelections[step] || [];
+      return (
+        <>
+          <div className="flex flex-wrap gap-2.5">
+            {q.options.map(opt => (
+              <button
+                key={opt}
+                type="button"
+                data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
+                onClick={() => toggleChip(opt)}
+                className={`px-5 py-3 rounded-full text-[14px] border-[1.5px] transition-all duration-300 cursor-pointer select-none ${selected.includes(opt)
+                  ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)] scale-[1.02]'
+                  : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560] hover:text-[var(--text-primary)] hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(233,69,96,0.08)]'
+                  }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          {q.max && (
+            <div className="text-center mt-3 text-[13px] text-[var(--text-muted)]">
+              <span className="text-[#E94560] font-semibold">{selected.length}</span>/{q.max} {t('q.selected')}
+            </div>
+          )}
+          {q.addendum && (
+            <textarea
+              data-testid="input-addendum"
+              placeholder={q.addendum}
+              value={answers[`${step}_addendum`] || ''}
+              onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
+              className={`w-full p-4 text-[14px] leading-[1.6] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-xl resize-none outline-none min-h-[60px] transition-all duration-500 focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic ${selected.length > 0 ? 'opacity-100 max-h-[120px] mt-4' : 'opacity-0 max-h-0 overflow-hidden mt-0'}`}
+            />
+          )}
+        </>
+      );
+    }
+
+    if (currentQ.type === 'images') {
+      return (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            {currentQ.options.map(opt => {
+              const isSelected = imageSelections.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  data-testid={`image-${opt.value}`}
+                  onClick={() => selectImage(opt.value)}
+                  className={`relative rounded-[18px] overflow-hidden cursor-pointer border-[3px] transition-all duration-400 shadow-[0_4px_24px_rgba(26,26,46,0.07)] group text-left ${isSelected
+                    ? 'border-[#E94560] shadow-[0_8px_40px_rgba(233,69,96,0.15)]'
+                    : 'border-transparent hover:border-[rgba(233,69,96,0.35)] hover:shadow-[0_14px_48px_rgba(26,26,46,0.14)] hover:-translate-y-[5px]'
+                    }`}
+                >
+                  <img src={opt.src} alt={opt.label} loading="eager"
+                    className={`w-full h-[150px] md:h-[210px] object-cover block transition-all duration-600 ${isSelected ? 'scale-[1.03]' : 'group-hover:scale-[1.06] group-hover:brightness-[1.08] group-hover:saturate-[1.1]'}`}
+                  />
+                  <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'bg-gradient-to-b from-[rgba(233,69,96,0.06)] to-[rgba(233,69,96,0.22)]' : 'bg-gradient-to-b from-transparent via-transparent to-[rgba(0,0,0,0.5)]'}`} />
+                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-[2]">
+                    <span className="text-[14px] font-medium tracking-wide">{opt.label}</span>
+                    <small className="block text-[11px] font-light opacity-75 mt-0.5">{opt.sub}</small>
+                  </div>
+                  <div className={`absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-[#E94560] flex items-center justify-center shadow-[0_4px_16px_rgba(233,69,96,0.35)] z-[3] transition-all duration-400 ${isSelected ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-[0.3] -rotate-45'}`} style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+                    <Check className="w-[15px] h-[15px] text-white" strokeWidth={3} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="text-center mt-3.5 text-[13px] text-[#A09BA8] transition-all" data-testid="text-img-counter">
+            {imageSelections.length > 0 ? (
+              <><span className="text-[#E94560] font-semibold">{imageSelections.length}</span>/2 {t('q.selected')}</>
+            ) : (
+              t('q.selectImages')
+            )}
+          </div>
+        </>
+      );
+    }
+
+    if (currentQ.type === 'slider') {
+      const labelIdx = Math.round(sliderValue / 100 * 6);
+      return (
+        <>
+          <div className="bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] p-[36px_30px] shadow-[0_2px_16px_rgba(26,26,46,0.03)]">
+            <div className="flex justify-between mb-8">
+              <span className="text-[12px] text-[var(--text-secondary)] max-w-[120px] leading-[1.4]">{t('slider.left')}</span>
+              <span className="text-[12px] text-[var(--text-secondary)] max-w-[120px] leading-[1.4] text-right">{t('slider.right')}</span>
+            </div>
+            <SliderTrack value={sliderValue} onChange={setSliderValue} />
+            <div className="flex justify-between mt-3 px-1">
+              {[0, 1, 2, 3, 4, 5, 6].map(n => (
+                <div key={n} className="w-0.5 h-2 rounded-sm transition-colors duration-300" style={{ background: n <= Math.round(sliderValue / 100 * 6) ? '#E94560' : 'var(--border-input)' }} />
+              ))}
+            </div>
+            <div className="text-center mt-5 font-serif text-[16px] text-[#E94560] italic min-h-[26px]">
+              {sliderLabels[labelIdx]}
+            </div>
+          </div>
+          <textarea
+            data-testid="input-slider-addendum"
+            placeholder={t('slider.addendum')}
+            value={answers[`${step}_addendum`] || ''}
+            onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
+            className="w-full mt-6 p-4 text-[14px] leading-[1.6] text-[var(--text-primary)] bg-[var(--surface)] border-[1.5px] border-[var(--border-input)] rounded-xl resize-none outline-none min-h-[60px] focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
+          />
+        </>
+      );
+    }
+
+    return null;
+  };
+
+  const renderProfileSoFar = () => {
+    if (step === 0) return null;
+    const entries: { idx: number; section: string; text: string }[] = [];
+    for (let j = 0; j < step; j++) {
+      const a = answers[j];
+      if (a != null && a !== '') {
+        const txt = typeof a === 'string' ? (a.length > 55 ? a.substring(0, 55) + '…' : a) : '' + a;
+        entries.push({ idx: j, section: questions[j].section, text: txt });
+      }
+    }
+    if (entries.length === 0) return null;
+
+    return (
+      <div className="mt-1">
+        <div className="text-[10px] font-semibold tracking-[2px] uppercase text-[#E94560] mb-2.5 opacity-65">{t('sidebar.profileSoFar')}</div>
+        {entries.map((entry, i) => (
+          <div
+            key={entry.idx}
+            className="px-3.5 py-2.5 bg-[var(--surface)] rounded-[10px] mb-1.5 text-[12px] text-[var(--text-secondary)] leading-[1.5] font-light border-l-2 border-[#E94560] opacity-55"
+            style={{ animation: `sidebarIn 0.3s ease ${i * 0.06}s both` }}
+          >
+            <b className="font-medium text-[var(--text-primary)] text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} · {entry.section}</b>
+            {entry.text}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
+      <svg className="fixed inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none" viewBox="0 0 1440 900">
+        <path d="M-20 180 C 200 120, 400 280, 620 200 S 900 80, 1100 220 S 1350 340, 1460 180" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.04" />
+        <path d="M-20 400 C 180 340, 350 500, 580 420 S 820 300, 1050 440 S 1300 560, 1460 400" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.035" />
+        <path d="M-20 650 C 220 590, 440 720, 660 640 S 920 520, 1140 660 S 1380 770, 1460 650" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.03" />
+      </svg>
+
+      <style>{`
+        @keyframes sidebarIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes dotPulse { 0%, 100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.25); opacity: 0; } }
+      `}</style>
+
+      <Nav />
+      <TopProgressBar />
+
+      <AnimatePresence>
+        {reaction && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.7, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, scale: 1.05, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 1 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-serif text-[34px] italic text-[#E94560] pointer-events-none z-[200]"
+          >
+            {reaction}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[72px_1fr_300px] min-h-screen" style={{ paddingTop: 120 }}>
+        <aside className="hidden lg:flex flex-col items-center justify-center gap-0 sticky top-[120px] h-[calc(100vh-120px)] py-10">
+          {questions.map((_, i) => (
+            <div key={i} className="flex flex-col items-center relative group">
+              <button
+                onClick={() => goToStep(i)}
+                data-testid={`step-${i + 1}`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold z-[2] relative transition-all duration-450 ${i === step
+                  ? 'bg-[#E94560] text-white shadow-[0_4px_20px_rgba(233,69,96,0.15)] scale-[1.2]'
+                  : i < step
+                    ? 'bg-[#E94560] text-white opacity-60 hover:opacity-90 hover:scale-[1.08]'
+                    : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[1.5px] border-[var(--border-input)]'
+                  }`}
+              >
+                {i + 1}
+                {i === step && (
+                  <span className="absolute inset-[-6px] rounded-full border-2 border-[#E94560] opacity-20" style={{ animation: 'dotPulse 2s ease-in-out infinite' }} />
+                )}
+              </button>
+              {i < step && answers[i] && (
+                <div className="absolute left-[52px] top-1/2 -translate-y-1/2 bg-[#1A1A2E] text-white text-[11px] font-normal px-3 py-1.5 rounded-lg whitespace-nowrap max-w-[180px] overflow-hidden text-ellipsis opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-250 z-10">
+                  <span className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-[#1A1A2E]" />
+                  {typeof answers[i] === 'string' && answers[i].length > 30 ? answers[i].substring(0, 30) + '…' : answers[i]}
+                </div>
+              )}
+              {i < questions.length - 1 && (
+                <div className={`w-0.5 h-6 rounded-sm transition-all duration-500 ${i < step ? 'bg-[#E94560] opacity-35' : 'bg-[#EDEBE8]'}`} />
+              )}
+            </div>
+          ))}
+        </aside>
+
+        <main className="relative py-12 px-6 sm:px-14 pb-[140px] max-w-[740px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: 32, scale: 0.97, filter: 'blur(6px)' }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -18, scale: 0.98 }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              className="relative z-20"
+            >
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-5">
+                <Info className="w-3 h-3" />
+                {t('q.label')} {String(step + 1).padStart(2, '0')}
+              </span>
+
+              <h1 className="font-serif text-[clamp(26px,3.8vw,36px)] leading-[1.3] tracking-tight mb-3.5 text-[var(--text-primary)]">
+                <span dangerouslySetInnerHTML={{
+                  __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
+                }} />
+              </h1>
+
+              <p className="text-[15px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-9">
+                {currentQ.hint}
+              </p>
+
+              {renderQuestionInput()}
+
+              <div className="flex items-center justify-between mt-10">
+                <button
+                  onClick={goBack}
+                  data-testid="button-back"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border-none cursor-pointer rounded-lg hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] transition-all"
+                >
+                  <ArrowLeft className="w-4 h-4" /> {t('q.back')}
+                </button>
+                <button
+                  onClick={handleNext}
+                  disabled={!canContinue()}
+                  data-testid="button-continue"
+                  className="inline-flex items-center gap-2 px-[34px] py-[15px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_4px_20px_rgba(233,69,96,0.2)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(233,69,96,0.3)] disabled:bg-[#ccc] disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none transition-all group"
+                >
+                  {t('q.continue')}
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:enabled:translate-x-1" />
+                </button>
+              </div>
+
+              <div className="lg:hidden mt-6">
+                <button
+                  onClick={() => setMobileWhyOpen(!mobileWhyOpen)}
+                  className="flex items-center gap-1.5 text-[13px] font-medium text-[#E94560] cursor-pointer py-2.5 border-none bg-transparent"
+                >
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${mobileWhyOpen ? 'rotate-180' : ''}`} />
+                  {t('sidebar.whyThis')}
+                </button>
+                <div className={`overflow-hidden transition-all duration-400 ${mobileWhyOpen ? 'max-h-[200px]' : 'max-h-0'}`}>
+                  <div className="p-4 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[13px] text-[var(--text-secondary)] leading-[1.7] font-light">
+                    {currentQ.why}
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      {currentQ.tags.map(tag => (
+                        <span key={tag} className="text-[10px] px-2.5 py-1 rounded-full bg-[rgba(233,69,96,0.07)] text-[#E94560] font-semibold tracking-[0.2px]">{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[120px] h-[calc(100vh-120px)] justify-center pr-7 py-12 overflow-y-auto">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both' }}>
+            <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
+              <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
+              {t('sidebar.whyThis')}
+            </div>
+            <p className="text-[13px] text-[var(--text-secondary)] leading-[1.7] font-light">{currentQ.why}</p>
+          </div>
+
+          <div className="bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.25s both' }}>
+            <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
+              <MapPin className="w-4 h-4 text-[#E94560] shrink-0" />
+              {t('sidebar.mapping')}
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {currentQ.tags.map(tag => (
+                <span key={tag} className="text-[10px] px-3 py-1 rounded-full bg-[rgba(233,69,96,0.07)] text-[#E94560] font-semibold tracking-[0.2px]">{tag}</span>
+              ))}
+            </div>
+          </div>
+
+          {renderProfileSoFar()}
+
+          <div className="flex items-start gap-2 p-3.5 bg-[var(--surface-alt)] rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both' }}>
+            <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            {t('sidebar.privacy')}
+          </div>
+        </aside>
+      </div>
+
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 hidden sm:flex items-center gap-2 text-[12px] text-[var(--text-muted)] opacity-40 z-50">
+        {t('q.pressEnter')} <span className="inline-flex px-2 py-[3px] bg-[var(--surface-card)] border border-[var(--border-input)] rounded text-[11px] font-semibold text-[var(--text-secondary)] shadow-[0_1px_2px_rgba(0,0,0,0.06)]">Enter</span> {t('q.toContinue')}
+      </div>
+    </div>
+  );
+}
+
+function FormChip({ label, selected, onClick, testId }: { label: string; selected: boolean; onClick: () => void; testId: string }) {
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      onClick={onClick}
+      className={`px-5 py-3 rounded-full text-[14px] border-[1.5px] transition-all duration-300 cursor-pointer ${selected
+        ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)]'
+        : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560] hover:text-[var(--text-primary)] hover:-translate-y-0.5'
+        }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function SliderTrack({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const updateFromEvent = useCallback((clientX: number) => {
+    if (!trackRef.current) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    onChange(Math.round(pct));
+  }, [onChange]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      updateFromEvent(x);
+    };
+    const handleUp = () => setIsDragging(false);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('touchmove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+    document.addEventListener('touchend', handleUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+      document.removeEventListener('touchend', handleUp);
+    };
+  }, [isDragging, updateFromEvent]);
+
+  return (
+    <div ref={trackRef} className="relative w-full h-1.5 bg-[var(--surface-alt)] rounded-[3px] cursor-pointer" onClick={(e) => updateFromEvent(e.clientX)}>
+      <div className="absolute left-0 top-0 h-full rounded-[3px] transition-[width] duration-150" style={{ width: `${value}%`, background: 'linear-gradient(90deg, #E94560, #F06B83)' }} />
+      <div
+        className="absolute top-1/2 -translate-y-1/2 w-[30px] h-[30px] bg-[var(--surface-card)] border-[3px] border-[#E94560] rounded-full cursor-grab active:cursor-grabbing active:scale-[1.15] z-[2] hover:shadow-[0_0_0_12px_rgba(233,69,96,0.08)] active:shadow-[0_0_0_18px_rgba(233,69,96,0.1)] transition-all"
+        style={{ left: `${value}%`, transform: 'translate(-50%, -50%)' }}
+        onMouseDown={() => setIsDragging(true)}
+        onTouchStart={() => setIsDragging(true)}
+      />
+    </div>
+  );
+}

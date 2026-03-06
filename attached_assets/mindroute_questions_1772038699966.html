@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindRoute — Profiling</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 120 120' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60' fill='%23E94560' opacity='0.85'/%3E%3Cpath d='M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72' fill='%23E94560' opacity='0.55'/%3E%3Cpath d='M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60' fill='%23E94560' opacity='0.85'/%3E%3Cpath d='M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72' fill='%23E94560' opacity='0.55'/%3E%3Cellipse cx='60' cy='60' rx='5' ry='6' fill='%231A1A2E'/%3E%3Cpath d='M58 66L60 108L62 66' fill='%23E94560' opacity='0.7'/%3E%3Ccircle cx='60' cy='48' r='3.5' fill='%231A1A2E'/%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #FDFAF7;
+    --bg-alt: #F5F0EA;
+    --text: #1A1A2E;
+    --text-secondary: #6B6776;
+    --text-hint: #A09BA8;
+    --accent: #E94560;
+    --accent-hover: #D13A52;
+    --accent-soft: rgba(233, 69, 96, 0.08);
+    --card-bg: #FFFFFF;
+    --border: #E8E3DD;
+    --border-focus: #E94560;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ============ NAVBAR ============ */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(253, 250, 247, 0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(232, 227, 221, 0.4);
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  .nav-logo { width: 30px; height: 30px; }
+
+  .nav-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+  }
+
+  .nav-center {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .progress-bar-container {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .progress-segment {
+    width: 28px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: all 0.4s ease;
+  }
+
+  .progress-segment.filled { background: var(--accent); }
+  .progress-segment.current { background: var(--accent); width: 40px; }
+
+  .nav-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+
+  .nav-exit {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    transition: all 0.2s;
+  }
+
+  .nav-exit:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ============ LAYOUT ============ */
+  .page-layout {
+    display: grid;
+    grid-template-columns: 60px 1fr 280px;
+    min-height: 100vh;
+    padding-top: 64px;
+  }
+
+  /* ============ VERTICAL PROGRESS (left) ============ */
+  .vertical-progress {
+    padding: 40px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    justify-content: center;
+  }
+
+  .vp-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .vp-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 2;
+  }
+
+  .vp-dot.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 16px rgba(233, 69, 96, 0.3);
+  }
+
+  .vp-dot.completed {
+    background: var(--accent);
+    color: white;
+    opacity: 0.6;
+  }
+
+  .vp-dot.inactive {
+    background: var(--bg-alt);
+    color: var(--text-hint);
+    border: 1.5px solid var(--border);
+  }
+
+  .vp-line {
+    width: 2px;
+    height: 24px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .vp-line.filled { background: var(--accent); opacity: 0.3; }
+
+  /* ============ MAIN CONTENT (center) ============ */
+  .main-content {
+    padding: 48px 48px 120px;
+    max-width: 720px;
+    position: relative;
+  }
+
+  /* Floating identity words */
+  .floating-words {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .float-word {
+    position: absolute;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text);
+    opacity: 0.06;
+    letter-spacing: 0.5px;
+    transition: opacity 0.8s ease;
+    user-select: none;
+  }
+
+  /* Decorative dots */
+  .deco-dot {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--accent);
+    pointer-events: none;
+  }
+
+  .question-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    padding: 5px 12px;
+    background: var(--accent-soft);
+    border-radius: 100px;
+  }
+
+  .question-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1.3;
+    letter-spacing: -0.5px;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .question-text em {
+    font-style: italic;
+    color: var(--accent);
+    opacity: 0.85;
+  }
+
+  .question-hint {
+    font-size: 15px;
+    color: var(--text-secondary);
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1.7;
+    margin-bottom: 32px;
+  }
+
+  /* Text area */
+  .answer-area {
+    width: 100%;
+    min-height: 160px;
+    padding: 20px 24px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    resize: vertical;
+    outline: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 12px rgba(26, 26, 46, 0.03);
+  }
+
+  .answer-area::placeholder {
+    color: var(--text-hint);
+    font-weight: 300;
+  }
+
+  .answer-area:focus {
+    border-color: var(--accent);
+    box-shadow: 0 4px 24px rgba(233, 69, 96, 0.08);
+  }
+
+  .textarea-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-hint);
+  }
+
+  /* Buttons row */
+  .buttons-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 32px;
+  }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 10px 16px;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+
+  .btn-back:hover { color: var(--text); background: var(--bg-alt); }
+  .btn-back svg { width: 16px; height: 16px; }
+
+  .btn-continue {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px 32px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 20px rgba(233, 69, 96, 0.2);
+  }
+
+  .btn-continue:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(233, 69, 96, 0.3);
+  }
+
+  .btn-continue:disabled {
+    background: #CCC;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-continue svg { width: 16px; height: 16px; transition: transform 0.2s; }
+  .btn-continue:hover svg { transform: translateX(3px); }
+
+  /* Micro-reaction */
+  .micro-reaction {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    font-style: italic;
+    color: var(--accent);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 200;
+    transition: opacity 0.3s ease;
+  }
+
+  .micro-reaction.visible {
+    opacity: 1;
+    animation: reactPulse 1.4s ease-out forwards;
+  }
+
+  @keyframes reactPulse {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -48%) scale(1); }
+  }
+
+  /* ============ SIDEBAR (right) ============ */
+  .sidebar {
+    padding: 48px 24px 48px 0;
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: center;
+  }
+
+  .sidebar-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s ease;
+  }
+
+  .sidebar-card:hover {
+    box-shadow: 0 4px 16px rgba(26, 26, 46, 0.04);
+  }
+
+  .sidebar-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .sidebar-card-header svg { width: 16px; height: 16px; }
+
+  .sidebar-card p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  .mapping-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .mapping-tag {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .sidebar-privacy {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 16px;
+    background: var(--bg-alt);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-hint);
+    line-height: 1.5;
+  }
+
+  .sidebar-privacy svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ============ KEYBOARD HINT ============ */
+  .keyboard-hint {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-hint);
+    opacity: 0.5;
+    z-index: 50;
+  }
+
+  .key-badge {
+    display: inline-flex;
+    padding: 3px 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  /* ============ PRACTICAL FORM (after Q7) ============ */
+  .practical-form {
+    display: none;
+  }
+
+  .practical-form.visible { display: block; }
+
+  .form-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+
+  .form-subtitle {
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 300;
+    margin-bottom: 36px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .form-field { display: flex; flex-direction: column; gap: 6px; }
+  .form-field.full { grid-column: 1 / -1; }
+
+  .form-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .form-input {
+    padding: 14px 18px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    outline: none;
+    transition: all 0.25s ease;
+  }
+
+  .form-input::placeholder { color: var(--text-hint); font-weight: 300; }
+  .form-input:focus { border-color: var(--accent); box-shadow: 0 4px 16px rgba(233, 69, 96, 0.06); }
+
+  .btn-find {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 18px 32px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 24px rgba(233, 69, 96, 0.25);
+    margin-top: 12px;
+  }
+
+  .btn-find:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(233, 69, 96, 0.35);
+  }
+
+  .btn-find svg { width: 18px; height: 18px; }
+
+  /* ============ QUESTION TRANSITION ============ */
+  .question-container {
+    animation: fadeSlideIn 0.5s ease-out;
+  }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1024px) {
+    .page-layout {
+      grid-template-columns: 1fr;
+    }
+    .vertical-progress { display: none; }
+    .sidebar { display: none; }
+    .main-content {
+      padding: 32px 20px 120px;
+      max-width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== NAVBAR ====== -->
+<nav>
+  <a href="index.html" class="nav-brand">
+    <svg class="nav-logo" viewBox="0 0 120 120" fill="none">
+      <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+      <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+      <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+      <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+      <ellipse cx="60" cy="60" rx="5" ry="6" fill="#1A1A2E"/>
+      <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7"/>
+      <circle cx="60" cy="48" r="3.5" fill="#1A1A2E"/>
+    </svg>
+    <span class="nav-name">MindRoute</span>
+  </a>
+
+  <div class="nav-center">
+    <div class="progress-bar-container" id="progressBar"></div>
+    <span class="nav-count" id="navCount">1 / 7</span>
+  </div>
+
+  <a href="index.html" class="nav-exit">Save & exit</a>
+</nav>
+
+<!-- ====== MICRO REACTION ====== -->
+<div class="micro-reaction" id="microReaction"></div>
+
+<!-- ====== PAGE LAYOUT ====== -->
+<div class="page-layout">
+
+  <!-- Left: Vertical Progress -->
+  <div class="vertical-progress" id="verticalProgress"></div>
+
+  <!-- Center: Main Content -->
+  <div class="main-content">
+    <!-- Floating identity words -->
+    <div class="floating-words" id="floatingWords"></div>
+
+    <!-- Decorative dots -->
+    <div class="deco-dot" style="width:6px;height:6px;top:15%;right:12%;opacity:0.15;"></div>
+    <div class="deco-dot" style="width:4px;height:4px;top:35%;right:25%;opacity:0.1;"></div>
+    <div class="deco-dot" style="width:5px;height:5px;top:60%;left:5%;opacity:0.12;"></div>
+    <div class="deco-dot" style="width:3px;height:3px;top:80%;right:8%;opacity:0.08;"></div>
+
+    <!-- Question area (changes dynamically) -->
+    <div id="questionArea"></div>
+
+    <!-- Practical form (shown after Q7) -->
+    <div class="practical-form" id="practicalForm">
+      <h2 class="form-title">Almost there.</h2>
+      <p class="form-subtitle">Just a few practical details to find your perfect match.</p>
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="form-label">How many days do you have?</label>
+          <input class="form-input" type="number" placeholder="e.g. 7" id="formDays">
+        </div>
+        <div class="form-field">
+          <label class="form-label">When would you leave?</label>
+          <input class="form-input" type="text" placeholder="e.g. Mid-March, Next summer..." id="formWhen">
+        </div>
+        <div class="form-field">
+          <label class="form-label">How much do you want to spend, roughly?</label>
+          <input class="form-input" type="text" placeholder="e.g. €1500, budget-friendly, no limits..." id="formBudget">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Where are you departing from?</label>
+          <input class="form-input" type="text" placeholder="e.g. Milan, London, Tokyo" id="formFrom">
+        </div>
+        <div class="form-field full">
+          <button class="btn-find" onclick="submitForm()">
+            Find me a place
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Sidebar -->
+  <div class="sidebar" id="sidebar"></div>
+
+</div>
+
+<!-- ====== KEYBOARD HINT ====== -->
+<div class="keyboard-hint">
+  Press <span class="key-badge">Enter</span> to continue · <span class="key-badge">Tab</span> to skip
+</div>
+
+<script>
+// ============ QUESTION DATA ============
+const questions = [
+  {
+    text: 'Your last trip — did it disappoint or <em>surprise</em> you? What didn\'t you expect?',
+    hint: 'Even small moments count — a smell, a conversation, a wrong turn.',
+    why: 'How you process travel experiences reveals what you truly seek — and what you\'re ready to feel next.',
+    tags: ['expectations', 'adaptability', 'wonder threshold'],
+    words: ['adventurous', 'reflective', 'open-minded', 'detail-oriented', 'sensory']
+  },
+  {
+    text: 'If you could disappear for a week without telling anyone — and <em>without being able to post anything</em> — where would you go?',
+    hint: 'No judgment. No budget. No logistics. Just you.',
+    why: 'Removing the social filter reveals your authentic desire — the place you want for yourself, not for others to see.',
+    tags: ['authentic desire', 'social filter', 'escape pattern'],
+    words: ['free spirit', 'introspective', 'solitude seeker', 'untethered', 'genuine']
+  },
+  {
+    text: 'What made you feel <em>most alive</em> in the last year — even if it has nothing to do with travel?',
+    hint: 'It doesn\'t have to be dramatic. Sometimes it\'s the quietest moments.',
+    why: 'Your reward system — what gives you energy — is the deepest signal for where you\'ll thrive next.',
+    tags: ['energy source', 'reward system', 'vitality'],
+    words: ['passionate', 'contemplative', 'adrenaline seeker', 'creative', 'relational']
+  },
+  {
+    text: 'When you travel, what puts you more at ease: <em>knowing everything in advance</em> or discovering as you go?',
+    hint: 'There\'s no right answer. Some people need a map, others need to get lost.',
+    why: 'Your relationship with uncertainty shapes every aspect of how you experience a place.',
+    tags: ['uncertainty tolerance', 'control need', 'movement style'],
+    words: ['structured', 'spontaneous', 'flexible', 'planner', 'explorer']
+  },
+  {
+    text: 'Is there a place everyone loves that just <em>doesn\'t speak to you</em> — not because it\'s bad, it\'s just not yours?',
+    hint: 'This tells us as much as what you love.',
+    why: 'What you reject reveals your identity filters — the invisible boundaries of who you are as a traveler.',
+    tags: ['identity filters', 'anti-pattern', 'taste signature'],
+    words: ['selective', 'independent thinker', 'contrarian', 'authentic', 'discerning']
+  },
+  {
+    text: 'If this trip were meant to do something for you — <em>without knowing what in advance</em> — what do you hope will be different when you come back?',
+    hint: 'You don\'t need to know exactly. A feeling is enough.',
+    why: 'This is the most powerful question. It separates escape from transition, healing from celebration.',
+    tags: ['transformation need', 'life phase', 'latent desire'],
+    words: ['seeking change', 'healing', 'expanding', 'grounding', 'transitioning']
+  },
+  {
+    text: 'Right now, do you feel more <em>energized</em> or more <em>tired?</em>',
+    hint: 'Be honest. This changes everything about what we suggest.',
+    why: 'Your current energy calibrates the entire rhythm of what we recommend — pace, intensity, everything.',
+    tags: ['energy level', 'sustainable pace', 'current state'],
+    words: ['recharged', 'depleted', 'restless', 'calm', 'searching']
+  }
+];
+
+const microReactions = ['Got it.', 'Interesting.', 'Understood.', 'Noted.', 'That says a lot.', 'Good.', 'Ok.'];
+
+let currentQuestion = 0;
+let answers = [];
+
+// ============ INIT ============
+function init() {
+  buildProgressBar();
+  buildVerticalProgress();
+  renderQuestion(0);
+}
+
+// ============ PROGRESS BAR ============
+function buildProgressBar() {
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'progress-segment';
+    if (i < currentQuestion) seg.className += ' filled';
+    if (i === currentQuestion) seg.className += ' current';
+    bar.appendChild(seg);
+  }
+  document.getElementById('navCount').textContent = `${currentQuestion + 1} / 7`;
+}
+
+// ============ VERTICAL PROGRESS ============
+function buildVerticalProgress() {
+  const vp = document.getElementById('verticalProgress');
+  vp.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const step = document.createElement('div');
+    step.className = 'vp-step';
+    step.onclick = () => { if (i <= answers.length) goToQuestion(i); };
+
+    const dot = document.createElement('div');
+    dot.className = 'vp-dot';
+    if (i === currentQuestion) dot.className += ' active';
+    else if (i < currentQuestion) dot.className += ' completed';
+    else dot.className += ' inactive';
+    dot.textContent = i + 1;
+
+    step.appendChild(dot);
+
+    if (i < 6) {
+      const line = document.createElement('div');
+      line.className = 'vp-line';
+      if (i < currentQuestion) line.className += ' filled';
+      step.appendChild(line);
+    }
+
+    vp.appendChild(step);
+  }
+}
+
+// ============ RENDER QUESTION ============
+function renderQuestion(index) {
+  const q = questions[index];
+  const area = document.getElementById('questionArea');
+
+  area.innerHTML = `
+    <div class="question-container">
+      <span class="question-label">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E94560" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Question ${String(index + 1).padStart(2, '0')}
+      </span>
+      <h1 class="question-text">${q.text}</h1>
+      <p class="question-hint">${q.hint}</p>
+      <textarea class="answer-area" id="answerInput" placeholder="There's no wrong way to answer this..." rows="5">${answers[index] || ''}</textarea>
+      <div class="textarea-footer">
+        <span>Just write what feels true</span>
+        <span>Shift+Enter for new line</span>
+      </div>
+      <div class="buttons-row">
+        ${index > 0 ? `
+          <button class="btn-back" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back
+          </button>
+        ` : '<div></div>'}
+        <button class="btn-continue" id="btnContinue" onclick="nextQuestion()">
+          ${index === 6 ? 'Finish' : 'Continue'}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Floating words
+  renderFloatingWords(q.words);
+
+  // Sidebar
+  renderSidebar(q);
+
+  // Focus textarea
+  setTimeout(() => {
+    const input = document.getElementById('answerInput');
+    if (input) input.focus();
+  }, 100);
+
+  // Update progress
+  buildProgressBar();
+  buildVerticalProgress();
+}
+
+// ============ FLOATING WORDS ============
+function renderFloatingWords(words) {
+  const container = document.getElementById('floatingWords');
+  const positions = [
+    { top: '8%', left: '2%' },
+    { top: '5%', right: '0%' },
+    { top: '38%', left: '-2%' },
+    { top: '72%', left: '5%' },
+    { top: '85%', right: '2%' },
+  ];
+
+  container.innerHTML = '';
+  words.forEach((word, i) => {
+    const el = document.createElement('span');
+    el.className = 'float-word';
+    el.textContent = word;
+    const pos = positions[i % positions.length];
+    Object.assign(el.style, pos);
+    container.appendChild(el);
+  });
+}
+
+// ============ SIDEBAR ============
+function renderSidebar(q) {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = `
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+        Why this question?
+      </div>
+      <p>${q.why}</p>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        What we're mapping
+      </div>
+      <div class="mapping-tags">
+        ${q.tags.map(t => `<span class="mapping-tag">${t}</span>`).join('')}
+      </div>
+    </div>
+    <div class="sidebar-privacy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Your answers are only used to find your destinations. Never stored, never shared.
+    </div>
+  `;
+}
+
+// ============ NAVIGATION ============
+function nextQuestion() {
+  const input = document.getElementById('answerInput');
+  const answer = input ? input.value.trim() : '';
+  answers[currentQuestion] = answer;
+
+  if (currentQuestion < 6) {
+    // Show micro-reaction
+    showMicroReaction(() => {
+      currentQuestion++;
+      renderQuestion(currentQuestion);
+    });
+  } else {
+    // Show practical form
+    showMicroReaction(() => {
+      document.getElementById('questionArea').style.display = 'none';
+      document.getElementById('practicalForm').classList.add('visible');
+      document.getElementById('sidebar').innerHTML = '';
+      document.getElementById('floatingWords').innerHTML = '';
+      document.querySelector('.keyboard-hint').style.display = 'none';
+    });
+  }
+}
+
+function goBack() {
+  if (currentQuestion > 0) {
+    const input = document.getElementById('answerInput');
+    if (input) answers[currentQuestion] = input.value.trim();
+    currentQuestion--;
+    renderQuestion(currentQuestion);
+  }
+}
+
+function goToQuestion(index) {
+  const input = document.getElementById('answerInput');
+  if (input) answers[currentQuestion] = input.value.trim();
+  currentQuestion = index;
+  document.getElementById('questionArea').style.display = 'block';
+  document.getElementById('practicalForm').classList.remove('visible');
+  document.querySelector('.keyboard-hint').style.display = 'flex';
+  renderQuestion(currentQuestion);
+}
+
+// ============ MICRO REACTION ============
+function showMicroReaction(callback) {
+  const el = document.getElementById('microReaction');
+  const reaction = microReactions[Math.floor(Math.random() * microReactions.length)];
+  el.textContent = reaction;
+  el.classList.add('visible');
+
+  setTimeout(() => {
+    el.classList.remove('visible');
+    if (callback) callback();
+  }, 1200);
+}
+
+// ============ KEYBOARD SHORTCUT ============
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    const input = document.getElementById('answerInput');
+    if (document.activeElement === input && input.value.trim()) {
+      e.preventDefault();
+      nextQuestion();
+    }
+  }
+});
+
+// ============ FORM SUBMIT ============
+function submitForm() {
+  // Collect form data
+  const formData = {
+    days: document.getElementById('formDays').value,
+    when: document.getElementById('formWhen').value,
+    budget: document.getElementById('formBudget').value,
+    from: document.getElementById('formFrom').value,
+  };
+
+  console.log('Answers:', answers);
+  console.log('Form:', formData);
+
+  // Navigate to destinations page (placeholder)
+  window.location.href = 'destinations.html';
+}
+
+// ============ START ============
+init();
+</script>
+
+</body>
+</html>

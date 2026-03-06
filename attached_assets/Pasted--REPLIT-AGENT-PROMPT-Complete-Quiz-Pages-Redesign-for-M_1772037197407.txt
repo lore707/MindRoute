@@ -1,0 +1,263 @@
+# REPLIT AGENT PROMPT — Complete Quiz Pages Redesign for MindRoute
+
+## CONTEXT
+MindRoute is an AI-powered travel profiling tool. Users answer 7 open-ended psychological questions, then fill in practical constraints (budget, dates, etc.), and receive 3 personalized destination recommendations. I need you to completely redesign the quiz/profiling pages with a richer, more artistic, visually full design while keeping the existing MindRoute brand identity (cream background, coral accents, navy text, Playfair Display + DM Sans fonts, butterfly/map-pin logo).
+
+---
+
+## OVERVIEW OF CHANGES NEEDED
+
+1. Replace all current profiling questions with 7 new ones (exact text provided below)
+2. Redesign the quiz page layout to be more visually rich and atmospheric
+3. Add a practical constraints form after Q7
+4. Add a completion screen after the practical form
+5. Fix all navigation (Continue/Back buttons must work perfectly)
+6. Keep the MindRoute butterfly logo, color palette, and typography
+
+---
+
+## DESIGN SPECIFICATIONS
+
+### Color Palette (keep existing)
+- Cream background: `#FAF6F1`
+- Navy text: `#1A1F3A`
+- Coral accent: `#E8546C`
+- Coral light: `#F2899A`
+- Blush: `#FDDEE3`
+- Sage: `#A8B5A0`
+- Gold: `#D4A853`
+- Sand: `#E8DDD0`
+
+### Typography (keep existing)
+- Headings: `Playfair Display` (serif), bold/800, italic for emphasized words
+- Body: `DM Sans` (sans-serif)
+
+### Logo
+Keep the existing MindRoute butterfly/map-pin SVG logo in the navbar.
+
+---
+
+## ATMOSPHERIC / VISUAL ELEMENTS TO ADD
+
+The current quiz pages feel empty. Add these visual layers to make them feel rich and alive:
+
+1. **Background orbs** — 2-3 large blurred gradient circles (blush, sand, sage colors) positioned at edges, with slow drifting animation. They should subtly shift position when the user advances to a new question.
+
+2. **Grain texture overlay** — Subtle SVG noise texture fixed over the entire page at very low opacity (0.025) for a premium tactile feel.
+
+3. **Floating personality trait tags** — 6-7 small pill-shaped labels floating at the edges of the screen with words like "adventurous", "contemplative", "culture seeker", "spontaneous", "curious soul", "slow traveler", "off the grid". They should:
+   - Appear with staggered fade-in animation on page load
+   - Have a subtle parallax effect following the mouse cursor on desktop
+   - Use blush, sand, and sage background colors
+   - Stay at ~45% opacity so they don't distract
+
+4. **Decorative orbit rings** — 2 large dashed-border circles centered on the page, rotating very slowly (60s and 45s rotation), at low opacity (~10-12%). Creates depth.
+
+5. **Micro-particles** — ~20 tiny dots (3-5px) scattered across the page with a twinkling animation (fade in/out at random intervals). Colors: coral, gold, sage, sand.
+
+6. **Coral accent line** — A small 40px wide, 3px tall gradient bar (coral to coral-light) below each question number badge, as a decorative separator.
+
+---
+
+## QUIZ PAGE LAYOUT
+
+### Navbar (fixed top)
+- Left: MindRoute logo + name
+- Center: Segmented progress bar — 7 small segments. Completed segments are solid coral, current segment pulses with a gradient animation, upcoming segments are blush at 45% opacity. Next to the segments, show "X / 7" text.
+- Right: "Save & exit" link button
+
+### Question Slide Structure
+Each question is a single "slide" that transitions in with a slideUp animation when navigated to. Only one slide is visible at a time. The layout for each slide:
+
+```
+[Question badge]     — e.g. "QUESTION 01" in coral, uppercase, small, with letter-spacing
+[Accent line]        — 40px coral gradient bar
+[Question title]     — Large Playfair Display heading. Key phrase in italic + coral color
+[Hint text]          — Italic, gray (#7B7F9A), explaining what we're looking for
+[Textarea]           — White, rounded corners (20px), subtle border, coral glow on focus
+[Character count]    — Shows "Write what feels true" until user types 10+ chars, then shows "XX / 800"
+[Two context pills]  — Side by side below textarea:
+  - "Why this?" pill — explains why we ask this question
+  - "Mapping" pill — shows trait chips being mapped (small rounded pills)
+[Action buttons]     — Back (left, ghost style) + Continue (right, navy solid, rounded)
+```
+
+### Continue Button Behavior (CRITICAL — must work)
+- The Continue button starts **disabled** (opacity 0.3, pointer-events none)
+- When the user types MORE THAN 10 characters in the textarea, the button becomes **enabled** (opacity 1, pointer-events all, navy background)
+- Clicking Continue when enabled advances to the next slide
+- Pressing Enter (without Shift) when the button is enabled also advances
+- Pressing Shift+Enter creates a new line in the textarea
+- Use EVENT DELEGATION on the parent container, not individual event listeners per button
+
+### Back Button Behavior
+- Hidden on Q1 (first question has no back)
+- On all other questions, clicking Back returns to the previous slide
+- The previous textarea value is preserved when going back
+
+### Slide Transitions
+- When advancing: current slide fades out, new slide animates in with slideUp (translateY 28px → 0, opacity 0 → 1, 0.55s ease)
+- Use `display: none` / `display: block` toggling with an `.active` class
+- Scroll to top on each transition
+
+---
+
+## THE 7 QUESTIONS (exact text)
+
+### Q1 — Alignment Point
+- Badge: `Question 01`
+- Title: `Describe a moment in your life when you clearly thought: *this is exactly where I should be.*`
+  - Italicize + coral color on: `this is exactly where I should be.`
+- Hint: `Where were you, and what was happening? It doesn't have to be a trip — a rooftop, a kitchen, a concert, a silent room all count.`
+- Placeholder: `There's no wrong way to answer this...`
+- Why pill: `Where you feel aligned reveals the experiences you'll love most in a new place.`
+- Traits: `energy` · `aesthetics` · `values` · `pace` · `alignment`
+
+### Q2 — Social Behavior
+- Badge: `Question 02`
+- Title: `You meet someone genuinely interesting in a new place. *What usually happens next — and why?*`
+  - Italicize + coral: `What usually happens next — and why?`
+- Hint: `Do you exchange numbers, talk all night, or smile and walk away? The "why" matters more than the "what."`
+- Placeholder: `Be honest, not polite...`
+- Why pill: `How you relate to strangers predicts whether you need a social destination or a solitary one.`
+- Traits: `social mode` · `openness` · `attachment` · `spontaneity`
+
+### Q3 — Identity Rejections
+- Badge: `Question 03`
+- Title: `What's something most people enjoy — especially while traveling — that you find *overrated or draining?*`
+  - Italicize + coral: `overrated or draining?`
+- Hint: `Not taste. Repulsion. We need to know what to never suggest to you.`
+- Placeholder: `The thing everyone loves that you just... don't.`
+- Why pill: `What you reject narrows the field more precisely than what you accept.`
+- Traits: `anti-preferences` · `identity filters` · `energy drains`
+
+### Q4 — Transformative Event
+- Badge: `Question 04`
+- Title: `A meal, a song, a place, or a conversation that quietly *shifted something in you.* What was it, and what changed after?`
+  - Italicize + coral: `shifted something in you.`
+- Hint: `We're not looking for emotion — we're looking for consequence. The thing that rewired a small part of how you see the world.`
+- Placeholder: `Something that left a mark...`
+- Why pill: `The experiences that changed you reveal the depth of stimuli you truly seek.`
+- Traits: `sensitivity` · `depth` · `curiosity type` · `transformation`
+
+### Q5 — Structure vs Chaos
+- Badge: `Question 05`
+- Title: `Where do you naturally fall between *structure and chaos* — and what tends to go wrong when that balance is off?`
+  - Italicize + coral: `structure and chaos`
+- Hint: `Not the ideal version. The pattern — what breaks when you over-plan or under-plan.`
+- Placeholder: `Think of a time it went sideways...`
+- Why pill: `Your relationship with control tells us whether to send you somewhere predictable or somewhere wild.`
+- Traits: `chaos tolerance` · `control` · `adaptability` · `failure modes`
+
+### Q6 — Emotional Aesthetic
+- Badge: `Question 06`
+- Title: `Think of a place you've been — or even just seen — that triggered *a strong emotion.* Describe the place and the feeling.`
+  - Italicize + coral: `a strong emotion.`
+- Hint: `Peace, jealousy, longing, excitement, unease — anything counts. A few words are enough. This becomes your visual compass.`
+- Placeholder: `A place and a feeling, in your own words...`
+- Why pill: `This emotional imprint becomes the atmospheric fingerprint we match destinations against.`
+- Traits: `aesthetic signature` · `emotional palette` · `atmosphere`
+
+### Q7 — Trip Function (LAST)
+- Badge: `Question 07 — last one`
+- Title: `What should this trip give you that *your everyday life currently cannot?*`
+  - Italicize + coral: `your everyday life currently cannot?`
+- Hint: `Silence, adrenaline, connection, rupture, beauty, anonymity — name it. This is the compass heading.`
+- Placeholder: `What are you really looking for?`
+- Why pill: `The unmet need is the compass heading. Every destination starts from this answer.`
+- Traits: `core motivation` · `life contrast` · `emotional gap` · `trip function`
+
+---
+
+## PRACTICAL CONSTRAINTS FORM (after Q7)
+
+This is slide 8 — appears after Q7 with the same transition animation.
+
+- Badge: `✦ Almost done — the practical stuff`
+- Title: `Now help us *make it real.*` (italic + coral on "make it real")
+- Hint: `Quick details so your destinations are actually reachable.`
+
+Form fields in a 2-column grid:
+1. **When?** — Dropdown: `Next 2 weeks`, `Next month`, `Next 2-3 months`, `Next 6 months`, `No date yet`
+2. **How long?** — Dropdown: `Weekend (2-3 days)`, `Short (4-6 days)`, `One week`, `10-14 days`, `2+ weeks`
+3. **Budget** — Dropdown: `As cheap as possible`, `Moderate — good value`, `Comfortable`, `No real limit`
+4. **Traveling from** — Text input, placeholder "City or country"
+5. **Anything to absolutely avoid?** — Text input (full width, spans both columns), placeholder "e.g. extreme heat, long flights, language barriers...", labeled as (optional)
+
+The "Discover my places" button (coral background instead of navy) enables only when When + How long + Budget + Traveling from are all filled. The avoid field is optional.
+
+- Back button goes to Q7
+- Submit button goes to completion screen
+
+---
+
+## COMPLETION SCREEN (after practical form)
+
+- Large circle icon with a checkmark, coral tinted background, pop-in scale animation
+- Heading: `We see you.`
+- Subtext: `Your travel identity is mapped. We're finding three places that were waiting for you.`
+- Large coral CTA button: `Show me my destinations →`
+
+---
+
+## TECHNICAL REQUIREMENTS
+
+### JavaScript Architecture
+Use EVENT DELEGATION — attach event listeners to a single parent container, not to individual buttons. This prevents bugs when slides are hidden/shown.
+
+```javascript
+// Example pattern:
+document.getElementById('quizContainer').addEventListener('click', function(e) {
+  const nextBtn = e.target.closest('.btn-next');
+  const backBtn = e.target.closest('.btn-back');
+  
+  if (nextBtn && nextBtn.classList.contains('enabled')) {
+    const targetSlide = parseInt(nextBtn.getAttribute('data-to'));
+    goToSlide(targetSlide);
+  }
+  
+  if (backBtn) {
+    const targetSlide = parseInt(backBtn.getAttribute('data-to'));
+    goToSlide(targetSlide);
+  }
+});
+```
+
+### State Management
+- Store all textarea answers in a JavaScript object: `answers = {}`
+- When navigating away from a slide, save the textarea value
+- When navigating back to a slide, restore the textarea value
+- Auto-focus the textarea when a slide becomes active (with 100ms delay)
+
+### Slide Visibility
+- Use `display: none` by default for all slides
+- Add `display: block` + `.active` class to show a slide
+- Only ONE slide should be visible at any time
+
+### CSS Animations
+- `slideIn`: translateY(28px) → translateY(0), opacity 0 → 1, 0.55s cubic-bezier(0.16, 1, 0.3, 1)
+- `drift`: slow floating motion for background orbs, 20-30s duration
+- `pulse`: opacity pulsing for current progress segment
+- `twink`: fade in/out for decorative micro-particles
+- `spin`: 360deg rotation for orbit rings, 45-60s duration
+
+### Textarea Behavior
+- Min height: 160-170px
+- Max length: 800 characters
+- Border: 1.5px solid #E4E0DA
+- Focus state: coral-light border + coral glow shadow
+- Rounded corners: 18-20px
+
+---
+
+## WHAT NOT TO CHANGE
+- Don't touch the landing page (page 1)
+- Don't touch the pre-quiz intro page (page 2)  
+- Don't change the overall site routing/navigation between pages
+- Keep all existing fonts, colors, and logo exactly as they are
+- Keep the site responsive (the floating tags and orbit rings can be hidden on mobile)
+
+---
+
+## SUMMARY
+Replace the current quiz pages with a visually rich, atmospheric 9-screen flow (7 questions + practical constraints + completion) using the exact question text above, with working Continue/Back navigation via event delegation, floating decorative elements, and the MindRoute brand identity. Every button must work. Test the full flow from Q1 through completion before marking as done.

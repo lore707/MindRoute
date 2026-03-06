@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindRoute — Begin</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 120 120' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60' fill='%23E94560' opacity='0.85'/%3E%3Cpath d='M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72' fill='%23E94560' opacity='0.55'/%3E%3Cpath d='M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60' fill='%23E94560' opacity='0.85'/%3E%3Cpath d='M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72' fill='%23E94560' opacity='0.55'/%3E%3Cellipse cx='60' cy='60' rx='5' ry='6' fill='%231A1A2E'/%3E%3Cpath d='M58 66L60 108L62 66' fill='%23E94560' opacity='0.7'/%3E%3Ccircle cx='60' cy='48' r='3.5' fill='%231A1A2E'/%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #FDFAF7;
+    --text: #1A1A2E;
+    --text-secondary: #6B6776;
+    --accent: #E94560;
+    --accent-hover: #D13A52;
+    --border: #E8E3DD;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ============ NAVBAR ============ */
+  nav {
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(232, 227, 221, 0.5);
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  .nav-logo { width: 32px; height: 32px; }
+
+  .nav-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+  }
+
+  /* Steps indicator */
+  .nav-steps {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .step-dot {
+    width: 32px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: all 0.4s ease;
+  }
+
+  .step-dot.active {
+    background: var(--accent);
+    width: 48px;
+  }
+
+  /* ============ MAIN CONTENT ============ */
+  .pact-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    position: relative;
+  }
+
+  /* Decorative elements */
+  .pact-container::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    right: 8%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(233,69,96,0.04) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .pact-container::after {
+    content: '';
+    position: absolute;
+    bottom: 15%;
+    left: 5%;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(233,69,96,0.03) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .pact-content {
+    max-width: 580px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.8s ease-out;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Decorative line art */
+  .pact-decoration {
+    width: 200px;
+    height: 80px;
+    margin: 0 auto 40px;
+    opacity: 0.12;
+  }
+
+  /* Quotation mark */
+  .pact-mark {
+    font-family: 'DM Serif Display', serif;
+    font-size: 80px;
+    line-height: 0.6;
+    color: var(--accent);
+    opacity: 0.15;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .pact-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 5vw, 40px);
+    line-height: 1.25;
+    letter-spacing: -0.5px;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .pact-body {
+    font-size: 17px;
+    color: var(--text-secondary);
+    font-weight: 300;
+    line-height: 1.8;
+    margin-bottom: 12px;
+    font-style: italic;
+  }
+
+  .pact-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    margin-bottom: 48px;
+    letter-spacing: 0.3px;
+  }
+
+  .pact-divider {
+    width: 48px;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.3;
+    margin: 28px auto;
+    border-radius: 1px;
+  }
+
+  /* CTA Button */
+  .pact-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 18px 44px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 24px rgba(233, 69, 96, 0.25);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  .pact-cta:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(233, 69, 96, 0.35);
+  }
+
+  .pact-cta svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s;
+  }
+
+  .pact-cta:hover svg { transform: translateX(4px); }
+
+  /* Time estimate */
+  .pact-time {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    opacity: 0.5;
+  }
+
+  .pact-time svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .pact-container { padding: 32px 20px; }
+    .pact-mark { font-size: 56px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== NAVBAR ====== -->
+<nav>
+  <a href="index.html" class="nav-brand">
+    <svg class="nav-logo" viewBox="0 0 120 120" fill="none">
+      <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+      <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+      <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+      <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+      <ellipse cx="60" cy="60" rx="5" ry="6" fill="#1A1A2E"/>
+      <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7"/>
+      <circle cx="60" cy="48" r="3.5" fill="#1A1A2E"/>
+    </svg>
+    <span class="nav-name">MindRoute</span>
+  </a>
+
+  <div class="nav-steps">
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+  </div>
+</nav>
+
+<!-- ====== PACT CONTENT ====== -->
+<main class="pact-container">
+  <div class="pact-content">
+
+    <!-- Decorative horizon line art -->
+    <svg class="pact-decoration" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 60 Q30 60 50 45 Q65 33 80 40 Q95 48 110 30 Q125 15 140 25 Q155 35 170 20 Q185 8 200 15" stroke="#E94560" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M0 65 Q40 65 60 55 Q80 45 100 50 Q120 55 140 42 Q160 30 180 35 Q195 38 200 32" stroke="#E94560" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.5"/>
+      <circle cx="110" cy="30" r="3" fill="#E94560" opacity="0.4"/>
+      <circle cx="170" cy="20" r="2" fill="#E94560" opacity="0.3"/>
+    </svg>
+
+    <span class="pact-mark">"</span>
+
+    <h1 class="pact-title">Answer as if no one<br>will judge your choices.</h1>
+
+    <div class="pact-divider"></div>
+
+    <p class="pact-body">You're not planning a trip.<br>You're telling us how you move through the world.</p>
+
+    <p class="pact-meta">7 questions · 2 minutes · No wrong answers</p>
+
+    <button class="pact-cta" onclick="window.location.href='questions.html'">
+      Begin
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+
+    <div class="pact-time">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 6v6l4 2"/>
+      </svg>
+      Takes about 2 minutes
+    </div>
+
+  </div>
+</main>
+
+</body>
+</html>

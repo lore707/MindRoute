@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,800;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* New Palette from instructions */
+  --cream: #FAF6F1;
+  --cream-dark: #F0EAE2;
+  --navy: #1A1F3A;
+  --navy-light: #2A3050;
+  --coral: #E8546C;
+  --coral-light: #F2899A;
+  --coral-glow: #E8546C30;
+  --blush: #FDDEE3;
+  --sage: #A8B5A0;
+  --gold: #D4A853;
+  --sand: #E8DDD0;
+
+  --background: 33 24% 98%;      /* #FDFAF7 */
+  --foreground: 242 26% 14%;     /* #1A1A2E */
+  
+  --primary: 350 78% 59%;        /* #E94560 */
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 33 20% 92%;
+  --secondary-foreground: 242 26% 14%;
+  
+  --muted: 33 15% 90%;
+  --muted-foreground: 242 15% 40%;
+  
+  --accent: 350 78% 59%;
+  --accent-hover: 350 78% 52%;
+  
+  --border: 33 10% 85%;
+  --radius: 1rem;
+  
+  --font-serif: 'Playfair Display', serif; 
+  --font-sans: 'DM Sans', sans-serif;
+
+  --surface: #FDFAF7;
+  --surface-alt: #F5F0EA;
+  --surface-card: #FFFFFF;
+  --text-primary: #1A1A2E;
+  --text-secondary: #6B6776;
+  --text-muted: #B0ABB8;
+  --border-subtle: #E8E3DD;
+  --border-input: #EDEBE8;
+  --nav-bg: rgba(253,250,247,0.85);
+  --nav-border: rgba(232,227,221,0.5);
+}
+
+.dark {
+  --background: 230 22% 9%;
+  --foreground: 270 15% 96%;
+  
+  --primary: 350 80% 62%;
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 230 15% 18%;
+  --secondary-foreground: 30 15% 90%;
+  
+  --muted: 230 12% 16%;
+  --muted-foreground: 230 10% 62%;
+  
+  --accent: 350 80% 62%;
+  --accent-hover: 350 80% 55%;
+  
+  --border: 230 12% 20%;
+
+  --surface: #111320;
+  --surface-alt: #181B2C;
+  --surface-card: #1C1F32;
+  --text-primary: #F5F3FA;
+  --text-secondary: #B0ABBD;
+  --text-muted: #6E6882;
+  --border-subtle: #2A2D42;
+  --border-input: #2A2D42;
+  --nav-bg: rgba(17,19,32,0.92);
+  --nav-border: rgba(42,45,66,0.6);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+
+  /* Grain texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    @apply font-bold tracking-tight text-foreground;
+  }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(25px, -30px) scale(1.04); }
+  66% { transform: translate(-15px, 20px) scale(0.97); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 0.25; transform: scale(1); }
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes tagAppear {
+  from { opacity: 0; transform: scale(0.8) translateY(10px); }
+  to { opacity: 0.6; transform: scale(1) translateY(0); }
+}
+
+@keyframes tagDrift1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(8px, -12px); }
+}
+
+@keyframes tagDrift2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-6px, 10px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.dark .accent-glow {
+  filter: drop-shadow(0 0 8px rgba(233,69,96,0.4));
+}
+
+.dark [fill="#E94560"],
+.dark [stroke="#E94560"] {
+  filter: brightness(1.15) drop-shadow(0 0 6px rgba(233,69,96,0.35));
+}
+
+.animate-drift { animation: drift 25s ease-in-out infinite; }
+.animate-drift-reverse { animation: drift 30s ease-in-out infinite reverse; }
+.animate-twinkle { animation: twinkle 4s ease-in-out infinite; }
+.animate-scroll-left { animation: scroll-left 28s linear infinite; }
+.animate-float { animation: float 6s ease-in-out infinite; }

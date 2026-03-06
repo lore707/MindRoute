@@ -1,0 +1,38 @@
+Ecco, copia e incolla questo:
+
+Build a web app called MindRoute with this flow:
+PAGE 1 — LANDING
+Title: MindRoute
+Subtitle: "We don't ask where you want to go. We ask who you are."
+Button: "Let's begin"
+Design: minimalist, warm background (#FDFAF7), text color #1A1A2E, accent color #E94560, font Georgia for text, Arial for labels and buttons. Smooth transitions between pages.
+PAGE 2 — PROFILING
+Show an intro message:
+"Answer as if no one will judge your choices. You're not planning a trip: you're telling us how you move through the world."
+Then show 7 questions ONE AT A TIME:
+
+"Your last trip — did it disappoint or surprise you? What didn't you expect?"
+"If you could disappear for a week without telling anyone — and without being able to post anything — where would you go and what would you do?"
+"What made you feel most alive in the last year — even if it has nothing to do with travel?"
+"When you travel, what puts you more at ease: knowing everything in advance or discovering as you go?"
+"Is there a place everyone loves that just doesn't speak to you — not because it's bad, it's just not yours?"
+"If this trip were meant to do something for you — without knowing what in advance — what do you hope will be different when you come back?"
+"Right now, do you feel more energized or more tired?"
+
+After each answer, show a 1-line micro-reaction ("Got it.", "Interesting.", "Understood.") then move to the next question. Show a progress bar at top: "3 of 7"
+After the 7 questions, show a quick form (all visible at once):
+
+How many days do you have? [number field]
+When would you leave? [text field]
+How much do you want to spend, roughly? [text field]
+Where are you departing from? [text field]
+Button: "Find me a place"
+
+PAGE 3 — DESTINATIONS
+Show 3 destination cards side by side (stacked on mobile). Each card has: place name, "Why this place is yours" text, experience preview, practical info. Below the cards: "Which of these three made you feel something?"
+Clicking a card = choosing it. No confirm button.
+PAGE 4 — ITINERARY
+Vertical flow, day by day. Each day is an expandable section with an evocative title visible and details hidden until clicked. At the bottom: budget summary, packing list, personal closing message. Two buttons: "Save as PDF" and "Start over".
+BACKEND LOGIC:
+For now, use placeholder/mock data for the AI responses. Create 3 hardcoded destination objects and 1 hardcoded itinerary. I will add the real API calls later. Structure the code so it's easy to replace the mock data with actual API calls to an LLM.
+TECH: Use Node.js with Express for backend, vanilla HTML/CSS/JS for frontend. Keep it simple, no unnecessary frameworks.

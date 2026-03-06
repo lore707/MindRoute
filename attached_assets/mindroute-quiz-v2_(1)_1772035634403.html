@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindRoute — Profiling</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --cream:#FAF6F1;--cream2:#F0EAE2;--navy:#1A1F3A;--navy2:#2A3050;
+  --coral:#E8546C;--coral-lt:#F2899A;--coral-gl:#E8546C30;
+  --blush:#FDDEE3;--sage:#A8B5A0;--gold:#D4A853;--sand:#E8DDD0;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--navy);min-height:100vh;overflow-x:hidden}
+
+/* grain */
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+
+/* ===== NAV ===== */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 36px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(20px);background:rgba(250,246,241,0.9);border-bottom:1px solid rgba(26,31,58,0.05)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--navy)}
+.logo svg{width:34px;height:34px}
+.logo span{font-family:'Playfair Display',serif;font-size:19px;font-weight:700}
+.prog-wrap{display:flex;align-items:center;gap:8px}
+.prog-bar{display:flex;gap:4px}
+.seg{height:4px;border-radius:4px;transition:all .5s cubic-bezier(.16,1,.3,1)}
+.seg.done{width:24px;background:var(--coral)}
+.seg.cur{width:24px;background:linear-gradient(90deg,var(--coral),var(--coral-lt));animation:pulse 2.2s ease-in-out infinite}
+.seg.next{width:14px;background:var(--blush);opacity:.45}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.prog-num{font-size:11px;color:#A0A4BC;font-weight:500;min-width:32px;text-align:right}
+.nav-exit{padding:8px 18px;border:1.5px solid rgba(26,31,58,.08);color:#9A9DB4;background:0;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .3s ease;text-decoration:none}
+.nav-exit:hover{border-color:var(--coral-lt);color:var(--coral)}
+
+/* ===== ATMOSPHERE ===== */
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;transition:transform 3s ease}
+.orb1{width:480px;height:480px;background:var(--blush);top:-10%;right:-6%;opacity:.4}
+.orb2{width:360px;height:360px;background:var(--sand);bottom:-8%;left:-7%;opacity:.3}
+.orb3{width:200px;height:200px;background:rgba(168,181,160,.2);top:45%;left:20%;opacity:.3}
+
+/* floating decorative elements */
+.floaters{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.floater{position:absolute;border-radius:50%;opacity:0;animation:twink 5s ease-in-out infinite}
+@keyframes twink{0%,100%{opacity:0;transform:scale(.6)}50%{opacity:.2;transform:scale(1)}}
+
+/* dashed orbit ring */
+.orbit-ring{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;border:1px dashed var(--sand);border-radius:50%;opacity:.12;animation:spin 60s linear infinite;pointer-events:none}
+@keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.orbit-ring2{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;height:400px;border:1px dashed var(--blush);border-radius:50%;opacity:.1;animation:spin 45s linear infinite reverse;pointer-events:none}
+
+/* ===== MAIN LAYOUT ===== */
+.main{min-height:100vh;display:flex;justify-content:center;padding:100px 36px 50px;position:relative;z-index:2}
+.center-col{width:100%;max-width:680px;position:relative}
+
+/* ===== SLIDES ===== */
+.slide{display:none}
+.slide.active{display:block;animation:slideIn .55s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes slideIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+
+/* question number badge */
+.q-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 16px;background:rgba(232,84,108,.08);border-radius:100px;font-size:11px;font-weight:600;color:var(--coral);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:24px}
+
+/* decorative line accent */
+.accent-line{width:40px;height:3px;background:linear-gradient(90deg,var(--coral),var(--coral-lt));border-radius:3px;margin-bottom:24px}
+
+.q-title{font-family:'Playfair Display',serif;font-size:clamp(26px,3.2vw,38px);font-weight:700;line-height:1.25;letter-spacing:-.7px;margin-bottom:16px}
+.q-title em{font-style:italic;color:var(--coral);position:relative}
+.q-title em::after{content:'';position:absolute;bottom:2px;left:0;right:0;height:2px;background:var(--coral);opacity:.2;border-radius:2px}
+
+.q-hint{font-size:14.5px;line-height:1.65;color:#7B7F9A;margin-bottom:32px;font-style:italic;max-width:560px}
+
+/* textarea */
+.ta-wrap{position:relative;margin-bottom:12px}
+.ta{width:100%;min-height:170px;padding:22px 24px;border:1.5px solid #E4E0DA;border-radius:20px;background:white;font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.7;color:var(--navy);resize:vertical;outline:0;transition:all .35s cubic-bezier(.16,1,.3,1);box-shadow:0 2px 12px rgba(0,0,0,.02)}
+.ta::placeholder{color:#C5C2BB;font-style:italic}
+.ta:focus{border-color:var(--coral-lt);box-shadow:0 4px 28px var(--coral-gl),0 0 0 3px rgba(232,84,108,.05)}
+.ta-meta{display:flex;justify-content:space-between;padding:0 4px;margin-top:6px}
+.char-ct{font-size:11px;color:#C0BDB6;transition:color .3s}.char-ct.on{color:var(--coral-lt)}
+.ta-tip{font-size:11px;color:#D0CDCA}
+
+/* context cards — below textarea */
+.ctx-row{display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap}
+.ctx-pill{flex:1;min-width:180px;padding:16px 18px;background:white;border-radius:16px;box-shadow:0 2px 14px rgba(0,0,0,.025);border:1px solid rgba(26,31,58,.04);transition:transform .3s ease}
+.ctx-pill:hover{transform:translateY(-3px)}
+.ctx-pill h6{font-family:'Playfair Display',serif;font-size:12px;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.ctx-pill h6 .ic{width:13px;height:13px;color:var(--coral)}
+.ctx-pill p{font-size:11px;line-height:1.5;color:#8A8FA8}
+.ctx-traits{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.tr{padding:3px 9px;border-radius:100px;font-size:9.5px;font-weight:500;background:var(--cream);color:#6B7094;border:1px solid rgba(26,31,58,.04)}
+
+/* actions */
+.acts{display:flex;align-items:center;justify-content:space-between}
+.btn-bk{display:flex;align-items:center;gap:5px;padding:10px 14px;background:0;border:0;color:#A0A4BC;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;border-radius:10px;transition:all .3s}
+.btn-bk:hover{color:var(--navy);background:rgba(26,31,58,.03)}
+.btn-bk svg{width:14px;height:14px;transition:transform .3s}.btn-bk:hover svg{transform:translateX(-3px)}
+.btn-bk.hide{opacity:0;pointer-events:none}
+
+.btn-nx{display:inline-flex;align-items:center;gap:9px;padding:15px 36px;background:var(--navy);color:#fff;border:0;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .4s cubic-bezier(.16,1,.3,1);box-shadow:0 4px 18px rgba(26,31,58,.12);opacity:.3;pointer-events:none}
+.btn-nx.on{opacity:1;pointer-events:all}
+.btn-nx.on:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(26,31,58,.22);background:#0F1328}
+.btn-nx svg{width:15px;height:15px;transition:transform .3s}.btn-nx.on:hover svg{transform:translateX(3px)}
+.btn-nx.coral{background:var(--coral);box-shadow:0 4px 18px var(--coral-gl)}
+.btn-nx.coral.on:hover{background:#D94A60;box-shadow:0 8px 28px rgba(232,84,108,.3)}
+
+/* ===== PRACTICAL ===== */
+.p-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.p-group{display:flex;flex-direction:column;gap:5px}
+.p-group.full{grid-column:1/-1}
+.p-group label{font-size:12.5px;font-weight:600;color:var(--navy)}
+.p-in,.p-sel{padding:13px 16px;border:1.5px solid #E4E0DA;border-radius:14px;background:#fff;font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--navy);outline:0;transition:all .3s;-webkit-appearance:none}
+.p-in:focus,.p-sel:focus{border-color:var(--coral-lt);box-shadow:0 2px 14px var(--coral-gl)}
+.p-in::placeholder{color:#C5C2BB}
+.p-sel{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23A0A4BC' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+
+/* ===== COMPLETION ===== */
+.done-screen{text-align:center;padding:60px 0}
+.done-icon{width:88px;height:88px;margin:0 auto 28px;background:rgba(232,84,108,.08);border-radius:50%;display:flex;align-items:center;justify-content:center;animation:pop .6s cubic-bezier(.16,1,.3,1)}
+@keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+.done-icon svg{width:38px;height:38px;color:var(--coral)}
+.done-screen h2{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;letter-spacing:-.5px;margin-bottom:12px}
+.done-screen p{font-size:15px;color:#7B7F9A;line-height:1.6;margin-bottom:36px}
+.btn-go{display:inline-flex;align-items:center;gap:10px;padding:18px 48px;background:var(--coral);color:#fff;border:0;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;cursor:pointer;transition:all .4s cubic-bezier(.16,1,.3,1);box-shadow:0 6px 28px var(--coral-gl)}
+.btn-go:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(232,84,108,.3);background:#D94A60}
+
+/* ===== SIDE FLOATING TAGS ===== */
+.ftags{position:fixed;inset:0;pointer-events:none;z-index:1}
+.ftag{position:absolute;padding:7px 14px;border-radius:100px;font-size:11px;font-weight:500;letter-spacing:.3px;opacity:0;transition:all 1s cubic-bezier(.16,1,.3,1);white-space:nowrap}
+.ftag.show{opacity:.45}
+.ftag.blush{background:var(--blush);color:var(--coral)}
+.ftag.sand{background:var(--sand);color:#8B7A60}
+.ftag.sageb{background:rgba(168,181,160,.25);color:#6B7F5E}
+.ftag.wh{background:#fff;color:var(--navy2);border:1px solid rgba(26,31,58,.05)}
+
+/* keyboard hint */
+.kh{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:6px 14px;background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.04);font-size:10.5px;color:#B0B4C8;z-index:50}
+.kh kbd{padding:2px 6px;background:var(--cream);border:1px solid #E4E0DA;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;color:#6B7094}
+
+@media(max-width:768px){
+  nav{padding:14px 18px}
+  .main{padding:90px 18px 40px}
+  .q-title{font-size:24px}
+  .ta{min-height:140px;padding:18px}
+  .ctx-row{flex-direction:column}
+  .p-grid{grid-template-columns:1fr}
+  .ftags,.kh,.orbit-ring,.orbit-ring2{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- atmosphere -->
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+<div class="orbit-ring"></div>
+<div class="orbit-ring2"></div>
+<div class="floaters" id="floaters"></div>
+
+<!-- floating trait tags -->
+<div class="ftags" id="ftags">
+  <div class="ftag blush" style="top:16%;left:4%" id="ft0">✦ adventurous</div>
+  <div class="ftag sand" style="top:28%;right:3%" id="ft1">contemplative</div>
+  <div class="ftag sageb" style="bottom:28%;left:3%" id="ft2">culture seeker</div>
+  <div class="ftag wh" style="bottom:16%;right:5%" id="ft3">spontaneous</div>
+  <div class="ftag blush" style="top:50%;left:2%" id="ft4">curious soul</div>
+  <div class="ftag sand" style="top:12%;right:7%" id="ft5">slow traveler</div>
+  <div class="ftag sageb" style="bottom:40%;right:2%" id="ft6">off the grid</div>
+</div>
+
+<!-- nav -->
+<nav>
+  <a href="#" class="logo">
+    <svg viewBox="0 0 40 40" fill="none">
+      <!-- butterfly / map pin -->
+      <path d="M16 10C10 7 4 12 6 20C8 27 18 30 20 24" stroke="#E8546C" stroke-width="1.8" stroke-linecap="round" fill="#E8546C" fill-opacity=".08"/>
+      <path d="M24 10C30 7 36 12 34 20C32 27 22 30 20 24" stroke="#E8546C" stroke-width="1.8" stroke-linecap="round" fill="#E8546C" fill-opacity=".08"/>
+      <path d="M17 26C13 30 11 35 14 37C16.5 38.5 19 34 20 31" stroke="#E8546C" stroke-width="1.3" stroke-linecap="round" fill="#E8546C" fill-opacity=".04"/>
+      <path d="M23 26C27 30 29 35 26 37C23.5 38.5 21 34 20 31" stroke="#E8546C" stroke-width="1.3" stroke-linecap="round" fill="#E8546C" fill-opacity=".04"/>
+      <line x1="20" y1="16" x2="20" y2="34" stroke="#E8546C" stroke-width="1" opacity=".3"/>
+      <circle cx="20" cy="36" r="2.5" fill="#E8546C" opacity=".6"/>
+      <circle cx="20" cy="14" r="1.5" fill="#E8546C" opacity=".25"/>
+    </svg>
+    <span>MindRoute</span>
+  </a>
+  <div class="prog-wrap">
+    <div class="prog-bar" id="progBar"></div>
+    <span class="prog-num" id="progNum">1 / 7</span>
+  </div>
+  <a href="#" class="nav-exit">Save & exit</a>
+</nav>
+
+<!-- main -->
+<section class="main">
+<div class="center-col" id="quizArea">
+
+<!-- Q1 -->
+<div class="slide active" id="s0">
+  <div class="q-badge">Question 01</div>
+  <div class="accent-line"></div>
+  <h1 class="q-title">Describe a moment in your life when you clearly thought: <em>this is exactly where I should be.</em></h1>
+  <p class="q-hint">Where were you, and what was happening? It doesn't have to be a trip — a rooftop, a kitchen, a concert, a silent room all count.</p>
+  <div class="ta-wrap">
+    <textarea class="ta" placeholder="There's no wrong way to answer this..." maxlength="800"></textarea>
+    <div class="ta-meta"><span class="char-ct">Write what feels true</span><span class="ta-tip">Shift+Enter for new line</span></div>
+  </div>
+  <div class="ctx-row">
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Why this?</h6><p>Where you feel aligned reveals the experiences you'll love most in a new place.</p></div>
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Mapping</h6><div class="ctx-traits"><span class="tr">energy</span><span class="tr">aesthetics</span><span class="tr">values</span><span class="tr">pace</span><span class="tr">alignment</span></div></div>
+  </div>
+  <div class="acts">
+    <button class="btn-bk hide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+    <button class="btn-nx" data-to="1">Continue<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<!-- Q2 -->
+<div class="slide" id="s1">
+  <div class="q-badge">Question 02</div>
+  <div class="accent-line"></div>
+  <h1 class="q-title">You meet someone genuinely interesting in a new place. <em>What usually happens next — and why?</em></h1>
+  <p class="q-hint">Do you exchange numbers, talk all night, or smile and walk away? The "why" matters more than the "what."</p>
+  <div class="ta-wrap">
+    <textarea class="ta" placeholder="Be honest, not polite..." maxlength="800"></textarea>
+    <div class="ta-meta"><span class="char-ct">Write what feels true</span><span class="ta-tip"></span></div>
+  </div>
+  <div class="ctx-row">
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Why this?</h6><p>How you relate to strangers predicts whether you need a social destination or a solitary one.</p></div>
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Mapping</h6><div class="ctx-traits"><span class="tr">social mode</span><span class="tr">openness</span><span class="tr">attachment</span><span class="tr">spontaneity</span></div></div>
+  </div>
+  <div class="acts">
+    <button class="btn-bk" data-to="0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+    <button class="btn-nx" data-to="2">Continue<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<!-- Q3 -->
+<div class="slide" id="s2">
+  <div class="q-badge">Question 03</div>
+  <div class="accent-line"></div>
+  <h1 class="q-title">What's something most people enjoy — especially while traveling — that you find <em>overrated or draining?</em></h1>
+  <p class="q-hint">Not taste. Repulsion. We need to know what to never suggest to you.</p>
+  <div class="ta-wrap">
+    <textarea class="ta" placeholder="The thing everyone loves that you just... don't." maxlength="800"></textarea>
+    <div class="ta-meta"><span class="char-ct">Write what feels true</span><span class="ta-tip"></span></div>
+  </div>
+  <div class="ctx-row">
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Why this?</h6><p>What you reject narrows the field more precisely than what you accept.</p></div>
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Mapping</h6><div class="ctx-traits"><span class="tr">anti-preferences</span><span class="tr">identity filters</span><span class="tr">energy drains</span></div></div>
+  </div>
+  <div class="acts">
+    <button class="btn-bk" data-to="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+    <button class="btn-nx" data-to="3">Continue<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<!-- Q4 -->
+<div class="slide" id="s3">
+  <div class="q-badge">Question 04</div>
+  <div class="accent-line"></div>
+  <h1 class="q-title">A meal, a song, a place, or a conversation that quietly <em>shifted something in you.</em> What was it, and what changed after?</h1>
+  <p class="q-hint">We're not looking for emotion — we're looking for consequence. The thing that rewired a small part of how you see the world.</p>
+  <div class="ta-wrap">
+    <textarea class="ta" placeholder="Something that left a mark..." maxlength="800"></textarea>
+    <div class="ta-meta"><span class="char-ct">Write what feels true</span><span class="ta-tip"></span></div>
+  </div>
+  <div class="ctx-row">
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Why this?</h6><p>The experiences that changed you reveal the depth of stimuli you truly seek.</p></div>
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Mapping</h6><div class="ctx-traits"><span class="tr">sensitivity</span><span class="tr">depth</span><span class="tr">curiosity type</span><span class="tr">transformation</span></div></div>
+  </div>
+  <div class="acts">
+    <button class="btn-bk" data-to="2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+    <button class="btn-nx" data-to="4">Continue<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<!-- Q5 -->
+<div class="slide" id="s4">
+  <div class="q-badge">Question 05</div>
+  <div class="accent-line"></div>
+  <h1 class="q-title">Where do you naturally fall between <em>structure and chaos</em> — and what tends to go wrong when that balance is off?</h1>
+  <p class="q-hint">Not the ideal version. The pattern — what breaks when you over-plan or under-plan.</p>
+  <div class="ta-wrap">
+    <textarea class="ta" placeholder="Think of a time it went sideways..." maxlength="800"></textarea>
+    <div class="ta-meta"><span class="char-ct">Write what feels true</span><span class="ta-tip"></span></div>
+  </div>
+  <div class="ctx-row">
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Why this?</h6><p>Your relationship with control tells us whether to send you somewhere predictable or somewhere wild.</p></div>
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Mapping</h6><div class="ctx-traits"><span class="tr">chaos tolerance</span><span class="tr">control</span><span class="tr">adaptability</span><span class="tr">failure modes</span></div></div>
+  </div>
+  <div class="acts">
+    <button class="btn-bk" data-to="3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+    <button class="btn-nx" data-to="5">Continue<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<!-- Q6 -->
+<div class="slide" id="s5">
+  <div class="q-badge">Question 06</div>
+  <div class="accent-line"></div>
+  <h1 class="q-title">Think of a place you've been — or even just seen — that triggered <em>a strong emotion.</em> Describe the place and the feeling.</h1>
+  <p class="q-hint">Peace, jealousy, longing, excitement, unease — anything counts. A few words are enough. This becomes your visual compass.</p>
+  <div class="ta-wrap">
+    <textarea class="ta" placeholder="A place and a feeling, in your own words..." maxlength="800"></textarea>
+    <div class="ta-meta"><span class="char-ct">Write what feels true</span><span class="ta-tip"></span></div>
+  </div>
+  <div class="ctx-row">
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Why this?</h6><p>This emotional imprint becomes the atmospheric fingerprint we match destinations against.</p></div>
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Mapping</h6><div class="ctx-traits"><span class="tr">aesthetic signature</span><span class="tr">emotional palette</span><span class="tr">atmosphere</span></div></div>
+  </div>
+  <div class="acts">
+    <button class="btn-bk" data-to="4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+    <button class="btn-nx" data-to="6">Continue<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<!-- Q7 -->
+<div class="slide" id="s6">
+  <div class="q-badge">Question 07 — last one</div>
+  <div class="accent-line"></div>
+  <h1 class="q-title">What should this trip give you that <em>your everyday life currently cannot?</em></h1>
+  <p class="q-hint">Silence, adrenaline, connection, rupture, beauty, anonymity — name it. This is the compass heading.</p>
+  <div class="ta-wrap">
+    <textarea class="ta" placeholder="What are you really looking for?" maxlength="800"></textarea>
+    <div class="ta-meta"><span class="char-ct">Write what feels true</span><span class="ta-tip"></span></div>
+  </div>
+  <div class="ctx-row">
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Why this?</h6><p>The unmet need is the compass heading. Every destination starts from this answer.</p></div>
+    <div class="ctx-pill"><h6><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Mapping</h6><div class="ctx-traits"><span class="tr">core motivation</span><span class="tr">life contrast</span><span class="tr">emotional gap</span><span class="tr">trip function</span></div></div>
+  </div>
+  <div class="acts">
+    <button class="btn-bk" data-to="5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+    <button class="btn-nx" data-to="7">Continue<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<!-- PRACTICAL -->
+<div class="slide" id="s7">
+  <div class="q-badge">✦ Almost done — the practical stuff</div>
+  <div class="accent-line"></div>
+  <h1 class="q-title" style="margin-bottom:10px">Now help us <em>make it real.</em></h1>
+  <p class="q-hint">Quick details so your destinations are actually reachable.</p>
+  <div class="p-grid">
+    <div class="p-group"><label>When?</label><select class="p-sel" id="pW"><option value="" disabled selected>Timeframe</option><option>Next 2 weeks</option><option>Next month</option><option>Next 2-3 months</option><option>Next 6 months</option><option>No date yet</option></select></div>
+    <div class="p-group"><label>How long?</label><select class="p-sel" id="pD"><option value="" disabled selected>Trip length</option><option>Weekend (2-3 days)</option><option>Short (4-6 days)</option><option>One week</option><option>10-14 days</option><option>2+ weeks</option></select></div>
+    <div class="p-group"><label>Budget</label><select class="p-sel" id="pB"><option value="" disabled selected>Range</option><option>As cheap as possible</option><option>Moderate — good value</option><option>Comfortable</option><option>No real limit</option></select></div>
+    <div class="p-group"><label>Traveling from</label><input class="p-in" placeholder="City or country" id="pF"></div>
+    <div class="p-group full"><label>Anything to absolutely avoid? <span style="color:#B0B4C8;font-weight:400">(optional)</span></label><input class="p-in" placeholder="e.g. extreme heat, long flights, language barriers..." id="pA"></div>
+  </div>
+  <div class="acts" style="margin-top:8px">
+    <button class="btn-bk" data-to="6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+    <button class="btn-nx coral" data-to="8" id="btnSub">Discover my places<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<!-- DONE -->
+<div class="slide" id="s8">
+  <div class="done-screen">
+    <div class="done-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+    <h2>We see you.</h2>
+    <p>Your travel identity is mapped. We're finding<br>three places that were waiting for you.</p>
+    <button class="btn-go">Show me my destinations<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+</div>
+</section>
+
+<div class="kh" id="kh"><kbd>Enter</kbd> continue · <kbd>Shift+Enter</kbd> new line</div>
+
+<script>
+const TOTAL = 7;
+let cur = 0;
+const ans = {};
+
+// Decorative floaters
+const fc = document.getElementById('floaters');
+for (let i = 0; i < 20; i++) {
+  const d = document.createElement('div');
+  d.className = 'floater';
+  d.style.top = Math.random() * 100 + '%';
+  d.style.left = Math.random() * 100 + '%';
+  d.style.animationDelay = Math.random() * 6 + 's';
+  d.style.animationDuration = (3 + Math.random() * 4) + 's';
+  const sz = 3 + Math.random() * 5;
+  d.style.width = sz + 'px';
+  d.style.height = sz + 'px';
+  const cols = ['#E8546C', '#D4A853', '#A8B5A0', '#E8DDD0'];
+  d.style.background = cols[Math.floor(Math.random() * cols.length)];
+  fc.appendChild(d);
+}
+
+function updateProg() {
+  const bar = document.getElementById('progBar');
+  bar.innerHTML = '';
+  for (let i = 0; i < TOTAL; i++) {
+    const s = document.createElement('div');
+    s.className = 'seg';
+    if (i < cur) s.classList.add('done');
+    else if (i === cur && cur < TOTAL) s.classList.add('cur');
+    else s.classList.add('next');
+    bar.appendChild(s);
+  }
+  const pn = document.getElementById('progNum');
+  if (cur < TOTAL) pn.textContent = (cur + 1) + ' / ' + TOTAL;
+  else if (cur === TOTAL) pn.textContent = 'Details';
+  else pn.textContent = 'Done ✦';
+}
+
+function showTags() {
+  document.querySelectorAll('.ftag').forEach((t, i) => {
+    setTimeout(() => t.classList.add('show'), 300 + i * 150);
+  });
+}
+
+function goTo(n) {
+  // Save current textarea before leaving
+  const curSlide = document.getElementById('s' + cur);
+  if (curSlide) {
+    const curTa = curSlide.querySelector('.ta');
+    if (curTa) ans[cur] = curTa.value;
+  }
+
+  cur = n;
+
+  // Hide all, show target
+  document.querySelectorAll('.slide').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const target = document.getElementById('s' + n);
+  if (target) {
+    target.style.display = 'block';
+    target.classList.add('active');
+
+    // Restore textarea value and check state
+    const ta = target.querySelector('.ta');
+    if (ta) {
+      ta.value = ans[n] || '';
+      setTimeout(() => {
+        ta.focus();
+        refreshBtn(target);
+      }, 100);
+    }
+
+    // For practical slide, check fields
+    if (n === 7) checkPractical();
+  }
+
+  updateProg();
+
+  // Move orbs
+  const o1 = document.querySelector('.orb1');
+  const o2 = document.querySelector('.orb2');
+  if (o1) o1.style.transform = 'translate(' + (n * -6) + 'px,' + (n * 4) + 'px)';
+  if (o2) o2.style.transform = 'translate(' + (n * 5) + 'px,' + (n * -3) + 'px)';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function refreshBtn(slide) {
+  const ta = slide.querySelector('.ta');
+  const btn = slide.querySelector('.btn-nx');
+  const cc = slide.querySelector('.char-ct');
+  if (!ta || !btn) return;
+  const len = ta.value.trim().length;
+  if (len > 10) {
+    btn.classList.add('on');
+    if (cc) { cc.textContent = len + ' / 800'; cc.classList.add('on'); }
+  } else {
+    btn.classList.remove('on');
+    if (cc) { cc.textContent = 'Write what feels true'; cc.classList.remove('on'); }
+  }
+}
+
+function checkPractical() {
+  const btn = document.getElementById('btnSub');
+  if (!btn) return;
+  const w = document.getElementById('pW').value;
+  const d = document.getElementById('pD').value;
+  const b = document.getElementById('pB').value;
+  const f = document.getElementById('pF').value.trim();
+  if (w && d && b && f) btn.classList.add('on');
+  else btn.classList.remove('on');
+}
+
+// EVENT DELEGATION — one listener on the whole quiz area
+document.getElementById('quizArea').addEventListener('click', function(e) {
+  // Find closest button
+  const nxBtn = e.target.closest('.btn-nx');
+  const bkBtn = e.target.closest('.btn-bk');
+
+  if (nxBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!nxBtn.classList.contains('on')) return;
+    const to = parseInt(nxBtn.getAttribute('data-to'));
+    if (!isNaN(to)) goTo(to);
+    return;
+  }
+
+  if (bkBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (bkBtn.classList.contains('hide')) return;
+    const to = parseInt(bkBtn.getAttribute('data-to'));
+    if (!isNaN(to)) goTo(to);
+    return;
+  }
+});
+
+// Input listeners via delegation
+document.getElementById('quizArea').addEventListener('input', function(e) {
+  if (e.target.classList.contains('ta')) {
+    const slide = e.target.closest('.slide');
+    if (slide) {
+      const idx = parseInt(slide.id.replace('s', ''));
+      ans[idx] = e.target.value;
+      refreshBtn(slide);
+    }
+  }
+  // Practical fields
+  if (e.target.id === 'pW' || e.target.id === 'pD' || e.target.id === 'pB' || e.target.id === 'pF' || e.target.id === 'pA') {
+    checkPractical();
+  }
+});
+
+document.getElementById('quizArea').addEventListener('change', function(e) {
+  if (e.target.id === 'pW' || e.target.id === 'pD' || e.target.id === 'pB') {
+    checkPractical();
+  }
+});
+
+// Enter key on textareas
+document.getElementById('quizArea').addEventListener('keydown', function(e) {
+  if (e.target.classList.contains('ta') && e.key === 'Enter' && !e.shiftKey) {
+    const slide = e.target.closest('.slide');
+    if (slide) {
+      const btn = slide.querySelector('.btn-nx');
+      if (btn && btn.classList.contains('on')) {
+        e.preventDefault();
+        const to = parseInt(btn.getAttribute('data-to'));
+        if (!isNaN(to)) goTo(to);
+      }
+    }
+  }
+});
+
+// Mouse parallax on floating tags
+if (window.innerWidth > 768) {
+  document.addEventListener('mousemove', function(e) {
+    const x = (e.clientX / window.innerWidth - 0.5) * 2;
+    const y = (e.clientY / window.innerHeight - 0.5) * 2;
+    document.querySelectorAll('.ftag').forEach(function(t, i) {
+      const f = (i % 2 === 0 ? 1 : -1) * (5 + i * 2);
+      t.style.transform = 'translate(' + (x * f) + 'px,' + (y * f * 0.7) + 'px)';
+    });
+  });
+}
+
+// Init — make sure only s0 is visible
+document.querySelectorAll('.slide').forEach(function(s) {
+  if (s.id === 's0') { s.style.display = 'block'; s.classList.add('active'); }
+  else { s.style.display = 'none'; }
+});
+updateProg();
+showTags();
+setTimeout(function() {
+  const ta = document.querySelector('#s0 .ta');
+  if (ta) ta.focus();
+}, 400);
+</script>
+</body>
+</html>

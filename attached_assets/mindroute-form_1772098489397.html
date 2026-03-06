@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindRoute — Practical Constraints</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FAF7F2;
+    --cream-dark: #F0EBE3;
+    --navy: #1A1A2E;
+    --navy-light: #2D2D44;
+    --coral: #D46B6B;
+    --coral-light: #E8A0A0;
+    --coral-soft: rgba(212, 107, 107, 0.08);
+    --coral-hover: #C25858;
+    --text-secondary: #6B6B7B;
+    --border: rgba(26, 26, 46, 0.1);
+    --border-active: rgba(212, 107, 107, 0.4);
+    --shadow-soft: 0 2px 20px rgba(26, 26, 46, 0.06);
+    --shadow-hover: 0 8px 32px rgba(26, 26, 46, 0.1);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === NAVBAR === */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+
+  .logo svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: -0.3px;
+  }
+
+  /* Progress indicator */
+  .progress-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .progress-dot {
+    width: 32px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--cream-dark);
+    transition: all 0.4s ease;
+  }
+
+  .progress-dot.completed {
+    background: var(--coral);
+  }
+
+  .progress-dot.active {
+    background: var(--coral);
+    width: 48px;
+  }
+
+  .nav-cta {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--coral);
+    border: 1.5px solid var(--coral);
+    padding: 10px 24px;
+    border-radius: 100px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  .nav-cta:hover {
+    background: var(--coral);
+    color: white;
+  }
+
+  /* === MAIN CONTENT === */
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 60px 24px 120px;
+  }
+
+  /* Header */
+  .form-header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .form-step-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--coral);
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .form-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--navy);
+    margin-bottom: 14px;
+    letter-spacing: -0.5px;
+  }
+
+  .form-subtitle {
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 480px;
+    margin: 0 auto;
+    font-weight: 300;
+  }
+
+  /* === FORM === */
+  .form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+  }
+
+  .form-group {
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .form-group:nth-child(1) { animation-delay: 0.1s; }
+  .form-group:nth-child(2) { animation-delay: 0.15s; }
+  .form-group:nth-child(3) { animation-delay: 0.2s; }
+  .form-group:nth-child(4) { animation-delay: 0.25s; }
+  .form-group:nth-child(5) { animation-delay: 0.3s; }
+  .form-group:nth-child(6) { animation-delay: 0.35s; }
+
+  .form-label {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--navy);
+    margin-bottom: 14px;
+    letter-spacing: -0.2px;
+  }
+
+  .form-label-hint {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text-secondary);
+    display: block;
+    margin-top: 4px;
+  }
+
+  /* Chip selector (for budget, duration, travel companions) */
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .chip {
+    padding: 12px 22px;
+    border: 1.5px solid var(--border);
+    border-radius: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--navy-light);
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chip::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--coral-soft);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .chip:hover {
+    border-color: var(--coral-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .chip:hover::before {
+    opacity: 1;
+  }
+
+  .chip.selected {
+    border-color: var(--coral);
+    background: var(--coral-soft);
+    color: var(--coral-hover);
+    font-weight: 500;
+    box-shadow: 0 0 0 1px var(--coral);
+  }
+
+  .chip .chip-emoji {
+    margin-right: 6px;
+    font-size: 15px;
+  }
+
+  /* Text input */
+  .text-input {
+    width: 100%;
+    padding: 16px 20px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--navy);
+    background: white;
+    transition: all 0.3s ease;
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .text-input::placeholder {
+    color: #B0AEBF;
+    font-weight: 300;
+  }
+
+  .text-input:focus {
+    border-color: var(--coral);
+    box-shadow: 0 0 0 3px rgba(212, 107, 107, 0.1);
+  }
+
+  /* Month selector */
+  .month-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .month-chip {
+    padding: 12px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--navy-light);
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    user-select: none;
+  }
+
+  .month-chip:hover {
+    border-color: var(--coral-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .month-chip.selected {
+    border-color: var(--coral);
+    background: var(--coral-soft);
+    color: var(--coral-hover);
+    font-weight: 500;
+    box-shadow: 0 0 0 1px var(--coral);
+  }
+
+  .month-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    font-weight: 300;
+    font-style: italic;
+  }
+
+  /* Textarea */
+  .textarea-input {
+    width: 100%;
+    padding: 16px 20px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--navy);
+    background: white;
+    transition: all 0.3s ease;
+    outline: none;
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.6;
+  }
+
+  .textarea-input::placeholder {
+    color: #B0AEBF;
+    font-weight: 300;
+  }
+
+  .textarea-input:focus {
+    border-color: var(--coral);
+    box-shadow: 0 0 0 3px rgba(212, 107, 107, 0.1);
+  }
+
+  /* Divider */
+  .form-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 8px 0;
+  }
+
+  /* === SUBMIT === */
+  .submit-container {
+    margin-top: 20px;
+    text-align: center;
+    animation: fadeUp 0.6s ease 0.4s both;
+  }
+
+  .submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 48px;
+    background: var(--coral);
+    color: white;
+    border: none;
+    border-radius: 100px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    letter-spacing: 0.3px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .submit-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.15) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .submit-btn:hover {
+    background: var(--coral-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(212, 107, 107, 0.3);
+  }
+
+  .submit-btn:hover::after {
+    opacity: 1;
+  }
+
+  .submit-btn:active {
+    transform: translateY(0);
+  }
+
+  .submit-btn svg {
+    transition: transform 0.3s ease;
+  }
+
+  .submit-btn:hover svg {
+    transform: translateX(3px);
+  }
+
+  .submit-note {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+
+  /* === ANIMATIONS === */
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 640px) {
+    nav {
+      padding: 16px 20px;
+    }
+
+    main {
+      padding: 40px 20px 100px;
+    }
+
+    .month-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .chip-group {
+      gap: 8px;
+    }
+
+    .chip {
+      padding: 10px 18px;
+      font-size: 13px;
+    }
+
+    .progress-dots {
+      display: none;
+    }
+  }
+
+  /* Subtle background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 0%, rgba(212, 107, 107, 0.03) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(212, 107, 107, 0.03) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: -1;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <a href="#" class="logo">
+    <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Left wing -->
+      <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#D46B6B" opacity="0.85"/>
+      <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#D46B6B" opacity="0.55"/>
+      <!-- Right wing -->
+      <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#D46B6B" opacity="0.85"/>
+      <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#D46B6B" opacity="0.55"/>
+      <!-- Pin body -->
+      <ellipse cx="60" cy="60" rx="5" ry="6" fill="#1A1A2E"/>
+      <!-- Pin point -->
+      <path d="M58 66L60 108L62 66" fill="#D46B6B" opacity="0.7"/>
+      <!-- Head -->
+      <circle cx="60" cy="48" r="3.5" fill="#1A1A2E"/>
+      <!-- Wing details -->
+      <circle cx="42" cy="50" r="4" fill="white" opacity="0.2"/>
+      <circle cx="78" cy="50" r="4" fill="white" opacity="0.2"/>
+      <circle cx="44" cy="82" r="3" fill="white" opacity="0.15"/>
+      <circle cx="76" cy="82" r="3" fill="white" opacity="0.15"/>
+    </svg>
+    <span class="logo-text">MindRoute</span>
+  </a>
+
+  <div class="progress-dots">
+    <div class="progress-dot completed"></div>
+    <div class="progress-dot active"></div>
+    <div class="progress-dot"></div>
+  </div>
+
+  <button class="nav-cta">Start your journey</button>
+</nav>
+
+<!-- MAIN -->
+<main>
+  <div class="form-header">
+    <span class="form-step-label">Step 2 of 3 — Practical constraints</span>
+    <h1 class="form-title">Now let's talk logistics.</h1>
+    <p class="form-subtitle">Nothing creative here, just the boundaries your trip needs to fit within. 60 seconds and we're done.</p>
+  </div>
+
+  <div class="form-container">
+
+    <!-- 1. BUDGET -->
+    <div class="form-group">
+      <label class="form-label">
+        How much do you want to spend?
+        <span class="form-label-hint">Per person, all included</span>
+      </label>
+      <div class="chip-group" data-field="budget">
+        <div class="chip" data-value="low"><span class="chip-emoji">💰</span> Under €500</div>
+        <div class="chip" data-value="medium"><span class="chip-emoji">💰</span> €500 – €1,500</div>
+        <div class="chip" data-value="high"><span class="chip-emoji">💰</span> €1,500 – €3,000</div>
+        <div class="chip" data-value="unlimited"><span class="chip-emoji">✨</span> Money's not an issue</div>
+      </div>
+    </div>
+
+    <!-- 2. PERIODO -->
+    <div class="form-group">
+      <label class="form-label">
+        When do you want to go?
+        <span class="form-label-hint">You can select multiple months</span>
+      </label>
+      <div class="month-grid" data-field="months">
+        <div class="month-chip" data-value="jan">January</div>
+        <div class="month-chip" data-value="feb">February</div>
+        <div class="month-chip" data-value="mar">March</div>
+        <div class="month-chip" data-value="apr">April</div>
+        <div class="month-chip" data-value="may">May</div>
+        <div class="month-chip" data-value="jun">June</div>
+        <div class="month-chip" data-value="jul">July</div>
+        <div class="month-chip" data-value="aug">August</div>
+        <div class="month-chip" data-value="sep">September</div>
+        <div class="month-chip" data-value="oct">October</div>
+        <div class="month-chip" data-value="nov">November</div>
+        <div class="month-chip" data-value="dec">December</div>
+      </div>
+      <p class="month-hint">Flexible on dates? Select all possible months.</p>
+    </div>
+
+    <!-- 3. DURATA -->
+    <div class="form-group">
+      <label class="form-label">How many days do you have?</label>
+      <div class="chip-group" data-field="duration">
+        <div class="chip" data-value="weekend">Long weekend <span style="color:var(--text-secondary); font-weight:300;">(3-4 days)</span></div>
+        <div class="chip" data-value="week">One week</div>
+        <div class="chip" data-value="10-14">10-14 days</div>
+        <div class="chip" data-value="long">More than two weeks</div>
+      </div>
+    </div>
+
+    <div class="form-divider"></div>
+
+    <!-- 4. DA DOVE PARTI -->
+    <div class="form-group">
+      <label class="form-label">Where are you departing from?</label>
+      <input type="text" class="text-input" placeholder="E.g. Milan, London, New York..." id="departure">
+    </div>
+
+    <!-- 5. CON CHI VAI -->
+    <div class="form-group">
+      <label class="form-label">Who are you traveling with?</label>
+      <div class="chip-group" data-field="companions">
+        <div class="chip" data-value="solo"><span class="chip-emoji">🧭</span> Solo</div>
+        <div class="chip" data-value="couple"><span class="chip-emoji">💕</span> Partner</div>
+        <div class="chip" data-value="friends"><span class="chip-emoji">👥</span> Friends</div>
+        <div class="chip" data-value="family"><span class="chip-emoji">👨‍👩‍👧</span> Family</div>
+      </div>
+    </div>
+
+    <div class="form-divider"></div>
+
+    <!-- 6. VINCOLI HARD -->
+    <div class="form-group">
+      <label class="form-label">
+        Anything I should know?
+        <span class="form-label-hint">Allergies, fears, special needs — or leave blank</span>
+      </label>
+      <textarea class="textarea-input" placeholder="E.g. I'm afraid of flying more than 4 hours, my partner is gluten-free, I need wheelchair accessibility..." id="constraints"></textarea>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-container">
+      <button class="submit-btn" id="submitBtn">
+        Discover your destinations
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"/>
+          <path d="m12 5 7 7-7 7"/>
+        </svg>
+      </button>
+      <p class="submit-note">We'll suggest 3 destinations designed around you.</p>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  // Single-select chips (budget, duration, companions)
+  document.querySelectorAll('.chip-group .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const group = chip.closest('.chip-group');
+      group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+    });
+  });
+
+  // Multi-select months
+  document.querySelectorAll('.month-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('selected');
+    });
+  });
+
+  // Submit button interaction
+  document.getElementById('submitBtn').addEventListener('click', () => {
+    const btn = document.getElementById('submitBtn');
+    btn.style.transform = 'scale(0.96)';
+    setTimeout(() => {
+      btn.style.transform = '';
+      btn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;">
+          <path d="M21 12a9 9 0 11-6.219-8.56"/>
+        </svg>
+        Thinking about your trip...
+      `;
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = '0.85';
+    }, 150);
+  });
+
+  // Add spin animation
+  const style = document.createElement('style');
+  style.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+  document.head.appendChild(style);
+</script>
+
+</body>
+</html>

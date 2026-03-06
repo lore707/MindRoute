@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindRoute — Profiling</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 120 120' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60' fill='%23E94560' opacity='0.85'/%3E%3Cpath d='M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72' fill='%23E94560' opacity='0.55'/%3E%3Cpath d='M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60' fill='%23E94560' opacity='0.85'/%3E%3Cpath d='M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72' fill='%23E94560' opacity='0.55'/%3E%3Cellipse cx='60' cy='60' rx='5' ry='6' fill='%231A1A2E'/%3E%3Cpath d='M58 66L60 108L62 66' fill='%23E94560' opacity='0.7'/%3E%3Ccircle cx='60' cy='48' r='3.5' fill='%231A1A2E'/%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #FAFAF8;
+    --bg-alt: #F3F1EE;
+    --text: #1A1A2E;
+    --text-secondary: #6B6776;
+    --text-hint: #A09BA8;
+    --accent: #E94560;
+    --accent-hover: #D13A52;
+    --accent-soft: rgba(233, 69, 96, 0.07);
+    --accent-glow: rgba(233, 69, 96, 0.15);
+    --card-bg: #FFFFFF;
+    --border: #EDEBE8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ============ NAVBAR ============ */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(250, 250, 248, 0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(237, 235, 232, 0.5);
+  }
+
+  .nav-brand {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none; color: var(--text);
+  }
+
+  .nav-logo { width: 30px; height: 30px; }
+
+  .nav-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+  }
+
+  .nav-center { display: flex; align-items: center; gap: 12px; }
+
+  .progress-bar-container { display: flex; gap: 4px; align-items: center; }
+
+  .progress-segment {
+    width: 28px; height: 3px; border-radius: 2px;
+    background: var(--border);
+    transition: all 0.4s ease;
+  }
+
+  .progress-segment.filled { background: var(--accent); }
+  .progress-segment.current { background: var(--accent); width: 40px; }
+
+  .nav-count {
+    font-size: 13px; color: var(--text-secondary);
+    font-weight: 500; margin-left: 4px;
+  }
+
+  .nav-exit {
+    font-size: 13px; color: var(--text-secondary);
+    text-decoration: none; padding: 7px 16px;
+    border: 1px solid var(--border); border-radius: 100px;
+    transition: all 0.2s;
+  }
+
+  .nav-exit:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ============ DECORATIVE ELEMENTS ============ */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-orb {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-orb-1 {
+    top: -12%;
+    right: -8%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(233,69,96,0.05) 0%, transparent 60%);
+  }
+
+  .bg-orb-2 {
+    bottom: -10%;
+    left: -6%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(233,69,96,0.035) 0%, transparent 60%);
+  }
+
+  .bg-orb-3 {
+    top: 40%;
+    left: 30%;
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(233,69,96,0.02) 0%, transparent 65%);
+  }
+
+  /* Line art decorations */
+  .line-art {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .line-art-circle-1 {
+    top: 15%;
+    right: 5%;
+    width: 120px;
+    height: 120px;
+    border: 1px solid rgba(233,69,96,0.06);
+    border-radius: 50%;
+  }
+
+  .line-art-circle-2 {
+    bottom: 20%;
+    left: 3%;
+    width: 80px;
+    height: 80px;
+    border: 1px solid rgba(233,69,96,0.04);
+    border-radius: 50%;
+  }
+
+  .line-art-square {
+    top: 60%;
+    right: 8%;
+    width: 60px;
+    height: 60px;
+    border: 1px solid rgba(233,69,96,0.05);
+    transform: rotate(45deg);
+  }
+
+  /* Floating butterfly */
+  .floating-butterfly {
+    position: fixed;
+    top: 16%;
+    right: 12%;
+    width: 40px;
+    height: 40px;
+    opacity: 0.08;
+    z-index: 0;
+    pointer-events: none;
+    animation: floatSoft 8s ease-in-out infinite;
+  }
+
+  @keyframes floatSoft {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    33% { transform: translateY(-8px) rotate(2deg); }
+    66% { transform: translateY(4px) rotate(-1deg); }
+  }
+
+  /* Enhanced deco dots */
+  .deco-dot {
+    position: absolute; border-radius: 50%;
+    background: var(--accent); pointer-events: none;
+  }
+
+  .deco-dot-glow {
+    position: absolute; border-radius: 50%;
+    pointer-events: none;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(233,69,96,0.15);
+  }
+
+  /* Decorative line on sidebar */
+  .sidebar-deco-line {
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    border-radius: 1px;
+    margin-bottom: 8px;
+    opacity: 0.3;
+  }
+
+  /* ============ LAYOUT ============ */
+  .page-layout {
+    display: grid;
+    grid-template-columns: 56px 1fr 300px;
+    min-height: 100vh;
+    padding-top: 64px;
+  }
+
+  /* ============ VERTICAL PROGRESS ============ */
+  .vertical-progress {
+    padding: 40px 0;
+    display: flex; flex-direction: column;
+    align-items: center;
+    position: sticky; top: 64px;
+    height: calc(100vh - 64px);
+    justify-content: center;
+  }
+
+  .vp-step {
+    display: flex; flex-direction: column;
+    align-items: center; cursor: pointer;
+  }
+
+  .vp-dot {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2;
+  }
+
+  .vp-dot.active {
+    background: var(--accent); color: white;
+    box-shadow: 0 4px 18px var(--accent-glow);
+    transform: scale(1.1);
+  }
+
+  .vp-dot.completed {
+    background: var(--accent); color: white; opacity: 0.55;
+  }
+
+  .vp-dot.inactive {
+    background: var(--bg-alt); color: var(--text-hint);
+    border: 1.5px solid var(--border);
+  }
+
+  .vp-line {
+    width: 2px; height: 22px; background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .vp-line.filled { background: var(--accent); opacity: 0.3; }
+
+  /* ============ MAIN CONTENT ============ */
+  .main-content {
+    padding: 52px 56px 120px;
+    max-width: 740px;
+    position: relative;
+  }
+
+  .floating-words {
+    position: absolute; inset: 0;
+    pointer-events: none; overflow: hidden;
+  }
+
+  .float-word {
+    position: absolute;
+    font-size: 13px; font-weight: 300;
+    color: var(--text); opacity: 0;
+    letter-spacing: 0.5px;
+    user-select: none;
+    transition: opacity 1s ease;
+  }
+
+  .float-word.visible { opacity: 0.06; }
+
+  .deco-dot {
+    position: absolute; border-radius: 50%;
+    background: var(--accent); pointer-events: none;
+  }
+
+  /* Question label */
+  .question-label {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    padding: 5px 14px;
+    background: var(--accent-soft);
+    border-radius: 100px;
+  }
+
+  .question-label svg { width: 12px; height: 12px; }
+
+  .question-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(26px, 3.8vw, 36px);
+    line-height: 1.3; letter-spacing: -0.5px;
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .question-text::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    width: 48px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    border-radius: 2px;
+    opacity: 0.4;
+  }
+
+  .question-text em { font-style: italic; color: var(--accent); }
+
+  .question-hint {
+    font-size: 15px; color: var(--text-secondary);
+    font-weight: 300; font-style: italic;
+    line-height: 1.7; margin-bottom: 32px;
+  }
+
+  /* ============ TEXTAREA ============ */
+  .answer-area {
+    width: 100%; min-height: 150px;
+    padding: 22px 24px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px; line-height: 1.7;
+    color: var(--text); background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    resize: vertical; outline: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 16px rgba(26, 26, 46, 0.04), 0 0 0 1px rgba(233, 69, 96, 0.02);
+  }
+
+  .answer-area::placeholder { color: var(--text-hint); font-weight: 300; }
+
+  .answer-area:focus {
+    border-color: var(--accent);
+    box-shadow: 0 4px 24px rgba(233, 69, 96, 0.08);
+  }
+
+  .textarea-footer {
+    display: flex; justify-content: space-between;
+    margin-top: 10px; font-size: 12px; color: var(--text-hint);
+  }
+
+  /* ============ CHIPS ============ */
+  .chips-grid {
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+
+  .answer-chip {
+    padding: 14px 24px;
+    border: 1.5px solid var(--border);
+    border-radius: 100px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px; font-weight: 400;
+    color: var(--text-secondary);
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    user-select: none;
+  }
+
+  .answer-chip:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--text);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(233, 69, 96, 0.08);
+  }
+
+  .answer-chip.selected {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+
+  .chip-addendum {
+    width: 100%;
+    margin-top: 16px;
+    padding: 16px 20px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px; line-height: 1.6;
+    color: var(--text); background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    resize: none; outline: none;
+    min-height: 60px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.4s ease;
+  }
+
+  .chip-addendum.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .chip-addendum::placeholder { color: var(--text-hint); font-weight: 300; font-style: italic; }
+  .chip-addendum:focus { border-color: var(--accent); box-shadow: 0 2px 12px rgba(233, 69, 96, 0.06); }
+
+  /* ============ IMAGE SELECT ============ */
+  .images-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .image-option {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 4px 20px rgba(26, 26, 46, 0.06);
+  }
+
+  .image-option img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s ease, filter 0.3s ease;
+  }
+
+  .image-option:hover img { transform: scale(1.06); filter: brightness(1.04); }
+  .image-option:hover { border-color: rgba(233, 69, 96, 0.3); box-shadow: 0 8px 32px rgba(26, 26, 46, 0.1); transform: translateY(-3px); }
+
+  .image-option.selected {
+    border-color: var(--accent);
+    box-shadow: 0 6px 28px var(--accent-glow);
+  }
+
+  .image-option.selected img { transform: scale(1.02); }
+
+  .image-label {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 14px 16px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+    color: white;
+    font-size: 13px; font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+  .image-check {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 3px 12px rgba(233, 69, 96, 0.3);
+  }
+
+  .image-option.selected .image-check {
+    opacity: 1; transform: scale(1);
+  }
+
+  .image-check svg { width: 14px; height: 14px; }
+
+  /* ============ SLIDER ============ */
+  .slider-container {
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px;
+  }
+
+  .slider-labels {
+    display: flex; justify-content: space-between; margin-bottom: 28px;
+  }
+
+  .slider-label {
+    font-size: 12px; color: var(--text-secondary);
+    font-weight: 400; max-width: 110px;
+    line-height: 1.4;
+  }
+
+  .slider-label:first-child { text-align: left; }
+  .slider-label:last-child { text-align: right; }
+
+  .slider-track {
+    position: relative; width: 100%; height: 6px;
+    background: var(--bg-alt); border-radius: 3px; cursor: pointer;
+  }
+
+  .slider-fill {
+    position: absolute; left: 0; top: 0; height: 100%;
+    background: linear-gradient(90deg, var(--accent), #F06B83);
+    border-radius: 3px; transition: width 0.15s ease;
+  }
+
+  .slider-thumb {
+    position: absolute; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 28px; height: 28px;
+    background: white; border: 3px solid var(--accent);
+    border-radius: 50%; cursor: grab;
+    transition: box-shadow 0.2s ease; z-index: 2;
+  }
+
+  .slider-thumb:hover, .slider-thumb:active {
+    box-shadow: 0 0 0 10px rgba(233, 69, 96, 0.1);
+  }
+
+  .slider-thumb:active { cursor: grabbing; }
+
+  .slider-value {
+    text-align: center; margin-top: 24px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 15px; color: var(--accent);
+    font-style: italic; min-height: 24px;
+  }
+
+  .slider-addendum {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px 20px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px; line-height: 1.6;
+    color: var(--text); background: var(--bg-alt);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    resize: none; outline: none;
+    min-height: 60px;
+  }
+
+  .slider-addendum::placeholder { color: var(--text-hint); font-weight: 300; font-style: italic; }
+  .slider-addendum:focus { border-color: var(--accent); box-shadow: 0 2px 12px rgba(233, 69, 96, 0.06); }
+
+  /* ============ BUTTONS ============ */
+  .buttons-row {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-top: 36px;
+  }
+
+  .btn-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 14px; color: var(--text-secondary);
+    background: none; border: none; cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    padding: 10px 16px; border-radius: 8px; transition: all 0.2s;
+  }
+
+  .btn-back:hover { color: var(--text); background: var(--bg-alt); }
+  .btn-back svg { width: 16px; height: 16px; }
+
+  .btn-continue {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent); color: white;
+    font-size: 15px; font-weight: 600;
+    padding: 14px 32px; border-radius: 100px;
+    border: none; cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 20px rgba(233, 69, 96, 0.2);
+  }
+
+  .btn-continue:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 28px rgba(233, 69, 96, 0.3);
+  }
+
+  .btn-continue:disabled {
+    background: #CCC; box-shadow: none;
+    cursor: not-allowed; transform: none;
+  }
+
+  .btn-continue svg { width: 16px; height: 16px; transition: transform 0.2s; }
+  .btn-continue:hover:not(:disabled) svg { transform: translateX(3px); }
+
+  /* ============ MICRO REACTION ============ */
+  .micro-reaction {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'DM Serif Display', serif;
+    font-size: 30px; font-style: italic;
+    color: var(--accent); opacity: 0;
+    pointer-events: none; z-index: 200;
+  }
+
+  .micro-reaction.visible { animation: reactPulse 1.2s ease-out forwards; }
+
+  @keyframes reactPulse {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+    15% { opacity: 1; transform: translate(-50%, -50%) scale(1.02); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -48%) scale(1); }
+  }
+
+  /* ============ SIDEBAR ============ */
+  .sidebar {
+    padding: 52px 28px 48px 0;
+    position: sticky; top: 64px;
+    height: calc(100vh - 64px);
+    display: flex; flex-direction: column;
+    gap: 16px; justify-content: center;
+  }
+
+  .sidebar-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid rgba(233, 69, 96, 0.12);
+    border-radius: 16px; padding: 22px;
+    transition: all 0.4s ease;
+    animation: sidebarIn 0.5s ease 0.2s both;
+  }
+
+  @keyframes sidebarIn {
+    from { opacity: 0; transform: translateX(12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .sidebar-card:hover { box-shadow: 0 4px 20px rgba(26, 26, 46, 0.05); }
+
+  .sidebar-card-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px; font-size: 13px;
+    font-weight: 600; color: var(--text);
+  }
+
+  .sidebar-card-header svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .sidebar-card p {
+    font-size: 13px; color: var(--text-secondary);
+    line-height: 1.7; font-weight: 300;
+  }
+
+  .mapping-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+  .mapping-tag {
+    font-size: 11px; padding: 4px 12px;
+    border-radius: 100px; background: var(--accent-soft);
+    color: var(--accent); font-weight: 500;
+  }
+
+  .sidebar-privacy {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 16px; background: var(--bg-alt);
+    border-radius: 12px; font-size: 12px;
+    color: var(--text-hint); line-height: 1.5;
+    animation: sidebarIn 0.5s ease 0.4s both;
+  }
+
+  .sidebar-privacy svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ============ KEYBOARD HINT ============ */
+  .keyboard-hint {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-hint); opacity: 0.5; z-index: 50;
+  }
+
+  .key-badge {
+    display: inline-flex; padding: 3px 8px;
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 4px; font-size: 11px; font-weight: 600;
+    color: var(--text-secondary);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  /* ============ TRANSITION ============ */
+  .question-container { animation: fadeSlideIn 0.45s ease-out; }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1024px) {
+    .page-layout { grid-template-columns: 1fr; }
+    .vertical-progress, .sidebar { display: none; }
+    .main-content { padding: 36px 20px 120px; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <a href="index.html" class="nav-brand">
+    <svg class="nav-logo" viewBox="0 0 120 120" fill="none">
+      <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+      <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+      <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+      <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+      <ellipse cx="60" cy="60" rx="5" ry="6" fill="#1A1A2E"/>
+      <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7"/>
+      <circle cx="60" cy="48" r="3.5" fill="#1A1A2E"/>
+    </svg>
+    <span class="nav-name">MindRoute</span>
+  </a>
+  <div class="nav-center">
+    <div class="progress-bar-container" id="progressBar"></div>
+    <span class="nav-count" id="navCount">1 / 7</span>
+  </div>
+  <a href="index.html" class="nav-exit">Save & exit</a>
+</nav>
+
+<!-- DECORATIVE ELEMENTS -->
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+<div class="line-art line-art-circle-1"></div>
+<div class="line-art line-art-circle-2"></div>
+<div class="line-art line-art-square"></div>
+<svg class="floating-butterfly" viewBox="0 0 120 120" fill="none">
+  <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+  <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+  <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+  <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+  <ellipse cx="60" cy="60" rx="5" ry="6" fill="#1A1A2E"/>
+  <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7"/>
+  <circle cx="60" cy="48" r="3.5" fill="#1A1A2E"/>
+</svg>
+
+<!-- MICRO REACTION -->
+<div class="micro-reaction" id="microReaction"></div>
+
+<!-- PAGE LAYOUT -->
+<div class="page-layout">
+  <div class="vertical-progress" id="verticalProgress"></div>
+
+  <div class="main-content">
+    <div class="floating-words" id="floatingWords"></div>
+    <div class="deco-dot" style="width:6px;height:6px;top:12%;right:10%;opacity:0.12;"></div>
+    <div class="deco-dot" style="width:4px;height:4px;top:40%;right:22%;opacity:0.08;"></div>
+    <div class="deco-dot" style="width:5px;height:5px;top:65%;left:3%;opacity:0.1;"></div>
+    <div class="deco-dot-glow" style="width:5px;height:5px;top:25%;right:5%;opacity:0.18;"></div>
+    <div class="deco-dot" style="width:3px;height:3px;top:80%;right:15%;opacity:0.07;"></div>
+    <div class="deco-dot-glow" style="width:4px;height:4px;top:55%;left:1%;opacity:0.12;"></div>
+    <div id="questionArea"></div>
+  </div>
+
+  <div class="sidebar" id="sidebar"></div>
+</div>
+
+<!-- KEYBOARD HINT -->
+<div class="keyboard-hint" id="keyboardHint">
+  Press <span class="key-badge">Enter</span> to continue
+</div>
+
+<script>
+// ============ QUESTION DATA ============
+const questions = [
+  {
+    text: 'Describe a moment when you clearly thought: <em>this is exactly where I should be.</em>',
+    hint: 'Where were you, and what was happening? It doesn\'t have to be travel.',
+    type: 'text',
+    placeholder: 'I remember being...',
+    why: 'This reveals your alignment point — the conditions where you feel most yourself. We use it to find destinations that recreate that state.',
+    tags: ['alignment', 'identity state', 'peak conditions'],
+    words: ['belonging', 'aligned', 'grounded', 'present', 'true']
+  },
+  {
+    text: 'A meal, a song, a place, or a conversation that quietly <em>shifted something</em> in you. What changed after?',
+    hint: 'We\'re not looking for drama — just consequence.',
+    type: 'text',
+    placeholder: 'There was this one time...',
+    why: 'Transformation events reveal what moves you at a deep level. The "what changed after" shows us what kind of impact you\'re open to.',
+    tags: ['transformation', 'openness to change', 'depth'],
+    words: ['shifted', 'consequence', 'quiet', 'profound', 'after']
+  },
+  {
+    text: 'What <em>drains you</em> when traveling?',
+    hint: 'What you reject tells us more than what you want.',
+    type: 'chips',
+    options: ['Guided tours', 'Crowded places', 'Museums fatigue', 'Resort hotels', 'Nightlife & clubs', 'Touristy restaurants', 'Long transits', 'Early mornings', 'Strict schedules', 'Small talk with strangers'],
+    multi: true,
+    addendum: 'Anything else that kills the vibe?',
+    why: 'Anti-patterns are identity markers. What drains you defines the hard boundaries of your ideal trip — we won\'t cross them.',
+    tags: ['anti-patterns', 'energy drains', 'hard boundaries'],
+    words: ['selective', 'discerning', 'boundaries', 'authentic', 'no']
+  },
+  {
+    text: 'Which of these <em>pulls you in?</em>',
+    hint: 'Don\'t think. Just feel.',
+    type: 'images',
+    options: [
+      { src: 'https://images.unsplash.com/photo-1548017544-07e35c5a3318?w=500&q=80', label: 'Ancient medina alley', value: 'medina' },
+      { src: 'https://images.unsplash.com/photo-1590012314607-cda9d9b699ae?w=500&q=80', label: 'Nordic cliffs & silence', value: 'nordic' },
+      { src: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=500&q=80', label: 'Temple at dusk', value: 'temple' },
+      { src: 'https://images.unsplash.com/photo-1597420661002-5b5b935ceaa9?w=500&q=80', label: 'Empty desert road', value: 'desert' }
+    ],
+    why: 'Visual attraction bypasses rational filters. The image you choose reveals your aesthetic soul — the kind of beauty that calls to you without explanation.',
+    tags: ['aesthetic signature', 'visual instinct', 'subconscious pull'],
+    words: ['visual', 'instinct', 'pull', 'aesthetic', 'soul']
+  },
+  {
+    text: 'Where do you fall between <em>structure</em> and <em>chaos?</em>',
+    hint: 'And what tends to go wrong when that balance is off?',
+    type: 'slider',
+    why: 'Your chaos tolerance shapes everything — the destinations we suggest, the pace of the itinerary, and how much we leave open for surprise.',
+    tags: ['chaos tolerance', 'control need', 'travel rhythm'],
+    words: ['structured', 'spontaneous', 'flexible', 'rhythm', 'balance']
+  },
+  {
+    text: 'Think of a place — real or imagined — that triggered a <em>strong emotion.</em>',
+    hint: 'Peace, jealousy, longing, excitement, unease — all count. Describe the place and the feeling.',
+    type: 'text',
+    placeholder: 'I felt... when I was in...',
+    why: 'This is your emotional compass. The places that trigger strong feelings reveal what environments resonate with your nervous system.',
+    tags: ['emotional compass', 'sensory signature', 'resonance'],
+    words: ['resonance', 'emotion', 'visceral', 'memory', 'place']
+  },
+  {
+    text: 'What should this trip <em>give you</em> that your everyday life currently can\'t?',
+    hint: 'Not what you want to do — what you need to feel.',
+    type: 'text',
+    placeholder: 'I need this trip to...',
+    why: 'The final signal. This separates escape from growth, rest from adventure, healing from celebration. It\'s the "why" behind the trip.',
+    tags: ['core need', 'life phase', 'trip function'],
+    words: ['need', 'feel', 'missing', 'seeking', 'release']
+  }
+];
+
+const sliderLabels = [
+  "Every hour planned — I need certainty.",
+  "Mostly planned with small surprises.",
+  "A clear structure with breathing room.",
+  "A loose plan with room to wander.",
+  "Some anchor points, rest is improvised.",
+  "Book the flight, figure out the rest.",
+  "Total chaos. No plan. That's the point."
+];
+
+const microReactions = ['Got it.', 'Interesting.', 'Noted.', 'That says a lot.', 'Good.', 'Understood.', 'Telling.'];
+
+let currentQuestion = 0;
+let answers = [];
+let chipSelections = {};
+let imageSelection = null;
+
+// ============ INIT ============
+function init() {
+  buildProgressBar();
+  buildVerticalProgress();
+  renderQuestion(0);
+}
+
+// ============ PROGRESS BAR ============
+function buildProgressBar() {
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'progress-segment';
+    if (i < currentQuestion) seg.className += ' filled';
+    if (i === currentQuestion) seg.className += ' current';
+    bar.appendChild(seg);
+  }
+  document.getElementById('navCount').textContent = `${currentQuestion + 1} / 7`;
+}
+
+// ============ VERTICAL PROGRESS ============
+function buildVerticalProgress() {
+  const vp = document.getElementById('verticalProgress');
+  vp.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const step = document.createElement('div');
+    step.className = 'vp-step';
+    step.onclick = () => { if (i <= answers.length) goToQuestion(i); };
+    const dot = document.createElement('div');
+    dot.className = 'vp-dot';
+    if (i === currentQuestion) dot.className += ' active';
+    else if (i < currentQuestion) dot.className += ' completed';
+    else dot.className += ' inactive';
+    dot.textContent = i + 1;
+    step.appendChild(dot);
+    if (i < 6) {
+      const line = document.createElement('div');
+      line.className = 'vp-line';
+      if (i < currentQuestion) line.className += ' filled';
+      step.appendChild(line);
+    }
+    vp.appendChild(step);
+  }
+}
+
+// ============ RENDER QUESTION ============
+function renderQuestion(index) {
+  const q = questions[index];
+  const area = document.getElementById('questionArea');
+  let inputHTML = '';
+
+  if (q.type === 'text') {
+    inputHTML = `
+      <textarea class="answer-area" id="answerInput" placeholder="${q.placeholder}" rows="5">${answers[index] || ''}</textarea>
+      <div class="textarea-footer">
+        <span>Just write what feels true</span>
+        <span></span>
+      </div>
+    `;
+  } else if (q.type === 'chips') {
+    const selected = chipSelections[index] || [];
+    inputHTML = `
+      <div class="chips-grid" id="chipsGrid">
+        ${q.options.map(opt => `
+          <div class="answer-chip ${selected.includes(opt) ? 'selected' : ''}" data-value="${opt}" onclick="selectChip(this, ${q.multi})">${opt}</div>
+        `).join('')}
+      </div>
+      <textarea class="chip-addendum ${selected.length > 0 ? 'visible' : ''}" id="chipAddendum" placeholder="${q.addendum}">${answers[index + '_addendum'] || ''}</textarea>
+    `;
+  } else if (q.type === 'images') {
+    inputHTML = `
+      <div class="images-grid" id="imagesGrid">
+        ${q.options.map((opt, i) => `
+          <div class="image-option ${imageSelection === opt.value ? 'selected' : ''}" data-value="${opt.value}" onclick="selectImage(this)">
+            <img src="${opt.src}" alt="${opt.label}" loading="lazy">
+            <div class="image-label">${opt.label}</div>
+            <div class="image-check">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else if (q.type === 'slider') {
+    const val = answers[index] || 50;
+    inputHTML = `
+      <div class="slider-container">
+        <div class="slider-labels">
+          <span class="slider-label">Minute-by-minute itinerary</span>
+          <span class="slider-label">I'll figure it out when I land</span>
+        </div>
+        <div class="slider-track" id="sliderTrack">
+          <div class="slider-fill" id="sliderFill" style="width:${val}%"></div>
+          <div class="slider-thumb" id="sliderThumb" style="left:${val}%"></div>
+        </div>
+        <div class="slider-value" id="sliderValue">${sliderLabels[Math.round(val / 100 * 6)]}</div>
+      </div>
+      <textarea class="slider-addendum" id="sliderAddendum" placeholder="What tends to go wrong when that balance is off?">${answers[index + '_addendum'] || ''}</textarea>
+    `;
+  }
+
+  area.innerHTML = `
+    <div class="question-container">
+      <span class="question-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Question ${String(index + 1).padStart(2, '0')}
+      </span>
+      <h1 class="question-text">${q.text}</h1>
+      <p class="question-hint">${q.hint}</p>
+      ${inputHTML}
+      <div class="buttons-row">
+        ${index > 0 ? `
+          <button class="btn-back" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back
+          </button>
+        ` : '<div></div>'}
+        <button class="btn-continue" id="btnContinue" onclick="nextQuestion()" ${getDisabledState(q, index)}>
+          ${index === 6 ? 'See my destinations' : 'Continue'}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+
+  renderFloatingWords(q.words);
+  renderSidebar(q);
+  buildProgressBar();
+  buildVerticalProgress();
+
+  if (q.type === 'text') {
+    const input = document.getElementById('answerInput');
+    setTimeout(() => input && input.focus(), 100);
+    input.addEventListener('input', () => {
+      document.getElementById('btnContinue').disabled = input.value.trim().length < 5;
+    });
+  } else if (q.type === 'slider') {
+    initSlider();
+  }
+}
+
+function getDisabledState(q, index) {
+  if (q.type === 'text' && !answers[index]) return 'disabled';
+  if (q.type === 'chips' && !(chipSelections[index] && chipSelections[index].length > 0)) return 'disabled';
+  if (q.type === 'images' && !imageSelection) return 'disabled';
+  return '';
+}
+
+// ============ CHIP SELECT ============
+function selectChip(el, multi) {
+  if (multi) {
+    el.classList.toggle('selected');
+  } else {
+    document.querySelectorAll('.answer-chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  const selected = [...document.querySelectorAll('.answer-chip.selected')].map(c => c.dataset.value);
+  chipSelections[currentQuestion] = selected;
+
+  const addendum = document.getElementById('chipAddendum');
+  if (addendum) {
+    if (selected.length > 0) addendum.classList.add('visible');
+    else addendum.classList.remove('visible');
+  }
+
+  document.getElementById('btnContinue').disabled = selected.length === 0;
+}
+
+// ============ IMAGE SELECT ============
+function selectImage(el) {
+  document.querySelectorAll('.image-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  imageSelection = el.dataset.value;
+  document.getElementById('btnContinue').disabled = false;
+}
+
+// ============ SLIDER ============
+function initSlider() {
+  const track = document.getElementById('sliderTrack');
+  const fill = document.getElementById('sliderFill');
+  const thumb = document.getElementById('sliderThumb');
+  const valueDisplay = document.getElementById('sliderValue');
+  let isDragging = false;
+
+  function updateSlider(pct) {
+    const clamped = Math.max(0, Math.min(100, pct));
+    fill.style.width = clamped + '%';
+    thumb.style.left = clamped + '%';
+    const idx = Math.round(clamped / 100 * 6);
+    valueDisplay.textContent = sliderLabels[idx];
+    answers[currentQuestion] = clamped;
+  }
+
+  function getPct(e) {
+    const rect = track.getBoundingClientRect();
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    return ((x - rect.left) / rect.width) * 100;
+  }
+
+  thumb.addEventListener('mousedown', () => isDragging = true);
+  thumb.addEventListener('touchstart', () => isDragging = true);
+  track.addEventListener('click', e => updateSlider(getPct(e)));
+  document.addEventListener('mousemove', e => { if (isDragging) updateSlider(getPct(e)); });
+  document.addEventListener('touchmove', e => { if (isDragging) updateSlider(getPct(e)); });
+  document.addEventListener('mouseup', () => isDragging = false);
+  document.addEventListener('touchend', () => isDragging = false);
+
+  if (!answers[currentQuestion]) answers[currentQuestion] = 50;
+}
+
+// ============ FLOATING WORDS ============
+function renderFloatingWords(words) {
+  const container = document.getElementById('floatingWords');
+  const positions = [
+    { top: '8%', left: '1%' }, { top: '5%', right: '-1%' },
+    { top: '40%', left: '-3%' }, { top: '72%', left: '4%' }, { top: '85%', right: '1%' }
+  ];
+  container.innerHTML = '';
+  words.forEach((word, i) => {
+    const el = document.createElement('span');
+    el.className = 'float-word';
+    el.textContent = word;
+    Object.assign(el.style, positions[i % positions.length]);
+    container.appendChild(el);
+    setTimeout(() => el.classList.add('visible'), 200 + i * 150);
+  });
+}
+
+// ============ SIDEBAR ============
+function renderSidebar(q) {
+  document.getElementById('sidebar').innerHTML = `
+    <div class="sidebar-deco-line"></div>
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+        Why this question?
+      </div>
+      <p>${q.why}</p>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" stroke-width="2" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        What we're mapping
+      </div>
+      <div class="mapping-tags">${q.tags.map(t => `<span class="mapping-tag">${t}</span>`).join('')}</div>
+    </div>
+    <div class="sidebar-privacy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Your answers shape your destinations. Never stored, never shared.
+    </div>
+  `;
+}
+
+// ============ NAVIGATION ============
+function nextQuestion() {
+  saveCurrentAnswer();
+  if (currentQuestion < 6) {
+    showMicroReaction(() => {
+      currentQuestion++;
+      renderQuestion(currentQuestion);
+      window.scrollTo(0, 0);
+    });
+  } else {
+    showMicroReaction(() => {
+      localStorage.setItem('mindroute_profiling', JSON.stringify(answers));
+      localStorage.setItem('mindroute_chips', JSON.stringify(chipSelections));
+      localStorage.setItem('mindroute_image', imageSelection || '');
+      window.location.href = 'constraints.html';
+    });
+  }
+}
+
+function goBack() {
+  saveCurrentAnswer();
+  if (currentQuestion > 0) { currentQuestion--; renderQuestion(currentQuestion); window.scrollTo(0, 0); }
+}
+
+function goToQuestion(index) {
+  saveCurrentAnswer();
+  currentQuestion = index;
+  renderQuestion(currentQuestion);
+  window.scrollTo(0, 0);
+}
+
+function saveCurrentAnswer() {
+  const input = document.getElementById('answerInput');
+  if (input) answers[currentQuestion] = input.value.trim();
+  const chipAdd = document.getElementById('chipAddendum');
+  if (chipAdd) answers[currentQuestion + '_addendum'] = chipAdd.value.trim();
+  const sliderAdd = document.getElementById('sliderAddendum');
+  if (sliderAdd) answers[currentQuestion + '_addendum'] = sliderAdd.value.trim();
+  if (chipSelections[currentQuestion]) {
+    answers[currentQuestion] = chipSelections[currentQuestion].join(', ');
+  }
+  if (currentQuestion === 3 && imageSelection) {
+    answers[currentQuestion] = imageSelection;
+  }
+}
+
+// ============ MICRO REACTION ============
+function showMicroReaction(callback) {
+  const el = document.getElementById('microReaction');
+  el.textContent = microReactions[Math.floor(Math.random() * microReactions.length)];
+  el.classList.add('visible');
+  setTimeout(() => { el.classList.remove('visible'); if (callback) callback(); }, 1100);
+}
+
+// ============ KEYBOARD ============
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    const btn = document.getElementById('btnContinue');
+    if (btn && !btn.disabled) { e.preventDefault(); nextQuestion(); }
+  }
+});
+
+// ============ START ============
+init();
+</script>
+</body>
+</html>

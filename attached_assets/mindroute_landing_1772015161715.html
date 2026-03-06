@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindRoute — Travel starts with who you are</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 120 120' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60' fill='%23E94560' opacity='0.85'/%3E%3Cpath d='M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72' fill='%23E94560' opacity='0.55'/%3E%3Cpath d='M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60' fill='%23E94560' opacity='0.85'/%3E%3Cpath d='M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72' fill='%23E94560' opacity='0.55'/%3E%3Cellipse cx='60' cy='60' rx='5' ry='6' fill='%231A1A2E'/%3E%3Cpath d='M58 66L60 108L62 66' fill='%23E94560' opacity='0.7'/%3E%3Ccircle cx='60' cy='48' r='3.5' fill='%231A1A2E'/%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #FDFAF7;
+    --bg-alt: #F5F0EA;
+    --text: #1A1A2E;
+    --text-secondary: #6B6776;
+    --accent: #E94560;
+    --accent-hover: #D13A52;
+    --card-bg: #FFFFFF;
+    --dark: #1A1A2E;
+    --border: #E8E3DD;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ============ NAVBAR ============ */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(253, 250, 247, 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(232, 227, 221, 0.5);
+    transition: all 0.3s ease;
+  }
+
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  .nav-logo { width: 36px; height: 36px; }
+
+  .nav-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    letter-spacing: -0.3px;
+  }
+
+  .nav-cta {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    text-decoration: none;
+    padding: 8px 20px;
+    border: 1.5px solid var(--accent);
+    border-radius: 100px;
+    transition: all 0.2s ease;
+  }
+
+  .nav-cta:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* ============ HERO ============ */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+  }
+
+  /* Decorative background shapes */
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -10%;
+    right: -5%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(233,69,96,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 10%;
+    left: -8%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(233,69,96,0.04) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .hero-logo {
+    width: 90px;
+    height: 90px;
+    margin-bottom: 32px;
+    animation: float 6s ease-in-out infinite;
+    filter: drop-shadow(0 8px 32px rgba(233, 69, 96, 0.15));
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .hero-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+    padding: 6px 16px;
+    background: rgba(233, 69, 96, 0.08);
+    border-radius: 100px;
+  }
+
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(48px, 8vw, 82px);
+    line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 24px;
+    max-width: 700px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--text-secondary);
+    max-width: 480px;
+    margin-bottom: 44px;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent);
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 18px 40px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 24px rgba(233, 69, 96, 0.25);
+  }
+
+  .hero-cta:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(233, 69, 96, 0.35);
+  }
+
+  .hero-cta svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s;
+  }
+
+  .hero-cta:hover svg { transform: translateX(4px); }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.5;
+    animation: pulseDown 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseDown {
+    0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.5; }
+    50% { transform: translateX(-50%) translateY(6px); opacity: 0.8; }
+  }
+
+  /* ============ HOW IT WORKS ============ */
+  .how-section {
+    padding: 100px 24px;
+    background: var(--bg-alt);
+    position: relative;
+  }
+
+  .how-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+  }
+
+  .section-container {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(32px, 5vw, 44px);
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+  }
+
+  .section-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 300;
+    margin-bottom: 64px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+
+  .step-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 40px 32px;
+    text-align: center;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  .step-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(26, 26, 46, 0.06);
+    border-color: rgba(233, 69, 96, 0.2);
+  }
+
+  .step-number {
+    position: absolute;
+    top: 20px;
+    left: 24px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 48px;
+    color: var(--accent);
+    opacity: 0.1;
+    line-height: 1;
+  }
+
+  .step-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 24px;
+    background: rgba(233, 69, 96, 0.08);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .step-icon svg { width: 28px; height: 28px; }
+
+  .step-card h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+
+  .step-card p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* ============ DIFFERENCE ============ */
+  .diff-section {
+    padding: 100px 24px;
+    background: var(--bg);
+  }
+
+  .diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+
+  .diff-content h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 4vw, 38px);
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+
+  .diff-content h2 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .diff-content p {
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 16px;
+    font-weight: 300;
+  }
+
+  .diff-visual {
+    position: relative;
+  }
+
+  .comparison-box {
+    background: var(--card-bg);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .comp-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comp-row:last-child { border-bottom: none; }
+
+  .comp-cell {
+    padding: 20px 24px;
+    font-size: 14px;
+  }
+
+  .comp-cell:first-child {
+    border-right: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  .comp-cell:last-child {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .comp-header {
+    background: var(--bg-alt);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .comp-header:last-child {
+    color: var(--accent);
+  }
+
+  .comp-cell.highlight {
+    background: rgba(233, 69, 96, 0.04);
+  }
+
+  /* ============ TESTIMONIALS ============ */
+  .test-section {
+    padding: 100px 24px;
+    background: var(--bg-alt);
+    position: relative;
+  }
+
+  .test-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .test-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 36px 28px;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .test-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(26, 26, 46, 0.05);
+  }
+
+  .test-quote-mark {
+    font-family: 'DM Serif Display', serif;
+    font-size: 48px;
+    line-height: 1;
+    color: var(--accent);
+    opacity: 0.3;
+  }
+
+  .test-text {
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--text);
+    font-weight: 300;
+    font-style: italic;
+    flex-grow: 1;
+  }
+
+  .test-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .test-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #f093a0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .test-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .test-detail {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* ============ CTA SECTION ============ */
+  .cta-section {
+    padding: 100px 24px;
+    background: var(--dark);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(233, 69, 96, 0.08) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .cta-logo {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 28px;
+    opacity: 0.9;
+  }
+
+  .cta-section h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 5vw, 42px);
+    color: white;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+    position: relative;
+  }
+
+  .cta-section p {
+    color: rgba(255,255,255,0.5);
+    font-size: 16px;
+    font-weight: 300;
+    margin-bottom: 40px;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cta-section .hero-cta {
+    position: relative;
+  }
+
+  /* ============ FOOTER ============ */
+  footer {
+    background: var(--dark);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 32px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: rgba(255,255,255,0.3);
+    font-size: 13px;
+  }
+
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .footer-brand svg { width: 24px; height: 24px; opacity: 0.5; }
+
+  .footer-brand span {
+    font-family: 'DM Serif Display', serif;
+    font-size: 15px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 24px;
+  }
+
+  .footer-links a {
+    color: rgba(255,255,255,0.35);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s;
+  }
+
+  .footer-links a:hover { color: var(--accent); }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    
+    .hero { padding: 100px 20px 60px; }
+    .hero-logo { width: 70px; height: 70px; }
+    
+    .steps-grid, .test-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    
+    .diff-grid {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    
+    .how-section, .diff-section, .test-section, .cta-section {
+      padding: 64px 20px;
+    }
+    
+    footer {
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+      padding: 24px 20px;
+    }
+    
+    .footer-links { gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ====== NAVBAR ====== -->
+<nav>
+  <a href="#" class="nav-brand">
+    <svg class="nav-logo" viewBox="0 0 120 120" fill="none">
+      <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+      <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+      <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+      <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+      <ellipse cx="60" cy="60" rx="5" ry="6" fill="#1A1A2E"/>
+      <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7"/>
+      <circle cx="60" cy="48" r="3.5" fill="#1A1A2E"/>
+    </svg>
+    <span class="nav-name">MindRoute</span>
+  </a>
+  <a href="#begin" class="nav-cta">Start your journey</a>
+</nav>
+
+<!-- ====== HERO ====== -->
+<section class="hero" id="top">
+  <svg class="hero-logo" viewBox="0 0 120 120" fill="none">
+    <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+    <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+    <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+    <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+    <ellipse cx="60" cy="60" rx="5" ry="6" fill="#1A1A2E"/>
+    <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7"/>
+    <circle cx="60" cy="48" r="3.5" fill="#1A1A2E"/>
+    <circle cx="42" cy="50" r="4" fill="white" opacity="0.2"/>
+    <circle cx="78" cy="50" r="4" fill="white" opacity="0.2"/>
+    <circle cx="44" cy="82" r="3" fill="white" opacity="0.15"/>
+    <circle cx="76" cy="82" r="3" fill="white" opacity="0.15"/>
+  </svg>
+
+  <span class="hero-tag">AI-powered travel profiling</span>
+
+  <h1>Travel starts<br>with <em>who you are</em></h1>
+
+  <p class="hero-sub">We don't ask where you want to go. We ask who you are — then we find the place that was waiting for you.</p>
+
+  <a href="#begin" class="hero-cta" id="begin">
+    Let's begin
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
+
+  <div class="scroll-hint">
+    Scroll to explore
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+  </div>
+</section>
+
+<!-- ====== HOW IT WORKS ====== -->
+<section class="how-section">
+  <div class="section-container">
+    <p class="section-label">How it works</p>
+    <h2 class="section-title">Three steps to your place</h2>
+    <p class="section-subtitle">No browsing. No overwhelm. Just you, seven questions, and a destination that fits.</p>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <span class="step-number">1</span>
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" stroke-width="1.8" stroke-linecap="round">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            <circle cx="12" cy="10" r="1" fill="#E94560"/>
+            <circle cx="8" cy="10" r="1" fill="#E94560"/>
+            <circle cx="16" cy="10" r="1" fill="#E94560"/>
+          </svg>
+        </div>
+        <h3>Tell us who you are</h3>
+        <p>Answer 7 questions — not about travel preferences, about you. What makes you feel alive, what you reject, how you move through the world.</p>
+      </div>
+
+      <div class="step-card">
+        <span class="step-number">2</span>
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+            <path d="M12 8l-2 4 4 0-2 4" fill="none"/>
+          </svg>
+        </div>
+        <h3>Discover your place</h3>
+        <p>Our AI builds a psychological profile of you as a traveler and matches you with 3 destinations you'd never have searched for yourself.</p>
+      </div>
+
+      <div class="step-card">
+        <span class="step-number">3</span>
+        <div class="step-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" stroke-width="1.8" stroke-linecap="round">
+            <path d="M3 12h4l3-9 4 18 3-9h4"/>
+          </svg>
+        </div>
+        <h3>Get your custom plan</h3>
+        <p>A day-by-day itinerary designed around your rhythm, your energy, and what you actually need from this trip. Not a list of attractions — a journey.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== WHAT MAKES US DIFFERENT ====== -->
+<section class="diff-section">
+  <div class="section-container">
+    <div class="diff-grid">
+      <div class="diff-content">
+        <p class="section-label" style="text-align:left;">The difference</p>
+        <h2>Other planners ask<br><em>where.</em> We ask <em>why.</em></h2>
+        <p>Every travel planner starts with the same question: "Where do you want to go?" But that assumes you already know. Most people don't — they just know they need something.</p>
+        <p>MindRoute starts from the inside out. We understand your psychology first, then find the place that answers a need you might not even be able to name yet.</p>
+        <p style="color: var(--accent); font-weight: 500; font-style: italic;">The destination is the answer. You are the question.</p>
+      </div>
+      <div class="diff-visual">
+        <div class="comparison-box">
+          <div class="comp-row">
+            <div class="comp-cell comp-header">Other planners</div>
+            <div class="comp-cell comp-header">MindRoute</div>
+          </div>
+          <div class="comp-row">
+            <div class="comp-cell">"Where do you want to go?"</div>
+            <div class="comp-cell highlight">"What made you feel most alive?"</div>
+          </div>
+          <div class="comp-row">
+            <div class="comp-cell">Filter by budget, dates, stars</div>
+            <div class="comp-cell highlight">Profile your identity as a traveler</div>
+          </div>
+          <div class="comp-row">
+            <div class="comp-cell">Show you popular destinations</div>
+            <div class="comp-cell highlight">Find the place that fits you</div>
+          </div>
+          <div class="comp-row">
+            <div class="comp-cell">Generic itinerary template</div>
+            <div class="comp-cell highlight">Plan calibrated to your rhythm</div>
+          </div>
+          <div class="comp-row">
+            <div class="comp-cell">Optimizes for logistics</div>
+            <div class="comp-cell highlight">Optimizes for transformation</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== TESTIMONIALS ====== -->
+<section class="test-section">
+  <div class="section-container">
+    <p class="section-label">What people say</p>
+    <h2 class="section-title">They came for a trip.<br>They found something else.</h2>
+    <p class="section-subtitle">Early users who tried MindRoute and didn't expect to feel understood by an algorithm.</p>
+
+    <div class="test-grid">
+      <div class="test-card">
+        <span class="test-quote-mark">"</span>
+        <p class="test-text">I expected generic suggestions. It gave me a village in Portugal I'd never heard of — and it was exactly what I needed after the year I'd had.</p>
+        <div class="test-author">
+          <div class="test-avatar">S</div>
+          <div>
+            <div class="test-name">Sofia</div>
+            <div class="test-detail">28, Milan — first solo trip</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="test-card">
+        <span class="test-quote-mark">"</span>
+        <p class="test-text">The questions felt like talking to a friend who actually gets me. The itinerary was scarily accurate — it even knew I needed slow mornings.</p>
+        <div class="test-author">
+          <div class="test-avatar">M</div>
+          <div>
+            <div class="test-name">Marco</div>
+            <div class="test-detail">34, Rome — travel with partner</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="test-card">
+        <span class="test-quote-mark">"</span>
+        <p class="test-text">I've used every travel planner out there. This is the first one that understood I needed to slow down, not see more.</p>
+        <div class="test-author">
+          <div class="test-avatar">A</div>
+          <div>
+            <div class="test-name">Aisha</div>
+            <div class="test-detail">31, London — needed a reset</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== FINAL CTA ====== -->
+<section class="cta-section">
+  <svg class="cta-logo" viewBox="0 0 120 120" fill="none">
+    <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="white" opacity="0.6"/>
+    <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="white" opacity="0.35"/>
+    <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="white" opacity="0.6"/>
+    <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="white" opacity="0.35"/>
+    <ellipse cx="60" cy="60" rx="5" ry="6" fill="white" opacity="0.2"/>
+    <path d="M58 66L60 108L62 66" fill="white" opacity="0.3"/>
+    <circle cx="60" cy="48" r="3.5" fill="white" opacity="0.2"/>
+  </svg>
+
+  <h2>Ready to find out<br>where you actually belong?</h2>
+  <p>Two minutes. Seven questions. One place that changes how you see yourself.</p>
+  
+  <a href="#begin" class="hero-cta">
+    Start the journey
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </a>
+</section>
+
+<!-- ====== FOOTER ====== -->
+<footer>
+  <div class="footer-brand">
+    <svg viewBox="0 0 120 120" fill="none">
+      <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="white" opacity="0.4"/>
+      <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="white" opacity="0.4"/>
+      <ellipse cx="60" cy="60" rx="5" ry="6" fill="white" opacity="0.2"/>
+      <path d="M58 66L60 96L62 66" fill="white" opacity="0.3"/>
+    </svg>
+    <span>MindRoute</span>
+  </div>
+  
+  <span>© 2025 MindRoute — Built for travelers who think differently</span>
+  
+  <div class="footer-links">
+    <a href="#">About</a>
+    <a href="#">Privacy</a>
+    <a href="#">Contact</a>
+  </div>
+</footer>
+
+</body>
+</html>
