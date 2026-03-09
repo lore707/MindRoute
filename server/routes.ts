@@ -14,7 +14,7 @@ export async function registerRoutes(
     try {
       const input = api.profiling.submit.input.parse(req.body);
 
-      const { destinations: matched, itineraries } = generateDestinations(input);
+      const { destinations: matched, itineraries } = await generateDestinations(input);
 
       await storage.clearAll();
 
@@ -40,7 +40,8 @@ export async function registerRoutes(
           field: err.errors[0].path.join('.'),
         });
       }
-      throw err;
+      console.error("Error generating destinations:", err);
+      return res.status(500).json({ message: "Errore nella generazione delle destinazioni. Riprova." });
     }
   });
 
@@ -49,13 +50,13 @@ export async function registerRoutes(
       const destId = z.coerce.number().parse(req.params.destinationId);
       const itinerary = await storage.getItinerary(destId);
       if (!itinerary) {
-         return res.status(404).json({ message: 'Itinerary not found' });
+        return res.status(404).json({ message: 'Itinerary not found' });
       }
       res.json(itinerary);
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({
-           message: 'Invalid destination ID',
+          message: 'Invalid destination ID',
         });
       }
       throw err;
