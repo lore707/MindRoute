@@ -21,78 +21,67 @@ function buildPrompt(input: ProfilingInput): string {
 
   const path = input.answers[0] === "path_b" ? "Path B (ha già un'idea di zona)" : "Path A (aperto a sorprese)";
 
-  return `Sei il motore di raccomandazione di MindRoute, una piattaforma di travel profiling psicologico.
+  return `Sei il motore di MindRoute, piattaforma di travel profiling psicologico.
 
-Il tuo compito è analizzare le risposte di profilazione e generare 3 destinazioni di viaggio perfettamente personalizzate con itinerari completi giorno per giorno.
-
-## PROFILO UTENTE
-
+PROFILO UTENTE:
 Percorso: ${path}
-Budget: ${input.budget}
-Partenza da: ${input.departure}
-Durata: ${input.days} giorni
-Periodo: ${input.leaveDate}
-Compagni: ${input.companions || "non specificato"}
-Vincoli speciali: ${input.constraints || "nessuno"}
+Budget: ${input.budget} | Da: ${input.departure} | Giorni: ${input.days} | Periodo: ${input.leaveDate}
+Compagni: ${input.companions || "non specificato"} | Vincoli: ${input.constraints || "nessuno"}
+Risposte quiz: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 
-Risposte al quiz di profilazione:
-${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join("\n")}
+COMPITO: Genera 3 destinazioni personalizzate con itinerari di ${input.days} giorni ciascuno.
 
-## ISTRUZIONI
+REGOLE:
+- Analizza il profilo psicologico: bisogni emotivi, estetica, tolleranza al caos
+- Destinazioni diverse tra loro, paesi diversi, non ovvie
+- Tono personale, non da catalogo
+- Ogni giorno: massimo 1 riga per morning/lunch/afternoon/evening
+- Rispondi SOLO con JSON valido, zero testo fuori dal JSON
 
-1. Analizza le risposte per capire il profilo psicologico del viaggiatore — bisogni emotivi, tolleranza al caos, estetica, identità.
-2. Scegli 3 destinazioni diverse tra loro, di paesi diversi, calibrate su questo profilo specifico.
-3. Per ogni destinazione genera un itinerario giorno per giorno basato esattamente sul numero di giorni (${input.days}).
-4. Il tono deve essere personale, psicologico, non da catalogo turistico.
-5. I link affiliati devono essere URL reali e funzionanti pre-filtrati per la destinazione.
-
-## FORMATO OUTPUT
-
-Rispondi SOLO con un JSON valido, senza markdown, senza backtick, senza testo prima o dopo. Struttura esatta:
-
+JSON RICHIESTO:
 {
   "destinations": [
     {
-      "name": "Nome Città, Paese",
+      "name": "Città, Paese",
       "imageUrl": "https://images.unsplash.com/photo-[ID]?w=600&h=400&fit=crop",
-      "whyYours": "Spiegazione psicologica personalizzata di 2-3 frasi su perché questa destinazione è giusta per questo utente specifico",
-      "experiencePreview": "Frase evocativa in prima persona che descrive l'esperienza sensoriale del viaggio",
-      "practicalInfo": "Info pratiche concise: voli, costi, sicurezza, periodo migliore"
+      "whyYours": "2 frasi sul perché psicologico",
+      "experiencePreview": "1 frase evocativa in prima persona",
+      "practicalInfo": "voli, costi, periodo in 1 riga"
     }
   ],
   "itineraries": [
     {
-      "destinationName": "Nome Città, Paese",
+      "destinationName": "Città, Paese",
       "days": [
         {
           "dayNumber": 1,
-          "title": "Titolo poetico del giorno",
-          "morning": "Descrizione dettagliata attività mattutina con orari e suggerimenti specifici",
-          "lunch": "Piatto locale specifico e dove mangiarlo con contesto culturale",
-          "afternoon": "Attività pomeridiana con dettagli pratici",
-          "evening": "Serata con atmosfera e cosa fare",
+          "title": "Titolo breve",
+          "morning": "Attività mattutina",
+          "lunch": "Piatto e posto",
+          "afternoon": "Attività pomeridiana",
+          "evening": "Serata",
           "affiliateLinks": {
             "booking": "https://www.booking.com/searchresults.html?ss=CITTA&aid=304142",
-            "getyourguide": "https://www.getyourguide.com/CITTA-l123/",
+            "getyourguide": "https://www.getyourguide.com/s/?q=CITTA",
             "tripadvisor": "https://www.tripadvisor.com/Search?q=CITTA"
           }
         }
       ],
-      "budgetSummary": "Stima dettagliata dei costi: hotel X€/notte, pasti Y€/giorno, attività principali",
-      "packingList": "Lista oggetti essenziali separati da virgola",
-      "bestTime": "Periodo migliore con motivazione",
-      "gettingThere": "Come arrivare con codice IATA aeroporto e opzioni di trasporto",
-      "closingMessage": "Frase finale poetica e personalizzata che risuona con il profilo psicologico dell'utente",
+      "budgetSummary": "hotel X€, pasti Y€, totale stimato Z€",
+      "packingList": "item1, item2, item3, item4, item5",
+      "bestTime": "periodo consigliato",
+      "gettingThere": "come arrivare, aeroporto IATA",
+      "closingMessage": "frase finale poetica personalizzata",
       "topAffiliateLinks": {
         "booking": "https://www.booking.com/searchresults.html?ss=CITTA&aid=304142",
         "skyscanner": "https://www.skyscanner.net/transport/flights/any/IATA/",
-        "getyourguide": "https://www.getyourguide.com/CITTA-l123/"
+        "getyourguide": "https://www.getyourguide.com/s/?q=CITTA"
       }
     }
   ]
 }
 
-Genera esattamente ${input.days} giorni per ogni itinerario. Le destinazioni devono essere sorprendenti e non ovvie — evita Parigi, Roma, Barcellona, Amsterdam a meno che non siano davvero la scelta psicologicamente più corretta per questo profilo.`;
+Genera esattamente ${input.days} giorni per ogni itinerario.`;
 }
 
 export async function generateDestinations(input: ProfilingInput): Promise<{
@@ -108,7 +97,7 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
   const prompt = buildPrompt(input);
 
   const message = await client.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 8000,
     messages: [
       {
@@ -123,7 +112,6 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
     .map((block) => (block as any).text)
     .join("");
 
-  // Clean and parse JSON
   const cleanJson = responseText
     .replace(/```json\n?/g, "")
     .replace(/```\n?/g, "")
@@ -131,7 +119,6 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
 
   const parsed = JSON.parse(cleanJson);
 
-  // Build itineraries map
   const itineraries = new Map<string, any>();
   for (const itin of parsed.itineraries) {
     itineraries.set(itin.destinationName, itin);
