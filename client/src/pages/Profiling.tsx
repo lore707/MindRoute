@@ -114,10 +114,14 @@ export default function Profiling() {
     { text: t('a.q7.text'), hint: t('a.q7.hint'), type: 'chips', options: pathADistanceChipKeys.map(k => t(`a.q7.chips.${k}`)), multi: false, why: t('a.q7.why'), tags: ['geography', 'comfort zone', 'openness'], section: t('section.a.distance') },
   ];
 
+  const pathBEscapeChipKeys: string[] = []; // unused now
+  const pathBGeoChipKeys2 = ['close', 'europe', 'asia', 'americas', 'africa', 'oceania'];
+  const pathBTypeChipKeys2 = ['culture', 'nature', 'food', 'beach', 'city', 'offgrid', 'roadtrip', 'trekking', 'wellness', 'discovery'];
+
   const buildPathB = (): Question[] => [
-    { text: t('b.q1.text'), hint: t('b.q1.hint'), type: 'chips', options: pathBGeoChipKeys.map(k => t(`b.q1.chips.${k}`)), multi: false, why: t('b.q1.why'), tags: ['geography', 'constraint'], section: t('section.b.where') },
-    { text: t('b.q2.text'), hint: t('b.q2.hint'), type: 'chips', options: pathBTypeChipKeys.map(k => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t('b.q2.why'), tags: ['trip type', 'category', 'combination'], section: t('section.b.type') },
-    { text: t('b.q3.text'), hint: t('b.q3.hint'), type: 'text', placeholder: t('b.q3.placeholder'), why: t('b.q3.why'), tags: ['specific desire', 'experience level'], section: t('section.b.specific'), optional: true },
+    { text: t('b.q1.text'), hint: t('b.q1.hint'), type: 'chips', options: pathBGeoChipKeys2.map(k => t(`b.q1.chips.${k}`)), multi: false, why: t('b.q1.why'), tags: ['geography', 'constraint'], section: t('section.b.where') },
+    { text: t('b.q2.text'), hint: t('b.q2.hint'), type: 'chips', options: pathBTypeChipKeys2.map(k => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t('b.q2.why'), tags: ['trip type', 'category', 'combination'], section: t('section.b.type') },
+    { text: t('b.q3.text'), hint: t('b.q3.hint'), type: 'text', placeholder: t('b.q3.placeholder'), why: t('b.q3.why'), tags: ['must-see', 'motivation', 'emotional need'], section: t('section.b.specific') },
     {
       text: t('b.q4.text'), hint: t('b.q4.hint'), type: 'images', options: [
         { src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=85', label: t('b.q4.seaside'), sub: t('b.q4.seaside.sub'), value: 'seaside' },
@@ -223,12 +227,23 @@ export default function Profiling() {
     if (currentQ.type === 'chips') {
       const selected = chipSelections[step] || [];
       const addendum = answers[`${step}_addendum`] || '';
-      setAnswers(prev => ({ ...prev, [step]: selected.join(', ') + (addendum ? ` | ${addendum}` : '') }));
+      const precise = answers[`${step}_precise`] || '';
+      setAnswers(prev => ({
+        ...prev,
+        [step]: selected.join(', ')
+          + (precise ? ` → ${precise}` : '')
+          + (addendum ? ` | ${addendum}` : '')
+      }));
     } else if (currentQ.type === 'images') {
       setAnswers(prev => ({ ...prev, [step]: imageSelections.join(', ') }));
     } else if (currentQ.type === 'slider') {
       const addendum = answers[`${step}_addendum`] || '';
       setAnswers(prev => ({ ...prev, [step]: `${sliderValue}${addendum ? ` | ${addendum}` : ''}` }));
+    } else if (currentQ.type === 'text') {
+      const secondAnswer = answers[`${step}_b`] || '';
+      if (secondAnswer) {
+        setAnswers(prev => ({ ...prev, [step]: (prev[step] || '') + (secondAnswer ? ` | perché: ${secondAnswer}` : '') }));
+      }
     }
   };
 
@@ -806,6 +821,7 @@ export default function Profiling() {
     if (!currentQ) return null;
 
     if (currentQ.type === 'text') {
+      const isPathBQ3 = selectedPath === 'b' && step === 2;
       return (
         <div>
           <textarea
@@ -814,11 +830,29 @@ export default function Profiling() {
             placeholder={currentQ.placeholder}
             value={answers[step] || ''}
             onChange={(e) => setAnswers(prev => ({ ...prev, [step]: e.target.value }))}
-            className="w-full min-h-[140px] p-5 text-[15px] leading-[1.8] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl resize-vertical outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
+            className="w-full min-h-[120px] p-5 text-[15px] leading-[1.8] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
           />
-          <div className="flex justify-between mt-2 text-[12px] text-[var(--text-muted)]">
-            <span>{(currentQ as TextQuestion).optional ? t('q.optional') : t('q.writeTrue')}</span>
-          </div>
+          {isPathBQ3 && (
+            <div className="mt-4">
+              <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
+                {t('b.q3.precise') || 'Perché proprio quel posto?'}
+              </p>
+              <textarea
+                data-testid="input-answer-b"
+                placeholder={t('b.q3.precisePlaceholder') || 'Es. Ho sempre sentito un\'attrazione per quel luogo, mi ha sempre incuriosito...'}
+                value={answers[`${step}_b`] || ''}
+                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_b`]: e.target.value }))}
+                className="w-full min-h-[90px] p-5 text-[15px] leading-[1.8] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
+              />
+              <p className="text-[12px] text-[var(--text-muted)] mt-1.5 italic">{t('q.optional')}</p>
+            </div>
+          )}
+          {!isPathBQ3 && (
+            <div className="flex justify-between mt-2 text-[12px] text-[var(--text-muted)]">
+              <span>{(currentQ as TextQuestion).optional ? t('q.optional') : t('q.writeTrue')}</span>
+            </div>
+          )}
         </div>
       );
     }
@@ -826,6 +860,8 @@ export default function Profiling() {
     if (currentQ.type === 'chips') {
       const q = currentQ as ChipsQuestion;
       const selected = chipSelections[step] || [];
+      const isPathBQ1 = selectedPath === 'b' && step === 0;
+      const isPathBQ3 = selectedPath === 'b' && step === 2;
       return (
         <>
           <div className="flex flex-wrap gap-2.5">
@@ -847,6 +883,22 @@ export default function Profiling() {
           {q.max && (
             <div className="text-center mt-3 text-[13px] text-[var(--text-muted)]">
               <span className="text-[#E94560] font-semibold">{selected.length}</span>/{q.max} {t('q.selected')}
+            </div>
+          )}
+          {isPathBQ1 && selected.length > 0 && (
+            <div className="mt-5 p-4 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl transition-all duration-300">
+              <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
+                {t('b.q1.precise')}
+              </p>
+              <input
+                type="text"
+                data-testid="input-precise-location"
+                placeholder={t('b.q1.precisePlaceholder')}
+                value={answers[`${step}_precise`] || ''}
+                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_precise`]: e.target.value }))}
+                className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all"
+              />
             </div>
           )}
           {q.addendum && (
@@ -1029,7 +1081,7 @@ export default function Profiling() {
           ))}
         </aside>
 
-        <main className="relative py-12 px-6 sm:px-14 pb-[140px] max-w-[740px]">
+        <main className="relative py-8 px-6 sm:px-14 pb-[120px] max-w-[740px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -1039,24 +1091,24 @@ export default function Profiling() {
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
               className="relative z-20"
             >
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-5">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-3">
                 <Info className="w-3 h-3" />
                 {t('q.label')} {String(step + 1).padStart(2, '0')}
               </span>
 
-              <h1 className="font-serif text-[clamp(26px,3.8vw,36px)] leading-[1.3] tracking-tight mb-3.5 text-[var(--text-primary)]">
+              <h1 className="font-serif text-[clamp(26px,3.8vw,36px)] leading-[1.3] tracking-tight mb-2.5 text-[var(--text-primary)]">
                 <span dangerouslySetInnerHTML={{
                   __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
                 }} />
               </h1>
 
-              <p className="text-[15px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-9">
+              <p className="text-[15px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-6">
                 {currentQ.hint}
               </p>
 
               {renderQuestionInput()}
 
-              <div className="flex items-center justify-between mt-10">
+              <div className="flex items-center justify-between mt-7">
                 <button
                   onClick={goBack}
                   data-testid="button-back"
