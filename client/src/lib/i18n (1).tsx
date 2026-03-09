@@ -167,9 +167,9 @@ const translations: Record<string, Record<Lang, string>> = {
   "section.a.rejection": { en: "Identity filter", it: "Filtro identitario" },
   "section.a.distance": { en: "Distance", it: "Distanza" },
 
-  "section.b.where": { en: "Why that place", it: "Perché quel posto" },
-  "section.b.type": { en: "Escaping from", it: "In fuga da" },
-  "section.b.specific": { en: "Past travels", it: "Viaggi passati" },
+  "section.b.where": { en: "Where", it: "Dove" },
+  "section.b.type": { en: "Trip type", it: "Tipo di viaggio" },
+  "section.b.specific": { en: "Must-see & why", it: "Da vedere & perché" },
   "section.b.atmosphere": { en: "Atmosphere", it: "Atmosfera" },
   "section.b.rhythm": { en: "Rhythm", it: "Ritmo" },
   "section.b.feeling": { en: "Feeling", it: "Sensazione" },

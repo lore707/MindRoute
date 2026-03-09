@@ -114,13 +114,10 @@ export default function Profiling() {
     { text: t('a.q7.text'), hint: t('a.q7.hint'), type: 'chips', options: pathADistanceChipKeys.map(k => t(`a.q7.chips.${k}`)), multi: false, why: t('a.q7.why'), tags: ['geography', 'comfort zone', 'openness'], section: t('section.a.distance') },
   ];
 
-  const pathBEscapeChipKeys: string[] = []; // unused now
-  const pathBGeoChipKeys2 = ['close', 'europe', 'asia', 'americas', 'africa', 'oceania'];
-  const pathBTypeChipKeys2 = ['culture', 'nature', 'food', 'beach', 'city', 'offgrid', 'roadtrip', 'trekking', 'wellness', 'discovery'];
 
   const buildPathB = (): Question[] => [
-    { text: t('b.q1.text'), hint: t('b.q1.hint'), type: 'chips', options: pathBGeoChipKeys2.map(k => t(`b.q1.chips.${k}`)), multi: false, why: t('b.q1.why'), tags: ['geography', 'constraint'], section: t('section.b.where') },
-    { text: t('b.q2.text'), hint: t('b.q2.hint'), type: 'chips', options: pathBTypeChipKeys2.map(k => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t('b.q2.why'), tags: ['trip type', 'category', 'combination'], section: t('section.b.type') },
+    { text: t('b.q1.text'), hint: t('b.q1.hint'), type: 'chips', options: pathBGeoChipKeys.map(k => t(`b.q1.chips.${k}`)), multi: false, why: t('b.q1.why'), tags: ['geography', 'constraint'], section: t('section.b.where') },
+    { text: t('b.q2.text'), hint: t('b.q2.hint'), type: 'chips', options: pathBTypeChipKeys.map(k => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t('b.q2.why'), tags: ['trip type', 'category', 'combination'], section: t('section.b.type') },
     { text: t('b.q3.text'), hint: t('b.q3.hint'), type: 'text', placeholder: t('b.q3.placeholder'), why: t('b.q3.why'), tags: ['must-see', 'motivation', 'emotional need'], section: t('section.b.specific') },
     {
       text: t('b.q4.text'), hint: t('b.q4.hint'), type: 'images', options: [
