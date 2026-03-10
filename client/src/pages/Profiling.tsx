@@ -114,6 +114,7 @@ export default function Profiling() {
     { text: t('a.q7.text'), hint: t('a.q7.hint'), type: 'chips', options: pathADistanceChipKeys.map(k => t(`a.q7.chips.${k}`)), multi: false, why: t('a.q7.why'), tags: ['geography', 'comfort zone', 'openness'], section: t('section.a.distance') },
   ];
 
+
   const buildPathB = (): Question[] => [
     { text: t('b.q1.text'), hint: t('b.q1.hint'), type: 'chips', options: pathBGeoChipKeys.map(k => t(`b.q1.chips.${k}`)), multi: false, why: t('b.q1.why'), tags: ['geography', 'constraint'], section: t('section.b.where') },
     { text: t('b.q2.text'), hint: t('b.q2.hint'), type: 'chips', options: pathBTypeChipKeys.map(k => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t('b.q2.why'), tags: ['trip type', 'category', 'combination'], section: t('section.b.type') },
@@ -246,18 +247,19 @@ export default function Profiling() {
   const startAnalyzing = () => {
     analyzeTimers.current.forEach(t => clearTimeout(t));
     analyzeTimers.current = [];
-    
     setVisibleTraits([]);
     setShowAnalyzing(true);
-    
     analyzeTraits.forEach((trait, i) => {
       const timer = setTimeout(() => {
         setVisibleTraits(prev => [...prev, trait]);
       }, 400 + i * 300);
       analyzeTimers.current.push(timer);
     });
-
-    doFinalSubmit();
+    const nav = setTimeout(() => {
+      setShowAnalyzing(false);
+      doFinalSubmit();
+    }, 3200);
+    analyzeTimers.current.push(nav);
   };
 
   const handleNext = () => {
@@ -354,30 +356,15 @@ export default function Profiling() {
       formData.dietary.length > 0 ? `dietary: ${formData.dietary.join(', ')}` : '',
     ].filter(Boolean).join(' | ');
 
-    submitMutation.mutate(
-      {
-        answers: quizAnswersArray,
-        budget: formData.budget,
-        departure: formData.departure,
-        days: durationMap[formData.duration] || 7,
-        leaveDate: getDateString(),
-        companions: formData.companions,
-        constraints: enrichedConstraints,
-      },
-      {
-        onSettled: () => {
-          setShowAnalyzing(false);
-        },
-        onError: (error) => {
-          console.error('Submission error:', error);
-          toast({ 
-            title: "Errore", 
-            description: "Qualcosa è andato storto. Riprova tra qualche secondo.", 
-            variant: "destructive" 
-          });
-        }
-      }
-    );
+    submitMutation.mutate({
+      answers: quizAnswersArray,
+      budget: formData.budget,
+      departure: formData.departure,
+      days: durationMap[formData.duration] || 7,
+      leaveDate: getDateString(),
+      companions: formData.companions,
+      constraints: enrichedConstraints,
+    });
   };
 
   const handleFinalSubmit = (e: React.FormEvent) => {
