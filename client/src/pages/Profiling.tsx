@@ -114,7 +114,6 @@ export default function Profiling() {
     { text: t('a.q7.text'), hint: t('a.q7.hint'), type: 'chips', options: pathADistanceChipKeys.map(k => t(`a.q7.chips.${k}`)), multi: false, why: t('a.q7.why'), tags: ['geography', 'comfort zone', 'openness'], section: t('section.a.distance') },
   ];
 
-
   const buildPathB = (): Question[] => [
     { text: t('b.q1.text'), hint: t('b.q1.hint'), type: 'chips', options: pathBGeoChipKeys.map(k => t(`b.q1.chips.${k}`)), multi: false, why: t('b.q1.why'), tags: ['geography', 'constraint'], section: t('section.b.where') },
     { text: t('b.q2.text'), hint: t('b.q2.hint'), type: 'chips', options: pathBTypeChipKeys.map(k => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t('b.q2.why'), tags: ['trip type', 'category', 'combination'], section: t('section.b.type') },
@@ -244,17 +243,13 @@ export default function Profiling() {
     }
   };
 
-  // === MODIFICATO: startAnalyzing parte SUBITO e chiama doFinalSubmit() ===
   const startAnalyzing = () => {
-    // Pulisce i timer precedenti
     analyzeTimers.current.forEach(t => clearTimeout(t));
     analyzeTimers.current = [];
     
-    // Resetta e mostra l'animazione
     setVisibleTraits([]);
     setShowAnalyzing(true);
     
-    // Mostra i tratti uno a uno (effetto visivo)
     analyzeTraits.forEach((trait, i) => {
       const timer = setTimeout(() => {
         setVisibleTraits(prev => [...prev, trait]);
@@ -262,7 +257,6 @@ export default function Profiling() {
       analyzeTimers.current.push(timer);
     });
 
-    // La chiamata API parte SUBITO, in parallelo all'animazione
     doFinalSubmit();
   };
 
@@ -348,7 +342,6 @@ export default function Profiling() {
     return formData.selectedPeriods.length > 0;
   };
 
-  // === MODIFICATO: doFinalSubmit usa onSettled per nascondere l'animazione ===
   const doFinalSubmit = () => {
     const quizAnswersArray = [`path_${selectedPath}`, ...questions.map((_, i) => answers[i] || "")];
     const durationMap: Record<string, number> = { "weekend": 4, "week": 7, "10-14": 12, "long": 15 };
@@ -372,7 +365,6 @@ export default function Profiling() {
         constraints: enrichedConstraints,
       },
       {
-        // QUESTO BLOCCA L'ANIMAZIONE QUANDO LA RISPOSTA ARRIVA (SUCCESSO O ERRORE)
         onSettled: () => {
           setShowAnalyzing(false);
         },
@@ -388,14 +380,12 @@ export default function Profiling() {
     );
   };
 
-  // === MODIFICATO: handleFinalSubmit chiama startAnalyzing() ===
   const handleFinalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.budget || !isDateValid() || !formData.duration || !formData.departure || !formData.companions) {
       toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
       return;
     }
-    // Parte l'animazione E la chiamata API (tramite startAnalyzing)
     startAnalyzing();
   };
 
@@ -967,8 +957,7 @@ export default function Profiling() {
             })}
           </div>
           <div className="text-center mt-3.5 text-[13px] text-[#A09BA8] transition-all" data-testid="text-img-counter">
-            {
-                          {imageSelections.length > 0 ? (
+            {imageSelections.length > 0 ? (
               <><span className="text-[#E94560] font-semibold">{imageSelections.length}</span>/2 {t('q.selected')}</>
             ) : (
               t('q.selectImages')
