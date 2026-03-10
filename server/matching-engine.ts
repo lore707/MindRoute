@@ -20,22 +20,23 @@ function buildPrompt(input: ProfilingInput): string {
     : input.answers;
 
   const path = input.answers[0] === "path_b" ? "Path B (ha già un'idea di zona)" : "Path A (aperto a sorprese)";
+  const days = Math.min(input.days, 7);
 
   return `Sei il motore di MindRoute, piattaforma di travel profiling psicologico.
 
 PROFILO UTENTE:
 Percorso: ${path}
-Budget: ${input.budget} | Da: ${input.departure} | Giorni: ${input.days} | Periodo: ${input.leaveDate}
+Budget: ${input.budget} | Da: ${input.departure} | Giorni: ${days} | Periodo: ${input.leaveDate}
 Compagni: ${input.companions || "non specificato"} | Vincoli: ${input.constraints || "nessuno"}
 Risposte quiz: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 
-COMPITO: Genera 3 destinazioni personalizzate con itinerari di ${input.days} giorni ciascuno.
+COMPITO: Genera 1 sola destinazione perfettamente personalizzata con itinerario di ${days} giorni.
 
 REGOLE:
 - Analizza il profilo psicologico: bisogni emotivi, estetica, tolleranza al caos
-- Destinazioni diverse tra loro, paesi diversi, non ovvie
+- Destinazione non ovvia, sorprendente
 - Tono personale, non da catalogo
-- Ogni giorno: massimo 1 riga per morning/lunch/afternoon/evening
+- Ogni giorno: 1 riga breve per morning/lunch/afternoon/evening
 - Rispondi SOLO con JSON valido, zero testo fuori dal JSON
 
 JSON RICHIESTO:
@@ -81,7 +82,7 @@ JSON RICHIESTO:
   ]
 }
 
-Genera esattamente ${input.days} giorni per ogni itinerario.`;
+Genera esattamente ${days} giorni nell'itinerario.`;
 }
 
 export async function generateDestinations(input: ProfilingInput): Promise<{
@@ -98,7 +99,7 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 8000,
+    max_tokens: 6000,
     messages: [
       {
         role: "user",
