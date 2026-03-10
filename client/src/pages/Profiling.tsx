@@ -244,22 +244,26 @@ export default function Profiling() {
     }
   };
 
+  // === MODIFICATO: startAnalyzing parte SUBITO e chiama doFinalSubmit() ===
   const startAnalyzing = () => {
+    // Pulisce i timer precedenti
     analyzeTimers.current.forEach(t => clearTimeout(t));
     analyzeTimers.current = [];
+    
+    // Resetta e mostra l'animazione
     setVisibleTraits([]);
     setShowAnalyzing(true);
+    
+    // Mostra i tratti uno a uno (effetto visivo)
     analyzeTraits.forEach((trait, i) => {
       const timer = setTimeout(() => {
         setVisibleTraits(prev => [...prev, trait]);
       }, 400 + i * 300);
       analyzeTimers.current.push(timer);
     });
-    const nav = setTimeout(() => {
-      setShowAnalyzing(false);
-      doFinalSubmit();
-    }, 3200);
-    analyzeTimers.current.push(nav);
+
+    // La chiamata API parte SUBITO, in parallelo all'animazione
+    doFinalSubmit();
   };
 
   const handleNext = () => {
@@ -344,6 +348,7 @@ export default function Profiling() {
     return formData.selectedPeriods.length > 0;
   };
 
+  // === MODIFICATO: doFinalSubmit usa onSettled per nascondere l'animazione ===
   const doFinalSubmit = () => {
     const quizAnswersArray = [`path_${selectedPath}`, ...questions.map((_, i) => answers[i] || "")];
     const durationMap: Record<string, number> = { "weekend": 4, "week": 7, "10-14": 12, "long": 15 };
@@ -356,23 +361,41 @@ export default function Profiling() {
       formData.dietary.length > 0 ? `dietary: ${formData.dietary.join(', ')}` : '',
     ].filter(Boolean).join(' | ');
 
-    submitMutation.mutate({
-      answers: quizAnswersArray,
-      budget: formData.budget,
-      departure: formData.departure,
-      days: durationMap[formData.duration] || 7,
-      leaveDate: getDateString(),
-      companions: formData.companions,
-      constraints: enrichedConstraints,
-    });
+    submitMutation.mutate(
+      {
+        answers: quizAnswersArray,
+        budget: formData.budget,
+        departure: formData.departure,
+        days: durationMap[formData.duration] || 7,
+        leaveDate: getDateString(),
+        companions: formData.companions,
+        constraints: enrichedConstraints,
+      },
+      {
+        // QUESTO BLOCCA L'ANIMAZIONE QUANDO LA RISPOSTA ARRIVA (SUCCESSO O ERRORE)
+        onSettled: () => {
+          setShowAnalyzing(false);
+        },
+        onError: (error) => {
+          console.error('Submission error:', error);
+          toast({ 
+            title: "Errore", 
+            description: "Qualcosa è andato storto. Riprova tra qualche secondo.", 
+            variant: "destructive" 
+          });
+        }
+      }
+    );
   };
 
+  // === MODIFICATO: handleFinalSubmit chiama startAnalyzing() ===
   const handleFinalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.budget || !isDateValid() || !formData.duration || !formData.departure || !formData.companions) {
       toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
       return;
     }
+    // Parte l'animazione E la chiamata API (tramite startAnalyzing)
     startAnalyzing();
   };
 
@@ -944,7 +967,8 @@ export default function Profiling() {
             })}
           </div>
           <div className="text-center mt-3.5 text-[13px] text-[#A09BA8] transition-all" data-testid="text-img-counter">
-            {imageSelections.length > 0 ? (
+            {
+                          {imageSelections.length > 0 ? (
               <><span className="text-[#E94560] font-semibold">{imageSelections.length}</span>/2 {t('q.selected')}</>
             ) : (
               t('q.selectImages')
