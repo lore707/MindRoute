@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, ChevronDown, Moon, Sun, HelpCircle as QuestionIcon } from "lucide-react";
 import { useSubmitProfiling } from "@/hooks/use-profiling";
@@ -29,6 +29,14 @@ export default function Profiling() {
   const { t } = useI18n();
   const { theme, toggleTheme } = useTheme();
   const [, setLocation] = useLocation();
+  const splitSceneBackground = theme === "dark"
+    ? "radial-gradient(circle at 50% 16%, rgba(233,69,96,0.14), transparent 26%), radial-gradient(circle at 20% 22%, rgba(78,84,200,0.16), transparent 30%), linear-gradient(180deg, #141727 0%, #0d1020 58%, #101427 100%)"
+    : "radial-gradient(circle at 50% 16%, rgba(233,69,96,0.10), transparent 24%), radial-gradient(circle at 18% 22%, rgba(233,69,96,0.07), transparent 28%), linear-gradient(180deg, #fbf8f4 0%, #f7f2ec 100%)";
+  const splitStroke = theme === "dark" ? "rgba(255,255,255,0.11)" : "rgba(233,69,96,0.18)";
+  const splitBadgeBg = theme === "dark" ? "rgba(255,255,255,0.07)" : "rgba(233,69,96,0.07)";
+  const splitCardGlow = theme === "dark" ? "0 24px 70px rgba(4, 8, 20, 0.46)" : "0 24px 70px rgba(226, 170, 181, 0.22)";
+  const splitTrustBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.68)";
+  const splitQuoteBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.56)";
 
   const ThemeToggle = () => (
     <button
@@ -162,7 +170,7 @@ export default function Profiling() {
       setAnswers(prev => ({
         ...prev,
         [step]: selected.join(', ')
-          + (precise ? ` → ${precise}` : '')
+          + (precise ? ` â†’ ${precise}` : '')
           + (addendum ? ` | ${addendum}` : '')
       }));
     } else if (currentQ.type === 'images') {
@@ -266,7 +274,7 @@ export default function Profiling() {
   };
 
   const getDateString = () => {
-    if (formData.dateMode === "exact") return `${formData.dateFrom} — ${formData.dateTo}`;
+    if (formData.dateMode === "exact") return `${formData.dateFrom} - ${formData.dateTo}`;
     if (formData.dateMode === "flexible-month") return formData.selectedMonths.join(", ");
     return formData.selectedPeriods.join(", ");
   };
@@ -384,27 +392,29 @@ export default function Profiling() {
     return (
       <div
         className={`fixed inset-0 z-[300] flex flex-col transition-all duration-600 ${splitExiting ? 'opacity-0' : 'opacity-100'}`}
-        style={{ background: 'var(--surface-alt)' }}
+        style={{ background: splitSceneBackground }}
         data-testid="split-overlay"
       >
         <Nav />
 
         <style>{`
           @keyframes introDrift { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-          @keyframes introBreath { 0%,100% { opacity: 0.08; } 50% { opacity: 0.14; } }
+          @keyframes introBreath { 0%,100% { opacity: 0.08; } 50% { opacity: 0.16; } }
           @keyframes introFloat1 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(12px,-18px) rotate(8deg); } }
           @keyframes introFloat2 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-15px,14px) rotate(-6deg); } }
+          @keyframes splitPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.06); opacity: 1; } }
+          @keyframes splitShimmer { 0% { transform: translateX(-120%); opacity: 0; } 18% { opacity: 0.55; } 100% { transform: translateX(220%); opacity: 0; } }
         `}</style>
 
         <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
-          <path d="M-20 120 C 200 60, 450 220, 720 140 S 1050 30, 1300 160 S 1420 250, 1460 120" fill="none" stroke="#E94560" strokeWidth="2" opacity="0.18" style={{ animation: 'introDrift 8s ease-in-out infinite' }} />
-          <path d="M-20 780 C 250 720, 480 840, 700 760 S 980 680, 1200 800 S 1380 860, 1460 780" fill="none" stroke="#E94560" strokeWidth="2" opacity="0.15" style={{ animation: 'introDrift 10s ease-in-out infinite 1s' }} />
+          <path d="M-20 120 C 200 60, 450 220, 720 140 S 1050 30, 1300 160 S 1420 250, 1460 120" fill="none" stroke={splitStroke} strokeWidth="2" opacity="0.8" style={{ animation: 'introDrift 8s ease-in-out infinite' }} />
+          <path d="M-20 780 C 250 720, 480 840, 700 760 S 980 680, 1200 800 S 1380 860, 1460 780" fill="none" stroke={splitStroke} strokeWidth="2" opacity="0.7" style={{ animation: 'introDrift 10s ease-in-out infinite 1s' }} />
           <circle cx="720" cy="140" r="6" fill="#E94560" style={{ animation: 'introBreath 4s ease-in-out infinite' }} />
           <circle cx="700" cy="760" r="6" fill="#E94560" style={{ animation: 'introBreath 5.5s ease-in-out infinite 0.5s' }} />
         </svg>
 
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <svg viewBox="0 0 120 120" fill="none" className="w-[280px] h-[280px] md:w-[500px] md:h-[500px] opacity-[0.04]">
+          <svg viewBox="0 0 120 120" fill="none" className={`w-[280px] h-[280px] md:w-[500px] md:h-[500px] ${theme === "dark" ? "opacity-[0.09]" : "opacity-[0.04]"}`}>
             <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" />
             <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" />
             <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" />
@@ -424,54 +434,110 @@ export default function Profiling() {
           <polygon points="3 11 22 2 13 21 11 13 3 11" />
         </svg>
 
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 md:px-8">
+        <div className="absolute inset-x-0 top-[88px] z-0 flex justify-center pointer-events-none">
+          <div className="h-[320px] w-[320px] rounded-full blur-3xl opacity-80" style={{ background: theme === "dark" ? "radial-gradient(circle, rgba(233,69,96,0.28), transparent 70%)" : "radial-gradient(circle, rgba(233,69,96,0.18), transparent 70%)", animation: "splitPulse 7s ease-in-out infinite" }} />
+        </div>
+
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 md:px-8 pt-24 pb-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center max-w-[700px]"
+            className="text-center w-full max-w-[1080px]"
           >
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-6">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-6 border border-[rgba(233,69,96,0.16)]" style={{ background: splitBadgeBg }}>
               {t('split.label')}
             </span>
 
-            <h1 className="font-serif text-[clamp(28px,5vw,46px)] leading-[1.2] tracking-tight mb-4 text-[var(--text-primary)]">
+            <h1 className="font-serif text-[clamp(34px,5vw,62px)] leading-[1.06] tracking-tight mb-4 text-[var(--text-primary)] max-w-[820px] mx-auto">
               <span dangerouslySetInnerHTML={{ __html: t('split.title') }} />
             </h1>
 
-            <p className="text-[15px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-10">
+            <p className="text-[15px] md:text-[18px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-5 max-w-[660px] mx-auto">
               {t('split.hint')}
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[560px] mx-auto">
+            <p className="text-[12px] md:text-[13px] text-[var(--text-muted)] uppercase tracking-[0.28em] font-medium mb-10">
+              {t('split.micro')}
+            </p>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-7 max-w-[980px] mx-auto text-left">
               <button
                 onClick={() => choosePath('a')}
                 data-testid="button-path-a"
-                className="bg-[var(--surface-card)] border-2 border-[var(--border-input)] rounded-[20px] p-8 md:p-10 text-center cursor-pointer transition-all duration-400 hover:border-[#E94560] hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(233,69,96,0.1)] group"
+                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate"
+                style={{ boxShadow: splitCardGlow }}
               >
-                <div className="w-14 h-14 rounded-full bg-[rgba(233,69,96,0.07)] flex items-center justify-center mx-auto mb-5">
-                  <QuestionIcon className="w-7 h-7 text-[#E94560]" />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: theme === "dark" ? "linear-gradient(135deg, rgba(233,69,96,0.16), transparent 45%)" : "linear-gradient(135deg, rgba(233,69,96,0.10), transparent 45%)" }} />
+                <div className="absolute -left-1/3 top-0 h-full w-1/3 rotate-[16deg] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100" style={{ animation: "splitShimmer 1.3s ease forwards" }} />
+                <div className="relative z-10 flex items-start justify-between gap-4 mb-7">
+                  <div>
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.24em] text-[#E94560] border border-[rgba(233,69,96,0.16)]" style={{ background: splitBadgeBg }}>
+                      {t('split.a.kicker')}
+                    </span>
+                  </div>
+                  <div className="w-[60px] h-[60px] rounded-full bg-[rgba(233,69,96,0.08)] flex items-center justify-center shrink-0 border border-[rgba(233,69,96,0.14)] group-hover:scale-110 transition-transform duration-500">
+                    <QuestionIcon className="w-7 h-7 text-[#E94560]" />
+                  </div>
                 </div>
-                <h3 className="font-serif text-[20px] mb-2 text-[var(--text-primary)]">{t('split.a.title')}</h3>
-                <p className="text-[13px] text-[var(--text-secondary)] font-light leading-[1.6]">{t('split.a.desc')}</p>
+                <h3 className="relative z-10 font-serif text-[28px] md:text-[32px] leading-[1.08] mb-3 text-[var(--text-primary)]">{t('split.a.title')}</h3>
+                <p className="relative z-10 text-[15px] text-[var(--text-secondary)] font-light leading-[1.75] mb-5 max-w-[42ch]">{t('split.a.desc')}</p>
+                <p className="relative z-10 text-[13px] text-[var(--text-muted)] leading-[1.7] mb-8 max-w-[42ch]">{t('split.a.detail')}</p>
+                <div className="relative z-10 flex flex-wrap gap-2.5 mb-8">
+                  {[t('split.a.chip1'), t('split.a.chip2'), t('split.a.chip3')].map((chip, i) => (
+                    <span key={i} className="rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[var(--text-secondary)] border border-[var(--border-input)] bg-[rgba(255,255,255,0.02)]">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+                <div className="relative z-10 flex items-center justify-between gap-4">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)]">{t('split.a.cta')}</span>
+                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-[rgba(233,69,96,0.18)] text-[#E94560] group-hover:translate-x-1 transition-transform duration-400">
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                </div>
               </button>
 
               <button
                 onClick={() => choosePath('b')}
                 data-testid="button-path-b"
-                className="bg-[var(--surface-card)] border-2 border-[var(--border-input)] rounded-[20px] p-8 md:p-10 text-center cursor-pointer transition-all duration-400 hover:border-[#E94560] hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(233,69,96,0.1)] group"
+                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate"
+                style={{ boxShadow: splitCardGlow }}
               >
-                <div className="w-14 h-14 rounded-full bg-[rgba(233,69,96,0.07)] flex items-center justify-center mx-auto mb-5">
-                  <MapPin className="w-7 h-7 text-[#E94560]" />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: theme === "dark" ? "linear-gradient(135deg, rgba(255,255,255,0.08), transparent 46%)" : "linear-gradient(135deg, rgba(233,69,96,0.08), transparent 46%)" }} />
+                <div className="absolute -left-1/3 top-0 h-full w-1/3 rotate-[16deg] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100" style={{ animation: "splitShimmer 1.3s ease forwards" }} />
+                <div className="relative z-10 flex items-start justify-between gap-4 mb-7">
+                  <div>
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.24em] text-[#E94560] border border-[rgba(233,69,96,0.16)]" style={{ background: splitBadgeBg }}>
+                      {t('split.b.kicker')}
+                    </span>
+                  </div>
+                  <div className="w-[60px] h-[60px] rounded-full bg-[rgba(233,69,96,0.08)] flex items-center justify-center shrink-0 border border-[rgba(233,69,96,0.14)] group-hover:scale-110 transition-transform duration-500">
+                    <MapPin className="w-7 h-7 text-[#E94560]" />
+                  </div>
                 </div>
-                <h3 className="font-serif text-[20px] mb-2 text-[var(--text-primary)]">{t('split.b.title')}</h3>
-                <p className="text-[13px] text-[var(--text-secondary)] font-light leading-[1.6]">{t('split.b.desc')}</p>
+                <h3 className="relative z-10 font-serif text-[28px] md:text-[32px] leading-[1.08] mb-3 text-[var(--text-primary)]">{t('split.b.title')}</h3>
+                <p className="relative z-10 text-[15px] text-[var(--text-secondary)] font-light leading-[1.75] mb-5 max-w-[42ch]">{t('split.b.desc')}</p>
+                <p className="relative z-10 text-[13px] text-[var(--text-muted)] leading-[1.7] mb-8 max-w-[42ch]">{t('split.b.detail')}</p>
+                <div className="relative z-10 flex flex-wrap gap-2.5 mb-8">
+                  {[t('split.b.chip1'), t('split.b.chip2'), t('split.b.chip3')].map((chip, i) => (
+                    <span key={i} className="rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[var(--text-secondary)] border border-[var(--border-input)] bg-[rgba(255,255,255,0.02)]">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+                <div className="relative z-10 flex items-center justify-between gap-4">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)]">{t('split.b.cta')}</span>
+                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-[rgba(233,69,96,0.18)] text-[#E94560] group-hover:translate-x-1 transition-transform duration-400">
+                    <ArrowRight className="w-4 h-4" />
+                  </span>
+                </div>
               </button>
             </div>
 
-            <div className="flex items-center justify-center gap-6 mt-10 flex-wrap">
+            <div className="flex items-center justify-center gap-3 md:gap-4 mt-8 md:mt-9 flex-wrap">
               {[t('intro.questions'), t('intro.time'), t('intro.private')].map((chip, i) => (
-                <span key={i} className="text-[12px] text-[var(--text-muted)] font-medium tracking-wide uppercase">
+                <span key={i} className="text-[11px] md:text-[12px] text-[var(--text-secondary)] font-medium tracking-[0.2em] uppercase rounded-full px-4 py-2 border border-[var(--border-input)]" style={{ background: splitTrustBg }}>
                   {chip}
                 </span>
               ))}
@@ -479,8 +545,8 @@ export default function Profiling() {
           </motion.div>
         </div>
 
-        <footer className="relative z-10 px-4 md:px-8 py-6 flex items-center justify-between">
-          <span className="text-[12px] md:text-[13px] text-[var(--text-muted)] font-light italic max-w-[70%]">
+        <footer className="relative z-10 px-4 md:px-8 pb-6 md:pb-8 flex items-center justify-between gap-4 flex-wrap">
+          <span className="text-[12px] md:text-[13px] text-[var(--text-muted)] font-light italic max-w-[840px] rounded-full px-4 py-3 border border-[var(--border-input)]" style={{ background: splitQuoteBg }}>
             "{t('intro.quote')}"
           </span>
           <div className="hidden sm:flex items-center gap-4 text-[12px] text-[var(--text-muted)]">
@@ -884,7 +950,7 @@ export default function Profiling() {
     for (let j = 0; j < step; j++) {
       const a = answers[j];
       if (a != null && a !== '') {
-        const txt = typeof a === 'string' ? (a.length > 55 ? a.substring(0, 55) + '…' : a) : '' + a;
+        const txt = typeof a === 'string' ? (a.length > 55 ? a.substring(0, 55) + 'â€¦' : a) : '' + a;
         entries.push({ idx: j, section: questions[j].section, text: txt });
       }
     }
@@ -899,7 +965,7 @@ export default function Profiling() {
             className="px-3.5 py-2.5 bg-[var(--surface)] rounded-[10px] mb-1.5 text-[12px] text-[var(--text-secondary)] leading-[1.5] font-light border-l-2 border-[#E94560] opacity-55"
             style={{ animation: `sidebarIn 0.3s ease ${i * 0.06}s both` }}
           >
-            <b className="font-medium text-[var(--text-primary)] text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} · {entry.section}</b>
+            <b className="font-medium text-[var(--text-primary)] text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} Â· {entry.section}</b>
             {entry.text}
           </div>
         ))}
@@ -959,7 +1025,7 @@ export default function Profiling() {
               {i < step && answers[i] && (
                 <div className="absolute left-[52px] top-1/2 -translate-y-1/2 bg-[#1A1A2E] text-white text-[11px] font-normal px-3 py-1.5 rounded-lg whitespace-nowrap max-w-[180px] overflow-hidden text-ellipsis opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-250 z-10">
                   <span className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-[#1A1A2E]" />
-                  {typeof answers[i] === 'string' && answers[i].length > 30 ? answers[i].substring(0, 30) + '…' : answers[i]}
+                  {typeof answers[i] === 'string' && answers[i].length > 30 ? answers[i].substring(0, 30) + 'â€¦' : answers[i]}
                 </div>
               )}
               {i < questions.length - 1 && (
@@ -1074,6 +1140,8 @@ export default function Profiling() {
     </div>
   );
 }
+
+
 
 
 

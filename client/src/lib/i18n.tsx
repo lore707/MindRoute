@@ -11,15 +11,28 @@ const translations: Record<string, Record<Lang, string>> = {
   "nav.copyright": { en: "Â© 2025 MindRoute. Built for travelers who think differently.", it: "Â© 2025 MindRoute. Creato per viaggiatori che pensano diversamente." },
 
   "split.title": { en: "What kind of traveler are you <em>today?</em>", it: "Che tipo di viaggiatore sei <em>oggi?</em>" },
-  "split.hint": { en: "This shapes everything that follows.", it: "Questo plasma tutto ciÃ² che segue." },
+  "split.hint": { en: "Start from the way you feel today. The rest of the journey will follow that direction.", it: "Parti da come ti senti oggi. Il resto del viaggio seguirà quella direzione." },
+  "split.micro": { en: "Choose the way you want us to guide you", it: "Scegli da quale punto vuoi cominciare" },
   "split.a.title": { en: "I don't know where to go", it: "Non so dove andare" },
-  "split.a.desc": { en: "We'll ask a few questions about who you are. Then we'll surprise you.", it: "Ti faremo qualche domanda su chi sei. Poi ti sorprenderemo." },
-  "split.b.title": { en: "I already have an idea", it: "Ho giÃ  un'idea" },
-  "split.b.desc": { en: "Tell us where and how. We'll build the perfect trip around you.", it: "Dicci dove e come. Costruiremo il viaggio perfetto intorno a te." },
-  "split.label": { en: "âœ¦ Let's begin", it: "âœ¦ Iniziamo" },
+  "split.a.desc": { en: "If all you know is the feeling you are chasing, we'll turn it into a place that makes sense.", it: "Se sai solo la sensazione che stai cercando, la trasformeremo in un luogo che abbia davvero senso per te." },
+  "split.a.detail": { en: "We'll read what energizes you, what tires you out, what kind of atmosphere you need right now, and from there we'll find a destination that feels uncannily right.", it: "Leggiamo quello che ti accende, quello che ti stanca, il tipo di atmosfera di cui hai bisogno adesso e da lì troviamo una destinazione che ti assomigli davvero." },
+  "split.a.kicker": { en: "Guided discovery", it: "Scoperta guidata" },
+  "split.a.chip1": { en: "surprise", it: "sorpresa" },
+  "split.a.chip2": { en: "profiling", it: "profilazione" },
+  "split.a.chip3": { en: "new direction", it: "nuova direzione" },
+  "split.a.cta": { en: "Let the destination emerge", it: "Lascia emergere la meta" },
+  "split.b.title": { en: "I already have a direction", it: "Ho già una direzione" },
+  "split.b.desc": { en: "If you already have a place, a region, or even just a very clear instinct, we'll shape the trip around it.", it: "Se hai già in mente un luogo, una regione o anche solo un'intuizione precisa, costruiamo il viaggio intorno a quello." },
+  "split.b.detail": { en: "We'll use your idea as a starting point and refine rhythm, tone, timing, and logistics so the result feels less generic and much more yours.", it: "Prendiamo la tua idea come punto di partenza e le diamo ritmo, tono, tempi e logistica, così il risultato non sembra un piano generico ma un viaggio davvero tuo." },
+  "split.b.kicker": { en: "Intentional route", it: "Rotta intenzionale" },
+  "split.b.chip1": { en: "place", it: "luogo" },
+  "split.b.chip2": { en: "rhythm", it: "ritmo" },
+  "split.b.chip3": { en: "tailored plan", it: "su misura" },
+  "split.b.cta": { en: "Build around my idea", it: "Parti dalla mia idea" },
+  "split.label": { en: "Let's begin", it: "Iniziamo" },
 
   "intro.title": { en: 'Before we begin, a few questions about <em>who you are.</em>', it: 'Prima di iniziare, qualche domanda su <em>chi sei.</em>' },
-  "intro.desc": { en: "There are no wrong answers â€” just be honest. The better we understand you, the more surprising your destinations will be.", it: "Non ci sono risposte sbagliate â€” sii sincero. Meglio ti conosciamo, piÃ¹ sorprendenti saranno le tue destinazioni." },
+  "intro.desc": { en: "There are no wrong answers, just honesty. The better we understand you, the more surprising your destinations can be.", it: "Non ci sono risposte sbagliate, conta solo essere sinceri. Più ti capiamo, più le destinazioni che troveremo potranno sorprenderti davvero." },
   "intro.questions": { en: "7 questions", it: "7 domande" },
   "intro.time": { en: "~3 min", it: "~3 min" },
   "intro.private": { en: "100% private", it: "100% privato" },
@@ -50,7 +63,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "a.q2.why": { en: "The gap between your life and your longing is the compass. This answer drives the destination match â€” it reveals life phase, emotional state, and the true function of this trip.", it: "Il divario tra la tua vita e il tuo desiderio Ã¨ la bussola. Questa risposta guida la scelta della destinazione â€” rivela fase di vita, stato emotivo e la vera funzione di questo viaggio." },
 
   "a.q3.text": { en: "What <em>drains you</em> when traveling?", it: "Cosa ti <em>prosciuga</em> quando viaggi?" },
-  "a.q3.hint": { en: "What you reject tells us more than what you want.", it: "CiÃ² che rifiuti ci dice piÃ¹ di ciÃ² che desideri." },
+  "a.q3.hint": { en: "What you reject tells us more than what you want.", it: "Quello che rifiuti dice spesso più di quello che desideri." },
   "a.q3.why": { en: "Anti-patterns are identity markers. The combinations define hard boundaries for your trip.", it: "Gli anti-pattern sono marcatori identitari. Le combinazioni definiscono i confini rigidi del tuo viaggio." },
   "a.q3.addendum": { en: "Anything else that kills the vibe?", it: "Qualcos'altro che rovina l'atmosfera?" },
 
@@ -101,10 +114,10 @@ const translations: Record<string, Record<Lang, string>> = {
   "b.q2.chips.wellness": { en: "Wellness & spa", it: "Wellness e spa" },
   "b.q2.chips.discovery": { en: "Discovery â€” surprise me", it: "Scoperta â€” sorprendimi" },
 
-  "b.q3.text": { en: "What <em>shouldn't we miss</em> â€” and why that place?", it: "Cosa <em>non possiamo perdere</em> â€” e perchÃ© proprio quel posto?" },
+  "b.q3.text": { en: "What <em>shouldn't we miss</em>, and why that place?", it: "Che cosa <em>non possiamo perderci</em>, e perché proprio quel posto?" },
   "b.q3.hint": { en: "Two questions, one space. The combination tells us everything.", it: "Due domande, uno spazio. La combinazione ci dice tutto." },
   "b.q3.placeholder": { en: "E.g. I want to see the temples of Kyoto at dawn, the fish markets, the hidden neighborhoods...", it: "Es. Voglio vedere i templi di Kyoto all'alba, i mercati del pesce, i quartieri nascosti..." },
-  "b.q3.precise": { en: "Why that place specifically?", it: "PerchÃ© proprio quel posto?" },
+  "b.q3.precise": { en: "Why that place specifically?", it: "Perché proprio quel posto?" },
   "b.q3.precisePlaceholder": { en: "E.g. I've always felt drawn to Japan â€” the balance between chaos and silence, the culture, the food...", it: "Es. Ho sempre sentito un'attrazione per il Giappone â€” l'equilibrio tra caos e silenzio, la cultura, il cibo..." },
   "b.q3.why": { en: "What you can't miss reveals priorities. Why that place reveals the emotional need behind the trip. Together, they shape an itinerary that feels personal.", it: "Cosa non puoi perdere rivela le prioritÃ . PerchÃ© quel posto rivela il bisogno emotivo dietro il viaggio. Insieme, plasmano un itinerario che sembra fatto su misura." },
 
@@ -169,7 +182,7 @@ const translations: Record<string, Record<Lang, string>> = {
 
   "section.b.where": { en: "Where", it: "Dove" },
   "section.b.type": { en: "Trip type", it: "Tipo di viaggio" },
-  "section.b.specific": { en: "Must-see & why", it: "Da vedere & perchÃ©" },
+  "section.b.specific": { en: "Must-see and why", it: "Cosa vedere e perché" },
   "section.b.atmosphere": { en: "Atmosphere", it: "Atmosfera" },
   "section.b.rhythm": { en: "Rhythm", it: "Ritmo" },
   "section.b.feeling": { en: "Feeling", it: "Sensazione" },
@@ -191,11 +204,11 @@ const translations: Record<string, Record<Lang, string>> = {
   "q.continue": { en: "Continue", it: "Continua" },
   "q.pressEnter": { en: "Press", it: "Premi" },
   "q.toContinue": { en: "to continue", it: "per continuare" },
-  "q.writeTrue": { en: "Just write what feels true", it: "Scrivi semplicemente ciÃ² che senti vero" },
+  "q.writeTrue": { en: "Just write what feels true", it: "Scrivi semplicemente quello che senti vero" },
   "q.selected": { en: "selected", it: "selezionate" },
   "q.selectImages": { en: "Select 1 or 2 images", it: "Seleziona 1 o 2 immagini" },
   "q.optional": { en: "Optional â€” skip if nothing comes to mind", it: "Opzionale â€” salta se non ti viene niente" },
-  "sidebar.whyThis": { en: "Why this question?", it: "PerchÃ© questa domanda?" },
+  "sidebar.whyThis": { en: "Why this question?", it: "Perché questa domanda?" },
   "sidebar.mapping": { en: "What we're mapping", it: "Cosa stiamo mappando" },
   "sidebar.profileSoFar": { en: "Your profile so far", it: "Il tuo profilo finora" },
   "sidebar.privacy": { en: "Your answers shape your destinations. Never stored, never shared.", it: "Le tue risposte plasmano le tue destinazioni. Mai salvate, mai condivise." },
@@ -225,13 +238,13 @@ const translations: Record<string, Record<Lang, string>> = {
   "form.periodWinter": { en: "Winter", it: "Inverno" },
   "form.periodAnytime": { en: "Anytime", it: "Qualsiasi momento" },
 
-  "form.sidebarBudgetTitle": { en: "Why we ask about budget", it: "PerchÃ© chiediamo il budget" },
+  "form.sidebarBudgetTitle": { en: "Why we ask about budget", it: "Perché ti chiediamo il budget" },
   "form.sidebarBudgetDesc": { en: "Your budget shapes the type of experience we recommend â€” from authentic local stays to luxury retreats. Every range unlocks a different kind of magic.", it: "Il tuo budget determina il tipo di esperienza che consigliamo â€” da soggiorni locali autentici a ritiri di lusso. Ogni fascia apre un tipo diverso di magia." },
   "form.sidebarBudgetLowHint": { en: "Hostels, street food, local transport â€” raw and real.", it: "Ostelli, street food, trasporti locali â€” autentico e reale." },
   "form.sidebarBudgetMedHint": { en: "Boutique hotels, curated restaurants, guided experiences.", it: "Boutique hotel, ristoranti selezionati, esperienze guidate." },
   "form.sidebarBudgetHighHint": { en: "Premium stays, fine dining, private transfers.", it: "Soggiorni premium, alta cucina, trasferimenti privati." },
   "form.sidebarBudgetUnlimitedHint": { en: "The world is yours â€” no limits, only possibilities.", it: "Il mondo Ã¨ tuo â€” nessun limite, solo possibilitÃ ." },
-  "form.sidebarDateTitle": { en: "Why timing matters", it: "PerchÃ© il periodo conta" },
+  "form.sidebarDateTitle": { en: "Why timing matters", it: "Perché il periodo conta" },
   "form.sidebarDateDesc": { en: "Seasons transform destinations completely. The same place can feel like two different worlds in summer vs winter. Help us find your perfect window.", it: "Le stagioni trasformano le destinazioni completamente. Lo stesso luogo puÃ² sembrare due mondi diversi in estate e in inverno. Aiutaci a trovare la tua finestra perfetta." },
   "form.sidebarDurationTitle": { en: "Trip length shapes the journey", it: "La durata plasma il viaggio" },
   "form.sidebarDurationDesc": { en: "A weekend escape and a two-week odyssey require completely different destinations. We'll match pace, depth and rhythm to your available time.", it: "Una fuga nel weekend e un'odissea di due settimane richiedono destinazioni completamente diverse. Abbineremo ritmo, profonditÃ  e tempi al tuo tempo disponibile." },
@@ -450,6 +463,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useI18n() {
   return useContext(I18nContext);
 }
+
+
 
 
 
