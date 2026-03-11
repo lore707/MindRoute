@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+ï»¿import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
 
@@ -32,19 +32,8 @@ export default function Landing() {
         <div className="absolute inset-x-[8%] top-[16%] h-[1px] bg-[linear-gradient(90deg,transparent,rgba(29,25,53,0.12),transparent)]" />
         <div className="absolute inset-x-[12%] bottom-[18%] h-[1px] bg-[linear-gradient(90deg,transparent,rgba(29,25,53,0.08),transparent)]" />
 
-        <div className="hidden lg:block absolute right-[7%] bottom-[18%] w-[250px] rounded-[32px] border border-[rgba(29,25,53,0.08)] bg-[rgba(255,255,255,0.72)] p-6 shadow-[0_24px_60px_rgba(29,25,53,0.06)] backdrop-blur-[10px]">
-          <div className="text-[10px] font-semibold tracking-[3px] uppercase text-[#E94560] mb-4">{lang === "it" ? "Nota di viaggio" : "Travel note"}</div>
-          <p className="font-serif text-[22px] leading-[1.2] text-[#1D1935] mb-3">
-            {lang === "it" ? "Non scegliere una meta. Lascia emergere una direzione." : "Do not choose a destination. Let a direction emerge."}
-          </p>
-          <p className="text-[13px] leading-[1.7] text-[var(--text-secondary)]">
-            {lang === "it" ? "Un viaggio che inizia da una domanda interiore ha un sapore diverso." : "A trip that starts from an inner question feels different."}
-          </p>
-        </div>
-
-        <div className="relative max-w-[1220px] mx-auto min-h-[calc(100vh-132px)] grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,760px)_1fr] items-center">
-          <div className="hidden lg:block" />
-          <div className="text-center">
+        <div className="relative max-w-[980px] mx-auto min-h-[calc(100vh-132px)] flex items-center justify-center">
+          <div className="w-full text-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.88, y: -14 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -74,7 +63,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.85 }}
-              className="font-serif text-[clamp(46px,8vw,96px)] leading-[0.94] tracking-[-2px] md:tracking-[-3px] mb-6 max-w-[900px] mx-auto text-[#1D1935]"
+              className="font-serif text-[clamp(46px,8vw,96px)] leading-[0.94] tracking-[-2px] md:tracking-[-3px] mb-6 max-w-[900px] mx-auto text-[var(--text-primary)]"
             >
               <span dangerouslySetInnerHTML={{ __html: heroTitleHtml }} />
             </motion.h1>
@@ -112,14 +101,13 @@ export default function Landing() {
                   <div className="text-[12px] font-semibold uppercase tracking-[2px] text-[rgba(29,25,53,0.36)]">
                     {lang === "it" ? "Prime reazioni" : "Early reactions"}
                   </div>
-                  <div className="text-[14px] text-[#1D1935]">
+                  <div className="text-[14px] text-[var(--text-primary)]">
                     {lang === "it" ? "\"Sembra un viaggio scritto per me.\"" : "\"It feels written for me.\""}
                   </div>
                 </div>
               </div>
             </motion.div>
           </div>
-          <div className="hidden lg:block" />
         </div>
 
         <motion.div
@@ -141,7 +129,7 @@ export default function Landing() {
         <div className="max-w-[1180px] mx-auto">
           <div className="max-w-[760px] mx-auto text-center mb-16 md:mb-20">
             <p className="text-[11px] font-semibold tracking-[4px] uppercase text-[#E94560] mb-4">{t("landing.how.label")}</p>
-            <h2 className="font-serif text-[clamp(38px,5vw,58px)] text-center mb-5 tracking-[-1.6px] leading-[1.02] text-[#1D1935]">{t("landing.how.title")}</h2>
+            <h2 className="font-serif text-[clamp(38px,5vw,58px)] text-center mb-5 tracking-[-1.6px] leading-[1.02] text-[var(--text-primary)]">{t("landing.how.title")}</h2>
             <p className="text-center text-[var(--text-secondary)] text-[17px] md:text-[19px] font-light max-w-[620px] mx-auto leading-[1.85]">
               {t("landing.how.desc")}
             </p>
@@ -160,7 +148,7 @@ export default function Landing() {
                 <div>
                   <div className="mb-8 flex items-center justify-between">
                     <span className="text-[11px] font-semibold uppercase tracking-[3px] text-[rgba(29,25,53,0.36)]">
-                      {lang === "it" ? "Un processo più intuitivo" : "A more intuitive process"}
+                      {lang === "it" ? "Un processo piu intuitivo" : "A more intuitive process"}
                     </span>
                     <span className="rounded-full bg-[rgba(233,69,96,0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[2px] text-[#E94560]">
                       MindRoute
@@ -219,7 +207,7 @@ export default function Landing() {
                           </div>
                         </div>
                         <div className="pt-1">
-                          <h3 className="font-serif text-[24px] tracking-[-0.5px] text-[#1D1935] mb-2">{step.title}</h3>
+                          <h3 className="font-serif text-[24px] tracking-[-0.5px] text-[var(--text-primary)] mb-2">{step.title}</h3>
                           <p className="text-[14px] md:text-[15px] leading-[1.8] font-light text-[var(--text-secondary)]">{step.desc}</p>
                         </div>
                       </motion.div>
@@ -234,32 +222,66 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.72, delay: 0.08 }}
-              className="relative overflow-hidden rounded-[34px] border border-[rgba(29,25,53,0.08)] bg-[#1A1A2E] p-8 md:p-10 text-white shadow-[0_34px_90px_rgba(29,25,53,0.18)]"
+              className="relative overflow-hidden rounded-[34px] border border-[rgba(255,255,255,0.08)] bg-[#111325] p-7 md:p-10 text-white shadow-[0_34px_90px_rgba(29,25,53,0.22)]"
             >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(242,85,110,0.22),transparent_38%),radial-gradient(circle_at_bottom,rgba(73,90,255,0.18),transparent_45%)]" />
-              <div className="relative z-10 h-full flex flex-col justify-between">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(242,85,110,0.24),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(73,90,255,0.18),transparent_48%)]" />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(8,10,20,0.22))]" />
+              <div className="relative z-10 flex h-full flex-col gap-6 md:gap-8">
                 <div>
-                  <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.08)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] text-white">
+                  <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.08)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] text-white">
                     {lang === "it" ? "Cosa cambia davvero" : "What truly changes"}
                   </div>
-                  <h3 className="font-serif text-[32px] md:text-[42px] leading-[1.04] tracking-[-1px] mb-4 text-white">
+                  <h3 className="font-serif text-[30px] sm:text-[36px] md:text-[42px] leading-[1.02] tracking-[-1px] mb-4 text-white">
                     {lang === "it" ? "Non una ricerca. Una lettura di te." : "Not a search. A reading of you."}
                   </h3>
-                  <p className="max-w-[460px] text-[15px] md:text-[16px] leading-[1.8] text-[rgba(255,255,255,0.72)]">
+                  <p className="max-w-[520px] text-[15px] md:text-[16px] leading-[1.8] text-[rgba(255,255,255,0.82)]">
                     {lang === "it"
                       ? "Ogni passaggio riduce rumore, filtra luoghi generici e trasforma intuizioni personali in una direzione concreta."
                       : "Each step removes noise, filters out generic places, and turns personal intuition into a concrete direction."}
                   </p>
                 </div>
 
-                <div className="mt-10 grid gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {[
-                    lang === "it" ? "Meno opzioni infinite, più chiarezza emotiva." : "Fewer endless options, more emotional clarity.",
-                    lang === "it" ? "Un percorso che sembra conversazione, non form." : "A flow that feels like conversation, not a form.",
-                    lang === "it" ? "Una destinazione che arriva già con senso e ritmo." : "A destination that arrives with meaning and rhythm."
+                    {
+                      valueIt: "7 domande",
+                      valueEn: "7 questions",
+                      labelIt: "per arrivare al tuo profilo",
+                      labelEn: "to reveal your profile"
+                    },
+                    {
+                      valueIt: "3 mete",
+                      valueEn: "3 destinations",
+                      labelIt: "gia allineate al tuo momento",
+                      labelEn: "already aligned with your moment"
+                    }
+                  ].map((item) => (
+                    <div key={item.valueIt} className="rounded-[24px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.06)] px-5 py-5 backdrop-blur-[8px]">
+                      <div className="font-serif text-[28px] leading-none text-white mb-2">{lang === "it" ? item.valueIt : item.valueEn}</div>
+                      <div className="text-[13px] leading-[1.7] text-[rgba(255,255,255,0.72)]">{lang === "it" ? item.labelIt : item.labelEn}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-[28px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] px-5 py-5 backdrop-blur-[10px]">
+                  <div className="text-[11px] font-semibold uppercase tracking-[3px] text-[rgba(255,255,255,0.62)] mb-3">
+                    {lang === "it" ? "Percezione finale" : "Final feeling"}
+                  </div>
+                  <p className="text-[15px] md:text-[16px] leading-[1.8] text-white">
+                    {lang === "it"
+                      ? '"Meno ricerca manuale, piu la sensazione di essere capito."'
+                      : '"Less manual search, more the feeling of being understood."'}
+                  </p>
+                </div>
+
+                <div className="grid gap-3">
+                  {[
+                    lang === "it" ? "Meno opzioni infinite, piu chiarezza emotiva." : "Fewer endless options, more emotional clarity.",
+                    lang === "it" ? "Un percorso che sembra conversazione, non un form freddo." : "A flow that feels like conversation, not a cold form.",
+                    lang === "it" ? "Una destinazione che arriva gia con senso e ritmo." : "A destination that already arrives with meaning and rhythm."
                   ].map((line) => (
-                    <div key={line} className="flex items-start gap-3 rounded-[22px] border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-4 py-4">
-                      <span className="mt-[2px] h-2.5 w-2.5 rounded-full bg-[#E94560]" />
+                    <div key={line} className="flex items-start gap-3 rounded-[22px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] px-4 py-4 backdrop-blur-[6px]">
+                      <span className="mt-[5px] h-2.5 w-2.5 shrink-0 rounded-full bg-[#E94560]" />
                       <p className="text-[14px] md:text-[15px] leading-[1.7] text-white">{line}</p>
                     </div>
                   ))}
@@ -271,39 +293,83 @@ export default function Landing() {
       </section>
 
       <section className="py-24 px-6 bg-[var(--surface)] transition-colors duration-300">
-        <div className="max-w-[1080px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="text-left">
-              <p className="text-[11px] font-semibold tracking-[3px] uppercase text-[#E94560] mb-4">{t("landing.diff.label")}</p>
-              <h2 className="font-serif text-[clamp(28px,4vw,38px)] mb-5 tracking-[-0.5px] leading-[1.2]">
+        <div className="max-w-[1120px] mx-auto">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14 items-start">
+            <div className="text-left max-w-[560px]">
+              <p className="text-[11px] font-semibold tracking-[3px] uppercase text-[#E94560] mb-4">
+                {lang === "it" ? "La differenza" : "The difference"}
+              </p>
+              <h2 className="font-serif text-[clamp(30px,4.5vw,52px)] mb-6 tracking-[-1px] leading-[1.06] text-[var(--text-primary)]">
                 <span dangerouslySetInnerHTML={{ __html: lang === "it"
-                  ? 'Gli altri pianificatori chiedono<br /><em class="italic text-[#E94560]">dove.</em> Noi chiediamo <em class="italic text-[#E94560]">perché.</em>'
+                  ? 'Gli altri pianificatori chiedono<br /><em class="italic text-[#E94560]">dove.</em> Noi chiediamo <em class="italic text-[#E94560]">perche.</em>'
                   : 'Other planners ask<br /><em class="italic text-[#E94560]">where.</em> We ask <em class="italic text-[#E94560]">why.</em>'
                 }} />
               </h2>
-              <p className="text-[var(--text-secondary)] text-[15px] leading-[1.8] mb-4 font-light">{t("landing.diff.p1")}</p>
-              <p className="text-[var(--text-secondary)] text-[15px] leading-[1.8] mb-4 font-light">{t("landing.diff.p2")}</p>
-              <p className="text-[#E94560] font-medium italic">{t("landing.diff.p3")}</p>
+              <p className="text-[var(--text-secondary)] text-[15px] md:text-[16px] leading-[1.9] mb-5 font-light">
+                {lang === "it"
+                  ? 'Ogni pianificatore di viaggio parte dalla stessa domanda: "Dove vuoi andare?" MindRoute parte da te, da cosa ti manca oggi e dal tipo di esperienza che potrebbe rimetterti in asse.'
+                  : 'Most travel planners start from the same question: "Where do you want to go?" MindRoute starts from you, what you are missing right now, and the kind of experience that could realign you.'}
+              </p>
+              <p className="text-[var(--text-secondary)] text-[15px] md:text-[16px] leading-[1.9] mb-5 font-light">
+                {lang === "it"
+                  ? 'Per questo la destinazione non arriva come una lista di opzioni. Arriva come una risposta con un perche, un ritmo e una direzione emotiva piu chiara.'
+                  : 'That is why the destination does not arrive like a list of options. It arrives as an answer with a reason, a rhythm, and a clearer emotional direction.'}
+              </p>
+              <p className="text-[#E94560] font-medium italic text-[16px] md:text-[18px]">
+                {lang === "it" ? 'La destinazione e la risposta. Tu sei la domanda.' : 'The destination is the answer. You are the question.'}
+              </p>
             </div>
-            <div className="relative">
-              <div className="bg-[var(--surface-card)] rounded-[20px] border border-[var(--border-subtle)] overflow-hidden shadow-sm">
-                <div className="grid grid-cols-2">
-                  <div className="p-3 md:p-5 bg-[var(--surface-alt)] font-semibold text-[12px] tracking-[1.5px] uppercase text-[var(--text-secondary)] border-r border-[var(--border-subtle)]">{t("landing.diff.others")}</div>
-                  <div className="p-3 md:p-5 bg-[var(--surface-alt)] font-semibold text-[12px] tracking-[1.5px] uppercase text-[#E94560]">{t("landing.diff.us")}</div>
+
+            <div className="relative overflow-hidden rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-card)] shadow-[0_18px_55px_rgba(29,25,53,0.08)]">
+              <div className="grid grid-cols-2 bg-[var(--surface-alt)]">
+                <div className="p-4 md:p-5 text-[11px] md:text-[12px] font-semibold tracking-[2px] uppercase text-[var(--text-secondary)] border-r border-[var(--border-subtle)]">
+                  {lang === "it" ? 'Altri pianificatori' : 'Other planners'}
                 </div>
-                {[
-                  { left: t("landing.diff.t1a"), right: t("landing.diff.t1b") },
-                  { left: t("landing.diff.t2a"), right: t("landing.diff.t2b") },
-                  { left: t("landing.diff.t3a"), right: t("landing.diff.t3b") },
-                  { left: t("landing.diff.t4a"), right: t("landing.diff.t4b") },
-                  { left: t("landing.diff.t5a"), right: t("landing.diff.t5b") }
-                ].map((row, i) => (
-                  <div key={i} className="grid grid-cols-2 border-t border-[var(--border-subtle)]">
-                    <div className="p-3 md:p-5 text-[14px] border-r border-[var(--border-subtle)] text-[var(--text-secondary)]">{row.left}</div>
-                    <div className="p-3 md:p-5 text-[14px] text-[var(--text-primary)] font-medium bg-[rgba(233,69,96,0.04)]">{row.right}</div>
-                  </div>
-                ))}
+                <div className="p-4 md:p-5 text-[11px] md:text-[12px] font-semibold tracking-[2px] uppercase text-[#E94560]">
+                  MindRoute
+                </div>
               </div>
+              {[
+                {
+                  leftIt: '"Dove vuoi andare?"',
+                  leftEn: '"Where do you want to go?"',
+                  rightIt: '"Cosa ti ha fatto sentire piu vivo?"',
+                  rightEn: '"What made you feel most alive?"'
+                },
+                {
+                  leftIt: 'Filtra per budget, date, stelle',
+                  leftEn: 'Filters by budget, dates, stars',
+                  rightIt: 'Profila la tua identita di viaggiatore',
+                  rightEn: 'Profiles your traveler identity'
+                },
+                {
+                  leftIt: 'Ti mostra destinazioni popolari',
+                  leftEn: 'Shows popular destinations',
+                  rightIt: 'Trova il posto che ti si addice',
+                  rightEn: 'Finds the place that fits you'
+                },
+                {
+                  leftIt: 'Modello di itinerario generico',
+                  leftEn: 'Generic itinerary model',
+                  rightIt: 'Piano calibrato sul tuo ritmo',
+                  rightEn: 'Plan tuned to your pace'
+                },
+                {
+                  leftIt: 'Ottimizza la logistica',
+                  leftEn: 'Optimizes logistics',
+                  rightIt: 'Ottimizza la trasformazione',
+                  rightEn: 'Optimizes transformation'
+                }
+              ].map((row, i) => (
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-2 border-t border-[var(--border-subtle)]">
+                  <div className="p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-secondary)] sm:border-r sm:border-[var(--border-subtle)]">
+                    {lang === "it" ? row.leftIt : row.leftEn}
+                  </div>
+                  <div className="p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] font-medium bg-[rgba(233,69,96,0.04)]">
+                    {lang === "it" ? row.rightIt : row.rightEn}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -360,7 +426,7 @@ export default function Landing() {
             <p className="text-[11px] font-semibold tracking-[4px] uppercase text-[#E94560] mb-4">
               {lang === "it" ? "Destinazioni da sognare" : "Places to dream about"}
             </p>
-            <h2 className="font-serif text-[clamp(34px,5vw,54px)] tracking-[-1.4px] leading-[1.04] text-[#1D1935] mb-5">
+            <h2 className="font-serif text-[clamp(34px,5vw,54px)] tracking-[-1.4px] leading-[1.04] text-[var(--text-primary)] mb-5">
               {lang === "it" ? "Luoghi che fanno venire voglia di partire davvero" : "Places that make you want to leave for real"}
             </h2>
             <p className="max-w-[620px] text-[16px] md:text-[18px] leading-[1.85] text-[var(--text-secondary)] font-light">
@@ -376,19 +442,19 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.75 }}
-              className="group relative overflow-hidden rounded-[34px] min-h-[420px] lg:min-h-[560px]"
+              className="group relative overflow-hidden rounded-[34px] min-h-[360px] sm:min-h-[420px] lg:min-h-[560px]"
             >
               <img
                 src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80"
                 alt={lang === "it" ? "Scogliera sul mare al tramonto" : "Seaside cliff at sunset"}
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
               />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,14,30,0.04),rgba(15,14,30,0.62))]" />
-              <div className="absolute left-6 right-6 bottom-6 md:left-8 md:right-8 md:bottom-8 rounded-[28px] bg-[rgba(255,255,255,0.12)] p-6 text-white backdrop-blur-[10px] border border-[rgba(255,255,255,0.18)]">
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,12,24,0.12),rgba(10,12,24,0.78))]" />
+              <div className="absolute left-4 right-4 bottom-4 rounded-[28px] bg-[rgba(8,10,22,0.52)] p-5 text-white backdrop-blur-[12px] border border-[rgba(255,255,255,0.16)] sm:left-6 sm:right-6 sm:bottom-6 md:left-8 md:right-8 md:bottom-8 md:p-6">
                 <div className="text-[11px] font-semibold uppercase tracking-[3px] text-white/78 mb-3">
                   {lang === "it" ? "Per chi cerca respiro" : "For those seeking space"}
                 </div>
-                <h3 className="font-serif text-[30px] md:text-[40px] leading-[1.02] tracking-[-1px] mb-3">
+                <h3 className="font-serif text-[26px] sm:text-[30px] md:text-[40px] leading-[1.02] tracking-[-1px] mb-3 text-white">
                   {lang === "it" ? "Costa, vento, orizzonte" : "Coast, wind, horizon"}
                 </h3>
                 <p className="max-w-[520px] text-[14px] md:text-[15px] leading-[1.75] text-white/82">
@@ -424,19 +490,19 @@ export default function Landing() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.7, delay: index * 0.08 }}
-                  className="group relative overflow-hidden rounded-[30px] min-h-[268px]"
+                  className="group relative overflow-hidden rounded-[30px] min-h-[240px] sm:min-h-[268px]"
                 >
                   <img
                     src={image.src}
                     alt={lang === "it" ? image.altIt : image.altEn}
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
                   />
-                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,14,30,0.08),rgba(15,14,30,0.64))]" />
-                  <div className="absolute inset-x-5 bottom-5 rounded-[24px] bg-[rgba(16,16,33,0.28)] px-5 py-4 text-white backdrop-blur-[8px] border border-[rgba(255,255,255,0.14)]">
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,12,24,0.14),rgba(10,12,24,0.8))]" />
+                  <div className="absolute inset-x-4 bottom-4 rounded-[24px] bg-[rgba(8,10,22,0.56)] px-4 py-4 text-white backdrop-blur-[10px] border border-[rgba(255,255,255,0.14)] sm:inset-x-5 sm:bottom-5 sm:px-5">
                     <div className="text-[10px] font-semibold uppercase tracking-[3px] text-white/72 mb-2">
                       {lang === "it" ? image.eyebrowIt : image.eyebrowEn}
                     </div>
-                    <h3 className="font-serif text-[24px] leading-[1.08] tracking-[-0.6px]">
+                    <h3 className="font-serif text-[22px] sm:text-[24px] leading-[1.08] tracking-[-0.6px] text-white">
                       {lang === "it" ? image.titleIt : image.titleEn}
                     </h3>
                   </div>
@@ -451,7 +517,7 @@ export default function Landing() {
                 src: "https://images.unsplash.com/photo-1493558103817-58b2924bce98?auto=format&fit=crop&w=1200&q=80",
                 altIt: "Strada panoramica tra palme e oceano",
                 altEn: "Scenic road with palms and ocean",
-                labelIt: "Road trip interiore",
+                labelIt: "Un viaggio dentro",
                 labelEn: "Inner road trip"
               },
               {
@@ -475,15 +541,15 @@ export default function Landing() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.65, delay: index * 0.06 }}
-                className="group relative overflow-hidden rounded-[28px] min-h-[240px]"
+                className="group relative overflow-hidden rounded-[28px] min-h-[220px] sm:min-h-[240px]"
               >
                 <img
                   src={image.src}
                   alt={lang === "it" ? image.altIt : image.altEn}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
                 />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,14,30,0.02),rgba(15,14,30,0.55))]" />
-                <div className="absolute left-5 bottom-5 rounded-full bg-[rgba(255,255,255,0.16)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] text-white backdrop-blur-[8px] border border-[rgba(255,255,255,0.16)]">
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,12,24,0.1),rgba(10,12,24,0.72))]" />
+                <div className="absolute left-4 bottom-4 rounded-full bg-[rgba(8,10,22,0.5)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] text-white backdrop-blur-[10px] border border-[rgba(255,255,255,0.16)] sm:left-5 sm:bottom-5">
                   {lang === "it" ? image.labelIt : image.labelEn}
                 </div>
               </motion.div>
@@ -524,6 +590,12 @@ export default function Landing() {
     </div>
   );
 }
+
+
+
+
+
+
 
 
 
