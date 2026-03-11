@@ -1,6 +1,7 @@
 ﻿import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
+import { useTheme } from "@/components/ThemeProvider";
 
 const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,20 +21,59 @@ const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
 
 export default function Landing() {
   const { t, lang } = useI18n();
+  const { theme } = useTheme();
 
   const heroTitleHtml = t("landing.hero.title")
     .replace(/who you are/, '<em class="italic text-[#E94560] font-normal">$&</em>')
     .replace(/chi sei/, '<em class="italic text-[#E94560] font-normal">$&</em>');
 
+  const heroBackdrop = theme === "dark"
+    ? "radial-gradient(circle at top, rgba(233,69,96,0.16), transparent 28%), radial-gradient(circle at 50% 40%, rgba(71,98,255,0.14), transparent 34%), linear-gradient(180deg, rgba(14,16,29,0.98), rgba(17,19,32,0.98))"
+    : "radial-gradient(circle at top, rgba(233,69,96,0.11), transparent 34%), linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,247,244,0.98))";
+
+  const heroLineColor = theme === "dark" ? "rgba(255,255,255,0.10)" : "rgba(29,25,53,0.12)";
+  const heroSecondaryColor = theme === "dark" ? "rgba(255,255,255,0.48)" : "rgba(29,25,53,0.35)";
+  const heroReactionCard = theme === "dark"
+    ? "border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.06)] shadow-[0_18px_45px_rgba(0,0,0,0.2)] backdrop-blur-[12px]"
+    : "border border-[rgba(29,25,53,0.08)] bg-[rgba(255,255,255,0.68)] shadow-[0_10px_30px_rgba(29,25,53,0.05)] backdrop-blur-[8px]";
+  const heroPill = theme === "dark"
+    ? "border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+    : "border border-[rgba(233,69,96,0.14)] bg-[rgba(255,255,255,0.72)] shadow-[0_10px_30px_rgba(233,69,96,0.08)]";
+
+  const heroTags = lang === "it"
+    ? ["Intuizione", "Ritmo", "Respiro", "Meraviglia"]
+    : ["Intuition", "Rhythm", "Light", "Breathing room"];
+
   return (
     <div className="bg-[var(--surface)] text-[var(--text-primary)] font-sans selection:bg-[#E94560]/20 overflow-x-hidden transition-colors duration-300">
       <section className="relative min-h-screen overflow-hidden px-6 pt-[118px] pb-14">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(233,69,96,0.11),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,247,244,0.98))]" />
-        <div className="absolute inset-x-[8%] top-[16%] h-[1px] bg-[linear-gradient(90deg,transparent,rgba(29,25,53,0.12),transparent)]" />
-        <div className="absolute inset-x-[12%] bottom-[18%] h-[1px] bg-[linear-gradient(90deg,transparent,rgba(29,25,53,0.08),transparent)]" />
+        <div className="absolute inset-0" style={{ background: heroBackdrop }} />
+        <div className="absolute inset-x-[8%] top-[16%] h-[1px]" style={{ background: `linear-gradient(90deg, transparent, ${heroLineColor}, transparent)` }} />
+        <div className="absolute inset-x-[12%] bottom-[18%] h-[1px]" style={{ background: `linear-gradient(90deg, transparent, ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(29,25,53,0.08)"}, transparent)` }} />
+        <div className="absolute -left-24 top-28 h-[280px] w-[280px] rounded-full bg-[radial-gradient(circle,rgba(233,69,96,0.14),transparent_68%)] blur-[28px] animate-drift" />
+        <div className="absolute -right-20 bottom-20 h-[300px] w-[300px] rounded-full bg-[radial-gradient(circle,rgba(73,90,255,0.16),transparent_70%)] blur-[36px] animate-drift-reverse" />
 
         <div className="relative max-w-[980px] mx-auto min-h-[calc(100vh-132px)] flex items-center justify-center">
           <div className="w-full text-center">
+            <div className="pointer-events-none absolute inset-x-0 top-[22%] hidden lg:block">
+              {heroTags.map((tag, index) => (
+                <motion.div
+                  key={tag}
+                  initial={{ opacity: 0, y: 16, scale: 0.92 }}
+                  animate={{ opacity: theme === "dark" ? 0.82 : 0.58, y: 0, scale: 1 }}
+                  transition={{ delay: 0.45 + index * 0.08, duration: 0.7 }}
+                  className={`absolute rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] backdrop-blur-[8px] ${theme === "dark" ? "border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] text-white/80" : "border-[rgba(29,25,53,0.08)] bg-[rgba(255,255,255,0.52)] text-[rgba(29,25,53,0.58)]"}`}
+                  style={
+                    index === 0 ? { left: "6%", top: "18%", animation: "float 7s ease-in-out infinite" } :
+                    index === 1 ? { right: "8%", top: "12%", animation: "float 8s ease-in-out infinite 0.6s" } :
+                    index === 2 ? { left: "12%", top: "56%", animation: "float 7.5s ease-in-out infinite 1s" } :
+                    { right: "12%", top: "58%", animation: "float 8.5s ease-in-out infinite 1.4s" }
+                  }
+                >
+                  {tag}
+                </motion.div>
+              ))}
+            </div>
             <motion.div
               initial={{ opacity: 0, scale: 0.88, y: -14 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -50,12 +90,12 @@ export default function Landing() {
               transition={{ delay: 0.12, duration: 0.7 }}
               className="mb-8 flex flex-wrap items-center justify-center gap-3"
             >
-              <span className="inline-flex items-center gap-2 rounded-full border border-[rgba(233,69,96,0.14)] bg-[rgba(255,255,255,0.72)] px-5 py-2 text-[11px] font-semibold uppercase tracking-[4px] text-[#E94560] shadow-[0_10px_30px_rgba(233,69,96,0.08)]">
+              <span className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-[11px] font-semibold uppercase tracking-[4px] text-[#E94560] ${heroPill}`}>
                 <span className="h-2 w-2 rounded-full bg-[#E94560]" />
                 {t("landing.hero.label")}
               </span>
-              <span className="hidden sm:inline-block text-[11px] uppercase tracking-[3px] text-[rgba(29,25,53,0.35)]">
-                {lang === "it" ? "Profilazione emotiva, non ricerca tradizionale" : "Emotional profiling, not traditional search"}
+              <span className="hidden sm:inline-block text-[11px] uppercase tracking-[3px]" style={{ color: heroSecondaryColor }}>
+                {lang === "it" ? "Ascolto emotivo, non semplice ricerca" : "Emotional listening, not just search"}
               </span>
             </motion.div>
 
@@ -83,13 +123,15 @@ export default function Landing() {
               transition={{ delay: 0.4, duration: 0.8 }}
               className="flex flex-col items-center justify-center gap-4 sm:flex-row"
             >
-              <Link href="/profiling" className="inline-flex items-center gap-[10px] bg-[linear-gradient(135deg,#F2556E,#E94560)] text-white text-[16px] font-semibold px-8 py-4 md:px-11 md:py-[19px] rounded-full transition-all hover:translate-y-[-2px] shadow-[0_14px_38px_rgba(233,69,96,0.28)] hover:shadow-[0_18px_46px_rgba(233,69,96,0.32)]" data-testid="link-begin">
-                {t("landing.hero.cta")}
-                <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </Link>
-              <div className="inline-flex items-center gap-3 rounded-full border border-[rgba(29,25,53,0.08)] bg-[rgba(255,255,255,0.68)] px-4 py-3 text-left shadow-[0_10px_30px_rgba(29,25,53,0.05)] backdrop-blur-[8px]">
+              <motion.div whileHover={{ y: -3, scale: 1.015 }} whileTap={{ scale: 0.985 }}>
+                <Link href="/profiling" className="inline-flex items-center gap-[10px] bg-[linear-gradient(135deg,#F2556E,#E94560)] text-white text-[16px] font-semibold px-8 py-4 md:px-11 md:py-[19px] rounded-full transition-all shadow-[0_14px_38px_rgba(233,69,96,0.28)] hover:shadow-[0_18px_46px_rgba(233,69,96,0.32)]" data-testid="link-begin">
+                  {t("landing.hero.cta")}
+                  <motion.svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}>
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </motion.svg>
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ y: -2 }} className={`inline-flex items-center gap-3 rounded-full px-4 py-3 text-left ${heroReactionCard}`}>
                 <div className="flex -space-x-2">
                   {["S", "M", "A"].map((initial) => (
                     <span key={initial} className="flex h-9 w-9 items-center justify-center rounded-full border border-white bg-[linear-gradient(135deg,#F48B9A,#E94560)] text-[12px] font-semibold text-white">
@@ -98,14 +140,14 @@ export default function Landing() {
                   ))}
                 </div>
                 <div>
-                  <div className="text-[12px] font-semibold uppercase tracking-[2px] text-[rgba(29,25,53,0.36)]">
-                    {lang === "it" ? "Prime reazioni" : "Early reactions"}
+                  <div className="text-[12px] font-semibold uppercase tracking-[2px]" style={{ color: heroSecondaryColor }}>
+                    {lang === "it" ? "Prime impressioni" : "First impressions"}
                   </div>
                   <div className="text-[14px] text-[var(--text-primary)]">
                     {lang === "it" ? "\"Sembra un viaggio scritto per me.\"" : "\"It feels written for me.\""}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
           </div>
         </div>
@@ -114,7 +156,7 @@ export default function Landing() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.55 }}
           transition={{ delay: 1.1, duration: 1 }}
-          className="absolute bottom-7 left-0 right-0 flex flex-col items-center gap-2 text-[10px] sm:text-[11px] tracking-[2px] uppercase text-[rgba(29,25,53,0.42)] pointer-events-none"
+          className="absolute bottom-7 left-0 right-0 flex flex-col items-center gap-2 text-[10px] sm:text-[11px] tracking-[2px] uppercase pointer-events-none" style={{ color: theme === "dark" ? "rgba(255,255,255,0.34)" : "rgba(29,25,53,0.42)" }}
         >
           {t("landing.hero.scroll")}
           <svg className="w-4 h-4 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -148,7 +190,7 @@ export default function Landing() {
                 <div>
                   <div className="mb-8 flex items-center justify-between">
                     <span className="text-[11px] font-semibold uppercase tracking-[3px] text-[rgba(29,25,53,0.36)]">
-                      {lang === "it" ? "Un processo piu intuitivo" : "A more intuitive process"}
+                      {lang === "it" ? "Un processo più intuitivo" : "A more intuitive process"}
                     </span>
                     <span className="rounded-full bg-[rgba(233,69,96,0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[2px] text-[#E94560]">
                       MindRoute
@@ -229,14 +271,14 @@ export default function Landing() {
               <div className="relative z-10 flex h-full flex-col gap-6 md:gap-8">
                 <div>
                   <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.08)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] text-white">
-                    {lang === "it" ? "Cosa cambia davvero" : "What truly changes"}
+                    {lang === "it" ? "Quello che cambia davvero" : "What truly changes"}
                   </div>
                   <h3 className="font-serif text-[30px] sm:text-[36px] md:text-[42px] leading-[1.02] tracking-[-1px] mb-4 text-white">
                     {lang === "it" ? "Non una ricerca. Una lettura di te." : "Not a search. A reading of you."}
                   </h3>
                   <p className="max-w-[520px] text-[15px] md:text-[16px] leading-[1.8] text-[rgba(255,255,255,0.82)]">
                     {lang === "it"
-                      ? "Ogni passaggio riduce rumore, filtra luoghi generici e trasforma intuizioni personali in una direzione concreta."
+                      ? "Ogni passaggio toglie rumore, lascia emergere quello che conta e trasforma intuizioni sparse in una direzione chiara."
                       : "Each step removes noise, filters out generic places, and turns personal intuition into a concrete direction."}
                   </p>
                 </div>
@@ -252,7 +294,7 @@ export default function Landing() {
                     {
                       valueIt: "3 mete",
                       valueEn: "3 destinations",
-                      labelIt: "gia allineate al tuo momento",
+                      labelIt: "già in sintonia con il tuo momento",
                       labelEn: "already aligned with your moment"
                     }
                   ].map((item) => (
@@ -265,20 +307,20 @@ export default function Landing() {
 
                 <div className="rounded-[28px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] px-5 py-5 backdrop-blur-[10px]">
                   <div className="text-[11px] font-semibold uppercase tracking-[3px] text-[rgba(255,255,255,0.62)] mb-3">
-                    {lang === "it" ? "Percezione finale" : "Final feeling"}
+                    {lang === "it" ? "La sensazione finale" : "Final feeling"}
                   </div>
                   <p className="text-[15px] md:text-[16px] leading-[1.8] text-white">
                     {lang === "it"
-                      ? '"Meno ricerca manuale, piu la sensazione di essere capito."'
+                      ? '"Meno ricerca a vuoto, più la sensazione di essere davvero capito."'
                       : '"Less manual search, more the feeling of being understood."'}
                   </p>
                 </div>
 
                 <div className="grid gap-3">
                   {[
-                    lang === "it" ? "Meno opzioni infinite, piu chiarezza emotiva." : "Fewer endless options, more emotional clarity.",
-                    lang === "it" ? "Un percorso che sembra conversazione, non un form freddo." : "A flow that feels like conversation, not a cold form.",
-                    lang === "it" ? "Una destinazione che arriva gia con senso e ritmo." : "A destination that already arrives with meaning and rhythm."
+                    lang === "it" ? "Meno possibilità infinite, più chiarezza emotiva." : "Fewer endless options, more emotional clarity.",
+                    lang === "it" ? "Un percorso che sembra una conversazione, non un modulo da riempire." : "A flow that feels like conversation, not a cold form.",
+                    lang === "it" ? "Una destinazione che arriva già con un senso e con il suo ritmo." : "A destination that already arrives with meaning and rhythm."
                   ].map((line) => (
                     <div key={line} className="flex items-start gap-3 rounded-[22px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] px-4 py-4 backdrop-blur-[6px]">
                       <span className="mt-[5px] h-2.5 w-2.5 shrink-0 rounded-full bg-[#E94560]" />
@@ -301,22 +343,22 @@ export default function Landing() {
               </p>
               <h2 className="font-serif text-[clamp(30px,4.5vw,52px)] mb-6 tracking-[-1px] leading-[1.06] text-[var(--text-primary)]">
                 <span dangerouslySetInnerHTML={{ __html: lang === "it"
-                  ? 'Gli altri pianificatori chiedono<br /><em class="italic text-[#E94560]">dove.</em> Noi chiediamo <em class="italic text-[#E94560]">perche.</em>'
+                  ? 'Gli altri pianificatori chiedono<br /><em class="italic text-[#E94560]">dove.</em> Noi chiediamo <em class="italic text-[#E94560]">perché.</em>'
                   : 'Other planners ask<br /><em class="italic text-[#E94560]">where.</em> We ask <em class="italic text-[#E94560]">why.</em>'
                 }} />
               </h2>
               <p className="text-[var(--text-secondary)] text-[15px] md:text-[16px] leading-[1.9] mb-5 font-light">
                 {lang === "it"
-                  ? 'Ogni pianificatore di viaggio parte dalla stessa domanda: "Dove vuoi andare?" MindRoute parte da te, da cosa ti manca oggi e dal tipo di esperienza che potrebbe rimetterti in asse.'
+                  ? 'Molti travel planner partono dalla meta. MindRoute parte da te, da quel momento in cui senti che hai bisogno di cambiare aria anche se non sai ancora dove andare.'
                   : 'Most travel planners start from the same question: "Where do you want to go?" MindRoute starts from you, what you are missing right now, and the kind of experience that could realign you.'}
               </p>
               <p className="text-[var(--text-secondary)] text-[15px] md:text-[16px] leading-[1.9] mb-5 font-light">
                 {lang === "it"
-                  ? 'Per questo la destinazione non arriva come una lista di opzioni. Arriva come una risposta con un perche, un ritmo e una direzione emotiva piu chiara.'
+                  ? 'Per questo la destinazione non arriva come una lista qualsiasi. Arriva come una risposta, con un perché, un tono e una direzione emotiva più chiara.'
                   : 'That is why the destination does not arrive like a list of options. It arrives as an answer with a reason, a rhythm, and a clearer emotional direction.'}
               </p>
               <p className="text-[#E94560] font-medium italic text-[16px] md:text-[18px]">
-                {lang === "it" ? 'La destinazione e la risposta. Tu sei la domanda.' : 'The destination is the answer. You are the question.'}
+                {lang === "it" ? 'La destinazione è la risposta. Tu sei la domanda.' : 'The destination is the answer. You are the question.'}
               </p>
             </div>
 
@@ -333,19 +375,19 @@ export default function Landing() {
                 {
                   leftIt: '"Dove vuoi andare?"',
                   leftEn: '"Where do you want to go?"',
-                  rightIt: '"Cosa ti ha fatto sentire piu vivo?"',
+                  rightIt: '"Che cosa ti è mancato davvero, ultimamente?"',
                   rightEn: '"What made you feel most alive?"'
                 },
                 {
                   leftIt: 'Filtra per budget, date, stelle',
                   leftEn: 'Filters by budget, dates, stars',
-                  rightIt: 'Profila la tua identita di viaggiatore',
+                  rightIt: 'Legge il tuo modo di viaggiare',
                   rightEn: 'Profiles your traveler identity'
                 },
                 {
                   leftIt: 'Ti mostra destinazioni popolari',
                   leftEn: 'Shows popular destinations',
-                  rightIt: 'Trova il posto che ti si addice',
+                  rightIt: 'Trova luoghi che ti calzano addosso',
                   rightEn: 'Finds the place that fits you'
                 },
                 {
@@ -357,7 +399,7 @@ export default function Landing() {
                 {
                   leftIt: 'Ottimizza la logistica',
                   leftEn: 'Optimizes logistics',
-                  rightIt: 'Ottimizza la trasformazione',
+                  rightIt: 'Ottimizza il modo in cui vuoi stare',
                   rightEn: 'Optimizes transformation'
                 }
               ].map((row, i) => (
@@ -424,14 +466,14 @@ export default function Landing() {
         <div className="max-w-[1180px] mx-auto relative z-10">
           <div className="max-w-[760px] mb-14 md:mb-16">
             <p className="text-[11px] font-semibold tracking-[4px] uppercase text-[#E94560] mb-4">
-              {lang === "it" ? "Destinazioni da sognare" : "Places to dream about"}
+              {lang === "it" ? "Luoghi da sentire prima ancora di partire" : "Places you can almost feel before you leave"}
             </p>
             <h2 className="font-serif text-[clamp(34px,5vw,54px)] tracking-[-1.4px] leading-[1.04] text-[var(--text-primary)] mb-5">
-              {lang === "it" ? "Luoghi che fanno venire voglia di partire davvero" : "Places that make you want to leave for real"}
+              {lang === "it" ? "Immagini che iniziano già a spostarti dentro" : "Images that already begin to move something inside you"}
             </h2>
             <p className="max-w-[620px] text-[16px] md:text-[18px] leading-[1.85] text-[var(--text-secondary)] font-light">
               {lang === "it"
-                ? "MindRoute non ti mostra solo opzioni. Ti accompagna verso atmosfere, luce, ritmo e paesaggi che possono somigliarti."
+                ? "MindRoute non ti mostra solo mete possibili. Ti avvicina ad atmosfere, luci e paesaggi che potrebbero somigliarti più di quanto immagini."
                 : "MindRoute does not just show options. It guides you toward atmospheres, light, rhythm, and landscapes that can feel like you."}
             </p>
           </div>
@@ -447,18 +489,18 @@ export default function Landing() {
               <img
                 src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80"
                 alt={lang === "it" ? "Scogliera sul mare al tramonto" : "Seaside cliff at sunset"}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 group-hover:scale-[1.08]"
               />
               <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,12,24,0.12),rgba(10,12,24,0.78))]" />
-              <div className="absolute left-4 right-4 bottom-4 rounded-[28px] bg-[rgba(8,10,22,0.52)] p-5 text-white backdrop-blur-[12px] border border-[rgba(255,255,255,0.16)] sm:left-6 sm:right-6 sm:bottom-6 md:left-8 md:right-8 md:bottom-8 md:p-6">
+              <div className="absolute left-4 right-4 bottom-4 rounded-[28px] bg-[rgba(8,10,22,0.52)] p-5 text-white backdrop-blur-[12px] border border-[rgba(255,255,255,0.16)] transition-all duration-500 group-hover:bg-[rgba(8,10,22,0.66)] group-hover:translate-y-[-4px] sm:left-6 sm:right-6 sm:bottom-6 md:left-8 md:right-8 md:bottom-8 md:p-6">
                 <div className="text-[11px] font-semibold uppercase tracking-[3px] text-white/78 mb-3">
-                  {lang === "it" ? "Per chi cerca respiro" : "For those seeking space"}
+                  {lang === "it" ? "Per chi ha bisogno di aria" : "For those who need room to breathe"}
                 </div>
                 <h3 className="font-serif text-[26px] sm:text-[30px] md:text-[40px] leading-[1.02] tracking-[-1px] mb-3 text-white">
-                  {lang === "it" ? "Costa, vento, orizzonte" : "Coast, wind, horizon"}
+                  {lang === "it" ? "Costa, vento, orizzonte aperto" : "Coast, wind, an open horizon"}
                 </h3>
                 <p className="max-w-[520px] text-[14px] md:text-[15px] leading-[1.75] text-white/82">
-                  {lang === "it" ? "Mare aperto, luce calda, una sensazione di allontanamento dal rumore." : "Open sea, warm light, and the feeling of stepping away from noise."}
+                  {lang === "it" ? "Mare aperto, luce calda, la sensazione precisa di allontanarti finalmente dal rumore." : "Open sea, warm light, and that exact feeling of finally stepping away from the noise."}
                 </p>
               </div>
             </motion.div>
@@ -478,9 +520,9 @@ export default function Landing() {
                   src: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80",
                   altIt: "Montagne spettacolari viste dall'alto",
                   altEn: "Dramatic mountains seen from above",
-                  eyebrowIt: "Profondita e silenzio",
+                  eyebrowIt: "Profondità e silenzio",
                   eyebrowEn: "Depth and silence",
-                  titleIt: "Altezze che riallineano",
+                  titleIt: "Altezze che rimettono in asse",
                   titleEn: "Heights that realign you"
                 }
               ].map((image, index) => (
@@ -495,10 +537,10 @@ export default function Landing() {
                   <img
                     src={image.src}
                     alt={lang === "it" ? image.altIt : image.altEn}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 group-hover:scale-[1.09]"
                   />
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,12,24,0.14),rgba(10,12,24,0.8))]" />
-                  <div className="absolute inset-x-4 bottom-4 rounded-[24px] bg-[rgba(8,10,22,0.56)] px-4 py-4 text-white backdrop-blur-[10px] border border-[rgba(255,255,255,0.14)] sm:inset-x-5 sm:bottom-5 sm:px-5">
+                  <div className="absolute inset-x-4 bottom-4 rounded-[24px] bg-[rgba(8,10,22,0.56)] px-4 py-4 text-white backdrop-blur-[10px] border border-[rgba(255,255,255,0.14)] transition-all duration-500 group-hover:bg-[rgba(8,10,22,0.68)] group-hover:translate-y-[-3px] sm:inset-x-5 sm:bottom-5 sm:px-5">
                     <div className="text-[10px] font-semibold uppercase tracking-[3px] text-white/72 mb-2">
                       {lang === "it" ? image.eyebrowIt : image.eyebrowEn}
                     </div>
@@ -517,14 +559,14 @@ export default function Landing() {
                 src: "https://images.unsplash.com/photo-1493558103817-58b2924bce98?auto=format&fit=crop&w=1200&q=80",
                 altIt: "Strada panoramica tra palme e oceano",
                 altEn: "Scenic road with palms and ocean",
-                labelIt: "Un viaggio dentro",
+                labelIt: "Un viaggio più dentro",
                 labelEn: "Inner road trip"
               },
               {
                 src: "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80",
                 altIt: "Villaggio costiero mediterraneo",
                 altEn: "Mediterranean seaside village",
-                labelIt: "Bellezza mediterranea",
+                labelIt: "Luce mediterranea",
                 labelEn: "Mediterranean beauty"
               },
               {
@@ -546,10 +588,10 @@ export default function Landing() {
                 <img
                   src={image.src}
                   alt={lang === "it" ? image.altIt : image.altEn}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-1000 group-hover:scale-[1.09]"
                 />
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,12,24,0.1),rgba(10,12,24,0.72))]" />
-                <div className="absolute left-4 bottom-4 rounded-full bg-[rgba(8,10,22,0.5)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] text-white backdrop-blur-[10px] border border-[rgba(255,255,255,0.16)] sm:left-5 sm:bottom-5">
+                <div className="absolute left-4 bottom-4 rounded-full bg-[rgba(8,10,22,0.5)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] text-white backdrop-blur-[10px] border border-[rgba(255,255,255,0.16)] transition-all duration-500 group-hover:bg-[rgba(8,10,22,0.7)] group-hover:translate-y-[-2px] sm:left-5 sm:bottom-5">
                   {lang === "it" ? image.labelIt : image.labelEn}
                 </div>
               </motion.div>
@@ -590,6 +632,17 @@ export default function Landing() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
