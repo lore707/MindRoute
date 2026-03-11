@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -14,6 +15,54 @@ interface ProfilingInput {
   constraints?: string;
 }
 
+const affiliateLinksSchema = z.record(z.string(), z.string()).optional();
+
+const itineraryDaySchema = z.object({
+  dayNumber: z.number(),
+  title: z.string(),
+  morning: z.string(),
+  lunch: z.string(),
+  afternoon: z.string(),
+  evening: z.string(),
+  affiliateLinks: affiliateLinksSchema,
+});
+
+const generatedDestinationSchema = z.object({
+  name: z.string(),
+  whyYours: z.string(),
+  experiencePreview: z.string(),
+  practicalInfo: z.string(),
+  imageUrl: z.string().url(),
+});
+
+const generatedItinerarySchema = z.object({
+  destinationName: z.string(),
+  days: z.array(itineraryDaySchema),
+  budgetSummary: z.string(),
+  packingList: z.string(),
+  bestTime: z.string(),
+  gettingThere: z.string(),
+  closingMessage: z.string(),
+  topAffiliateLinks: z.record(z.string(), z.string()).optional(),
+});
+
+const generatedResponseSchema = z.object({
+  destinations: z.array(generatedDestinationSchema).min(1),
+  itineraries: z.array(generatedItinerarySchema).min(1),
+});
+
+type GeneratedDestination = z.infer<typeof generatedDestinationSchema>;
+type GeneratedItinerary = z.infer<typeof generatedItinerarySchema>;
+
+// Normalizes and validates the AI JSON payload before the rest of the app uses it.
+function parseModelResponse(responseText: string) {
+  const cleanJson = responseText
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim();
+
+  return generatedResponseSchema.parse(JSON.parse(cleanJson));
+}
 function buildPrompt(input: ProfilingInput): string {
   const profileAnswers = (input.answers[0] === "path_a" || input.answers[0] === "path_b")
     ? input.answers.slice(1)
@@ -103,14 +152,8 @@ Genera esattamente ${days} giorni nell'itinerario.`;
 }
 
 export async function generateDestinations(input: ProfilingInput): Promise<{
-  destinations: Array<{
-    name: string;
-    whyYours: string;
-    experiencePreview: string;
-    practicalInfo: string;
-    imageUrl: string;
-  }>;
-  itineraries: Map<string, any>;
+  destinations: GeneratedDestination[];
+  itineraries: Map<string, GeneratedItinerary>;
 }> {
   const prompt = buildPrompt(input);
 
@@ -130,14 +173,9 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
     .map((block) => (block as any).text)
     .join("");
 
-  const cleanJson = responseText
-    .replace(/```json\n?/g, "")
-    .replace(/```\n?/g, "")
-    .trim();
+  const parsed = parseModelResponse(responseText);
 
-  const parsed = JSON.parse(cleanJson);
-
-  const itineraries = new Map<string, any>();
+  const itineraries = new Map<string, GeneratedItinerary>();
   for (const itin of parsed.itineraries) {
     itineraries.set(itin.destinationName, itin);
   }
@@ -147,3 +185,10 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
     itineraries,
   };
 }
+
+
+
+
+
+
+

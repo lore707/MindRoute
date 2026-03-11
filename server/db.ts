@@ -1,3 +1,5 @@
+// Database wiring is prepared here, but the current runtime still uses
+// server/storage.ts. Keep this file as the future integration point for Drizzle.
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
@@ -12,3 +14,4 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle(pool, { schema });
+

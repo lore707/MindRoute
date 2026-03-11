@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, ChevronDown, Moon, Sun, HelpCircle as QuestionIcon } from "lucide-react";
 import { useSubmitProfiling } from "@/hooks/use-profiling";
@@ -7,63 +7,11 @@ import { useI18n } from "@/lib/i18n";
 import { Link, useLocation } from "wouter";
 import LangDropdown from "@/components/LangDropdown";
 import { useTheme } from "@/components/ThemeProvider";
-
-interface ImageOption {
-  src: string;
-  label: string;
-  sub: string;
-  value: string;
-}
-
-interface TextQuestion {
-  text: string;
-  hint: string;
-  type: "text";
-  placeholder: string;
-  why: string;
-  tags: string[];
-  section: string;
-  optional?: boolean;
-}
-
-interface ChipsQuestion {
-  text: string;
-  hint: string;
-  type: "chips";
-  options: string[];
-  multi: boolean;
-  max?: number;
-  addendum?: string;
-  why: string;
-  tags: string[];
-  section: string;
-}
-
-interface ImagesQuestion {
-  text: string;
-  hint: string;
-  type: "images";
-  options: ImageOption[];
-  why: string;
-  tags: string[];
-  section: string;
-}
-
-interface SliderQuestion {
-  text: string;
-  hint: string;
-  type: "slider";
-  why: string;
-  tags: string[];
-  section: string;
-}
-
-type Question = TextQuestion | ChipsQuestion | ImagesQuestion | SliderQuestion;
-
-const drainChipKeys = ['guided', 'crowded', 'museums', 'resort', 'nightlife', 'touristy', 'transits', 'mornings', 'schedules', 'smalltalk', 'unfamiliarfood', 'toomuchwalking', 'tooisolated', 'tooexpensive', 'toolong'];
-const drainSubsetKeys = ['guided', 'crowded', 'museums', 'resort', 'nightlife', 'touristy', 'transits', 'mornings', 'schedules', 'smalltalk'];
-
-const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+import { AnalyzingScreen } from "./profiling/AnalyzingScreen";
+import { FormChip } from "./profiling/FormChip";
+import { createProfilingContent } from "./profiling/questions";
+import { SliderTrack } from "./profiling/SliderTrack";
+import type { ChipsQuestion, Question, TextQuestion } from "./profiling/types";
 
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
@@ -93,50 +41,7 @@ export default function Profiling() {
     </button>
   );
 
-  const pathAStyleChipKeys = ['wild', 'quiet', 'chaotic', 'intimate', 'solitary', 'regenerating', 'authentic', 'quietluxury', 'spiritual', 'festive', 'adventure', 'romantic', 'cultural', 'explorative'];
-  const pathADistanceChipKeys = ['close', 'continent', 'far', 'anywhere'];
-  const pathBGeoChipKeys = ['close', 'europe', 'asia', 'americas', 'africa', 'oceania'];
-  const pathBTypeChipKeys = ['culture', 'nature', 'food', 'beach', 'city', 'offgrid', 'roadtrip', 'trekking', 'wellness', 'discovery'];
-
-  const buildPathA = (): Question[] => [
-    { text: t('a.q1.text'), hint: t('a.q1.hint'), type: 'chips', options: pathAStyleChipKeys.map(k => t(`a.q1.chips.${k}`)), multi: true, max: 3, why: t('a.q1.why'), tags: ['vibe', 'emotional tone', 'trip color'], section: t('section.a.style') },
-    { text: t('a.q2.text'), hint: t('a.q2.hint'), type: 'text', placeholder: t('a.q2.placeholder'), why: t('a.q2.why'), tags: ['core need', 'life phase', 'emotional state'], section: t('section.a.need') },
-    { text: t('a.q3.text'), hint: t('a.q3.hint'), type: 'chips', options: drainChipKeys.map(k => t(`chips.${k}`)), multi: true, addendum: t('a.q3.addendum'), why: t('a.q3.why'), tags: ['anti-patterns', 'boundaries', 'identity'], section: t('section.a.drains') },
-    {
-      text: t('a.q4.text'), hint: t('a.q4.hint'), type: 'images', options: [
-        { src: 'https://images.unsplash.com/photo-1545459720-aac8509eb02c?w=600&q=85', label: t('q4.medina'), sub: t('q4.medina.sub'), value: 'medina' },
-        { src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=85', label: t('q4.nordic'), sub: t('q4.nordic.sub'), value: 'nordic' },
-        { src: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=85', label: t('q4.temple'), sub: t('q4.temple.sub'), value: 'temple' },
-        { src: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=600&q=85', label: t('q4.desert'), sub: t('q4.desert.sub'), value: 'desert' }
-      ], why: t('a.q4.why'), tags: ['aesthetic signature', 'visual instinct', 'subconscious'], section: t('section.a.visual')
-    },
-    { text: t('a.q5.text'), hint: t('a.q5.hint'), type: 'slider', why: t('a.q5.why'), tags: ['chaos tolerance', 'control need', 'rhythm'], section: t('section.a.chaos') },
-    { text: t('a.q6.text'), hint: t('a.q6.hint'), type: 'text', placeholder: t('a.q6.placeholder'), why: t('a.q6.why'), tags: ['identity filter', 'rejection', 'self-knowledge'], section: t('section.a.rejection'), optional: true },
-    { text: t('a.q7.text'), hint: t('a.q7.hint'), type: 'chips', options: pathADistanceChipKeys.map(k => t(`a.q7.chips.${k}`)), multi: false, why: t('a.q7.why'), tags: ['geography', 'comfort zone', 'openness'], section: t('section.a.distance') },
-  ];
-
-
-  const buildPathB = (): Question[] => [
-    { text: t('b.q1.text'), hint: t('b.q1.hint'), type: 'chips', options: pathBGeoChipKeys.map(k => t(`b.q1.chips.${k}`)), multi: false, why: t('b.q1.why'), tags: ['geography', 'constraint'], section: t('section.b.where') },
-    { text: t('b.q2.text'), hint: t('b.q2.hint'), type: 'chips', options: pathBTypeChipKeys.map(k => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t('b.q2.why'), tags: ['trip type', 'category', 'combination'], section: t('section.b.type') },
-    { text: t('b.q3.text'), hint: t('b.q3.hint'), type: 'text', placeholder: t('b.q3.placeholder'), why: t('b.q3.why'), tags: ['must-see', 'motivation', 'emotional need'], section: t('section.b.specific') },
-    {
-      text: t('b.q4.text'), hint: t('b.q4.hint'), type: 'images', options: [
-        { src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=85', label: t('b.q4.seaside'), sub: t('b.q4.seaside.sub'), value: 'seaside' },
-        { src: 'https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=600&q=85', label: t('b.q4.market'), sub: t('b.q4.market.sub'), value: 'market' },
-        { src: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=85', label: t('b.q4.trail'), sub: t('b.q4.trail.sub'), value: 'trail' },
-        { src: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=85', label: t('b.q4.cafe'), sub: t('b.q4.cafe.sub'), value: 'cafe' }
-      ], why: t('b.q4.why'), tags: ['aesthetic', 'atmosphere', 'emotional tone'], section: t('section.b.atmosphere')
-    },
-    { text: t('b.q5.text'), hint: t('b.q5.hint'), type: 'slider', why: t('b.q5.why'), tags: ['rhythm', 'control', 'pace'], section: t('section.b.rhythm') },
-    { text: t('b.q6.text'), hint: t('b.q6.hint'), type: 'text', placeholder: t('b.q6.placeholder'), why: t('b.q6.why'), tags: ['emotional need', 'life phase', 'core desire'], section: t('section.b.feeling') },
-    { text: t('b.q7.text'), hint: t('b.q7.hint'), type: 'chips', options: drainSubsetKeys.map(k => t(`chips.${k}`)), multi: true, addendum: t('b.q7.addendum'), why: t('b.q7.why'), tags: ['anti-patterns', 'quick filter'], section: t('section.b.avoid') },
-  ];
-
-  const sliderLabels = [t('slider.s1'), t('slider.s2'), t('slider.s3'), t('slider.s4'), t('slider.s5'), t('slider.s6'), t('slider.s7')];
-  const microReactions = [t('micro.1'), t('micro.2'), t('micro.3'), t('micro.4'), t('micro.5'), t('micro.6'), t('micro.7')];
-  const months = monthKeys.map(k => t(`months.${k}`));
-  const analyzeTraits = [t('analyze.t1'), t('analyze.t2'), t('analyze.t3'), t('analyze.t4'), t('analyze.t5'), t('analyze.t6')];
+  const { questionsByPath, sliderLabels, microReactions, months, analyzeTraits } = createProfilingContent(t);
 
   const [selectedPath, setSelectedPath] = useState<'a' | 'b' | null>(null);
   const [showSplit, setShowSplit] = useState(true);
@@ -175,7 +80,7 @@ export default function Profiling() {
   });
   const [formFocus, setFormFocus] = useState<string>("budget");
 
-  const questions = selectedPath === 'a' ? buildPathA() : buildPathB();
+  const questions = selectedPath ? questionsByPath[selectedPath] : ([] as Question[]);
   const currentQ = questions[step];
 
   useEffect(() => {
@@ -587,36 +492,7 @@ export default function Profiling() {
   }
 
   if (showAnalyzing) {
-    return (
-      <div className="fixed inset-0 z-[300] flex items-center justify-center transition-colors duration-300" style={{ background: 'var(--surface)' }}>
-        <div className="text-center max-w-[440px] px-6">
-          <h2 className="font-serif text-[28px] leading-[1.3] mb-5 text-[var(--text-primary)]">
-            <span dangerouslySetInnerHTML={{ __html: t('analyze.title') }} />
-          </h2>
-          <div className="flex gap-2 justify-center mb-6">
-            {[0, 1, 2].map(i => (
-              <div key={i} className="w-2.5 h-2.5 rounded-full bg-[#E94560]" style={{
-                animation: `analyzeDot 1.4s ease-in-out infinite ${i * 0.2}s`
-              }} />
-            ))}
-          </div>
-          <style>{`@keyframes analyzeDot { 0%,80%,100% { opacity:.2; transform:scale(.8); } 40% { opacity:1; transform:scale(1.2); } }`}</style>
-          <div className="flex flex-wrap gap-2 justify-center mt-5">
-            {visibleTraits.map((trait, i) => (
-              <motion.span
-                key={trait}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="text-[12px] px-3.5 py-1.5 rounded-full bg-[rgba(233,69,96,0.07)] text-[#E94560] font-medium"
-              >
-                {trait}
-              </motion.span>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <AnalyzingScreen titleHtml={t('analyze.title')} visibleTraits={visibleTraits} />;
   }
 
   if (showForm) {
@@ -638,19 +514,6 @@ export default function Profiling() {
 
     const sideInfo = formSidebarContent();
 
-    const FormChip = ({ label, selected, onClick, testId }: { label: string; selected: boolean; onClick: () => void; testId: string }) => (
-      <button
-        type="button"
-        data-testid={testId}
-        onClick={onClick}
-        className={`px-5 py-3 rounded-full text-[14px] border-[1.5px] transition-all duration-300 cursor-pointer ${selected
-          ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)]'
-          : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560] hover:text-[var(--text-primary)] hover:-translate-y-0.5'
-          }`}
-      >
-        {label}
-      </button>
-    );
 
     return (
       <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
@@ -711,7 +574,7 @@ export default function Profiling() {
                       <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.dateMonthSub')}</p>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {months.map((m, i) => (
-                          <button key={i} type="button" data-testid={`month-${monthKeys[i]}`} onClick={() => toggleMonth(m)}
+                          <button key={i} type="button" data-testid={`month-${i}`} onClick={() => toggleMonth(m)}
                             className={`px-3 py-2.5 rounded-xl text-[13px] border transition-all cursor-pointer ${formData.selectedMonths.includes(m) ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}
                           >{m}</button>
                         ))}
@@ -1212,64 +1075,6 @@ export default function Profiling() {
   );
 }
 
-function FormChip({ label, selected, onClick, testId }: { label: string; selected: boolean; onClick: () => void; testId: string }) {
-  return (
-    <button
-      type="button"
-      data-testid={testId}
-      onClick={onClick}
-      className={`px-5 py-3 rounded-full text-[14px] border-[1.5px] transition-all duration-300 cursor-pointer ${selected
-        ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)]'
-        : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560] hover:text-[var(--text-primary)] hover:-translate-y-0.5'
-        }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function SliderTrack({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const updateFromEvent = useCallback((clientX: number) => {
-    if (!trackRef.current) return;
-    const rect = trackRef.current.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-    onChange(Math.round(pct));
-  }, [onChange]);
-
-  useEffect(() => {
-    if (!isDragging) return;
-    const handleMove = (e: MouseEvent | TouchEvent) => {
-      const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      updateFromEvent(x);
-    };
-    const handleUp = () => setIsDragging(false);
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('touchmove', handleMove);
-    document.addEventListener('mouseup', handleUp);
-    document.addEventListener('touchend', handleUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('touchmove', handleMove);
-      document.removeEventListener('mouseup', handleUp);
-      document.removeEventListener('touchend', handleUp);
-    };
-  }, [isDragging, updateFromEvent]);
-
-  return (
-    <div ref={trackRef} className="relative w-full h-1.5 bg-[var(--surface-alt)] rounded-[3px] cursor-pointer" onClick={(e) => updateFromEvent(e.clientX)}>
-      <div className="absolute left-0 top-0 h-full rounded-[3px] transition-[width] duration-150" style={{ width: `${value}%`, background: 'linear-gradient(90deg, #E94560, #F06B83)' }} />
-      <div
-        className="absolute top-1/2 -translate-y-1/2 w-[30px] h-[30px] bg-[var(--surface-card)] border-[3px] border-[#E94560] rounded-full cursor-grab active:cursor-grabbing active:scale-[1.15] z-[2] hover:shadow-[0_0_0_12px_rgba(233,69,96,0.08)] active:shadow-[0_0_0_18px_rgba(233,69,96,0.1)] transition-all"
-        style={{ left: `${value}%`, transform: 'translate(-50%, -50%)' }}
-        onMouseDown={() => setIsDragging(true)}
-        onTouchStart={() => setIsDragging(true)}
-      />
-    </div>
-  );
-}
 
 
 

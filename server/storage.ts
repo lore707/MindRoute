@@ -9,6 +9,8 @@ export interface IStorage {
   clearAll(): Promise<void>;
 }
 
+// Current production behavior uses an in-memory store. This keeps the prototype simple,
+// but data is lost on restart and each request cycle shares the same global state.
 export class MemoryStorage implements IStorage {
   private destinations: Destination[] = [];
   private itineraries: Itinerary[] = [];
@@ -47,4 +49,7 @@ export class MemoryStorage implements IStorage {
   }
 }
 
+// When moving to a real database-backed implementation, swap this export while
+// keeping the IStorage interface stable for the rest of the application.
 export const storage = new MemoryStorage();
+
