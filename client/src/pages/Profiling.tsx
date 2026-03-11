@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, Ch
 import { useSubmitProfiling } from "@/hooks/use-profiling";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import LangDropdown from "@/components/LangDropdown";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -80,6 +80,7 @@ const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
 export default function Profiling() {
   const { t } = useI18n();
   const { theme, toggleTheme } = useTheme();
+  const [, setLocation] = useLocation();
 
   const ThemeToggle = () => (
     <button
@@ -197,6 +198,31 @@ export default function Profiling() {
   useEffect(() => {
     return () => { analyzeTimers.current.forEach(t => clearTimeout(t)); };
   }, []);
+
+  useEffect(() => {
+    if (!submitMutation.data) return;
+
+    try {
+      sessionStorage.setItem("mind_destinations", JSON.stringify(submitMutation.data));
+      setLocation("/destinations");
+    } catch (error) {
+      console.error("Failed to persist destinations:", error);
+      toast({
+        title: "Impossibile salvare le destinazioni generate",
+        variant: "destructive",
+      });
+    }
+  }, [setLocation, submitMutation.data, toast]);
+
+  useEffect(() => {
+    if (!submitMutation.error) return;
+
+    setShowAnalyzing(false);
+    toast({
+      title: submitMutation.error.message || "Errore durante la generazione delle destinazioni",
+      variant: "destructive",
+    });
+  }, [submitMutation.error, toast]);
 
   const choosePath = (path: 'a' | 'b') => {
     setSelectedPath(path);
@@ -1242,3 +1268,5 @@ function SliderTrack({ value, onChange }: { value: number; onChange: (v: number)
     </div>
   );
 }
+
+
