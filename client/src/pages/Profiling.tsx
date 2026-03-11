@@ -614,7 +614,7 @@ export default function Profiling() {
                 <div onFocus={() => setFormFocus('budget')}>
                   <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.budget')}</h3>
                   <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.budgetSub')}</p>
-                  <div className="flex flex-wrap gap-2.5">
+                  <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
                     {[['low', t('form.budgetLow')], ['medium', t('form.budgetMed')], ['high', t('form.budgetHigh')], ['unlimited', t('form.budgetUnlimited')]].map(([val, label]) => (
                       <FormChip key={val} label={label} selected={formData.budget === val} onClick={() => setFormData(p => ({ ...p, budget: val }))} testId={`budget-${val}`} />
                     ))}
@@ -663,7 +663,7 @@ export default function Profiling() {
                   {formData.dateMode === 'flexible-period' && (
                     <>
                       <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.datePeriodSub')}</p>
-                      <div className="flex flex-wrap gap-2.5">
+                      <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
                         {[['Spring', t('form.periodSpring')], ['Summer', t('form.periodSummer')], ['Autumn', t('form.periodAutumn')], ['Winter', t('form.periodWinter')], ['Anytime', t('form.periodAnytime')]].map(([val, label]) => (
                           <FormChip key={val} label={label} selected={formData.selectedPeriods.includes(val)} onClick={() => togglePeriod(val)} testId={`period-${val.toLowerCase()}`} />
                         ))}
@@ -797,7 +797,7 @@ export default function Profiling() {
             placeholder={currentQ.placeholder}
             value={answers[step] || ''}
             onChange={(e) => setAnswers(prev => ({ ...prev, [step]: e.target.value }))}
-            className="w-full min-h-[120px] p-5 text-[15px] leading-[1.8] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
+            className="w-full min-h-[150px] p-5 md:p-6 text-[15px] leading-[1.85] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[22px] resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
           />
           {isPathBQ3 && (
             <div className="mt-4">
@@ -810,7 +810,7 @@ export default function Profiling() {
                 placeholder={t('b.q3.precisePlaceholder') || 'Es. Ho sempre sentito un\'attrazione per quel luogo, mi ha sempre incuriosito...'}
                 value={answers[`${step}_b`] || ''}
                 onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_b`]: e.target.value }))}
-                className="w-full min-h-[90px] p-5 text-[15px] leading-[1.8] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
+                className="w-full min-h-[110px] p-5 md:p-6 text-[15px] leading-[1.85] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[22px] resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
               />
               <p className="text-[12px] text-[var(--text-muted)] mt-1.5 italic">{t('q.optional')}</p>
             </div>
@@ -831,14 +831,14 @@ export default function Profiling() {
       const isPathBQ3 = selectedPath === 'b' && step === 2;
       return (
         <>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
             {q.options.map(opt => (
               <button
                 key={opt}
                 type="button"
                 data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
                 onClick={() => toggleChip(opt)}
-                className={`px-5 py-3 rounded-full text-[14px] border-[1.5px] transition-all duration-300 cursor-pointer select-none ${selected.includes(opt)
+                className={`px-5 md:px-6 py-3.5 rounded-full text-[14px] md:text-[15px] border-[1.5px] transition-all duration-300 cursor-pointer select-none ${selected.includes(opt)
                   ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)] scale-[1.02]'
                   : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560] hover:text-[var(--text-primary)] hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(233,69,96,0.08)]'
                   }`}
@@ -848,12 +848,12 @@ export default function Profiling() {
             ))}
           </div>
           {q.max && (
-            <div className="text-center mt-3 text-[13px] text-[var(--text-muted)]">
+            <div className="text-left mt-4 text-[13px] text-[var(--text-muted)] max-w-[640px] mx-auto">
               <span className="text-[#E94560] font-semibold">{selected.length}</span>/{q.max} {t('q.selected')}
             </div>
           )}
           {isPathBQ1 && selected.length > 0 && (
-            <div className="mt-5 p-4 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl transition-all duration-300">
+            <div className="mt-5 p-4 md:p-5 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[22px] transition-all duration-300 max-w-[640px] mx-auto">
               <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2.5 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
                 {t('b.q1.precise')}
@@ -874,7 +874,7 @@ export default function Profiling() {
               placeholder={q.addendum}
               value={answers[`${step}_addendum`] || ''}
               onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
-              className={`w-full p-4 text-[14px] leading-[1.6] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-xl resize-none outline-none min-h-[60px] transition-all duration-500 focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic ${selected.length > 0 ? 'opacity-100 max-h-[120px] mt-4' : 'opacity-0 max-h-0 overflow-hidden mt-0'}`}
+              className={`w-full max-w-[640px] mx-auto p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] transition-all duration-500 focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic ${selected.length > 0 ? 'opacity-100 max-h-[160px] mt-4' : 'opacity-0 max-h-0 overflow-hidden mt-0'}`}
             />
           )}
         </>
@@ -884,7 +884,7 @@ export default function Profiling() {
     if (currentQ.type === 'images') {
       return (
         <>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[720px] mx-auto">
             {currentQ.options.map(opt => {
               const isSelected = imageSelections.includes(opt.value);
               return (
@@ -899,12 +899,12 @@ export default function Profiling() {
                     }`}
                 >
                   <img src={opt.src} alt={opt.label} loading="eager"
-                    className={`w-full h-[150px] md:h-[210px] object-cover block transition-all duration-600 ${isSelected ? 'scale-[1.03]' : 'group-hover:scale-[1.06] group-hover:brightness-[1.08] group-hover:saturate-[1.1]'}`}
+                    className={`w-full h-[220px] md:h-[260px] object-cover block transition-all duration-700 ${isSelected ? 'scale-[1.03]' : 'group-hover:scale-[1.08] group-hover:brightness-[1.08] group-hover:saturate-[1.12]'}`}
                   />
                   <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'bg-gradient-to-b from-[rgba(233,69,96,0.06)] to-[rgba(233,69,96,0.22)]' : 'bg-gradient-to-b from-transparent via-transparent to-[rgba(0,0,0,0.5)]'}`} />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-[2]">
-                    <span className="text-[14px] font-medium tracking-wide">{opt.label}</span>
-                    <small className="block text-[11px] font-light opacity-75 mt-0.5">{opt.sub}</small>
+                  <div className="absolute bottom-0 left-0 right-0 p-5 text-white z-[2]">
+                    <span className="text-[18px] font-semibold tracking-[0.01em]">{opt.label}</span>
+                    <small className="block text-[12px] font-light opacity-85 mt-1 leading-[1.45] max-w-[26ch]">{opt.sub}</small>
                   </div>
                   <div className={`absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-[#E94560] flex items-center justify-center shadow-[0_4px_16px_rgba(233,69,96,0.35)] z-[3] transition-all duration-400 ${isSelected ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-[0.3] -rotate-45'}`} style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
                     <Check className="w-[15px] h-[15px] text-white" strokeWidth={3} />
@@ -913,7 +913,7 @@ export default function Profiling() {
               );
             })}
           </div>
-          <div className="text-center mt-3.5 text-[13px] text-[#A09BA8] transition-all" data-testid="text-img-counter">
+          <div className="text-left mt-4 text-[13px] text-[#A09BA8] transition-all max-w-[720px] mx-auto" data-testid="text-img-counter">
             {imageSelections.length > 0 ? (
               <><span className="text-[#E94560] font-semibold">{imageSelections.length}</span>/2 {t('q.selected')}</>
             ) : (
@@ -928,7 +928,7 @@ export default function Profiling() {
       const labelIdx = Math.round(sliderValue / 100 * 6);
       return (
         <>
-          <div className="bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] p-[36px_30px] shadow-[0_2px_16px_rgba(26,26,46,0.03)]">
+          <div className="bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[22px] p-[32px_24px] md:p-[36px_30px] shadow-[0_2px_16px_rgba(26,26,46,0.03)] max-w-[640px] mx-auto">
             <div className="flex justify-between mb-8">
               <span className="text-[12px] text-[var(--text-secondary)] max-w-[120px] leading-[1.4]">{t('slider.left')}</span>
               <span className="text-[12px] text-[var(--text-secondary)] max-w-[120px] leading-[1.4] text-right">{t('slider.right')}</span>
@@ -948,7 +948,7 @@ export default function Profiling() {
             placeholder={t('slider.addendum')}
             value={answers[`${step}_addendum`] || ''}
             onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
-            className="w-full mt-6 p-4 text-[14px] leading-[1.6] text-[var(--text-primary)] bg-[var(--surface)] border-[1.5px] border-[var(--border-input)] rounded-xl resize-none outline-none min-h-[60px] focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
+            className="w-full max-w-[640px] mx-auto mt-6 p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
           />
         </>
       );
@@ -1017,7 +1017,7 @@ export default function Profiling() {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[88px_minmax(0,1fr)_320px] min-h-screen gap-0 xl:gap-8" style={{ paddingTop: 120 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[78px_minmax(680px,760px)_280px] min-h-screen gap-0 xl:gap-6 w-full max-w-[1420px] mx-auto" style={{ paddingTop: 120 }}>
         <aside className="hidden lg:flex flex-col items-center justify-center gap-0 sticky top-[120px] h-[calc(100vh-120px)] py-10">
           {questions.map((_, i) => (
             <div key={i} className="flex flex-col items-center relative group">
@@ -1049,7 +1049,7 @@ export default function Profiling() {
           ))}
         </aside>
 
-        <main className="relative py-6 px-5 sm:px-10 xl:px-0 pb-[120px] max-w-[820px] w-full mx-auto">
+        <main className="relative py-8 px-5 sm:px-8 xl:px-0 pb-[120px] max-w-[760px] w-full mx-auto flex items-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -1057,7 +1057,7 @@ export default function Profiling() {
               animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -18, scale: 0.98 }}
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="relative z-20 rounded-[30px] border border-[var(--border-input)] p-6 sm:p-8 md:p-10 xl:p-12"
+              className="relative z-20 rounded-[30px] border border-[var(--border-input)] p-6 sm:p-8 md:p-9 xl:p-10 w-full"
               style={{ background: questionPanelBg, boxShadow: questionPanelShadow }}
             >
               <div className="flex items-start justify-between gap-4 mb-5">
@@ -1067,13 +1067,13 @@ export default function Profiling() {
                     {t('q.label')} {String(step + 1).padStart(2, '0')}
                   </span>
 
-                  <h1 className="font-serif text-[clamp(30px,4vw,46px)] leading-[1.12] tracking-tight mb-3 text-[var(--text-primary)] max-w-[13ch]">
+                  <h1 className="font-serif text-[clamp(30px,4vw,44px)] leading-[1.12] tracking-tight mb-3 text-[var(--text-primary)] max-w-[12ch]">
                     <span dangerouslySetInnerHTML={{
                       __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
                     }} />
                   </h1>
 
-                  <p className="text-[15px] md:text-[17px] text-[var(--text-secondary)] font-light italic leading-[1.8] max-w-[48ch]">
+                  <p className="text-[15px] md:text-[17px] text-[var(--text-secondary)] font-light italic leading-[1.8] max-w-[44ch]">
                     {currentQ.hint}
                   </p>
                 </div>
@@ -1086,11 +1086,11 @@ export default function Profiling() {
                 </div>
               </div>
 
-              <div className="rounded-[24px] border border-[var(--border-input)] p-5 md:p-6" style={{ background: subtlePanelBg }}>
+              <div className="rounded-[24px] border border-[var(--border-input)] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg }}>
                 {renderQuestionInput()}
               </div>
 
-              <div className="flex items-center justify-between mt-8 gap-4 flex-wrap">
+              <div className="flex items-center justify-between mt-7 gap-4 flex-wrap max-w-[640px] mx-auto">
                 <button
                   onClick={goBack}
                   data-testid="button-back"
@@ -1132,7 +1132,7 @@ export default function Profiling() {
           </AnimatePresence>
         </main>
 
-        <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[120px] h-[calc(100vh-120px)] justify-center pr-7 py-12 overflow-y-auto">
+        <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[120px] h-[calc(100vh-120px)] justify-center pr-4 py-12 overflow-y-auto">
           <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both', background: sidePanelBg }}>
             <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
               <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
@@ -1168,6 +1168,9 @@ export default function Profiling() {
     </div>
   );
 }
+
+
+
 
 
 

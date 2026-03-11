@@ -1,4 +1,4 @@
-import type { Question, Translate } from "./types";
+﻿import type { Question, Translate } from "./types";
 
 const drainChipKeys = ["guided", "crowded", "museums", "resort", "nightlife", "touristy", "transits", "mornings", "schedules", "smalltalk", "unfamiliarfood", "toomuchwalking", "tooisolated", "tooexpensive", "toolong"];
 const drainSubsetKeys = ["guided", "crowded", "museums", "resort", "nightlife", "touristy", "transits", "mornings", "schedules", "smalltalk"];
@@ -15,10 +15,10 @@ function buildPathA(t: Translate): Question[] {
     { text: t("a.q3.text"), hint: t("a.q3.hint"), type: "chips", options: drainChipKeys.map((k) => t(`chips.${k}`)), multi: true, addendum: t("a.q3.addendum"), why: t("a.q3.why"), tags: ["anti-patterns", "boundaries", "identity"], section: t("section.a.drains") },
     {
       text: t("a.q4.text"), hint: t("a.q4.hint"), type: "images", options: [
-        { src: "https://images.unsplash.com/photo-1545459720-aac8509eb02c?w=600&q=85", label: t("q4.medina"), sub: t("q4.medina.sub"), value: "medina" },
-        { src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=85", label: t("q4.nordic"), sub: t("q4.nordic.sub"), value: "nordic" },
-        { src: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=85", label: t("q4.temple"), sub: t("q4.temple.sub"), value: "temple" },
-        { src: "https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=600&q=85", label: t("q4.desert"), sub: t("q4.desert.sub"), value: "desert" },
+        { src: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=900&q=85", label: t("q4.medina"), sub: t("q4.medina.sub"), value: "medina" },
+        { src: "https://images.unsplash.com/photo-1511497584788-876760111969?w=900&q=85", label: t("q4.nordic"), sub: t("q4.nordic.sub"), value: "nordic" },
+        { src: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=900&q=85", label: t("q4.temple"), sub: t("q4.temple.sub"), value: "temple" },
+        { src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&q=85", label: t("q4.desert"), sub: t("q4.desert.sub"), value: "desert" },
       ], why: t("a.q4.why"), tags: ["aesthetic signature", "visual instinct", "subconscious"], section: t("section.a.visual"),
     },
     { text: t("a.q5.text"), hint: t("a.q5.hint"), type: "slider", why: t("a.q5.why"), tags: ["chaos tolerance", "control need", "rhythm"], section: t("section.a.chaos") },
@@ -34,10 +34,10 @@ function buildPathB(t: Translate): Question[] {
     { text: t("b.q3.text"), hint: t("b.q3.hint"), type: "text", placeholder: t("b.q3.placeholder"), why: t("b.q3.why"), tags: ["must-see", "motivation", "emotional need"], section: t("section.b.specific") },
     {
       text: t("b.q4.text"), hint: t("b.q4.hint"), type: "images", options: [
-        { src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=85", label: t("b.q4.seaside"), sub: t("b.q4.seaside.sub"), value: "seaside" },
-        { src: "https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=600&q=85", label: t("b.q4.market"), sub: t("b.q4.market.sub"), value: "market" },
-        { src: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=85", label: t("b.q4.trail"), sub: t("b.q4.trail.sub"), value: "trail" },
-        { src: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=85", label: t("b.q4.cafe"), sub: t("b.q4.cafe.sub"), value: "cafe" },
+        { src: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900&q=85", label: t("b.q4.seaside"), sub: t("b.q4.seaside.sub"), value: "seaside" },
+        { src: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=900&q=85", label: t("b.q4.market"), sub: t("b.q4.market.sub"), value: "market" },
+        { src: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=900&q=85", label: t("b.q4.trail"), sub: t("b.q4.trail.sub"), value: "trail" },
+        { src: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=900&q=85", label: t("b.q4.cafe"), sub: t("b.q4.cafe.sub"), value: "cafe" },
       ], why: t("b.q4.why"), tags: ["aesthetic", "atmosphere", "emotional tone"], section: t("section.b.atmosphere"),
     },
     { text: t("b.q5.text"), hint: t("b.q5.hint"), type: "slider", why: t("b.q5.why"), tags: ["rhythm", "control", "pace"], section: t("section.b.rhythm") },
@@ -58,3 +58,4 @@ export function createProfilingContent(t: Translate) {
     analyzeTraits: [t("analyze.t1"), t("analyze.t2"), t("analyze.t3"), t("analyze.t4"), t("analyze.t5"), t("analyze.t6")],
   };
 }
+
