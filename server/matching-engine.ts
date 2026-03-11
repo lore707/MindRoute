@@ -49,20 +49,17 @@ REGOLE:
 - Analizza il profilo psicologico: bisogni emotivi, estetica, tolleranza al caos
 - Destinazione non ovvia, sorprendente
 - Tono personale, non da catalogo
-- Ogni giorno: 1 riga breve per morning/lunch/afternoon/evening
+- Mantieni le frasi corte e concrete
+- Ogni campo deve essere sintetico
 - Il budget totale stimato DEVE stare dentro il range indicato
 - Rispondi SOLO con JSON valido, zero testo fuori dal JSON
 
-ISTRUZIONI PER I LINK:
-- Per gli hotel: usa il nome reale dell'hotel suggerito nel link Booking con date stimate
-  Formato: https://www.booking.com/search.html?ss=NOMEHOTEL+CITTA&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&aid=304142
-- Per i ristoranti: usa TheFork se disponibile in quella città, altrimenti Google Maps
-  TheFork: https://www.thefork.it/ricerca/?cityName=CITTA&query=NOMERISTORANTE
-  Google Maps: https://www.google.com/maps/search/NOMERISTORANTE+CITTA
-- Per le esperienze: GetYourGuide con nome attività
-  Formato: https://www.getyourguide.com/s/?q=NOMEATTIVITA+CITTA
-- Per i voli: Skyscanner con date e aeroporti
-  Formato: https://www.skyscanner.net/transport/flights/IATA_PARTENZA/IATA_ARRIVO/YYYYMMDD/YYYYMMDD/
+LINK:
+- Genera SOLO topAffiliateLinks finali
+- Non generare affiliateLinks dentro i singoli giorni
+- booking: link Booking di ricerca hotel in città
+- skyscanner: link Skyscanner tratta principale
+- getyourguide: link GetYourGuide esperienze città
 
 JSON RICHIESTO:
 {
@@ -70,9 +67,9 @@ JSON RICHIESTO:
     {
       "name": "Città, Paese",
       "imageUrl": "https://images.unsplash.com/photo-[ID]?w=600&h=400&fit=crop",
-      "whyYours": "2 frasi sul perché psicologico",
-      "experiencePreview": "1 frase evocativa in prima persona",
-      "practicalInfo": "voli, costi, periodo in 1 riga"
+      "whyYours": "1 frase breve sul perché psicologico",
+      "experiencePreview": "1 frase breve evocativa in prima persona",
+      "practicalInfo": "costi, voli, periodo in 1 riga breve"
     }
   ],
   "itineraries": [
@@ -82,24 +79,19 @@ JSON RICHIESTO:
         {
           "dayNumber": 1,
           "title": "Titolo breve",
-          "morning": "Attività mattutina con nome specifico del posto",
-          "lunch": "Nome ristorante specifico e piatto",
-          "afternoon": "Attività pomeridiana con nome specifico",
-          "evening": "Serata con nome specifico del posto",
-          "affiliateLinks": {
-            "booking": "https://www.booking.com/search.html?ss=NOMEHOTEL+CITTA&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&aid=304142",
-            "restaurant": "https://www.thefork.it/ricerca/?cityName=CITTA&query=NOMERISTORANTE oppure Google Maps URL",
-            "experience": "https://www.getyourguide.com/s/?q=NOMEATTIVITA+CITTA"
-          }
+          "morning": "Massimo 10 parole",
+          "lunch": "Massimo 10 parole",
+          "afternoon": "Massimo 10 parole",
+          "evening": "Massimo 10 parole"
         }
       ],
-      "budgetSummary": "hotel X€/notte, pasti Y€/giorno, totale stimato Z€ — dentro il budget richiesto",
-      "packingList": "item1, item2, item3, item4, item5",
-      "bestTime": "periodo consigliato",
-      "gettingThere": "come arrivare, aeroporto IATA",
-      "closingMessage": "frase finale poetica personalizzata",
+      "budgetSummary": "1 riga breve con totale stimato dentro budget",
+      "packingList": "5 item separati da virgola",
+      "bestTime": "massimo 8 parole",
+      "gettingThere": "massimo 12 parole con aeroporto IATA se utile",
+      "closingMessage": "1 frase finale breve",
       "topAffiliateLinks": {
-        "booking": "https://www.booking.com/search.html?ss=NOMEHOTEL+CITTA&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&aid=304142",
+        "booking": "https://www.booking.com/search.html?ss=NOMEHOTEL+CITTA&aid=304142",
         "skyscanner": "https://www.skyscanner.net/transport/flights/IATA_PARTENZA/IATA_ARRIVO/YYYYMMDD/YYYYMMDD/",
         "getyourguide": "https://www.getyourguide.com/s/?q=CITTA+esperienze"
       }
@@ -124,7 +116,7 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 6000,
+    max_tokens: 2800,
     messages: [
       {
         role: "user",
