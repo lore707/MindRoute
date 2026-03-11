@@ -40,7 +40,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "intro.quote": { en: "The real voyage of discovery consists not in seeking new landscapes, but in having new eyes.", it: "Il vero viaggio di scoperta non consiste nel cercare nuovi paesaggi, ma nell'avere occhi nuovi." },
 
   "a.q1.text": { en: "3 words for your <em>dream trip</em>", it: "3 parole per il tuo <em>viaggio ideale</em>" },
-  "a.q1.hint": { en: "Pick the ones that resonate most â€” the combination reveals who you are.", it: "Scegli quelle che risuonano di piÃ¹ â€” la combinazione rivela chi sei." },
+  "a.q1.hint": { en: "Pick the ones that resonate most. The combination reveals who you are.", it: "Scegli quelle che risuonano di più. È la combinazione a raccontare chi sei." },
   "a.q1.why": { en: "The triplet combination is the richest signal. 'Wild + Solitary + Authentic' is a completely different person than 'Culture + Intimate + Regenerating'.", it: "La combinazione di tre Ã¨ il segnale piÃ¹ ricco. 'Selvaggio + Solitario + Autentico' Ã¨ una persona completamente diversa da 'Cultura + Intimo + Rigenerante'." },
   "a.q1.chips.wild": { en: "Wild", it: "Selvaggio" },
   "a.q1.chips.quiet": { en: "Quiet", it: "Silenzioso" },
@@ -58,7 +58,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "a.q1.chips.explorative": { en: "Explorative", it: "Esplorativo" },
 
   "a.q2.text": { en: "What should this trip give you that your everyday life currently <em>can't?</em>", it: "Cosa dovrebbe darti questo viaggio che la tua vita quotidiana attualmente <em>non puÃ²?</em>" },
-  "a.q2.hint": { en: "Not what you want to do â€” what you need to feel. What phase of life are you in? What's missing?", it: "Non cosa vuoi fare â€” cosa hai bisogno di sentire. In che fase della vita sei? Cosa ti manca?" },
+  "a.q2.hint": { en: "Not what you want to do, what you need to feel. What phase of life are you in? What is missing?", it: "Non quello che vuoi fare, ma quello che hai bisogno di sentire. In che fase della vita sei? Che cosa ti manca adesso?" },
   "a.q2.placeholder": { en: "E.g. I need to disconnect from everything, I feel stuck at work and I'm looking for something that makes me feel alive...", it: "Es. Ho bisogno di staccare da tutto, mi sento bloccato nel lavoro e cerco qualcosa che mi faccia sentire vivo..." },
   "a.q2.why": { en: "The gap between your life and your longing is the compass. This answer drives the destination match â€” it reveals life phase, emotional state, and the true function of this trip.", it: "Il divario tra la tua vita e il tuo desiderio Ã¨ la bussola. Questa risposta guida la scelta della destinazione â€” rivela fase di vita, stato emotivo e la vera funzione di questo viaggio." },
 
@@ -90,7 +90,7 @@ const translations: Record<string, Record<Lang, string>> = {
 
   "b.q1.text": { en: "Where do you want to <em>go?</em>", it: "Dove vuoi <em>andare?</em>" },
   "b.q1.hint": { en: "Pick the region that calls you.", it: "Scegli la regione che ti chiama." },
-  "b.q1.why": { en: "Geographic constraint is the starting point. The more specific you are, the more precise the itinerary.", it: "Il vincolo geografico Ã¨ il punto di partenza. PiÃ¹ sei specifico, piÃ¹ l'itinerario sarÃ  preciso." },
+  "b.q1.why": { en: "Geographic constraint is the starting point. The more specific you are, the more precise the itinerary.", it: "Il vincolo geografico è il punto di partenza. Più sei specifico, più l'itinerario sarà preciso." },
   "b.q1.chips.close": { en: "Close to home", it: "Vicino a casa" },
   "b.q1.chips.europe": { en: "Europe", it: "Europa" },
   "b.q1.chips.asia": { en: "Asia", it: "Asia" },
@@ -101,7 +101,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "b.q1.precisePlaceholder": { en: "E.g. Kyoto, Patagonia, Amalfi Coast, Iceland...", it: "Es. Kyoto, Patagonia, Costiera Amalfitana, Islanda..." },
 
   "b.q2.text": { en: "What <em>type</em> of trip?", it: "Che <em>tipo</em> di viaggio?" },
-  "b.q2.hint": { en: "Pick up to 3. The combination reveals more than individual choices.", it: "Scegline fino a 3. La combinazione rivela piÃ¹ delle scelte singole." },
+  "b.q2.hint": { en: "Pick up to 3. The combination says more than any single choice.", it: "Scegline fino a 3. La combinazione racconta più di ogni scelta presa da sola." },
   "b.q2.why": { en: "Trip type combinations paint a portrait. 'Culture + Food + Neighborhood life' is a completely different trip than 'Nature + Trekking + Off-grid'.", it: "Le combinazioni di tipo viaggio dipingono un ritratto. 'Cultura + Food + Vita di quartiere' Ã¨ un viaggio completamente diverso da 'Natura + Trekking + Off-grid'." },
   "b.q2.chips.culture": { en: "Culture & history", it: "Cultura e storia" },
   "b.q2.chips.nature": { en: "Nature & adventure", it: "Natura e avventura" },
@@ -463,6 +463,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useI18n() {
   return useContext(I18nContext);
 }
+
+
 
 
 

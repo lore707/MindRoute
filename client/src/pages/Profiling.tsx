@@ -37,6 +37,19 @@ export default function Profiling() {
   const splitCardGlow = theme === "dark" ? "0 24px 70px rgba(4, 8, 20, 0.46)" : "0 24px 70px rgba(226, 170, 181, 0.22)";
   const splitTrustBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.68)";
   const splitQuoteBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.56)";
+  const profilingStageGlow = theme === "dark"
+    ? "radial-gradient(circle at 50% 0%, rgba(233,69,96,0.18), transparent 42%)"
+    : "radial-gradient(circle at 50% 0%, rgba(233,69,96,0.10), transparent 42%)";
+  const questionPanelBg = theme === "dark"
+    ? "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03))"
+    : "linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.68))";
+  const questionPanelShadow = theme === "dark"
+    ? "0 28px 80px rgba(0,0,0,0.34)"
+    : "0 28px 80px rgba(216, 194, 199, 0.20)";
+  const sidePanelBg = theme === "dark"
+    ? "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03))"
+    : "linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.68))";
+  const subtlePanelBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.58)";
 
   const ThemeToggle = () => (
     <button
@@ -740,11 +753,11 @@ export default function Profiling() {
 
                 <div className="flex items-center justify-between pt-4">
                   <button type="button" onClick={goBack} data-testid="button-form-back"
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border-none cursor-pointer rounded-lg hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] transition-all">
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border border-transparent cursor-pointer rounded-full hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] hover:border-[var(--border-input)] transition-all">
                     <ArrowLeft className="w-4 h-4" /> {t('q.back')}
                   </button>
                   <button type="submit" data-testid="button-submit"
-                    className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_4px_20px_rgba(233,69,96,0.2)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(233,69,96,0.3)] transition-all group">
+                    className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] transition-all group">
                     {t('form.discover')}
                     <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                   </button>
@@ -754,14 +767,14 @@ export default function Profiling() {
           </main>
 
           <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[80px] h-[calc(100vh-80px)] justify-center pr-7 py-12 overflow-y-auto">
-            <div className="bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both' }}>
+            <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both', background: sidePanelBg }}>
               <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
                 <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
                 {sideInfo.title}
               </div>
               <p className="text-[13px] text-[var(--text-secondary)] leading-[1.7] font-light">{sideInfo.desc}</p>
             </div>
-            <div className="flex items-start gap-2 p-3.5 bg-[var(--surface-alt)] rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both' }}>
+            <div className="flex items-start gap-2 p-3.5 rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5] border border-[var(--border-input)]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both', background: subtlePanelBg }}>
               <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               {t('sidebar.privacy')}
             </div>
@@ -950,7 +963,7 @@ export default function Profiling() {
     for (let j = 0; j < step; j++) {
       const a = answers[j];
       if (a != null && a !== '') {
-        const txt = typeof a === 'string' ? (a.length > 55 ? a.substring(0, 55) + 'â€¦' : a) : '' + a;
+        const txt = typeof a === 'string' ? (a.length > 55 ? a.substring(0, 55) + '...' : a) : '' + a;
         entries.push({ idx: j, section: questions[j].section, text: txt });
       }
     }
@@ -965,7 +978,7 @@ export default function Profiling() {
             className="px-3.5 py-2.5 bg-[var(--surface)] rounded-[10px] mb-1.5 text-[12px] text-[var(--text-secondary)] leading-[1.5] font-light border-l-2 border-[#E94560] opacity-55"
             style={{ animation: `sidebarIn 0.3s ease ${i * 0.06}s both` }}
           >
-            <b className="font-medium text-[var(--text-primary)] text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} Â· {entry.section}</b>
+            <b className="font-medium text-[var(--text-primary)] text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} - {entry.section}</b>
             {entry.text}
           </div>
         ))}
@@ -975,6 +988,7 @@ export default function Profiling() {
 
   return (
     <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
+      <div className="fixed inset-x-0 top-[84px] h-[340px] pointer-events-none z-0 opacity-90" style={{ background: profilingStageGlow }} />
       <svg className="fixed inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none" viewBox="0 0 1440 900">
         <path d="M-20 180 C 200 120, 400 280, 620 200 S 900 80, 1100 220 S 1350 340, 1460 180" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.04" />
         <path d="M-20 400 C 180 340, 350 500, 580 420 S 820 300, 1050 440 S 1300 560, 1460 400" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.035" />
@@ -1003,18 +1017,18 @@ export default function Profiling() {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[72px_1fr_300px] min-h-screen" style={{ paddingTop: 120 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[88px_minmax(0,1fr)_320px] min-h-screen gap-0 xl:gap-8" style={{ paddingTop: 120 }}>
         <aside className="hidden lg:flex flex-col items-center justify-center gap-0 sticky top-[120px] h-[calc(100vh-120px)] py-10">
           {questions.map((_, i) => (
             <div key={i} className="flex flex-col items-center relative group">
               <button
                 onClick={() => goToStep(i)}
                 data-testid={`step-${i + 1}`}
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold z-[2] relative transition-all duration-450 ${i === step
-                  ? 'bg-[#E94560] text-white shadow-[0_4px_20px_rgba(233,69,96,0.15)] scale-[1.2]'
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-semibold z-[2] relative transition-all duration-450 ${i === step
+                  ? 'bg-[#E94560] text-white shadow-[0_10px_26px_rgba(233,69,96,0.22)] scale-[1.18]'
                   : i < step
-                    ? 'bg-[#E94560] text-white opacity-60 hover:opacity-90 hover:scale-[1.08]'
-                    : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[1.5px] border-[var(--border-input)]'
+                    ? 'bg-[#E94560] text-white opacity-65 hover:opacity-90 hover:scale-[1.08]'
+                    : 'bg-[var(--surface-card)] text-[var(--text-muted)] border-[1.5px] border-[var(--border-input)]'
                   }`}
               >
                 {i + 1}
@@ -1023,19 +1037,19 @@ export default function Profiling() {
                 )}
               </button>
               {i < step && answers[i] && (
-                <div className="absolute left-[52px] top-1/2 -translate-y-1/2 bg-[#1A1A2E] text-white text-[11px] font-normal px-3 py-1.5 rounded-lg whitespace-nowrap max-w-[180px] overflow-hidden text-ellipsis opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-250 z-10">
+                <div className="absolute left-[58px] top-1/2 -translate-y-1/2 bg-[#1A1A2E] text-white text-[11px] font-normal px-3 py-1.5 rounded-lg whitespace-nowrap max-w-[180px] overflow-hidden text-ellipsis opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-250 z-10">
                   <span className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-[#1A1A2E]" />
-                  {typeof answers[i] === 'string' && answers[i].length > 30 ? answers[i].substring(0, 30) + 'â€¦' : answers[i]}
+                  {typeof answers[i] === 'string' && answers[i].length > 30 ? answers[i].substring(0, 30) + '...' : answers[i]}
                 </div>
               )}
               {i < questions.length - 1 && (
-                <div className={`w-0.5 h-6 rounded-sm transition-all duration-500 ${i < step ? 'bg-[#E94560] opacity-35' : 'bg-[#EDEBE8]'}`} />
+                <div className={`w-0.5 h-7 rounded-sm transition-all duration-500 ${i < step ? 'bg-[#E94560] opacity-35' : 'bg-[#EDEBE8]'}`} />
               )}
             </div>
           ))}
         </aside>
 
-        <main className="relative py-8 px-6 sm:px-14 pb-[120px] max-w-[740px]">
+        <main className="relative py-6 px-5 sm:px-10 xl:px-0 pb-[120px] max-w-[820px] w-full mx-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -1043,30 +1057,44 @@ export default function Profiling() {
               animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -18, scale: 0.98 }}
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="relative z-20"
+              className="relative z-20 rounded-[30px] border border-[var(--border-input)] p-6 sm:p-8 md:p-10 xl:p-12"
+              style={{ background: questionPanelBg, boxShadow: questionPanelShadow }}
             >
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-3">
-                <Info className="w-3 h-3" />
-                {t('q.label')} {String(step + 1).padStart(2, '0')}
-              </span>
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div className="min-w-0">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-[6px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-4 border border-[rgba(233,69,96,0.14)]">
+                    <Info className="w-3 h-3" />
+                    {t('q.label')} {String(step + 1).padStart(2, '0')}
+                  </span>
 
-              <h1 className="font-serif text-[clamp(26px,3.8vw,36px)] leading-[1.3] tracking-tight mb-2.5 text-[var(--text-primary)]">
-                <span dangerouslySetInnerHTML={{
-                  __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
-                }} />
-              </h1>
+                  <h1 className="font-serif text-[clamp(30px,4vw,46px)] leading-[1.12] tracking-tight mb-3 text-[var(--text-primary)] max-w-[13ch]">
+                    <span dangerouslySetInnerHTML={{
+                      __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
+                    }} />
+                  </h1>
 
-              <p className="text-[15px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-6">
-                {currentQ.hint}
-              </p>
+                  <p className="text-[15px] md:text-[17px] text-[var(--text-secondary)] font-light italic leading-[1.8] max-w-[48ch]">
+                    {currentQ.hint}
+                  </p>
+                </div>
 
-              {renderQuestionInput()}
+                <div className="hidden md:flex flex-col items-end gap-2 shrink-0">
+                  <span className="text-[11px] uppercase tracking-[0.22em] text-[var(--text-muted)] font-medium">{currentQ.section}</span>
+                  <span className="rounded-full px-3 py-1.5 text-[12px] text-[var(--text-secondary)] border border-[var(--border-input)]" style={{ background: subtlePanelBg }}>
+                    {step + 1} / {questions.length}
+                  </span>
+                </div>
+              </div>
 
-              <div className="flex items-center justify-between mt-7">
+              <div className="rounded-[24px] border border-[var(--border-input)] p-5 md:p-6" style={{ background: subtlePanelBg }}>
+                {renderQuestionInput()}
+              </div>
+
+              <div className="flex items-center justify-between mt-8 gap-4 flex-wrap">
                 <button
                   onClick={goBack}
                   data-testid="button-back"
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border-none cursor-pointer rounded-lg hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border border-transparent cursor-pointer rounded-full hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] hover:border-[var(--border-input)] transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" /> {t('q.back')}
                 </button>
@@ -1074,7 +1102,7 @@ export default function Profiling() {
                   onClick={handleNext}
                   disabled={!canContinue()}
                   data-testid="button-continue"
-                  className="inline-flex items-center gap-2 px-[34px] py-[15px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_4px_20px_rgba(233,69,96,0.2)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(233,69,96,0.3)] disabled:bg-[#ccc] disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none transition-all group"
+                  className="inline-flex items-center gap-2 px-[34px] py-[15px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] disabled:bg-[#ccc] disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none transition-all group"
                 >
                   {t('q.continue')}
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:enabled:translate-x-1" />
@@ -1105,7 +1133,7 @@ export default function Profiling() {
         </main>
 
         <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[120px] h-[calc(100vh-120px)] justify-center pr-7 py-12 overflow-y-auto">
-          <div className="bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both' }}>
+          <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both', background: sidePanelBg }}>
             <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
               <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
               {t('sidebar.whyThis')}
@@ -1113,7 +1141,7 @@ export default function Profiling() {
             <p className="text-[13px] text-[var(--text-secondary)] leading-[1.7] font-light">{currentQ.why}</p>
           </div>
 
-          <div className="bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.25s both' }}>
+          <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.25s both', background: sidePanelBg }}>
             <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
               <MapPin className="w-4 h-4 text-[#E94560] shrink-0" />
               {t('sidebar.mapping')}
@@ -1127,7 +1155,7 @@ export default function Profiling() {
 
           {renderProfileSoFar()}
 
-          <div className="flex items-start gap-2 p-3.5 bg-[var(--surface-alt)] rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both' }}>
+          <div className="flex items-start gap-2 p-3.5 rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5] border border-[var(--border-input)]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both', background: subtlePanelBg }}>
             <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             {t('sidebar.privacy')}
           </div>
@@ -1140,6 +1168,8 @@ export default function Profiling() {
     </div>
   );
 }
+
+
 
 
 
