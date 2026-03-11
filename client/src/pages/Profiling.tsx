@@ -202,6 +202,9 @@ export default function Profiling() {
   useEffect(() => {
     if (!submitMutation.data) return;
 
+    analyzeTimers.current.forEach(t => clearTimeout(t));
+    setShowAnalyzing(false);
+
     try {
       sessionStorage.setItem("mind_destinations", JSON.stringify(submitMutation.data));
       setLocation("/destinations");
@@ -275,17 +278,16 @@ export default function Profiling() {
     analyzeTimers.current = [];
     setVisibleTraits([]);
     setShowAnalyzing(true);
+
+    submitMutation.reset();
+    doFinalSubmit();
+
     analyzeTraits.forEach((trait, i) => {
       const timer = setTimeout(() => {
         setVisibleTraits(prev => [...prev, trait]);
-      }, 400 + i * 300);
+      }, 120 + i * 180);
       analyzeTimers.current.push(timer);
     });
-    const nav = setTimeout(() => {
-      setShowAnalyzing(false);
-      doFinalSubmit();
-    }, 3200);
-    analyzeTimers.current.push(nav);
   };
 
   const handleNext = () => {
@@ -1268,5 +1270,6 @@ function SliderTrack({ value, onChange }: { value: number; onChange: (v: number)
     </div>
   );
 }
+
 
 
