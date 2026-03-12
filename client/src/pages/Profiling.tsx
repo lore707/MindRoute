@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, ChevronDown, Moon, Sun, HelpCircle as QuestionIcon } from "lucide-react";
 import { useSubmitProfiling } from "@/hooks/use-profiling";
@@ -82,6 +82,17 @@ export default function Profiling() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const transitionBusy = useRef(false);
   const analyzeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const getPlaceholderForRegion = (regionLabel?: string) => {
+    // Usa una traduzione dedicata se esiste, altrimenti riutilizza quella di b.q3 come fallback
+    const specific = t("b.q1.precisePlaceholder");
+    const fallback = t("b.q3.precisePlaceholder") || "Es. Kyoto, Giappone, una città che mi attira da anni...";
+    // Se il sistema di i18n restituisce la chiave quando manca la traduzione, evita di mostrarla all'utente
+    if (!specific || specific === "b.q1.precisePlaceholder") {
+      return fallback;
+    }
+    return specific;
+  };
 
   const [formData, setFormData] = useState({
     budget: "",
