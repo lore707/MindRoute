@@ -84,14 +84,91 @@ export default function Profiling() {
   const analyzeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const getPlaceholderForRegion = (regionLabel?: string) => {
-    // Usa una traduzione dedicata se esiste, altrimenti riutilizza quella di b.q3 come fallback
-    const specific = t("b.q1.precisePlaceholder");
-    const fallback = t("b.q3.precisePlaceholder") || "Es. Kyoto, Giappone, una città che mi attira da anni...";
-    // Se il sistema di i18n restituisce la chiave quando manca la traduzione, evita di mostrarla all'utente
-    if (!specific || specific === "b.q1.precisePlaceholder") {
-      return fallback;
+    const label = (regionLabel || "").toLowerCase();
+
+    // Mappa semplice basata sul testo visibile della chip (italiano/inglese)
+    if (label.includes("europa") || label.includes("europe")) {
+      return "Es: Lisbona, Dolomiti, Atene…";
     }
-    return specific;
+    if (label.includes("asia") || label.includes("asian")) {
+      return "Es: Tokyo, Kyoto, Bali…";
+    }
+    if (label.includes("america")) {
+      return "Es: New York, Patagonia, Costa Rica…";
+    }
+    if (label.includes("africa") || label.includes("medio") || label.includes("middle east")) {
+      return "Es: Marocco, Cape Town, Giordania…";
+    }
+    if (label.includes("oceania")) {
+      return "Es: Sydney, Nuova Zelanda, Fiji…";
+    }
+    if (label.includes("vicino") || label.includes("near") || label.includes("home")) {
+      return "Es: città vicine, lago o montagna a poche ore…";
+    }
+
+    // Fallback generico
+    return "Es: una città o un paese che ti ispira in questo momento…";
+  };
+
+  const getPlaceholderForTravelType = (chipLabel?: string) => {
+    const label = (chipLabel || "").toLowerCase();
+    if (label.includes("food") || label.includes("cibo") || label.includes("tradizion")) {
+      return "Es: sushi autentico, street food, mercati locali…";
+    }
+    if (label.includes("natura") || label.includes("nature") || label.includes("paesagg")) {
+      return "Es: trekking, foreste, fiordi, vulcani…";
+    }
+    if (label.includes("avventura") || label.includes("adventure")) {
+      return "Es: surf, safari, immersioni, arrampicata…";
+    }
+    if (label.includes("mare") || label.includes("relax") || label.includes("beach")) {
+      return "Es: spiagge tranquille, calette nascoste, isole…";
+    }
+    if (label.includes("cultur") || label.includes("storia") || label.includes("culture")) {
+      return "Es: siti storici, quartieri antichi, musei particolari…";
+    }
+    if (label.includes("insolit") || label.includes("unusual") || label.includes("offgrid")) {
+      return "Es: esperienze fuori rotta, luoghi poco turistici…";
+    }
+    return "Es: qualcosa che vorresti assolutamente includere in questo viaggio…";
+  };
+
+  const getPlaceholderForAtmosphere = (value?: string) => {
+    switch (value) {
+      case "market":
+        return "Es: street food, bazar, quartieri creativi…";
+      case "trail":
+        return "Es: trekking, silenzio, panorami…";
+      case "cafe":
+        return "Es: librerie, caffè storici, quartieri artistici…";
+      case "seaside":
+        return "Es: tramonti sul mare, passeggiate sul lungomare…";
+      default:
+        return "Es: cosa ti attrae davvero di questa atmosfera…";
+    }
+  };
+
+  const getPlaceholderForAvoid = (chipLabel?: string) => {
+    const label = (chipLabel || "").toLowerCase();
+    if (label.includes("affollat") || label.includes("crowd")) {
+      return "Es: preferisco villaggi piccoli o natura…";
+    }
+    if (label.includes("rigid") || label.includes("programma") || label.includes("schedule")) {
+      return "Es: voglio giornate più libere, senza orari fissi…";
+    }
+    if (label.includes("visite guidate") || label.includes("tour")) {
+      return "Es: preferisco scoprire i posti in autonomia…";
+    }
+    if (label.includes("musei")) {
+      return "Es: meglio pochi musei scelti bene, non giornate intere…";
+    }
+    if (label.includes("club") || label.includes("vita notturna") || label.includes("night")) {
+      return "Es: preferisco serate tranquille, bar locali, musica soft…";
+    }
+    if (label.includes("trasferimenti") || label.includes("transfer") || label.includes("lunghi")) {
+      return "Es: tragitti brevi, poche mete ma ben vissute…";
+    }
+    return "Es: qualcos'altro che sarebbe meglio evitare per goderti davvero il viaggio…";
   };
 
   const [formData, setFormData] = useState({
@@ -309,8 +386,102 @@ export default function Profiling() {
     return formData.selectedPeriods.length > 0;
   };
 
+  const buildStructuredProfileForPathB = () => {
+    if (selectedPath !== 'b') return null;
+
+    // Q1 – regione + luogo preciso
+    const regionAnswer = answers[0] || '';
+    const precisePlace = answers[`0_precise`] || '';
+    const regionLabel = regionAnswer.toLowerCase();
+    let region: string | null = null;
+    if (regionLabel.includes("asia")) region = "asia";
+    else if (regionLabel.includes("europa") || regionLabel.includes("europe")) region = "europe";
+    else if (regionLabel.includes("america")) region = "americas";
+    else if (regionLabel.includes("africa") || regionLabel.includes("medio") || regionLabel.includes("middle east")) region = "africa_middle_east";
+    else if (regionLabel.includes("oceania")) region = "oceania";
+    else if (regionLabel.includes("vicino") || regionLabel.includes("near") || regionLabel.includes("home")) region = "near_home";
+
+    // Q2 – tipo di viaggio
+    const typeChips = chipSelections[1] || [];
+    const normalizeType = (label: string) => {
+      const l = label.toLowerCase();
+      if (l.includes("food") || l.includes("cibo") || l.includes("gastronom")) return "food";
+      if (l.includes("natura") || l.includes("nature") || l.includes("paesagg")) return "nature";
+      if (l.includes("cultur") || l.includes("storia") || l.includes("heritage")) return "culture";
+      if (l.includes("mare") || l.includes("spiaggia") || l.includes("relax") || l.includes("beach")) return "sea_relax";
+      if (l.includes("avventura") || l.includes("adventure")) return "adventure";
+      if (l.includes("insolit") || l.includes("unusual") || l.includes("offgrid")) return "unusual";
+      if (l.includes("city") || l.includes("città")) return "city";
+      return l.replace(/\s+/g, "_");
+    };
+    const normalizedTypes = typeChips.map(normalizeType);
+    const travel_type_primary = normalizedTypes[0] || null;
+    const travel_type_secondary = normalizedTypes.slice(1);
+
+    // Q3 – momento / must-see (oggi è una text question)
+    const q3 = answers[2] || '';
+
+    // Atmosfera (Q4 immagini)
+    const atmosValue = imageSelections[0];
+    let atmosphere: string | null = null;
+    if (atmosValue === "market") atmosphere = "vibrant_market";
+    else if (atmosValue === "trail") atmosphere = "mountain_trail";
+    else if (atmosValue === "cafe") atmosphere = "european_cafe";
+    else if (atmosValue === "seaside") atmosphere = "seaside_sunset";
+
+    // Ritmo (Q5 slider)
+    let pace: string = "balanced";
+    if (sliderValue <= 25) pace = "structured";
+    else if (sliderValue >= 75) pace = "spontaneous";
+
+    // Obiettivo emotivo (Q6 – text)
+    const emotional_goal = answers[5] || '';
+
+    // Cose da evitare (Q7 chips)
+    const avoidChips = chipSelections[6] || [];
+    const normalizeAvoid = (label: string) => {
+      const l = label.toLowerCase();
+      if (l.includes("affollat") || l.includes("crowd")) return "crowded_places";
+      if (l.includes("guidate") || l.includes("tour")) return "guided_tours";
+      if (l.includes("musei")) return "museums_for_hours";
+      if (l.includes("resort")) return "tourist_resorts";
+      if (l.includes("vita notturna") || l.includes("night") || l.includes("club")) return "nightlife";
+      if (l.includes("ristoranti turistici") || l.includes("turistici")) return "tourist_restaurants";
+      if (l.includes("trasferimenti") || l.includes("transfer") || l.includes("lunghi")) return "long_transfers";
+      if (l.includes("sveglie") || l.includes("presto") || l.includes("early")) return "early_mornings";
+      if (l.includes("programmi") || l.includes("rigidi") || l.includes("schedule")) return "rigid_schedules";
+      return l.replace(/\s+/g, "_");
+    };
+    const avoid = avoidChips.map(normalizeAvoid);
+
+    const experience_priority = q3 || (answers[`1_addendum`] || "");
+    const must_see = q3 ? [q3] : [];
+
+    return {
+      region,
+      specific_place: precisePlace || undefined,
+      travel_type_primary,
+      travel_type_secondary: travel_type_secondary.length ? travel_type_secondary : undefined,
+      experience_priority: experience_priority || undefined,
+      must_see: must_see.length ? must_see : undefined,
+      atmosphere: atmosphere || undefined,
+      pace,
+      emotional_goal: emotional_goal || undefined,
+      avoid: avoid.length ? avoid : undefined,
+    };
+  };
+
   const doFinalSubmit = () => {
-    const quizAnswersArray = [`path_${selectedPath}`, ...questions.map((_, i) => answers[i] || "")];
+    const baseAnswers = questions.map((_, i) => answers[i] || "");
+    const structured = buildStructuredProfileForPathB();
+    const quizAnswersArray = [`path_${selectedPath}`, ...baseAnswers];
+    if (structured) {
+      try {
+        quizAnswersArray.push(JSON.stringify(structured));
+      } catch {
+        // ignore JSON issues, fallback to flat answers only
+      }
+    }
     const durationMap: Record<string, number> = { "weekend": 4, "week": 7, "10-14": 12, "long": 15 };
 
     const enrichedConstraints = [
@@ -840,6 +1011,17 @@ export default function Profiling() {
       const selected = chipSelections[step] || [];
       const isPathBQ1 = selectedPath === 'b' && step === 0;
       const isPathBQ3 = selectedPath === 'b' && step === 2;
+      const isPathBType = selectedPath === 'b' && step === 1;
+      const isPathBAvoid = selectedPath === 'b' && step === 6;
+
+      let addendumPlaceholder = q.addendum;
+      if (q.addendum) {
+        if (isPathBType && selected[0]) {
+          addendumPlaceholder = getPlaceholderForTravelType(selected[0]);
+        } else if (isPathBAvoid && selected[0]) {
+          addendumPlaceholder = getPlaceholderForAvoid(selected[0]);
+        }
+      }
       return (
         <>
           <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
@@ -882,7 +1064,7 @@ export default function Profiling() {
           {q.addendum && (
             <textarea
               data-testid="input-addendum"
-              placeholder={q.addendum}
+              placeholder={addendumPlaceholder}
               value={answers[`${step}_addendum`] || ''}
               onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
               className={`w-full max-w-[640px] mx-auto p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] transition-all duration-500 focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic ${selected.length > 0 ? 'opacity-100 max-h-[160px] mt-4' : 'opacity-0 max-h-0 overflow-hidden mt-0'}`}
@@ -893,6 +1075,7 @@ export default function Profiling() {
     }
 
     if (currentQ.type === 'images') {
+      const isPathBAtmosphere = selectedPath === 'b' && step === 3;
       return (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[720px] mx-auto">
@@ -931,6 +1114,21 @@ export default function Profiling() {
               t('q.selectImages')
             )}
           </div>
+          {isPathBAtmosphere && imageSelections.length > 0 && (
+            <div className="mt-5 max-w-[720px] mx-auto">
+              <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
+                {t('b.q4.addendum') || "Cosa ti attira di questa atmosfera? (opzionale)"}
+              </p>
+              <textarea
+                data-testid="input-atmosphere-addendum"
+                placeholder={getPlaceholderForAtmosphere(imageSelections[0])}
+                value={answers[`${step}_addendum`] || ''}
+                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
+                className="w-full p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
+              />
+            </div>
+          )}
         </>
       );
     }

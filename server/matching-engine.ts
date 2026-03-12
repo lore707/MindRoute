@@ -64,9 +64,25 @@ function parseModelResponse(responseText: string) {
   return generatedResponseSchema.parse(JSON.parse(cleanJson));
 }
 function buildPrompt(input: ProfilingInput): string {
-  const profileAnswers = (input.answers[0] === "path_a" || input.answers[0] === "path_b")
+  const rawAnswers = (input.answers[0] === "path_a" || input.answers[0] === "path_b")
     ? input.answers.slice(1)
     : input.answers;
+
+  // Se l'ultima risposta è un JSON strutturato, usalo come profilo forte per l'AI
+  let structuredProfileBlock = "";
+  let profileAnswers = rawAnswers;
+  if (rawAnswers.length > 0) {
+    const last = rawAnswers[rawAnswers.length - 1];
+    try {
+      const parsed = JSON.parse(last);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        structuredProfileBlock = JSON.stringify(parsed, null, 2);
+        profileAnswers = rawAnswers.slice(0, -1);
+      }
+    } catch {
+      // non è JSON, ignora
+    }
+  }
 
   const path = input.answers[0] === "path_b" ? "Path B (ha già un'idea di zona)" : "Path A (aperto a sorprese)";
   const days = Math.min(input.days, 7);
@@ -90,7 +106,7 @@ Percorso: ${path}
 Budget: ${budgetText} — RISPETTA QUESTO VINCOLO, è fondamentale
 Parti da: ${input.departure} | Giorni: ${days} | Periodo: ${period}
 Compagni: ${input.companions || "non specificato"} | Vincoli: ${input.constraints || "nessuno"}
-Risposte quiz: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
+${structuredProfileBlock ? `Profilo strutturato (JSON):\n${structuredProfileBlock}\n\n` : ""}Risposte quiz: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 
 COMPITO: Genera 1 sola destinazione perfettamente personalizzata con itinerario di ${days} giorni.
 
