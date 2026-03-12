@@ -214,8 +214,8 @@ const translations: Record<string, Record<Lang, string>> = {
   "sidebar.privacy": { en: "Your answers shape your destinations. Never stored, never shared.", it: "Le tue risposte servono solo a costruire il viaggio. Non vengono salvate né condivise." },
 
   "form.step": { en: "Step 2 of 3, practical details", it: "Passo 2 di 3, dettagli pratici" },
-  "form.title": { en: "Now let's talk logistics.", it: "Ora parliamo di logistica." },
-  "form.desc": { en: "Nothing creative here, just the boundaries your trip needs to fit within. 60 seconds and we're done.", it: "Niente di creativo qui, solo i limiti entro cui il tuo viaggio deve rientrare. 60 secondi e abbiamo finito." },
+  "form.title": { en: "Now we give the journey a real shape.", it: "Ora diamo al viaggio una forma reale." },
+  "form.desc": { en: "A few practical choices, then we can turn intuition into something concrete, believable, and truly yours.", it: "Ancora poche scelte pratiche, poi possiamo trasformare l'intuizione in un viaggio concreto, credibile e davvero tuo." },
   "form.budget": { en: "How much do you want to spend?", it: "Quanto vuoi spendere?" },
   "form.budgetSub": { en: "Per person, all included", it: "Per persona, tutto incluso" },
   "form.budgetLow": { en: "Under â‚¬500", it: "Meno di â‚¬500" },
@@ -313,7 +313,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "form.constraintsSub": { en: "Accessibility, fears, special needs, or just something important to mention", it: "Accessibilità, paure, esigenze particolari o qualsiasi cosa importante da tenere presente" },
   "form.constraintsPlaceholder": { en: "For example: I am afraid of flights longer than 4 hours, I need wheelchair accessibility...", it: "Per esempio: temo i voli sopra le 4 ore, ho bisogno di accessibilità per sedia a rotelle, ho bisogno di ritmi molto morbidi..." },
   "form.fillAll": { en: "Please fill in all mandatory fields", it: "Compila tutti i campi obbligatori" },
-  "form.discover": { en: "Discover your destinations", it: "Scopri le tue destinazioni" },
+  "form.discover": { en: "Show me where this can take me", it: "Fammi vedere dove pu? portarmi" },
   "form.thinking": { en: "Thinking about your trip...", it: "Pensiamo al tuo viaggio..." },
   "form.suggest": { en: "We'll suggest 3 destinations designed around you.", it: "Ti suggeriremo 3 destinazioni progettate intorno a te." },
 
@@ -463,6 +463,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useI18n() {
   return useContext(I18nContext);
 }
+
 
 
 
