@@ -861,7 +861,7 @@ export default function Profiling() {
               <input
                 type="text"
                 data-testid="input-precise-location"
-                placeholder={t('b.q1.precisePlaceholder')}
+                placeholder={getPlaceholderForRegion(selected[0])}
                 value={answers[`${step}_precise`] || ''}
                 onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_precise`]: e.target.value }))}
                 className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all"
