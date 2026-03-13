@@ -1151,7 +1151,7 @@ export default function Profiling() {
         </div>
       </div>
     );
-
+   }
   const renderQuestionInput = () => {
     if (!currentQ) return null;
 
