@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, ChevronDown, Moon, Sun, HelpCircle as QuestionIcon } from "lucide-react";
 import { useSubmitProfiling } from "@/hooks/use-profiling";
@@ -7,11 +7,62 @@ import { useI18n } from "@/lib/i18n";
 import { Link, useLocation } from "wouter";
 import LangDropdown from "@/components/LangDropdown";
 import { useTheme } from "@/components/ThemeProvider";
-import { AnalyzingScreen } from "./profiling/AnalyzingScreen";
-import { FormChip } from "./profiling/FormChip";
-import { createProfilingContent } from "./profiling/questions";
-import { SliderTrack } from "./profiling/SliderTrack";
-import type { ChipsQuestion, Question, TextQuestion } from "./profiling/types";
+
+interface ImageOption {
+  src: string;
+  label: string;
+  sub: string;
+  value: string;
+}
+
+interface TextQuestion {
+  text: string;
+  hint: string;
+  type: "text";
+  placeholder: string;
+  why: string;
+  tags: string[];
+  section: string;
+  optional?: boolean;
+}
+
+interface ChipsQuestion {
+  text: string;
+  hint: string;
+  type: "chips";
+  options: string[];
+  multi: boolean;
+  max?: number;
+  addendum?: string;
+  why: string;
+  tags: string[];
+  section: string;
+}
+
+interface ImagesQuestion {
+  text: string;
+  hint: string;
+  type: "images";
+  options: ImageOption[];
+  why: string;
+  tags: string[];
+  section: string;
+}
+
+interface SliderQuestion {
+  text: string;
+  hint: string;
+  type: "slider";
+  why: string;
+  tags: string[];
+  section: string;
+}
+
+type Question = TextQuestion | ChipsQuestion | ImagesQuestion | SliderQuestion;
+
+const drainChipKeys = ['guided', 'crowded', 'museums', 'resort', 'nightlife', 'touristy', 'transits', 'mornings', 'schedules', 'smalltalk', 'unfamiliarfood', 'toomuchwalking', 'tooisolated', 'tooexpensive', 'toolong'];
+const drainSubsetKeys = ['guided', 'crowded', 'museums', 'resort', 'nightlife', 'touristy', 'transits', 'mornings', 'schedules', 'smalltalk'];
+const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
@@ -29,27 +80,6 @@ export default function Profiling() {
   const { t } = useI18n();
   const { theme, toggleTheme } = useTheme();
   const [, setLocation] = useLocation();
-  const splitSceneBackground = theme === "dark"
-    ? "radial-gradient(circle at 50% 16%, rgba(233,69,96,0.14), transparent 26%), radial-gradient(circle at 20% 22%, rgba(78,84,200,0.16), transparent 30%), linear-gradient(180deg, #141727 0%, #0d1020 58%, #101427 100%)"
-    : "radial-gradient(circle at 50% 16%, rgba(233,69,96,0.10), transparent 24%), radial-gradient(circle at 18% 22%, rgba(233,69,96,0.07), transparent 28%), linear-gradient(180deg, #fbf8f4 0%, #f7f2ec 100%)";
-  const splitStroke = theme === "dark" ? "rgba(255,255,255,0.11)" : "rgba(233,69,96,0.18)";
-  const splitBadgeBg = theme === "dark" ? "rgba(255,255,255,0.07)" : "rgba(233,69,96,0.07)";
-  const splitCardGlow = theme === "dark" ? "0 24px 70px rgba(4, 8, 20, 0.46)" : "0 24px 70px rgba(226, 170, 181, 0.22)";
-  const splitTrustBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.68)";
-  const splitQuoteBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.56)";
-  const profilingStageGlow = theme === "dark"
-    ? "radial-gradient(circle at 50% 0%, rgba(233,69,96,0.18), transparent 42%)"
-    : "radial-gradient(circle at 50% 0%, rgba(233,69,96,0.10), transparent 42%)";
-  const questionPanelBg = theme === "dark"
-    ? "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03))"
-    : "linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.68))";
-  const questionPanelShadow = theme === "dark"
-    ? "0 28px 80px rgba(0,0,0,0.34)"
-    : "0 28px 80px rgba(216, 194, 199, 0.20)";
-  const sidePanelBg = theme === "dark"
-    ? "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03))"
-    : "linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.68))";
-  const subtlePanelBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.58)";
 
   const ThemeToggle = () => (
     <button
@@ -62,7 +92,49 @@ export default function Profiling() {
     </button>
   );
 
-  const { questionsByPath, sliderLabels, microReactions, months, analyzeTraits } = createProfilingContent(t);
+  const pathAStyleChipKeys = ['wild', 'quiet', 'chaotic', 'intimate', 'solitary', 'regenerating', 'authentic', 'quietluxury', 'spiritual', 'festive', 'adventure', 'romantic', 'cultural', 'explorative'];
+  const pathADistanceChipKeys = ['close', 'continent', 'far', 'anywhere'];
+  const pathBGeoChipKeys = ['close', 'europe', 'asia', 'americas', 'africa', 'oceania'];
+  const pathBTypeChipKeys = ['culture', 'nature', 'food', 'beach', 'city', 'offgrid', 'roadtrip', 'trekking', 'wellness', 'discovery'];
+
+  const buildPathA = (): Question[] => [
+    { text: t('a.q1.text'), hint: t('a.q1.hint'), type: 'chips', options: pathAStyleChipKeys.map(k => t(`a.q1.chips.${k}`)), multi: true, max: 3, why: t('a.q1.why'), tags: ['vibe', 'emotional tone', 'trip color'], section: t('section.a.style') },
+    { text: t('a.q2.text'), hint: t('a.q2.hint'), type: 'text', placeholder: t('a.q2.placeholder'), why: t('a.q2.why'), tags: ['core need', 'life phase', 'emotional state'], section: t('section.a.need') },
+    { text: t('a.q3.text'), hint: t('a.q3.hint'), type: 'chips', options: drainChipKeys.map(k => t(`chips.${k}`)), multi: true, addendum: t('a.q3.addendum'), why: t('a.q3.why'), tags: ['anti-patterns', 'boundaries', 'identity'], section: t('section.a.drains') },
+    {
+      text: t('a.q4.text'), hint: t('a.q4.hint'), type: 'images', options: [
+        { src: 'https://images.unsplash.com/photo-1545459720-aac8509eb02c?w=600&q=85', label: t('q4.medina'), sub: t('q4.medina.sub'), value: 'medina' },
+        { src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=85', label: t('q4.nordic'), sub: t('q4.nordic.sub'), value: 'nordic' },
+        { src: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&q=85', label: t('q4.temple'), sub: t('q4.temple.sub'), value: 'temple' },
+        { src: 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=600&q=85', label: t('q4.desert'), sub: t('q4.desert.sub'), value: 'desert' }
+      ], why: t('a.q4.why'), tags: ['aesthetic signature', 'visual instinct', 'subconscious'], section: t('section.a.visual')
+    },
+    { text: t('a.q5.text'), hint: t('a.q5.hint'), type: 'slider', why: t('a.q5.why'), tags: ['chaos tolerance', 'control need', 'rhythm'], section: t('section.a.chaos') },
+    { text: t('a.q6.text'), hint: t('a.q6.hint'), type: 'text', placeholder: t('a.q6.placeholder'), why: t('a.q6.why'), tags: ['identity filter', 'rejection', 'self-knowledge'], section: t('section.a.rejection'), optional: true },
+    { text: t('a.q7.text'), hint: t('a.q7.hint'), type: 'chips', options: pathADistanceChipKeys.map(k => t(`a.q7.chips.${k}`)), multi: false, why: t('a.q7.why'), tags: ['geography', 'comfort zone', 'openness'], section: t('section.a.distance') },
+  ];
+
+  const buildPathB = (): Question[] => [
+    { text: t('b.q1.text'), hint: t('b.q1.hint'), type: 'chips', options: pathBGeoChipKeys.map(k => t(`b.q1.chips.${k}`)), multi: false, why: t('b.q1.why'), tags: ['geography', 'constraint'], section: t('section.b.where') },
+    { text: t('b.q2.text'), hint: t('b.q2.hint'), type: 'chips', options: pathBTypeChipKeys.map(k => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t('b.q2.why'), tags: ['trip type', 'category', 'combination'], section: t('section.b.type') },
+    { text: t('b.q3.text'), hint: t('b.q3.hint'), type: 'text', placeholder: t('b.q3.placeholder'), why: t('b.q3.why'), tags: ['must-see', 'motivation', 'emotional need'], section: t('section.b.specific') },
+    {
+      text: t('b.q4.text'), hint: t('b.q4.hint'), type: 'images', options: [
+        { src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=85', label: t('b.q4.seaside'), sub: t('b.q4.seaside.sub'), value: 'seaside' },
+        { src: 'https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=600&q=85', label: t('b.q4.market'), sub: t('b.q4.market.sub'), value: 'market' },
+        { src: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=85', label: t('b.q4.trail'), sub: t('b.q4.trail.sub'), value: 'trail' },
+        { src: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=85', label: t('b.q4.cafe'), sub: t('b.q4.cafe.sub'), value: 'cafe' }
+      ], why: t('b.q4.why'), tags: ['aesthetic', 'atmosphere', 'emotional tone'], section: t('section.b.atmosphere')
+    },
+    { text: t('b.q5.text'), hint: t('b.q5.hint'), type: 'slider', why: t('b.q5.why'), tags: ['rhythm', 'control', 'pace'], section: t('section.b.rhythm') },
+    { text: t('b.q6.text'), hint: t('b.q6.hint'), type: 'text', placeholder: t('b.q6.placeholder'), why: t('b.q6.why'), tags: ['emotional need', 'life phase', 'core desire'], section: t('section.b.feeling') },
+    { text: t('b.q7.text'), hint: t('b.q7.hint'), type: 'chips', options: drainSubsetKeys.map(k => t(`chips.${k}`)), multi: true, addendum: t('b.q7.addendum'), why: t('b.q7.why'), tags: ['anti-patterns', 'quick filter'], section: t('section.b.avoid') },
+  ];
+
+  const sliderLabels = [t('slider.s1'), t('slider.s2'), t('slider.s3'), t('slider.s4'), t('slider.s5'), t('slider.s6'), t('slider.s7')];
+  const microReactions = [t('micro.1'), t('micro.2'), t('micro.3'), t('micro.4'), t('micro.5'), t('micro.6'), t('micro.7')];
+  const months = monthKeys.map(k => t(`months.${k}`));
+  const analyzeTraits = [t('analyze.t1'), t('analyze.t2'), t('analyze.t3'), t('analyze.t4'), t('analyze.t5'), t('analyze.t6')];
 
   const [selectedPath, setSelectedPath] = useState<'a' | 'b' | null>(null);
   const [showSplit, setShowSplit] = useState(true);
@@ -74,6 +146,7 @@ export default function Profiling() {
   const [sliderValue, setSliderValue] = useState(50);
   const [reaction, setReaction] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [formStep, setFormStep] = useState<1 | 2>(1); // NEW: 2-step form
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [visibleTraits, setVisibleTraits] = useState<string[]>([]);
   const [mobileWhyOpen, setMobileWhyOpen] = useState(false);
@@ -82,131 +155,6 @@ export default function Profiling() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const transitionBusy = useRef(false);
   const analyzeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  const getPlaceholderForRegion = (regionLabel?: string) => {
-    const label = (regionLabel || "").toLowerCase();
-
-    // Mappa semplice basata sul testo visibile della chip (italiano/inglese)
-    if (label.includes("europa") || label.includes("europe")) {
-      return "Es: Lisbona, Dolomiti, Atene…";
-    }
-    if (label.includes("asia") || label.includes("asian")) {
-      return "Es: Tokyo, Kyoto, Bali…";
-    }
-    if (label.includes("america")) {
-      return "Es: New York, Patagonia, Costa Rica…";
-    }
-    if (label.includes("africa") || label.includes("medio") || label.includes("middle east")) {
-      return "Es: Marocco, Cape Town, Giordania…";
-    }
-    if (label.includes("oceania")) {
-      return "Es: Sydney, Nuova Zelanda, Fiji…";
-    }
-    if (label.includes("vicino") || label.includes("near") || label.includes("home")) {
-      return "Es: città vicine, lago o montagna a poche ore…";
-    }
-
-    // Fallback generico
-    return "Es: una città o un paese che ti ispira in questo momento…";
-  };
-
-  const getPlaceholderForTravelType = (chipLabel?: string) => {
-    const label = (chipLabel || "").toLowerCase();
-    if (label.includes("food") || label.includes("cibo") || label.includes("tradizion")) {
-      return "Es: sushi autentico, street food, mercati locali…";
-    }
-    if (label.includes("natura") || label.includes("nature") || label.includes("paesagg")) {
-      return "Es: trekking, foreste, fiordi, vulcani…";
-    }
-    if (label.includes("avventura") || label.includes("adventure")) {
-      return "Es: surf, safari, immersioni, arrampicata…";
-    }
-    if (label.includes("mare") || label.includes("relax") || label.includes("beach")) {
-      return "Es: spiagge tranquille, calette nascoste, isole…";
-    }
-    if (label.includes("cultur") || label.includes("storia") || label.includes("culture")) {
-      return "Es: siti storici, quartieri antichi, musei particolari…";
-    }
-    if (label.includes("insolit") || label.includes("unusual") || label.includes("offgrid")) {
-      return "Es: esperienze fuori rotta, luoghi poco turistici…";
-    }
-    return "Es: qualcosa che vorresti assolutamente includere in questo viaggio…";
-  };
-
-  const getPlaceholderForMoment = (chipLabel?: string) => {
-    const label = (chipLabel || "").toLowerCase();
-    if (label.includes("iconic") || label.includes("iconic") || label.includes("iconic")) {
-      return "Es: Torre Eiffel, Piramidi di Giza, Machu Picchu…";
-    }
-    if (label.includes("quartieri") || label.includes("autentici") || label.includes("neighborhood")) {
-      return "Es: mercati locali, street food, quartieri storici…";
-    }
-    if (label.includes("natura")) {
-      return "Es: fiordi norvegesi, Himalaya, Patagonia…";
-    }
-    if (label.includes("mangiare") || label.includes("locali") || label.includes("posti locali")) {
-      return "Es: trattorie di quartiere, bancarelle di street food…";
-    }
-    return "Es: un momento o un luogo che ti viene subito in mente…";
-  };
-
-  const getPlaceholderForEmotion = (chipLabel?: string) => {
-    const label = (chipLabel || "").toLowerCase();
-    if (label.includes("staccare")) {
-      return "Es: rallentare davvero, silenzio, natura…";
-    }
-    if (label.includes("meravigliarmi") || label.includes("meraviglia") || label.includes("wonder")) {
-      return "Es: paesaggi epici, architetture incredibili…";
-    }
-    if (label.includes("zona di comfort") || label.includes("comfort")) {
-      return "Es: qualcosa che non ho mai fatto prima…";
-    }
-    if (label.includes("energia") || label.includes("leggerezza")) {
-      return "Es: sentirmi più leggero, tornare carico…";
-    }
-    if (label.includes("sentire profondamente") || label.includes("profondamente")) {
-      return "Es: entrare davvero in contatto con le persone e i luoghi…";
-    }
-    return "Es: come vorresti sentirti davvero, con parole tue…";
-  };
-
-  const getPlaceholderForAtmosphere = (value?: string) => {
-    switch (value) {
-      case "market":
-        return "Es: street food, bazar, quartieri creativi…";
-      case "trail":
-        return "Es: trekking, silenzio, panorami…";
-      case "cafe":
-        return "Es: librerie, caffè storici, quartieri artistici…";
-      case "seaside":
-        return "Es: tramonti sul mare, passeggiate sul lungomare…";
-      default:
-        return "Es: cosa ti attrae davvero di questa atmosfera…";
-    }
-  };
-
-  const getPlaceholderForAvoid = (chipLabel?: string) => {
-    const label = (chipLabel || "").toLowerCase();
-    if (label.includes("affollat") || label.includes("crowd")) {
-      return "Es: preferisco villaggi piccoli o natura…";
-    }
-    if (label.includes("rigid") || label.includes("programma") || label.includes("schedule")) {
-      return "Es: voglio giornate più libere, senza orari fissi…";
-    }
-    if (label.includes("visite guidate") || label.includes("tour")) {
-      return "Es: preferisco scoprire i posti in autonomia…";
-    }
-    if (label.includes("musei")) {
-      return "Es: meglio pochi musei scelti bene, non giornate intere…";
-    }
-    if (label.includes("club") || label.includes("vita notturna") || label.includes("night")) {
-      return "Es: preferisco serate tranquille, bar locali, musica soft…";
-    }
-    if (label.includes("trasferimenti") || label.includes("transfer") || label.includes("lunghi")) {
-      return "Es: tragitti brevi, poche mete ma ben vissute…";
-    }
-    return "Es: qualcos'altro che sarebbe meglio evitare per goderti davvero il viaggio…";
-  };
 
   const [formData, setFormData] = useState({
     budget: "",
@@ -225,9 +173,8 @@ export default function Profiling() {
     constraints: "",
   });
   const [formFocus, setFormFocus] = useState<string>("budget");
-  const [formStep, setFormStep] = useState<1 | 2>(1);
 
-  const questions = selectedPath ? questionsByPath[selectedPath] : ([] as Question[]);
+  const questions = selectedPath === 'a' ? buildPathA() : buildPathB();
   const currentQ = questions[step];
 
   useEffect(() => {
@@ -250,34 +197,6 @@ export default function Profiling() {
   useEffect(() => {
     return () => { analyzeTimers.current.forEach(t => clearTimeout(t)); };
   }, []);
-
-  useEffect(() => {
-    if (!submitMutation.data) return;
-
-    analyzeTimers.current.forEach(t => clearTimeout(t));
-    setShowAnalyzing(false);
-
-    try {
-      sessionStorage.setItem("mind_destinations", JSON.stringify(submitMutation.data));
-      setLocation("/destinations");
-    } catch (error) {
-      console.error("Failed to persist destinations:", error);
-      toast({
-        title: "Impossibile salvare le destinazioni generate",
-        variant: "destructive",
-      });
-    }
-  }, [setLocation, submitMutation.data, toast]);
-
-  useEffect(() => {
-    if (!submitMutation.error) return;
-
-    setShowAnalyzing(false);
-    toast({
-      title: submitMutation.error.message || "Errore durante la generazione delle destinazioni",
-      variant: "destructive",
-    });
-  }, [submitMutation.error, toast]);
 
   const choosePath = (path: 'a' | 'b') => {
     setSelectedPath(path);
@@ -309,7 +228,7 @@ export default function Profiling() {
       setAnswers(prev => ({
         ...prev,
         [step]: selected.join(', ')
-          + (precise ? ` â†’ ${precise}` : '')
+          + (precise ? ` → ${precise}` : '')
           + (addendum ? ` | ${addendum}` : '')
       }));
     } else if (currentQ.type === 'images') {
@@ -330,14 +249,10 @@ export default function Profiling() {
     analyzeTimers.current = [];
     setVisibleTraits([]);
     setShowAnalyzing(true);
-
-    submitMutation.reset();
-    doFinalSubmit();
-
     analyzeTraits.forEach((trait, i) => {
       const timer = setTimeout(() => {
         setVisibleTraits(prev => [...prev, trait]);
-      }, 120 + i * 180);
+      }, 400 + i * 300);
       analyzeTimers.current.push(timer);
     });
   };
@@ -350,8 +265,8 @@ export default function Profiling() {
     setTimeout(() => {
       setReaction(null);
       if (step >= questions.length - 1) {
-        setFormStep(1);
         setShowForm(true);
+        setFormStep(1);
       } else {
         setStep(prev => prev + 1);
       }
@@ -369,14 +284,12 @@ export default function Profiling() {
   };
 
   const goBack = () => {
-    if (showForm) {
-      if (formStep === 2) {
-        setFormStep(1);
-      } else {
-        setShowForm(false);
-        setFormStep(1);
-        setStep(questions.length - 1);
-      }
+    if (showForm && formStep === 2) {
+      setFormStep(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (showForm && formStep === 1) {
+      setShowForm(false);
+      setStep(questions.length - 1);
     } else if (step > 0) {
       saveCurrentAnswer();
       setStep(step - 1);
@@ -419,7 +332,7 @@ export default function Profiling() {
   };
 
   const getDateString = () => {
-    if (formData.dateMode === "exact") return `${formData.dateFrom} - ${formData.dateTo}`;
+    if (formData.dateMode === "exact") return `${formData.dateFrom} — ${formData.dateTo}`;
     if (formData.dateMode === "flexible-month") return formData.selectedMonths.join(", ");
     return formData.selectedPeriods.join(", ");
   };
@@ -430,102 +343,21 @@ export default function Profiling() {
     return formData.selectedPeriods.length > 0;
   };
 
-  const buildStructuredProfileForPathB = () => {
-    if (selectedPath !== 'b') return null;
+  const isStep1Valid = () => {
+    return formData.budget && isDateValid() && formData.duration && formData.departure && formData.companions;
+  };
 
-    // Q1 – regione + luogo preciso
-    const regionAnswer = answers[0] || '';
-    const precisePlace = answers[`0_precise`] || '';
-    const regionLabel = regionAnswer.toLowerCase();
-    let region: string | null = null;
-    if (regionLabel.includes("asia")) region = "asia";
-    else if (regionLabel.includes("europa") || regionLabel.includes("europe")) region = "europe";
-    else if (regionLabel.includes("america")) region = "americas";
-    else if (regionLabel.includes("africa") || regionLabel.includes("medio") || regionLabel.includes("middle east")) region = "africa_middle_east";
-    else if (regionLabel.includes("oceania")) region = "oceania";
-    else if (regionLabel.includes("vicino") || regionLabel.includes("near") || regionLabel.includes("home")) region = "near_home";
-
-    // Q2 – tipo di viaggio
-    const typeChips = chipSelections[1] || [];
-    const normalizeType = (label: string) => {
-      const l = label.toLowerCase();
-      if (l.includes("food") || l.includes("cibo") || l.includes("gastronom")) return "food";
-      if (l.includes("natura") || l.includes("nature") || l.includes("paesagg")) return "nature";
-      if (l.includes("cultur") || l.includes("storia") || l.includes("heritage")) return "culture";
-      if (l.includes("mare") || l.includes("spiaggia") || l.includes("relax") || l.includes("beach")) return "sea_relax";
-      if (l.includes("avventura") || l.includes("adventure")) return "adventure";
-      if (l.includes("insolit") || l.includes("unusual") || l.includes("offgrid")) return "unusual";
-      if (l.includes("city") || l.includes("città")) return "city";
-      return l.replace(/\s+/g, "_");
-    };
-    const normalizedTypes = typeChips.map(normalizeType);
-    const travel_type_primary = normalizedTypes[0] || null;
-    const travel_type_secondary = normalizedTypes.slice(1);
-
-    // Q3 – momento / must-see (oggi è una text question)
-    const q3 = answers[2] || '';
-
-    // Atmosfera (Q4 immagini)
-    const atmosValue = imageSelections[0];
-    let atmosphere: string | null = null;
-    if (atmosValue === "market") atmosphere = "vibrant_market";
-    else if (atmosValue === "trail") atmosphere = "mountain_trail";
-    else if (atmosValue === "cafe") atmosphere = "european_cafe";
-    else if (atmosValue === "seaside") atmosphere = "seaside_sunset";
-
-    // Ritmo (Q5 slider)
-    let pace: string = "balanced";
-    if (sliderValue <= 25) pace = "structured";
-    else if (sliderValue >= 75) pace = "spontaneous";
-
-    // Obiettivo emotivo (Q6 – text)
-    const emotional_goal = answers[5] || '';
-
-    // Cose da evitare (Q7 chips)
-    const avoidChips = chipSelections[6] || [];
-    const normalizeAvoid = (label: string) => {
-      const l = label.toLowerCase();
-      if (l.includes("affollat") || l.includes("crowd")) return "crowded_places";
-      if (l.includes("guidate") || l.includes("tour")) return "guided_tours";
-      if (l.includes("musei")) return "museums_for_hours";
-      if (l.includes("resort")) return "tourist_resorts";
-      if (l.includes("vita notturna") || l.includes("night") || l.includes("club")) return "nightlife";
-      if (l.includes("ristoranti turistici") || l.includes("turistici")) return "tourist_restaurants";
-      if (l.includes("trasferimenti") || l.includes("transfer") || l.includes("lunghi")) return "long_transfers";
-      if (l.includes("sveglie") || l.includes("presto") || l.includes("early")) return "early_mornings";
-      if (l.includes("programmi") || l.includes("rigidi") || l.includes("schedule")) return "rigid_schedules";
-      return l.replace(/\s+/g, "_");
-    };
-    const avoid = avoidChips.map(normalizeAvoid);
-
-    const experience_priority = q3 || (answers[`1_addendum`] || "");
-    const must_see = q3 ? [q3] : [];
-
-    return {
-      region,
-      specific_place: precisePlace || undefined,
-      travel_type_primary,
-      travel_type_secondary: travel_type_secondary.length ? travel_type_secondary : undefined,
-      experience_priority: experience_priority || undefined,
-      must_see: must_see.length ? must_see : undefined,
-      atmosphere: atmosphere || undefined,
-      pace,
-      emotional_goal: emotional_goal || undefined,
-      avoid: avoid.length ? avoid : undefined,
-    };
+  const handleStep1Continue = () => {
+    if (!isStep1Valid()) {
+      toast({ title: t('form.fillAll'), variant: "destructive" });
+      return;
+    }
+    setFormStep(2);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const doFinalSubmit = () => {
-    const baseAnswers = questions.map((_, i) => answers[i] || "");
-    const structured = buildStructuredProfileForPathB();
-    const quizAnswersArray = [`path_${selectedPath}`, ...baseAnswers];
-    if (structured) {
-      try {
-        quizAnswersArray.push(JSON.stringify(structured));
-      } catch {
-        // ignore JSON issues, fallback to flat answers only
-      }
-    }
+    const quizAnswersArray = [`path_${selectedPath}`, ...questions.map((_, i) => answers[i] || "")];
     const durationMap: Record<string, number> = { "weekend": 4, "week": 7, "10-14": 12, "long": 15 };
 
     const enrichedConstraints = [
@@ -544,19 +376,23 @@ export default function Profiling() {
       leaveDate: getDateString(),
       companions: formData.companions,
       constraints: enrichedConstraints,
+    }, {
+      onSuccess: (data) => {
+        sessionStorage.setItem("mind_destinations", JSON.stringify(data));
+        setShowAnalyzing(false);
+        setTimeout(() => setLocation("/destinations"), 300);
+      },
+      onError: () => {
+        setShowAnalyzing(false);
+        toast({ title: "Qualcosa è andato storto, riprova.", variant: "destructive" });
+      }
     });
   };
 
-  const canProceedFormStep1 = () => {
-    return !!(formData.budget && isDateValid() && formData.duration && formData.departure && formData.companions);
-  };
-
-  const handleDiscoverClick = () => {
-    if (!canProceedFormStep1()) {
-      toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
-      return;
-    }
+  const handleFinalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     startAnalyzing();
+    doFinalSubmit();
   };
 
   const toggleChip = (chip: string) => {
@@ -630,33 +466,31 @@ export default function Profiling() {
     </div>
   );
 
+  // ── SPLIT SCREEN ──────────────────────────────────────────────────────────
   if (showSplit) {
     return (
       <div
         className={`fixed inset-0 z-[300] flex flex-col transition-all duration-600 ${splitExiting ? 'opacity-0' : 'opacity-100'}`}
-        style={{ background: splitSceneBackground }}
+        style={{ background: 'var(--surface-alt)' }}
         data-testid="split-overlay"
       >
         <Nav />
-
         <style>{`
           @keyframes introDrift { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-          @keyframes introBreath { 0%,100% { opacity: 0.08; } 50% { opacity: 0.16; } }
+          @keyframes introBreath { 0%,100% { opacity: 0.08; } 50% { opacity: 0.14; } }
           @keyframes introFloat1 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(12px,-18px) rotate(8deg); } }
           @keyframes introFloat2 { 0%,100% { transform: translate(0,0) rotate(0deg); } 50% { transform: translate(-15px,14px) rotate(-6deg); } }
-          @keyframes splitPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.06); opacity: 1; } }
-          @keyframes splitShimmer { 0% { transform: translateX(-120%); opacity: 0; } 18% { opacity: 0.55; } 100% { transform: translateX(220%); opacity: 0; } }
         `}</style>
 
         <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
-          <path d="M-20 120 C 200 60, 450 220, 720 140 S 1050 30, 1300 160 S 1420 250, 1460 120" fill="none" stroke={splitStroke} strokeWidth="2" opacity="0.8" style={{ animation: 'introDrift 8s ease-in-out infinite' }} />
-          <path d="M-20 780 C 250 720, 480 840, 700 760 S 980 680, 1200 800 S 1380 860, 1460 780" fill="none" stroke={splitStroke} strokeWidth="2" opacity="0.7" style={{ animation: 'introDrift 10s ease-in-out infinite 1s' }} />
+          <path d="M-20 120 C 200 60, 450 220, 720 140 S 1050 30, 1300 160 S 1420 250, 1460 120" fill="none" stroke="#E94560" strokeWidth="2" opacity="0.18" style={{ animation: 'introDrift 8s ease-in-out infinite' }} />
+          <path d="M-20 780 C 250 720, 480 840, 700 760 S 980 680, 1200 800 S 1380 860, 1460 780" fill="none" stroke="#E94560" strokeWidth="2" opacity="0.15" style={{ animation: 'introDrift 10s ease-in-out infinite 1s' }} />
           <circle cx="720" cy="140" r="6" fill="#E94560" style={{ animation: 'introBreath 4s ease-in-out infinite' }} />
           <circle cx="700" cy="760" r="6" fill="#E94560" style={{ animation: 'introBreath 5.5s ease-in-out infinite 0.5s' }} />
         </svg>
 
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <svg viewBox="0 0 120 120" fill="none" className={`w-[280px] h-[280px] md:w-[500px] md:h-[500px] ${theme === "dark" ? "opacity-[0.09]" : "opacity-[0.04]"}`}>
+          <svg viewBox="0 0 120 120" fill="none" className="w-[280px] h-[280px] md:w-[500px] md:h-[500px] opacity-[0.04]">
             <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" />
             <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" />
             <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" />
@@ -676,119 +510,48 @@ export default function Profiling() {
           <polygon points="3 11 22 2 13 21 11 13 3 11" />
         </svg>
 
-        <div className="absolute inset-x-0 top-[88px] z-0 flex justify-center pointer-events-none">
-          <div className="h-[320px] w-[320px] rounded-full blur-3xl opacity-80" style={{ background: theme === "dark" ? "radial-gradient(circle, rgba(233,69,96,0.28), transparent 70%)" : "radial-gradient(circle, rgba(233,69,96,0.18), transparent 70%)", animation: "splitPulse 7s ease-in-out infinite" }} />
-        </div>
-
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 md:px-8 pt-24 pb-10">
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 md:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center w-full max-w-[1080px]"
+            className="text-center max-w-[700px]"
           >
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-6 border border-[rgba(233,69,96,0.16)]" style={{ background: splitBadgeBg }}>
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-6">
               {t('split.label')}
             </span>
-
-            <h1 className="font-serif text-[clamp(34px,5vw,62px)] leading-[1.06] tracking-tight mb-4 text-[var(--text-primary)] max-w-[820px] mx-auto">
+            <h1 className="font-serif text-[clamp(28px,5vw,46px)] leading-[1.2] tracking-tight mb-4 text-[var(--text-primary)]">
               <span dangerouslySetInnerHTML={{ __html: t('split.title') }} />
             </h1>
-
-            <p className="text-[15px] md:text-[18px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-5 max-w-[660px] mx-auto">
+            <p className="text-[15px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-10">
               {t('split.hint')}
             </p>
-
-            <p className="text-[12px] md:text-[13px] text-[var(--text-muted)] uppercase tracking-[0.28em] font-medium mb-10">
-              {t('split.micro')}
-            </p>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-7 max-w-[980px] mx-auto text-left">
-              <button
-                onClick={() => choosePath('a')}
-                data-testid="button-path-a"
-                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate"
-                style={{ boxShadow: splitCardGlow }}
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: theme === "dark" ? "linear-gradient(135deg, rgba(233,69,96,0.16), transparent 45%)" : "linear-gradient(135deg, rgba(233,69,96,0.10), transparent 45%)" }} />
-                <div className="absolute -left-1/3 top-0 h-full w-1/3 rotate-[16deg] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100" style={{ animation: "splitShimmer 1.3s ease forwards" }} />
-                <div className="relative z-10 flex items-start justify-between gap-4 mb-7">
-                  <div>
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.24em] text-[#E94560] border border-[rgba(233,69,96,0.16)]" style={{ background: splitBadgeBg }}>
-                      {t('split.a.kicker')}
-                    </span>
-                  </div>
-                  <div className="w-[60px] h-[60px] rounded-full bg-[rgba(233,69,96,0.08)] flex items-center justify-center shrink-0 border border-[rgba(233,69,96,0.14)] group-hover:scale-110 transition-transform duration-500">
-                    <QuestionIcon className="w-7 h-7 text-[#E94560]" />
-                  </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[560px] mx-auto">
+              <button onClick={() => choosePath('a')} data-testid="button-path-a" className="bg-[var(--surface-card)] border-2 border-[var(--border-input)] rounded-[20px] p-8 md:p-10 text-center cursor-pointer transition-all duration-400 hover:border-[#E94560] hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(233,69,96,0.1)] group">
+                <div className="w-14 h-14 rounded-full bg-[rgba(233,69,96,0.07)] flex items-center justify-center mx-auto mb-5">
+                  <QuestionIcon className="w-7 h-7 text-[#E94560]" />
                 </div>
-                <h3 className="relative z-10 font-serif text-[28px] md:text-[32px] leading-[1.08] mb-3 text-[var(--text-primary)]">{t('split.a.title')}</h3>
-                <p className="relative z-10 text-[15px] text-[var(--text-secondary)] font-light leading-[1.75] mb-5 max-w-[42ch]">{t('split.a.desc')}</p>
-                <p className="relative z-10 text-[13px] text-[var(--text-muted)] leading-[1.7] mb-8 max-w-[42ch]">{t('split.a.detail')}</p>
-                <div className="relative z-10 flex flex-wrap gap-2.5 mb-8">
-                  {[t('split.a.chip1'), t('split.a.chip2'), t('split.a.chip3')].map((chip, i) => (
-                    <span key={i} className="rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[var(--text-secondary)] border border-[var(--border-input)] bg-[rgba(255,255,255,0.02)]">
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-                <div className="relative z-10 flex items-center justify-between gap-4">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)]">{t('split.a.cta')}</span>
-                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-[rgba(233,69,96,0.18)] text-[#E94560] group-hover:translate-x-1 transition-transform duration-400">
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                </div>
+                <h3 className="font-serif text-[20px] mb-2 text-[var(--text-primary)]">{t('split.a.title')}</h3>
+                <p className="text-[13px] text-[var(--text-secondary)] font-light leading-[1.6]">{t('split.a.desc')}</p>
               </button>
-
-              <button
-                onClick={() => choosePath('b')}
-                data-testid="button-path-b"
-                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate"
-                style={{ boxShadow: splitCardGlow }}
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: theme === "dark" ? "linear-gradient(135deg, rgba(255,255,255,0.08), transparent 46%)" : "linear-gradient(135deg, rgba(233,69,96,0.08), transparent 46%)" }} />
-                <div className="absolute -left-1/3 top-0 h-full w-1/3 rotate-[16deg] bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100" style={{ animation: "splitShimmer 1.3s ease forwards" }} />
-                <div className="relative z-10 flex items-start justify-between gap-4 mb-7">
-                  <div>
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.24em] text-[#E94560] border border-[rgba(233,69,96,0.16)]" style={{ background: splitBadgeBg }}>
-                      {t('split.b.kicker')}
-                    </span>
-                  </div>
-                  <div className="w-[60px] h-[60px] rounded-full bg-[rgba(233,69,96,0.08)] flex items-center justify-center shrink-0 border border-[rgba(233,69,96,0.14)] group-hover:scale-110 transition-transform duration-500">
-                    <MapPin className="w-7 h-7 text-[#E94560]" />
-                  </div>
+              <button onClick={() => choosePath('b')} data-testid="button-path-b" className="bg-[var(--surface-card)] border-2 border-[var(--border-input)] rounded-[20px] p-8 md:p-10 text-center cursor-pointer transition-all duration-400 hover:border-[#E94560] hover:-translate-y-1 hover:shadow-[0_16px_48px_rgba(233,69,96,0.1)] group">
+                <div className="w-14 h-14 rounded-full bg-[rgba(233,69,96,0.07)] flex items-center justify-center mx-auto mb-5">
+                  <MapPin className="w-7 h-7 text-[#E94560]" />
                 </div>
-                <h3 className="relative z-10 font-serif text-[28px] md:text-[32px] leading-[1.08] mb-3 text-[var(--text-primary)]">{t('split.b.title')}</h3>
-                <p className="relative z-10 text-[15px] text-[var(--text-secondary)] font-light leading-[1.75] mb-5 max-w-[42ch]">{t('split.b.desc')}</p>
-                <p className="relative z-10 text-[13px] text-[var(--text-muted)] leading-[1.7] mb-8 max-w-[42ch]">{t('split.b.detail')}</p>
-                <div className="relative z-10 flex flex-wrap gap-2.5 mb-8">
-                  {[t('split.b.chip1'), t('split.b.chip2'), t('split.b.chip3')].map((chip, i) => (
-                    <span key={i} className="rounded-full px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[var(--text-secondary)] border border-[var(--border-input)] bg-[rgba(255,255,255,0.02)]">
-                      {chip}
-                    </span>
-                  ))}
-                </div>
-                <div className="relative z-10 flex items-center justify-between gap-4">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)]">{t('split.b.cta')}</span>
-                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-[rgba(233,69,96,0.18)] text-[#E94560] group-hover:translate-x-1 transition-transform duration-400">
-                    <ArrowRight className="w-4 h-4" />
-                  </span>
-                </div>
+                <h3 className="font-serif text-[20px] mb-2 text-[var(--text-primary)]">{t('split.b.title')}</h3>
+                <p className="text-[13px] text-[var(--text-secondary)] font-light leading-[1.6]">{t('split.b.desc')}</p>
               </button>
             </div>
-
-            <div className="flex items-center justify-center gap-3 md:gap-4 mt-8 md:mt-9 flex-wrap">
+            <div className="flex items-center justify-center gap-6 mt-10 flex-wrap">
               {[t('intro.questions'), t('intro.time'), t('intro.private')].map((chip, i) => (
-                <span key={i} className="text-[11px] md:text-[12px] text-[var(--text-secondary)] font-medium tracking-[0.2em] uppercase rounded-full px-4 py-2 border border-[var(--border-input)]" style={{ background: splitTrustBg }}>
-                  {chip}
-                </span>
+                <span key={i} className="text-[12px] text-[var(--text-muted)] font-medium tracking-wide uppercase">{chip}</span>
               ))}
             </div>
           </motion.div>
         </div>
 
-        <footer className="relative z-10 px-4 md:px-8 pb-6 md:pb-8 flex items-center justify-between gap-4 flex-wrap">
-          <span className="text-[12px] md:text-[13px] text-[var(--text-muted)] font-light italic max-w-[840px] rounded-full px-4 py-3 border border-[var(--border-input)]" style={{ background: splitQuoteBg }}>
+        <footer className="relative z-10 px-4 md:px-8 py-6 flex items-center justify-between">
+          <span className="text-[12px] md:text-[13px] text-[var(--text-muted)] font-light italic max-w-[70%]">
             "{t('intro.quote')}"
           </span>
           <div className="hidden sm:flex items-center gap-4 text-[12px] text-[var(--text-muted)]">
@@ -799,213 +562,303 @@ export default function Profiling() {
     );
   }
 
+  // ── ANALYZING SCREEN ──────────────────────────────────────────────────────
   if (showAnalyzing) {
-    return <AnalyzingScreen titleHtml={t('analyze.title')} visibleTraits={visibleTraits} />;
+    return (
+      <div className="fixed inset-0 z-[300] flex items-center justify-center transition-colors duration-300" style={{ background: 'var(--surface)' }}>
+        <div className="text-center max-w-[440px] px-6">
+          <h2 className="font-serif text-[28px] leading-[1.3] mb-5 text-[var(--text-primary)]">
+            <span dangerouslySetInnerHTML={{ __html: t('analyze.title') }} />
+          </h2>
+          <div className="flex gap-2 justify-center mb-6">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="w-2.5 h-2.5 rounded-full bg-[#E94560]" style={{ animation: `analyzeDot 1.4s ease-in-out infinite ${i * 0.2}s` }} />
+            ))}
+          </div>
+          <style>{`@keyframes analyzeDot { 0%,80%,100% { opacity:.2; transform:scale(.8); } 40% { opacity:1; transform:scale(1.2); } }`}</style>
+          <div className="flex flex-wrap gap-2 justify-center mt-5">
+            {visibleTraits.map((trait) => (
+              <motion.span key={trait} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="text-[12px] px-3.5 py-1.5 rounded-full bg-[rgba(233,69,96,0.07)] text-[#E94560] font-medium">
+                {trait}
+              </motion.span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
+  // ── FORM ──────────────────────────────────────────────────────────────────
   if (showForm) {
-    const formSidebarContent = () => {
-      const configs: Record<string, { title: string; desc: string }> = {
-        budget: { title: t('form.sidebarBudgetTitle'), desc: t('form.sidebarBudgetDesc') },
-        dates: { title: t('form.sidebarDateTitle'), desc: t('form.sidebarDateDesc') },
-        duration: { title: t('form.sidebarDurationTitle'), desc: t('form.sidebarDurationDesc') },
-        departure: { title: t('form.sidebarDepartureTitle'), desc: t('form.sidebarDepartureDesc') },
-        companions: { title: t('form.sidebarCompanionsTitle'), desc: t('form.sidebarCompanionsDesc') },
-        accommodation: { title: t('form.sidebarAccommodationTitle'), desc: t('form.sidebarAccommodationDesc') },
-        food: { title: t('form.sidebarFoodTitle'), desc: t('form.sidebarFoodDesc') },
-        effort: { title: t('form.sidebarEffortTitle'), desc: t('form.sidebarEffortDesc') },
-        constraints: { title: t('form.sidebarConstraintsTitle'), desc: t('form.sidebarConstraintsDesc') },
-      };
-      const c = configs[formFocus] || configs.budget;
-      return c;
+    const sidebarMap: Record<string, { title: string; desc: string }> = {
+      budget: { title: t('form.sidebarBudgetTitle'), desc: t('form.sidebarBudgetDesc') },
+      dates: { title: t('form.sidebarDateTitle'), desc: t('form.sidebarDateDesc') },
+      duration: { title: t('form.sidebarDurationTitle'), desc: t('form.sidebarDurationDesc') },
+      departure: { title: t('form.sidebarDepartureTitle'), desc: t('form.sidebarDepartureDesc') },
+      companions: { title: t('form.sidebarCompanionsTitle'), desc: t('form.sidebarCompanionsDesc') },
+      accommodation: { title: t('form.sidebarAccommodationTitle'), desc: t('form.sidebarAccommodationDesc') },
+      food: { title: t('form.sidebarFoodTitle'), desc: t('form.sidebarFoodDesc') },
+effort: { title: t('form.sidebarEffortTitle'), desc: t('form.sidebarEffortDesc') },
+      constraints: { title: t('form.sidebarConstraintsTitle'), desc: t('form.sidebarConstraintsDesc') },
     };
+    const sideInfo = sidebarMap[formFocus] || sidebarMap.budget;
 
-    const sideInfo = formSidebarContent();
-
+    const FormChip = ({ label, selected, onClick, testId }: { label: string; selected: boolean; onClick: () => void; testId: string }) => (
+      <button
+        type="button"
+        data-testid={testId}
+        onClick={onClick}
+        className={`px-5 py-3 rounded-full text-[14px] border-[1.5px] transition-all duration-300 cursor-pointer ${selected
+          ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)]'
+          : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560] hover:text-[var(--text-primary)] hover:-translate-y-0.5'
+          }`}
+      >
+        {label}
+      </button>
+    );
 
     return (
       <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
         <Nav />
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] min-h-screen" style={{ paddingTop: 80 }}>
           <main className="relative py-12 px-4 sm:px-14 pb-[100px] max-w-[740px]">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-5">
-                {t('form.step')}
-              </span>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="font-serif text-[clamp(24px,3.5vw,34px)] leading-[1.3] tracking-tight mb-1 text-[var(--text-primary)]">
-                    {t('form.title')}
-                  </h1>
-                  <p className="text-[13px] text-[var(--text-secondary)] font-light italic leading-[1.7]">
-                    {t('form.desc')}
-                  </p>
-                </div>
-                <div className="hidden sm:flex items-center gap-2 text-[11px] font-medium text-[var(--text-muted)]">
-                  <span className="px-2 py-1 rounded-full border border-[var(--border-input)] bg-[var(--surface-card)]">
-                    {formStep} / 2
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} key={formStep}>
+
+              {/* Header con step counter */}
+              <div className="flex items-center justify-between mb-5">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px]">
+                  {t('form.step')}
+                </span>
+                {/* Step indicator 1/2 o 2/2 */}
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1.5">
+                    <div className={`w-6 h-1.5 rounded-full transition-all duration-300 ${formStep >= 1 ? 'bg-[#E94560]' : 'bg-[var(--border-input)]'}`} />
+                    <div className={`w-6 h-1.5 rounded-full transition-all duration-300 ${formStep >= 2 ? 'bg-[#E94560]' : 'bg-[var(--border-input)]'}`} />
+                  </div>
+                  <span className="text-[13px] text-[var(--text-muted)] font-semibold tabular-nums">
+                    {formStep}<span className="font-normal">/2</span>
                   </span>
                 </div>
               </div>
 
-              <form className="space-y-8">
-                {formStep === 1 && (
-                  <div className="space-y-8">
-                    <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70">
-                      <div onFocus={() => setFormFocus('budget')}>
-                        <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)] flex items-center gap-2">
-                          {t('form.budget')}
-                        </h3>
-                        <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.budgetSub')}</p>
-                        <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
-                          {[['low', t('form.budgetLow')], ['medium', t('form.budgetMed')], ['high', t('form.budgetHigh')], ['unlimited', t('form.budgetUnlimited')]].map(([val, label]) => (
-                            <FormChip key={val} label={label} selected={formData.budget === val} onClick={() => setFormData(p => ({ ...p, budget: val }))} testId={`budget-${val}`} />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+              <h1 className="font-serif text-[clamp(24px,3.5vw,34px)] leading-[1.3] tracking-tight mb-2 text-[var(--text-primary)]">
+                {t('form.title')}
+              </h1>
+              <p className="text-[14px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-10">
+                {t('form.desc')}
+              </p>
 
-                    <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70 space-y-8">
-                      <div onFocus={() => setFormFocus('dates')}>
-                        <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.when')}</h3>
-                        <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.whenSub')}</p>
-                        <div className="flex gap-2 mb-4 flex-wrap">
-                          {(['exact', 'flexible-month', 'flexible-period'] as const).map(mode => (
-                            <button key={mode} type="button" onClick={() => setFormData(p => ({ ...p, dateMode: mode }))}
-                              data-testid={`date-mode-${mode}`}
-                              className={`px-4 py-2 rounded-full text-[13px] border transition-all cursor-pointer ${formData.dateMode === mode ? 'border-[#E94560] text-[#E94560] bg-[rgba(233,69,96,0.07)] font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-transparent hover:border-[#E94560]'}`}
-                            >
-                              {mode === 'exact' ? t('form.dateExact') : mode === 'flexible-month' ? t('form.dateFlexMonth') : t('form.dateFlexPeriod')}
-                            </button>
-                          ))}
-                        </div>
-                        {formData.dateMode === 'exact' && (
-                          <div className="flex gap-3 flex-wrap">
-                            <div className="flex-1 min-w-[140px]">
-                              <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateFrom')}</label>
-                              <input type="date" data-testid="input-date-from" value={formData.dateFrom} onChange={e => setFormData(p => ({ ...p, dateFrom: e.target.value }))}
-                                className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
-                            </div>
-                            <div className="flex-1 min-w-[140px]">
-                              <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateTo')}</label>
-                              <input type="date" data-testid="input-date-to" value={formData.dateTo} onChange={e => setFormData(p => ({ ...p, dateTo: e.target.value }))}
-                                className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
-                            </div>
-                          </div>
-                        )}
-                        {formData.dateMode === 'flexible-month' && (
-                          <>
-                            <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.dateMonthSub')}</p>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                              {months.map((m, i) => (
-                                <button key={i} type="button" data-testid={`month-${i}`} onClick={() => toggleMonth(m)}
-                                  className={`px-3 py-2.5 rounded-xl text-[13px] border transition-all cursor-pointer ${formData.selectedMonths.includes(m) ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}
-                                >{m}</button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                        {formData.dateMode === 'flexible-period' && (
-                          <>
-                            <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.datePeriodSub')}</p>
-                            <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
-                              {[['Spring', t('form.periodSpring')], ['Summer', t('form.periodSummer')], ['Autumn', t('form.periodAutumn')], ['Winter', t('form.periodWinter')], ['Anytime', t('form.periodAnytime')]].map(([val, label]) => (
-                                <FormChip key={val} label={label} selected={formData.selectedPeriods.includes(val)} onClick={() => togglePeriod(val)} testId={`period-${val.toLowerCase()}`} />
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      <div className="pt-4 border-t border-dashed border-[var(--border-input)] mt-4 grid gap-6 md:grid-cols-2">
-                        <div onFocus={() => setFormFocus('duration')}>
-                          <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.duration')}</h3>
-                          <div className="flex flex-wrap gap-2.5 mt-3">
-                            {[['weekend', t('form.durationWeekend')], ['week', t('form.durationWeek')], ['10-14', t('form.duration1014')], ['long', t('form.durationLong')]].map(([val, label]) => (
-                              <FormChip key={val} label={label} selected={formData.duration === val} onClick={() => setFormData(p => ({ ...p, duration: val }))} testId={`duration-${val}`} />
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="space-y-6">
-                          <div onFocus={() => setFormFocus('departure')}>
-                            <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.departure')}</h3>
-                            <input type="text" data-testid="input-departure" value={formData.departure} onChange={e => setFormData(p => ({ ...p, departure: e.target.value }))} placeholder={t('form.departurePlaceholder')}
-                              className="w-full mt-2 px-5 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl text-[15px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_4px_20px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all" />
-                          </div>
-
-                          <div onFocus={() => setFormFocus('companions')}>
-                            <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.companions')}</h3>
-                            <div className="flex flex-wrap gap-2.5 mt-3">
-                              {[['solo', t('form.solo')], ['couple', t('form.partner')], ['friends', t('form.friends')], ['family', t('form.family')]].map(([val, label]) => (
-                                <FormChip key={val} label={label} selected={formData.companions === val} onClick={() => setFormData(p => ({ ...p, companions: val }))} testId={`companions-${val}`} />
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+              {/* ── STEP 1: Budget, Date, Duration, Partenza, Compagni ── */}
+              {formStep === 1 && (
+                <div className="space-y-10">
+                  <div onFocus={() => setFormFocus('budget')}>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.budget')}</h3>
+                    <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.budgetSub')}</p>
+                    <div className="flex flex-wrap gap-2.5">
+                      {[['low', t('form.budgetLow')], ['medium', t('form.budgetMed')], ['high', t('form.budgetHigh')], ['unlimited', t('form.budgetUnlimited')]].map(([val, label]) => (
+                        <FormChip key={val} label={label} selected={formData.budget === val} onClick={() => setFormData(p => ({ ...p, budget: val }))} testId={`budget-${val}`} />
+                      ))}
                     </div>
                   </div>
-                )}
 
-                <div className="flex items-center justify-between pt-4">
-                  <button type="button" onClick={goBack} data-testid="button-form-back"
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border border-transparent cursor-pointer rounded-full hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] hover:border-[var(--border-input)] transition-all">
-                    <ArrowLeft className="w-4 h-4" /> {t('q.back')}
-                  </button>
-                  {formStep === 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!canProceedFormStep1()) {
-                          toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
-                          return;
-                        }
-                        setFormStep(2);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] transition-all group"
-                    >
+                  <div onFocus={() => setFormFocus('dates')}>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.when')}</h3>
+                    <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.whenSub')}</p>
+                    <div className="flex gap-2 mb-4 flex-wrap">
+                      {(['exact', 'flexible-month', 'flexible-period'] as const).map(mode => (
+                        <button key={mode} type="button" onClick={() => setFormData(p => ({ ...p, dateMode: mode }))}
+                          data-testid={`date-mode-${mode}`}
+                          className={`px-4 py-2 rounded-full text-[13px] border transition-all cursor-pointer ${formData.dateMode === mode ? 'border-[#E94560] text-[#E94560] bg-[rgba(233,69,96,0.07)] font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-transparent hover:border-[#E94560]'}`}
+                        >
+                          {mode === 'exact' ? t('form.dateExact') : mode === 'flexible-month' ? t('form.dateFlexMonth') : t('form.dateFlexPeriod')}
+                        </button>
+                      ))}
+                    </div>
+                    {formData.dateMode === 'exact' && (
+                      <div className="flex gap-3 flex-wrap">
+                        <div className="flex-1 min-w-[140px]">
+                          <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateFrom')}</label>
+                          <input type="date" data-testid="input-date-from" value={formData.dateFrom} onChange={e => setFormData(p => ({ ...p, dateFrom: e.target.value }))}
+                            className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
+                        </div>
+                        <div className="flex-1 min-w-[140px]">
+                          <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateTo')}</label>
+                          <input type="date" data-testid="input-date-to" value={formData.dateTo} onChange={e => setFormData(p => ({ ...p, dateTo: e.target.value }))}
+                            className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
+                        </div>
+                      </div>
+                    )}
+                    {formData.dateMode === 'flexible-month' && (
+                      <>
+                        <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.dateMonthSub')}</p>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {months.map((m, i) => (
+                            <button key={i} type="button" data-testid={`month-${monthKeys[i]}`} onClick={() => toggleMonth(m)}
+                              className={`px-3 py-2.5 rounded-xl text-[13px] border transition-all cursor-pointer ${formData.selectedMonths.includes(m) ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}
+                            >{m}</button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    {formData.dateMode === 'flexible-period' && (
+                      <>
+                        <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.datePeriodSub')}</p>
+                        <div className="flex flex-wrap gap-2.5">
+                          {[['Spring', t('form.periodSpring')], ['Summer', t('form.periodSummer')], ['Autumn', t('form.periodAutumn')], ['Winter', t('form.periodWinter')], ['Anytime', t('form.periodAnytime')]].map(([val, label]) => (
+                            <FormChip key={val} label={label} selected={formData.selectedPeriods.includes(val)} onClick={() => togglePeriod(val)} testId={`period-${val.toLowerCase()}`} />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div onFocus={() => setFormFocus('duration')}>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.duration')}</h3>
+                    <div className="flex flex-wrap gap-2.5 mt-3">
+                      {[['weekend', t('form.durationWeekend')], ['week', t('form.durationWeek')], ['10-14', t('form.duration1014')], ['long', t('form.durationLong')]].map(([val, label]) => (
+                        <FormChip key={val} label={label} selected={formData.duration === val} onClick={() => setFormData(p => ({ ...p, duration: val }))} testId={`duration-${val}`} />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div onFocus={() => setFormFocus('departure')}>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.departure')}</h3>
+                    <input type="text" data-testid="input-departure" value={formData.departure} onChange={e => setFormData(p => ({ ...p, departure: e.target.value }))} placeholder={t('form.departurePlaceholder')}
+                      className="w-full mt-2 px-5 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl text-[15px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_4px_20px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all" />
+                  </div>
+
+                  <div onFocus={() => setFormFocus('companions')}>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.companions')}</h3>
+                    <div className="flex flex-wrap gap-2.5 mt-3">
+                      {[['solo', t('form.solo')], ['couple', t('form.partner')], ['friends', t('form.friends')], ['family', t('form.family')]].map(([val, label]) => (
+                        <FormChip key={val} label={label} selected={formData.companions === val} onClick={() => setFormData(p => ({ ...p, companions: val }))} testId={`companions-${val}`} />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Navigazione step 1 */}
+                  <div className="flex items-center justify-between pt-4">
+                    <button type="button" onClick={goBack} data-testid="button-form-back"
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border-none cursor-pointer rounded-lg hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] transition-all">
+                      <ArrowLeft className="w-4 h-4" /> {t('q.back')}
+                    </button>
+                    <button type="button" onClick={handleStep1Continue} data-testid="button-form-step1-continue"
+                      className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_4px_20px_rgba(233,69,96,0.2)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(233,69,96,0.3)] transition-all group">
                       {t('q.continue')}
                       <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleDiscoverClick}
-                      data-testid="button-submit"
-                      className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] transition-all group">
+                  </div>
+                </div>
+              )}
+
+              {/* ── STEP 2: Alloggio, Cibo, Sforzo, Dieta, Note ── */}
+              {formStep === 2 && (
+                <form onSubmit={handleFinalSubmit} className="space-y-8">
+                  <p className="text-[11px] font-semibold tracking-[2px] uppercase text-[#E94560] opacity-70">
+                    {selectedPath === 'a' ? 'Dettagli opzionali' : 'Affina il tuo viaggio'}
+                  </p>
+
+                  <div onFocus={() => setFormFocus('accommodation')}>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.accommodation')}</h3>
+                    <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.accommodationSub')}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[['hostel', t('form.accHostel')], ['budget', t('form.accBudget')], ['mid', t('form.accMid')], ['boutique', t('form.accBoutique')], ['luxury', t('form.accLuxury')], ['mix', t('form.accMix')]].map(([val, label]) => (
+                        <button key={val} type="button" data-testid={`acc-${val}`} onClick={() => setFormData(p => ({ ...p, accommodation: val }))}
+                          className={`px-4 py-2.5 rounded-full text-[13px] border-[1.5px] transition-all duration-300 cursor-pointer ${formData.accommodation === val ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div onFocus={() => setFormFocus('food')}>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.food')}</h3>
+                    <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.foodSub')}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[['street', t('form.foodStreet')], ['budget', t('form.foodBudget')], ['mid', t('form.foodMid')], ['foodie', t('form.foodFoodie')], ['mix', t('form.foodMix')]].map(([val, label]) => (
+                        <button key={val} type="button" data-testid={`food-${val}`} onClick={() => setFormData(p => ({ ...p, food: val }))}
+                          className={`px-4 py-2.5 rounded-full text-[13px] border-[1.5px] transition-all duration-300 cursor-pointer ${formData.food === val ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div onFocus={() => setFormFocus('effort')}>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.effort')}</h3>
+                    <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.effortSub')}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[['low', t('form.effortLow')], ['normal', t('form.effortNormal')], ['high', t('form.effortHigh')], ['extreme', t('form.effortExtreme')]].map(([val, label]) => (
+                        <button key={val} type="button" data-testid={`effort-${val}`} onClick={() => setFormData(p => ({ ...p, effort: val }))}
+                          className={`px-4 py-2.5 rounded-full text-[13px] border-[1.5px] transition-all duration-300 cursor-pointer ${formData.effort === val ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.dietary')}</h3>
+                    <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.dietarySub')}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[['none', t('form.dietNone')], ['vegetarian', t('form.dietVegetarian')], ['vegan', t('form.dietVegan')], ['gluten', t('form.dietGluten')], ['lactose', t('form.dietLactose')], ['halal', t('form.dietHalal')], ['kosher', t('form.dietKosher')], ['allergies', t('form.dietAllergies')]].map(([val, label]) => (
+                        <button key={val} type="button" data-testid={`diet-${val}`} onClick={() => toggleDietary(val)}
+                          className={`px-4 py-2.5 rounded-full text-[13px] border-[1.5px] transition-all duration-300 cursor-pointer ${formData.dietary.includes(val) ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div onFocus={() => setFormFocus('constraints')}>
+                    <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.constraints')}</h3>
+                    <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.constraintsSub')}</p>
+                    <textarea data-testid="input-constraints" value={formData.constraints} onChange={e => setFormData(p => ({ ...p, constraints: e.target.value }))} placeholder={t('form.constraintsPlaceholder')}
+                      className="w-full px-5 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl text-[14px] leading-[1.7] text-[var(--text-primary)] outline-none resize-none min-h-[90px] focus:border-[#E94560] focus:shadow-[0_4px_20px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all" />
+                  </div>
+
+                  {/* Navigazione step 2 */}
+                  <div className="flex items-center justify-between pt-4">
+                    <button type="button" onClick={goBack} data-testid="button-form-back"
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border-none cursor-pointer rounded-lg hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] transition-all">
+                      <ArrowLeft className="w-4 h-4" /> {t('q.back')}
+                    </button>
+                    <button type="submit" data-testid="button-submit"
+                      className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_4px_20px_rgba(233,69,96,0.2)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(233,69,96,0.3)] transition-all group">
                       {t('form.discover')}
                       <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </button>
-                  )}
-                </div>
-              </form>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </main>
 
           <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[80px] h-[calc(100vh-80px)] justify-center pr-7 py-12 overflow-y-auto">
-            <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both', background: sidePanelBg }}>
+            <div className="bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both' }}>
               <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
                 <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
                 {sideInfo.title}
               </div>
               <p className="text-[13px] text-[var(--text-secondary)] leading-[1.7] font-light">{sideInfo.desc}</p>
             </div>
-            <div className="flex items-start gap-2 p-3.5 rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5] border border-[var(--border-input)]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both', background: subtlePanelBg }}>
+            <div className="flex items-start gap-2 p-3.5 bg-[var(--surface-alt)] rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both' }}>
               <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               {t('sidebar.privacy')}
             </div>
           </aside>
         </div>
+        <style>{`@keyframes sidebarIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }`}</style>
       </div>
     );
   }
 
+  // ── QUIZ QUESTIONS ────────────────────────────────────────────────────────
   const renderQuestionInput = () => {
     if (!currentQ) return null;
 
     if (currentQ.type === 'text') {
+      const isPathBQ3 = selectedPath === 'b' && step === 2;
       return (
         <div>
           <textarea
@@ -1014,11 +867,29 @@ export default function Profiling() {
             placeholder={currentQ.placeholder}
             value={answers[step] || ''}
             onChange={(e) => setAnswers(prev => ({ ...prev, [step]: e.target.value }))}
-            className="w-full min-h-[150px] p-5 md:p-6 text-[15px] leading-[1.85] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[22px] resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
+            className="w-full min-h-[120px] p-5 text-[15px] leading-[1.8] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
           />
-          <div className="flex justify-between mt-2 text-[12px] text-[var(--text-muted)]">
-            <span>{(currentQ as TextQuestion).optional ? t('q.optional') : t('q.writeTrue')}</span>
-          </div>
+          {isPathBQ3 && (
+            <div className="mt-4">
+              <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
+                {t('b.q3.precise') || 'Perché proprio quel posto?'}
+              </p>
+              <textarea
+                data-testid="input-answer-b"
+                placeholder={t('b.q3.precisePlaceholder')}
+                value={answers[`${step}_b`] || ''}
+                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_b`]: e.target.value }))}
+                className="w-full min-h-[90px] p-5 text-[15px] leading-[1.8] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
+              />
+              <p className="text-[12px] text-[var(--text-muted)] mt-1.5 italic">{t('q.optional')}</p>
+            </div>
+          )}
+          {!isPathBQ3 && (
+            <div className="flex justify-between mt-2 text-[12px] text-[var(--text-muted)]">
+              <span>{(currentQ as TextQuestion).optional ? t('q.optional') : t('q.writeTrue')}</span>
+            </div>
+          )}
         </div>
       );
     }
@@ -1027,35 +898,16 @@ export default function Profiling() {
       const q = currentQ as ChipsQuestion;
       const selected = chipSelections[step] || [];
       const isPathBQ1 = selectedPath === 'b' && step === 0;
-      const isPathBType = selectedPath === 'b' && step === 1;
-      const isPathBMoment = selectedPath === 'b' && step === 2;
-      const isPathBFeeling = selectedPath === 'b' && step === 5;
-      const isPathBAvoid = selectedPath === 'b' && step === 6;
-
-      let addendumPlaceholder = q.addendum;
-      if (q.addendum) {
-        if (selected[0]) {
-          if (isPathBType) {
-            addendumPlaceholder = getPlaceholderForTravelType(selected[0]);
-          } else if (isPathBMoment) {
-            addendumPlaceholder = getPlaceholderForMoment(selected[0]);
-          } else if (isPathBFeeling) {
-            addendumPlaceholder = getPlaceholderForEmotion(selected[0]);
-          } else if (isPathBAvoid) {
-            addendumPlaceholder = getPlaceholderForAvoid(selected[0]);
-          }
-        }
-      }
       return (
         <>
-          <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
+          <div className="flex flex-wrap gap-2.5">
             {q.options.map(opt => (
               <button
                 key={opt}
                 type="button"
                 data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
                 onClick={() => toggleChip(opt)}
-                className={`px-5 md:px-6 py-3.5 rounded-full text-[14px] md:text-[15px] border-[1.5px] transition-all duration-300 cursor-pointer select-none ${selected.includes(opt)
+                className={`px-5 py-3 rounded-full text-[14px] border-[1.5px] transition-all duration-300 cursor-pointer select-none ${selected.includes(opt)
                   ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)] scale-[1.02]'
                   : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560] hover:text-[var(--text-primary)] hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(233,69,96,0.08)]'
                   }`}
@@ -1065,12 +917,12 @@ export default function Profiling() {
             ))}
           </div>
           {q.max && (
-            <div className="text-left mt-4 text-[13px] text-[var(--text-muted)] max-w-[640px] mx-auto">
+            <div className="text-center mt-3 text-[13px] text-[var(--text-muted)]">
               <span className="text-[#E94560] font-semibold">{selected.length}</span>/{q.max} {t('q.selected')}
             </div>
           )}
           {isPathBQ1 && selected.length > 0 && (
-            <div className="mt-5 p-4 md:p-5 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[22px] transition-all duration-300 max-w-[640px] mx-auto">
+            <div className="mt-5 p-4 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl transition-all duration-300">
               <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2.5 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
                 {t('b.q1.precise')}
@@ -1078,20 +930,20 @@ export default function Profiling() {
               <input
                 type="text"
                 data-testid="input-precise-location"
-                placeholder={getPlaceholderForRegion(selected[0])}
+                placeholder={t('b.q1.placeholder.default')}
                 value={answers[`${step}_precise`] || ''}
                 onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_precise`]: e.target.value }))}
-                className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all"
+                className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all"
               />
             </div>
           )}
           {q.addendum && (
             <textarea
               data-testid="input-addendum"
-              placeholder={addendumPlaceholder}
+              placeholder={q.addendum}
               value={answers[`${step}_addendum`] || ''}
               onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
-              className={`w-full max-w-[640px] mx-auto p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] transition-all duration-500 focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic ${selected.length > 0 ? 'opacity-100 max-h-[160px] mt-4' : 'opacity-0 max-h-0 overflow-hidden mt-0'}`}
+              className={`w-full p-4 text-[14px] leading-[1.6] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-xl resize-none outline-none min-h-[60px] transition-all duration-500 focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic ${selected.length > 0 ? 'opacity-100 max-h-[120px] mt-4' : 'opacity-0 max-h-0 overflow-hidden mt-0'}`}
             />
           )}
         </>
@@ -1099,10 +951,9 @@ export default function Profiling() {
     }
 
     if (currentQ.type === 'images') {
-      const isPathBAtmosphere = selectedPath === 'b' && step === 3;
       return (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[720px] mx-auto">
+          <div className="grid grid-cols-2 gap-4">
             {currentQ.options.map(opt => {
               const isSelected = imageSelections.includes(opt.value);
               return (
@@ -1117,12 +968,12 @@ export default function Profiling() {
                     }`}
                 >
                   <img src={opt.src} alt={opt.label} loading="eager"
-                    className={`w-full h-[220px] md:h-[260px] object-cover block transition-all duration-700 ${isSelected ? 'scale-[1.03]' : 'group-hover:scale-[1.08] group-hover:brightness-[1.08] group-hover:saturate-[1.12]'}`}
+                    className={`w-full h-[150px] md:h-[210px] object-cover block transition-all duration-600 ${isSelected ? 'scale-[1.03]' : 'group-hover:scale-[1.06] group-hover:brightness-[1.08] group-hover:saturate-[1.1]'}`}
                   />
                   <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'bg-gradient-to-b from-[rgba(233,69,96,0.06)] to-[rgba(233,69,96,0.22)]' : 'bg-gradient-to-b from-transparent via-transparent to-[rgba(0,0,0,0.5)]'}`} />
-                  <div className="absolute bottom-0 left-0 right-0 p-5 text-white z-[2]">
-                    <span className="text-[18px] font-semibold tracking-[0.01em]">{opt.label}</span>
-                    <small className="block text-[12px] font-light opacity-85 mt-1 leading-[1.45] max-w-[26ch]">{opt.sub}</small>
+                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-[2]">
+                    <span className="text-[14px] font-medium tracking-wide">{opt.label}</span>
+                    <small className="block text-[11px] font-light opacity-75 mt-0.5">{opt.sub}</small>
                   </div>
                   <div className={`absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-[#E94560] flex items-center justify-center shadow-[0_4px_16px_rgba(233,69,96,0.35)] z-[3] transition-all duration-400 ${isSelected ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-[0.3] -rotate-45'}`} style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
                     <Check className="w-[15px] h-[15px] text-white" strokeWidth={3} />
@@ -1131,28 +982,13 @@ export default function Profiling() {
               );
             })}
           </div>
-          <div className="text-left mt-4 text-[13px] text-[#A09BA8] transition-all max-w-[720px] mx-auto" data-testid="text-img-counter">
+          <div className="text-center mt-3.5 text-[13px] text-[#A09BA8] transition-all" data-testid="text-img-counter">
             {imageSelections.length > 0 ? (
               <><span className="text-[#E94560] font-semibold">{imageSelections.length}</span>/2 {t('q.selected')}</>
             ) : (
               t('q.selectImages')
             )}
           </div>
-          {isPathBAtmosphere && imageSelections.length > 0 && (
-            <div className="mt-5 max-w-[720px] mx-auto">
-              <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
-                {t('b.q4.addendum') || "Cosa ti attira di questa atmosfera? (opzionale)"}
-              </p>
-              <textarea
-                data-testid="input-atmosphere-addendum"
-                placeholder={getPlaceholderForAtmosphere(imageSelections[0])}
-                value={answers[`${step}_addendum`] || ''}
-                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
-                className="w-full p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
-              />
-            </div>
-          )}
         </>
       );
     }
@@ -1161,7 +997,7 @@ export default function Profiling() {
       const labelIdx = Math.round(sliderValue / 100 * 6);
       return (
         <>
-          <div className="bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[22px] p-[32px_24px] md:p-[36px_30px] shadow-[0_2px_16px_rgba(26,26,46,0.03)] max-w-[640px] mx-auto">
+          <div className="bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] p-[36px_30px] shadow-[0_2px_16px_rgba(26,26,46,0.03)]">
             <div className="flex justify-between mb-8">
               <span className="text-[12px] text-[var(--text-secondary)] max-w-[120px] leading-[1.4]">{t('slider.left')}</span>
               <span className="text-[12px] text-[var(--text-secondary)] max-w-[120px] leading-[1.4] text-right">{t('slider.right')}</span>
@@ -1181,7 +1017,7 @@ export default function Profiling() {
             placeholder={t('slider.addendum')}
             value={answers[`${step}_addendum`] || ''}
             onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
-            className="w-full max-w-[640px] mx-auto mt-6 p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
+            className="w-full mt-6 p-4 text-[14px] leading-[1.6] text-[var(--text-primary)] bg-[var(--surface)] border-[1.5px] border-[var(--border-input)] rounded-xl resize-none outline-none min-h-[60px] focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
           />
         </>
       );
@@ -1196,22 +1032,17 @@ export default function Profiling() {
     for (let j = 0; j < step; j++) {
       const a = answers[j];
       if (a != null && a !== '') {
-        const txt = typeof a === 'string' ? (a.length > 55 ? a.substring(0, 55) + '...' : a) : '' + a;
+        const txt = typeof a === 'string' ? (a.length > 55 ? a.substring(0, 55) + '…' : a) : '' + a;
         entries.push({ idx: j, section: questions[j].section, text: txt });
       }
     }
     if (entries.length === 0) return null;
-
     return (
       <div className="mt-1">
         <div className="text-[10px] font-semibold tracking-[2px] uppercase text-[#E94560] mb-2.5 opacity-65">{t('sidebar.profileSoFar')}</div>
         {entries.map((entry, i) => (
-          <div
-            key={entry.idx}
-            className="px-3.5 py-2.5 bg-[var(--surface)] rounded-[10px] mb-1.5 text-[12px] text-[var(--text-secondary)] leading-[1.5] font-light border-l-2 border-[#E94560] opacity-55"
-            style={{ animation: `sidebarIn 0.3s ease ${i * 0.06}s both` }}
-          >
-            <b className="font-medium text-[var(--text-primary)] text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} - {entry.section}</b>
+          <div key={entry.idx} className="px-3.5 py-2.5 bg-[var(--surface)] rounded-[10px] mb-1.5 text-[12px] text-[var(--text-secondary)] leading-[1.5] font-light border-l-2 border-[#E94560] opacity-55" style={{ animation: `sidebarIn 0.3s ease ${i * 0.06}s both` }}>
+            <b className="font-medium text-[var(--text-primary)] text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} · {entry.section}</b>
             {entry.text}
           </div>
         ))}
@@ -1221,7 +1052,6 @@ export default function Profiling() {
 
   return (
     <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
-      <div className="fixed inset-x-0 top-[84px] h-[340px] pointer-events-none z-0 opacity-90" style={{ background: profilingStageGlow }} />
       <svg className="fixed inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none" viewBox="0 0 1440 900">
         <path d="M-20 180 C 200 120, 400 280, 620 200 S 900 80, 1100 220 S 1350 340, 1460 180" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.04" />
         <path d="M-20 400 C 180 340, 350 500, 580 420 S 820 300, 1050 440 S 1300 560, 1460 400" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.035" />
@@ -1250,18 +1080,18 @@ export default function Profiling() {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[78px_minmax(680px,760px)_280px] min-h-screen gap-0 xl:gap-6 w-full max-w-[1420px] mx-auto" style={{ paddingTop: 120 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[72px_1fr_300px] min-h-screen" style={{ paddingTop: 120 }}>
         <aside className="hidden lg:flex flex-col items-center justify-center gap-0 sticky top-[120px] h-[calc(100vh-120px)] py-10">
           {questions.map((_, i) => (
             <div key={i} className="flex flex-col items-center relative group">
               <button
                 onClick={() => goToStep(i)}
                 data-testid={`step-${i + 1}`}
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-semibold z-[2] relative transition-all duration-450 ${i === step
-                  ? 'bg-[#E94560] text-white shadow-[0_10px_26px_rgba(233,69,96,0.22)] scale-[1.18]'
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-semibold z-[2] relative transition-all duration-450 ${i === step
+                  ? 'bg-[#E94560] text-white shadow-[0_4px_20px_rgba(233,69,96,0.15)] scale-[1.2]'
                   : i < step
-                    ? 'bg-[#E94560] text-white opacity-65 hover:opacity-90 hover:scale-[1.08]'
-                    : 'bg-[var(--surface-card)] text-[var(--text-muted)] border-[1.5px] border-[var(--border-input)]'
+                    ? 'bg-[#E94560] text-white opacity-60 hover:opacity-90 hover:scale-[1.08]'
+                    : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[1.5px] border-[var(--border-input)]'
                   }`}
               >
                 {i + 1}
@@ -1270,19 +1100,19 @@ export default function Profiling() {
                 )}
               </button>
               {i < step && answers[i] && (
-                <div className="absolute left-[58px] top-1/2 -translate-y-1/2 bg-[#1A1A2E] text-white text-[11px] font-normal px-3 py-1.5 rounded-lg whitespace-nowrap max-w-[180px] overflow-hidden text-ellipsis opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-250 z-10">
+                <div className="absolute left-[52px] top-1/2 -translate-y-1/2 bg-[#1A1A2E] text-white text-[11px] font-normal px-3 py-1.5 rounded-lg whitespace-nowrap max-w-[180px] overflow-hidden text-ellipsis opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-250 z-10">
                   <span className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-[#1A1A2E]" />
-                  {typeof answers[i] === 'string' && answers[i].length > 30 ? answers[i].substring(0, 30) + '...' : answers[i]}
+                  {typeof answers[i] === 'string' && answers[i].length > 30 ? answers[i].substring(0, 30) + '…' : answers[i]}
                 </div>
               )}
               {i < questions.length - 1 && (
-                <div className={`w-0.5 h-7 rounded-sm transition-all duration-500 ${i < step ? 'bg-[#E94560] opacity-35' : 'bg-[#EDEBE8]'}`} />
+                <div className={`w-0.5 h-6 rounded-sm transition-all duration-500 ${i < step ? 'bg-[#E94560] opacity-35' : 'bg-[#EDEBE8]'}`} />
               )}
             </div>
           ))}
         </aside>
 
-        <main className="relative py-8 px-5 sm:px-8 xl:px-0 pb-[120px] max-w-[760px] w-full mx-auto flex items-center">
+        <main className="relative py-8 px-6 sm:px-14 pb-[120px] max-w-[740px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -1290,63 +1120,38 @@ export default function Profiling() {
               animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -18, scale: 0.98 }}
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="relative z-20 rounded-[30px] border border-[var(--border-input)] p-6 sm:p-8 md:p-9 xl:p-10 w-full"
-              style={{ background: questionPanelBg, boxShadow: questionPanelShadow }}
+              className="relative z-20"
             >
-              <div className="flex items-start justify-between gap-4 mb-5">
-                <div className="min-w-0">
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-[6px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-4 border border-[rgba(233,69,96,0.14)]">
-                    <Info className="w-3 h-3" />
-                    {t('q.label')} {String(step + 1).padStart(2, '0')}
-                  </span>
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-3">
+                <Info className="w-3 h-3" />
+                {t('q.label')} {String(step + 1).padStart(2, '0')}
+              </span>
 
-                  <h1 className="font-serif text-[clamp(30px,4vw,44px)] leading-[1.12] tracking-tight mb-3 text-[var(--text-primary)] max-w-[12ch]">
-                    <span dangerouslySetInnerHTML={{
-                      __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
-                    }} />
-                  </h1>
+              <h1 className="font-serif text-[clamp(26px,3.8vw,36px)] leading-[1.3] tracking-tight mb-2.5 text-[var(--text-primary)]">
+                <span dangerouslySetInnerHTML={{
+                  __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
+                }} />
+              </h1>
 
-                  <p className="text-[15px] md:text-[17px] text-[var(--text-secondary)] font-light italic leading-[1.8] max-w-[44ch]">
-                    {currentQ.hint}
-                  </p>
-                </div>
+              <p className="text-[15px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-6">
+                {currentQ.hint}
+              </p>
 
-                <div className="hidden md:flex flex-col items-end gap-2 shrink-0">
-                  <span className="text-[11px] uppercase tracking-[0.22em] text-[var(--text-muted)] font-medium">{currentQ.section}</span>
-                  <span className="rounded-full px-3 py-1.5 text-[12px] text-[var(--text-secondary)] border border-[var(--border-input)]" style={{ background: subtlePanelBg }}>
-                    {step + 1} / {questions.length}
-                  </span>
-                </div>
-              </div>
+              {renderQuestionInput()}
 
-              <div className="rounded-[24px] border border-[var(--border-input)] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg }}>
-                {renderQuestionInput()}
-              </div>
-
-              <div className="flex items-center justify-between mt-7 gap-4 flex-wrap max-w-[640px] mx-auto">
-                <button
-                  onClick={goBack}
-                  data-testid="button-back"
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border border-transparent cursor-pointer rounded-full hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] hover:border-[var(--border-input)] transition-all"
-                >
+              <div className="flex items-center justify-between mt-7">
+                <button onClick={goBack} data-testid="button-back" className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border-none cursor-pointer rounded-lg hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] transition-all">
                   <ArrowLeft className="w-4 h-4" /> {t('q.back')}
                 </button>
-                <button
-                  onClick={handleNext}
-                  disabled={!canContinue()}
-                  data-testid="button-continue"
-                  className="inline-flex items-center gap-2 px-[34px] py-[15px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] disabled:bg-[#ccc] disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none transition-all group"
-                >
+                <button onClick={handleNext} disabled={!canContinue()} data-testid="button-continue"
+                  className="inline-flex items-center gap-2 px-[34px] py-[15px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_4px_20px_rgba(233,69,96,0.2)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(233,69,96,0.3)] disabled:bg-[#ccc] disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none transition-all group">
                   {t('q.continue')}
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:enabled:translate-x-1" />
                 </button>
               </div>
 
               <div className="lg:hidden mt-6">
-                <button
-                  onClick={() => setMobileWhyOpen(!mobileWhyOpen)}
-                  className="flex items-center gap-1.5 text-[13px] font-medium text-[#E94560] cursor-pointer py-2.5 border-none bg-transparent"
-                >
+                <button onClick={() => setMobileWhyOpen(!mobileWhyOpen)} className="flex items-center gap-1.5 text-[13px] font-medium text-[#E94560] cursor-pointer py-2.5 border-none bg-transparent">
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${mobileWhyOpen ? 'rotate-180' : ''}`} />
                   {t('sidebar.whyThis')}
                 </button>
@@ -1365,16 +1170,15 @@ export default function Profiling() {
           </AnimatePresence>
         </main>
 
-        <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[120px] h-[calc(100vh-120px)] justify-center pr-4 py-12 overflow-y-auto">
-          <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both', background: sidePanelBg }}>
+        <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[120px] h-[calc(100vh-120px)] justify-center pr-7 py-12 overflow-y-auto">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both' }}>
             <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
               <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
               {t('sidebar.whyThis')}
             </div>
             <p className="text-[13px] text-[var(--text-secondary)] leading-[1.7] font-light">{currentQ.why}</p>
           </div>
-
-          <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.25s both', background: sidePanelBg }}>
+          <div className="bg-[var(--surface-card)] border border-[var(--border-input)] rounded-2xl p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.25s both' }}>
             <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
               <MapPin className="w-4 h-4 text-[#E94560] shrink-0" />
               {t('sidebar.mapping')}
@@ -1385,10 +1189,8 @@ export default function Profiling() {
               ))}
             </div>
           </div>
-
           {renderProfileSoFar()}
-
-          <div className="flex items-start gap-2 p-3.5 rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5] border border-[var(--border-input)]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both', background: subtlePanelBg }}>
+          <div className="flex items-start gap-2 p-3.5 bg-[var(--surface-alt)] rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both' }}>
             <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             {t('sidebar.privacy')}
           </div>
@@ -1401,6 +1203,51 @@ export default function Profiling() {
     </div>
   );
 }
+
+function SliderTrack({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const updateFromEvent = useCallback((clientX: number) => {
+    if (!trackRef.current) return;
+    const rect = trackRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    onChange(Math.round(pct));
+  }, [onChange]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      updateFromEvent(x);
+    };
+    const handleUp = () => setIsDragging(false);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('touchmove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+    document.addEventListener('touchend', handleUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+      document.removeEventListener('touchend', handleUp);
+    };
+  }, [isDragging, updateFromEvent]);
+
+  return (
+    <div ref={trackRef} className="relative w-full h-1.5 bg-[var(--surface-alt)] rounded-[3px] cursor-pointer" onClick={(e) => updateFromEvent(e.clientX)}>
+      <div className="absolute left-0 top-0 h-full rounded-[3px] transition-[width] duration-150" style={{ width: `${value}%`, background: 'linear-gradient(90deg, #E94560, #F06B83)' }} />
+      <div
+        className="absolute top-1/2 -translate-y-1/2 w-[30px] h-[30px] bg-[var(--surface-card)] border-[3px] border-[#E94560] rounded-full cursor-grab active:cursor-grabbing active:scale-[1.15] z-[2] hover:shadow-[0_0_0_12px_rgba(233,69,96,0.08)] active:shadow-[0_0_0_18px_rgba(233,69,96,0.1)] transition-all"
+        style={{ left: `${value}%`, transform: 'translate(-50%, -50%)' }}
+        onMouseDown={() => setIsDragging(true)}
+        onTouchStart={() => setIsDragging(true)}
+      />
+    </div>
+  );
+}
+
+
 
 
 
