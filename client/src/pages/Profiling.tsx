@@ -1308,7 +1308,7 @@ export default function Profiling() {
         )}
       </AnimatePresence>
 
-      <div className=grid grid-cols-1 lg:grid-cols-[78px_minmax(600px,700px)_340px] min-h-screen gap-0 xl:gap-6 w-full max-w-[1420px] mx-auto" style={{ paddingTop: 120 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[78px_minmax(600px,700px)_340px] min-h-screen gap-0 xl:gap-6 w-full max-w-[1420px] mx-auto" style={{ paddingTop: 120 }}>
         <aside className="hidden lg:flex flex-col items-center justify-center gap-0 sticky top-[120px] h-[calc(100vh-120px)] py-10">
           {questions.map((_, i) => (
             <div key={i} className="flex flex-col items-center relative group">
