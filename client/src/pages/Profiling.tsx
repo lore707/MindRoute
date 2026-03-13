@@ -553,11 +553,24 @@ export default function Profiling() {
 
   const handleFinalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canProceedFormStep1()) {
-      toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
+    // Se per qualsiasi motivo il submit parte dallo step 1,
+    // usalo per avanzare allo step 2 invece di lanciare subito l'analisi.
+    if (formStep === 1) {
+      if (!canProceedFormStep1()) {
+        toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
+        return;
+      }
+      setFormStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    startAnalyzing();
+
+    // Step 2: ora possiamo davvero procedere con l'analisi
+    if (canProceedFormStep1()) {
+      startAnalyzing();
+    } else {
+      toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
+    }
   };
 
   const toggleChip = (chip: string) => {
