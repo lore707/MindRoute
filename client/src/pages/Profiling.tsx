@@ -1266,7 +1266,7 @@ export default function Profiling() {
         {entries.map((entry, i) => (
           <div
             key={entry.idx}
-            className="px-3.5 py-2.5 bg-[var(--surface)] rounded-[10px] mb-1.5 text-[12px] text-[var(--text-secondary)] leading-[1.5] font-light border-l-2 border-[#E94560] opacity-55"
+           className="px-4 py-3 bg-[var(--surface)] rounded-[12px] mb-2 text-[13px] text-[var(--text-secondary)] leading-[1.5] font-light border-l-2 border-[#E94560] opacity-55"
             style={{ animation: `sidebarIn 0.3s ease ${i * 0.06}s both` }}
           >
             <b className="font-medium text-[var(--text-primary)] text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} - {entry.section}</b>
@@ -1308,7 +1308,7 @@ export default function Profiling() {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[78px_minmax(680px,760px)_280px] min-h-screen gap-0 xl:gap-6 w-full max-w-[1420px] mx-auto" style={{ paddingTop: 120 }}>
+      <div className=grid grid-cols-1 lg:grid-cols-[78px_minmax(600px,700px)_340px] min-h-screen gap-0 xl:gap-6 w-full max-w-[1420px] mx-auto" style={{ paddingTop: 120 }}>
         <aside className="hidden lg:flex flex-col items-center justify-center gap-0 sticky top-[120px] h-[calc(100vh-120px)] py-10">
           {questions.map((_, i) => (
             <div key={i} className="flex flex-col items-center relative group">
@@ -1442,15 +1442,15 @@ export default function Profiling() {
         </main>
 
         <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[120px] h-[calc(100vh-120px)] justify-center pr-4 py-12 overflow-y-auto">
-          <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both', background: sidePanelBg }}>
+          <div className="border border-[var(--border-input)] rounded-[24px] p-6 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both', background: sidePanelBg }}>
             <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
               <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
               {t('sidebar.whyThis')}
             </div>
-            <p className="text-[13px] text-[var(--text-secondary)] leading-[1.7] font-light">{currentQ.why}</p>
+            <p className="text-[14px] text-[var(--text-secondary)] leading-[1.8] font-light">{currentQ.why}</p>
           </div>
 
-          <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.25s both', background: sidePanelBg }}>
+          <div className="border border-[var(--border-input)] rounded-[24px] p-6 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.25s both', background: sidePanelBg }}>
             <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
               <MapPin className="w-4 h-4 text-[#E94560] shrink-0" />
               {t('sidebar.mapping')}
