@@ -1307,8 +1307,7 @@ export default function Profiling() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[78px_minmax(600px,700px)_340px] min-h-screen gap-0 xl:gap-6 w-full max-w-[1420px] mx-auto" style={{ paddingTop: 120 }}>
+<div className="grid grid-cols-1 lg:grid-cols-[60px_minmax(0,1fr)_360px] min-h-screen gap-0 w-full max-w-[1600px] mx-auto px-2" style={{ paddingTop: 120 }}>
         <aside className="hidden lg:flex flex-col items-center justify-center gap-0 sticky top-[120px] h-[calc(100vh-120px)] py-10">
           {questions.map((_, i) => (
             <div key={i} className="flex flex-col items-center relative group">
@@ -1339,8 +1338,8 @@ export default function Profiling() {
             </div>
           ))}
         </aside>
-
-        <main className="relative py-8 px-5 sm:px-8 xl:px-0 pb-[120px] max-w-[760px] w-full mx-auto flex items-center">
+     <main className="relative py-8 px-4 pb-[120px] w-full flex items-center justify-center">
+   
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -1348,7 +1347,7 @@ export default function Profiling() {
               animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
               exit={{ opacity: 0, y: -18, scale: 0.98 }}
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="relative z-20 rounded-[30px] border border-[var(--border-input)] p-6 sm:p-8 md:p-9 xl:p-10 w-full"
+              className="relative z-20 rounded-[30px] border border-[var(--border-input)] p-6 sm:p-8 md:p-9 xl:p-10 w-full max-w-[820px]"
               style={{ background: questionPanelBg, boxShadow: questionPanelShadow }}
             >
               <div className="flex items-start justify-between gap-4 mb-5">
