@@ -133,6 +133,43 @@ export default function Profiling() {
     return "Es: qualcosa che vorresti assolutamente includere in questo viaggio…";
   };
 
+  const getPlaceholderForMoment = (chipLabel?: string) => {
+    const label = (chipLabel || "").toLowerCase();
+    if (label.includes("iconic") || label.includes("iconic") || label.includes("iconic")) {
+      return "Es: Torre Eiffel, Piramidi di Giza, Machu Picchu…";
+    }
+    if (label.includes("quartieri") || label.includes("autentici") || label.includes("neighborhood")) {
+      return "Es: mercati locali, street food, quartieri storici…";
+    }
+    if (label.includes("natura")) {
+      return "Es: fiordi norvegesi, Himalaya, Patagonia…";
+    }
+    if (label.includes("mangiare") || label.includes("locali") || label.includes("posti locali")) {
+      return "Es: trattorie di quartiere, bancarelle di street food…";
+    }
+    return "Es: un momento o un luogo che ti viene subito in mente…";
+  };
+
+  const getPlaceholderForEmotion = (chipLabel?: string) => {
+    const label = (chipLabel || "").toLowerCase();
+    if (label.includes("staccare")) {
+      return "Es: rallentare davvero, silenzio, natura…";
+    }
+    if (label.includes("meravigliarmi") || label.includes("meraviglia") || label.includes("wonder")) {
+      return "Es: paesaggi epici, architetture incredibili…";
+    }
+    if (label.includes("zona di comfort") || label.includes("comfort")) {
+      return "Es: qualcosa che non ho mai fatto prima…";
+    }
+    if (label.includes("energia") || label.includes("leggerezza")) {
+      return "Es: sentirmi più leggero, tornare carico…";
+    }
+    if (label.includes("sentire profondamente") || label.includes("profondamente")) {
+      return "Es: entrare davvero in contatto con le persone e i luoghi…";
+    }
+    return "Es: come vorresti sentirti davvero, con parole tue…";
+  };
+
   const getPlaceholderForAtmosphere = (value?: string) => {
     switch (value) {
       case "market":
@@ -970,7 +1007,6 @@ export default function Profiling() {
     if (!currentQ) return null;
 
     if (currentQ.type === 'text') {
-      const isPathBQ3 = selectedPath === 'b' && step === 2;
       return (
         <div>
           <textarea
@@ -981,27 +1017,9 @@ export default function Profiling() {
             onChange={(e) => setAnswers(prev => ({ ...prev, [step]: e.target.value }))}
             className="w-full min-h-[150px] p-5 md:p-6 text-[15px] leading-[1.85] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[22px] resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
           />
-          {isPathBQ3 && (
-            <div className="mt-4">
-              <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
-                {t('b.q3.precise') || 'Perché proprio quel posto?'}
-              </p>
-              <textarea
-                data-testid="input-answer-b"
-                placeholder={t('b.q3.precisePlaceholder') || 'Es. Ho sempre sentito un\'attrazione per quel luogo, mi ha sempre incuriosito...'}
-                value={answers[`${step}_b`] || ''}
-                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_b`]: e.target.value }))}
-                className="w-full min-h-[110px] p-5 md:p-6 text-[15px] leading-[1.85] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[22px] resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
-              />
-              <p className="text-[12px] text-[var(--text-muted)] mt-1.5 italic">{t('q.optional')}</p>
-            </div>
-          )}
-          {!isPathBQ3 && (
-            <div className="flex justify-between mt-2 text-[12px] text-[var(--text-muted)]">
-              <span>{(currentQ as TextQuestion).optional ? t('q.optional') : t('q.writeTrue')}</span>
-            </div>
-          )}
+          <div className="flex justify-between mt-2 text-[12px] text-[var(--text-muted)]">
+            <span>{(currentQ as TextQuestion).optional ? t('q.optional') : t('q.writeTrue')}</span>
+          </div>
         </div>
       );
     }
@@ -1010,16 +1028,23 @@ export default function Profiling() {
       const q = currentQ as ChipsQuestion;
       const selected = chipSelections[step] || [];
       const isPathBQ1 = selectedPath === 'b' && step === 0;
-      const isPathBQ3 = selectedPath === 'b' && step === 2;
       const isPathBType = selectedPath === 'b' && step === 1;
+      const isPathBMoment = selectedPath === 'b' && step === 2;
+      const isPathBFeeling = selectedPath === 'b' && step === 5;
       const isPathBAvoid = selectedPath === 'b' && step === 6;
 
       let addendumPlaceholder = q.addendum;
       if (q.addendum) {
-        if (isPathBType && selected[0]) {
-          addendumPlaceholder = getPlaceholderForTravelType(selected[0]);
-        } else if (isPathBAvoid && selected[0]) {
-          addendumPlaceholder = getPlaceholderForAvoid(selected[0]);
+        if (selected[0]) {
+          if (isPathBType) {
+            addendumPlaceholder = getPlaceholderForTravelType(selected[0]);
+          } else if (isPathBMoment) {
+            addendumPlaceholder = getPlaceholderForMoment(selected[0]);
+          } else if (isPathBFeeling) {
+            addendumPlaceholder = getPlaceholderForEmotion(selected[0]);
+          } else if (isPathBAvoid) {
+            addendumPlaceholder = getPlaceholderForAvoid(selected[0]);
+          }
         }
       }
       return (

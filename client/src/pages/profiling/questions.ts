@@ -1,4 +1,4 @@
-﻿import type { Question, Translate } from "./types";
+import type { Question, Translate } from "./types";
 
 const drainChipKeys = ["guided", "crowded", "museums", "resort", "nightlife", "touristy", "transits", "mornings", "schedules", "smalltalk", "unfamiliarfood", "toomuchwalking", "tooisolated", "tooexpensive", "toolong"];
 const drainSubsetKeys = ["guided", "crowded", "museums", "resort", "nightlife", "touristy", "transits", "mornings", "schedules", "smalltalk"];
@@ -30,8 +30,35 @@ function buildPathA(t: Translate): Question[] {
 function buildPathB(t: Translate): Question[] {
   return [
     { text: t("b.q1.text"), hint: t("b.q1.hint"), type: "chips", options: pathBGeoChipKeys.map((k) => t(`b.q1.chips.${k}`)), multi: false, why: t("b.q1.why"), tags: ["geography", "constraint"], section: t("section.b.where") },
-    { text: t("b.q2.text"), hint: t("b.q2.hint"), type: "chips", options: pathBTypeChipKeys.map((k) => t(`b.q2.chips.${k}`)), multi: true, max: 3, why: t("b.q2.why"), tags: ["trip type", "category", "combination"], section: t("section.b.type") },
-    { text: t("b.q3.text"), hint: t("b.q3.hint"), type: "text", placeholder: t("b.q3.placeholder"), why: t("b.q3.why"), tags: ["must-see", "motivation", "emotional need"], section: t("section.b.specific") },
+    {
+      text: t("b.q2.text"),
+      hint: t("b.q2.hint"),
+      type: "chips",
+      options: pathBTypeChipKeys.map((k) => t(`b.q2.chips.${k}`)),
+      multi: true,
+      max: 3,
+      addendum: "Vuoi aggiungere qualcosa di specifico? (opzionale)",
+      why: t("b.q2.why"),
+      tags: ["trip type", "category", "combination"],
+      section: t("section.b.type"),
+    },
+    {
+      text: "Quale momento renderebbe questo viaggio davvero giusto?",
+      hint: "Il momento che non vorresti perdere.",
+      type: "chips",
+      options: [
+        "mangiare nei posti locali",
+        "perdermi nei quartieri autentici",
+        "vedere luoghi iconici",
+        "stare immerso nella natura",
+        "vivere qualcosa di completamente nuovo",
+      ],
+      multi: false,
+      addendum: "Hai qualcosa di specifico in mente? (opzionale)",
+      why: "Ci dice qual è il momento che deve assolutamente accadere perché il viaggio sia giusto per te.",
+      tags: ["must-see", "motivation", "highlight"],
+      section: t("section.b.specific"),
+    },
     {
       text: t("b.q4.text"), hint: t("b.q4.hint"), type: "images", options: [
         { src: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900&q=85", label: t("b.q4.seaside"), sub: t("b.q4.seaside.sub"), value: "seaside" },
@@ -41,7 +68,24 @@ function buildPathB(t: Translate): Question[] {
       ], why: t("b.q4.why"), tags: ["aesthetic", "atmosphere", "emotional tone"], section: t("section.b.atmosphere"),
     },
     { text: t("b.q5.text"), hint: t("b.q5.hint"), type: "slider", why: t("b.q5.why"), tags: ["rhythm", "control", "pace"], section: t("section.b.rhythm") },
-    { text: t("b.q6.text"), hint: t("b.q6.hint"), type: "text", placeholder: t("b.q6.placeholder"), why: t("b.q6.why"), tags: ["emotional need", "life phase", "core desire"], section: t("section.b.feeling") },
+    {
+      text: "Come vorresti sentirti durante questo viaggio?",
+      hint: "Non quello che vuoi fare, ma l’effetto che dovrebbe avere su di te.",
+      type: "chips",
+      options: [
+        "Staccare davvero dalla routine",
+        "Ritrovare energia e leggerezza",
+        "Sentirmi libero e spontaneo",
+        "Meravigliarmi di nuovo",
+        "Sentire profondamente il luogo",
+        "Uscire dalla mia zona di comfort",
+      ],
+      multi: true,
+      addendum: "Vuoi aggiungere qualcosa di più personale? (opzionale)",
+      why: "Definisce il tono emotivo del viaggio, oltre alle attività concrete.",
+      tags: ["emotional need", "life phase", "core desire"],
+      section: t("section.b.feeling"),
+    },
     { text: t("b.q7.text"), hint: t("b.q7.hint"), type: "chips", options: drainSubsetKeys.map((k) => t(`chips.${k}`)), multi: true, addendum: t("b.q7.addendum"), why: t("b.q7.why"), tags: ["anti-patterns", "quick filter"], section: t("section.b.avoid") },
   ];
 }
