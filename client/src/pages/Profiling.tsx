@@ -12,7 +12,7 @@ import { FormChip } from "./profiling/FormChip";
 import { createProfilingContent } from "./profiling/questions";
 import { SliderTrack } from "./profiling/SliderTrack";
 import type { ChipsQuestion, Question, TextQuestion } from "./profiling/types";
-
+import { getQuestionBackground } from './profiling/questionBackgrounds';
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
     <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85" />
@@ -1377,9 +1377,27 @@ export default function Profiling() {
                 </div>
               </div>
 
-              <div className="rounded-[24px] border border-[var(--border-input)] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg }}>
-                {renderQuestionInput()}
-              </div>
+              {/* Background contestuale sfocato */}
+{currentQ.type === 'chips' && (
+  <div
+    className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[30px]"
+    style={{
+      opacity: (chipSelections[step] || []).length > 0 ? 0.13 : 0,
+      transition: 'opacity 1s ease'
+    }}
+  >
+    <img
+      src={getQuestionBackground(chipSelections[step] || [])}
+      alt=""
+      className="h-full w-full object-cover"
+      style={{ filter: 'blur(18px)', transform: 'scale(1.1)' }}
+    />
+  </div>
+)}
+
+<div className="rounded-[24px] border border-[var(--border-input)] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg }}>
+  {renderQuestionInput()}
+</div>
 
               <div className="flex items-center justify-between mt-7 gap-4 flex-wrap max-w-[640px] mx-auto">
                 <button
