@@ -551,26 +551,12 @@ export default function Profiling() {
     return !!(formData.budget && isDateValid() && formData.duration && formData.departure && formData.companions);
   };
 
-  const handleFinalSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Se per qualsiasi motivo il submit parte dallo step 1,
-    // usalo per avanzare allo step 2 invece di lanciare subito l'analisi.
-    if (formStep === 1) {
-      if (!canProceedFormStep1()) {
-        toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
-        return;
-      }
-      setFormStep(2);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleDiscoverClick = () => {
+    if (!canProceedFormStep1()) {
+      toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
       return;
     }
-
-    // Step 2: ora possiamo davvero procedere con l'analisi
-    if (canProceedFormStep1()) {
-      startAnalyzing();
-    } else {
-      toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
-    }
+    startAnalyzing();
   };
 
   const toggleChip = (chip: string) => {
@@ -862,7 +848,7 @@ export default function Profiling() {
                 </div>
               </div>
 
-              <form onSubmit={handleFinalSubmit} className="space-y-8">
+              <form className="space-y-8">
                 {formStep === 1 && (
                   <div className="space-y-8">
                     <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70">
@@ -984,7 +970,10 @@ export default function Profiling() {
                       <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </button>
                   ) : (
-                    <button type="submit" data-testid="button-submit"
+                    <button
+                      type="button"
+                      onClick={handleDiscoverClick}
+                      data-testid="button-submit"
                       className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] transition-all group">
                       {t('form.discover')}
                       <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
