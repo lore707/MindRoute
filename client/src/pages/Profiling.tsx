@@ -823,137 +823,152 @@ export default function Profiling() {
     const sideInfo = formSidebarContent();
 
 
-    return (
-      <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
+   return (
+      <div className="relative min-h-screen transition-colors duration-300" style={{ background: 'var(--surface)' }}>
         <Nav />
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] min-h-screen" style={{ paddingTop: 80 }}>
-          <main className="relative py-12 px-4 sm:px-14 pb-[100px] max-w-[740px]">
+
+        <style>{`
+          @keyframes profileIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+          @keyframes sidebarIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+        `}</style>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 88 }}>
+
+          {/* MAIN FORM */}
+          <main className="relative py-10 px-6 sm:px-12 xl:px-16 pb-[120px]">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-5">
-                {t('form.step')}
-              </span>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="font-serif text-[clamp(24px,3.5vw,34px)] leading-[1.3] tracking-tight mb-1 text-[var(--text-primary)]">
-                    {t('form.title')}
-                  </h1>
-                  <p className="text-[13px] text-[var(--text-secondary)] font-light italic leading-[1.7]">
-                    {t('form.desc')}
-                  </p>
+
+              {/* Step header */}
+              <div className="flex items-center gap-3 mb-8">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#E94560] text-white font-bold text-[14px] shrink-0 shadow-[0_6px_20px_rgba(233,69,96,0.25)]">
+                  {formStep}
                 </div>
-                <div className="hidden sm:flex items-center gap-2 text-[11px] font-medium text-[var(--text-muted)]">
-                  <span className="px-2 py-1 rounded-full border border-[var(--border-input)] bg-[var(--surface-card)]">
-                    {formStep} / 2
-                  </span>
+                <div>
+                  <p className="text-[10px] font-bold tracking-[2.5px] uppercase text-[#E94560] mb-0.5">
+                    {formStep === 1 ? 'Dettagli pratici' : 'Preferenze viaggio'}
+                  </p>
+                  <h1 className="font-serif text-[clamp(22px,3vw,32px)] leading-[1.2] text-[var(--text-primary)]">
+                    {formStep === 1 ? t('form.title') : 'Affina il tuo viaggio'}
+                  </h1>
+                </div>
+                <div className="ml-auto hidden sm:flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]">
+                  <div className={`w-7 h-1.5 rounded-full transition-all ${formStep >= 1 ? 'bg-[#E94560]' : 'bg-[var(--border-input)]'}`} />
+                  <div className={`w-7 h-1.5 rounded-full transition-all ${formStep >= 2 ? 'bg-[#E94560]' : 'bg-[var(--border-input)]'}`} />
                 </div>
               </div>
 
-              <form className="space-y-8">
+              <form className="space-y-6 max-w-[680px]">
                 {formStep === 1 && (
-                  <div className="space-y-8">
-                    <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70">
-                      <div onFocus={() => setFormFocus('budget')}>
-                        <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)] flex items-center gap-2">
-                          {t('form.budget')}
-                        </h3>
-                        <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.budgetSub')}</p>
-                        <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
-                          {[['low', t('form.budgetLow')], ['medium', t('form.budgetMed')], ['high', t('form.budgetHigh')], ['unlimited', t('form.budgetUnlimited')]].map(([val, label]) => (
-                            <FormChip key={val} label={label} selected={formData.budget === val} onClick={() => setFormData(p => ({ ...p, budget: val }))} testId={`budget-${val}`} />
-                          ))}
-                        </div>
+                  <div className="space-y-6">
+
+                    {/* Budget */}
+                    <div
+                      className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]"
+                      style={{ background: sidePanelBg }}
+                      onFocus={() => setFormFocus('budget')}
+                    >
+                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.budget')}</h3>
+                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.budgetSub')}</p>
+                      <div className="flex flex-wrap gap-3">
+                        {[['low', t('form.budgetLow')], ['medium', t('form.budgetMed')], ['high', t('form.budgetHigh')], ['unlimited', t('form.budgetUnlimited')]].map(([val, label]) => (
+                          <FormChip key={val} label={label} selected={formData.budget === val} onClick={() => setFormData(p => ({ ...p, budget: val }))} testId={`budget-${val}`} />
+                        ))}
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70 space-y-8">
-                      <div onFocus={() => setFormFocus('dates')}>
-                        <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.when')}</h3>
-                        <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.whenSub')}</p>
-                        <div className="flex gap-2 mb-4 flex-wrap">
-                          {(['exact', 'flexible-month', 'flexible-period'] as const).map(mode => (
-                            <button key={mode} type="button" onClick={() => setFormData(p => ({ ...p, dateMode: mode }))}
-                              data-testid={`date-mode-${mode}`}
-                              className={`px-4 py-2 rounded-full text-[13px] border transition-all cursor-pointer ${formData.dateMode === mode ? 'border-[#E94560] text-[#E94560] bg-[rgba(233,69,96,0.07)] font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-transparent hover:border-[#E94560]'}`}
-                            >
-                              {mode === 'exact' ? t('form.dateExact') : mode === 'flexible-month' ? t('form.dateFlexMonth') : t('form.dateFlexPeriod')}
-                            </button>
-                          ))}
-                        </div>
-                        {formData.dateMode === 'exact' && (
-                          <div className="flex gap-3 flex-wrap">
-                            <div className="flex-1 min-w-[140px]">
-                              <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateFrom')}</label>
-                              <input type="date" data-testid="input-date-from" value={formData.dateFrom} onChange={e => setFormData(p => ({ ...p, dateFrom: e.target.value }))}
-                                className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
-                            </div>
-                            <div className="flex-1 min-w-[140px]">
-                              <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateTo')}</label>
-                              <input type="date" data-testid="input-date-to" value={formData.dateTo} onChange={e => setFormData(p => ({ ...p, dateTo: e.target.value }))}
-                                className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
-                            </div>
-                          </div>
-                        )}
-                        {formData.dateMode === 'flexible-month' && (
-                          <>
-                            <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.dateMonthSub')}</p>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                              {months.map((m, i) => (
-                                <button key={i} type="button" data-testid={`month-${i}`} onClick={() => toggleMonth(m)}
-                                  className={`px-3 py-2.5 rounded-xl text-[13px] border transition-all cursor-pointer ${formData.selectedMonths.includes(m) ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}
-                                >{m}</button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                        {formData.dateMode === 'flexible-period' && (
-                          <>
-                            <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.datePeriodSub')}</p>
-                            <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
-                              {[['Spring', t('form.periodSpring')], ['Summer', t('form.periodSummer')], ['Autumn', t('form.periodAutumn')], ['Winter', t('form.periodWinter')], ['Anytime', t('form.periodAnytime')]].map(([val, label]) => (
-                                <FormChip key={val} label={label} selected={formData.selectedPeriods.includes(val)} onClick={() => togglePeriod(val)} testId={`period-${val.toLowerCase()}`} />
-                              ))}
-                            </div>
-                          </>
-                        )}
+                    {/* Date + Durata */}
+                    <div
+                      className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]"
+                      style={{ background: sidePanelBg }}
+                      onFocus={() => setFormFocus('dates')}
+                    >
+                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.when')}</h3>
+                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.whenSub')}</p>
+                      <div className="flex gap-2 mb-4 flex-wrap">
+                        {(['exact', 'flexible-month', 'flexible-period'] as const).map(mode => (
+                          <button key={mode} type="button" onClick={() => setFormData(p => ({ ...p, dateMode: mode }))}
+                            data-testid={`date-mode-${mode}`}
+                            className={`px-4 py-2 rounded-full text-[13px] border transition-all cursor-pointer ${formData.dateMode === mode ? 'border-[#E94560] text-[#E94560] bg-[rgba(233,69,96,0.07)] font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-transparent hover:border-[#E94560]'}`}
+                          >
+                            {mode === 'exact' ? t('form.dateExact') : mode === 'flexible-month' ? t('form.dateFlexMonth') : t('form.dateFlexPeriod')}
+                          </button>
+                        ))}
                       </div>
+                      {formData.dateMode === 'exact' && (
+                        <div className="flex gap-3 flex-wrap">
+                          <div className="flex-1 min-w-[140px]">
+                            <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateFrom')}</label>
+                            <input type="date" data-testid="input-date-from" value={formData.dateFrom} onChange={e => setFormData(p => ({ ...p, dateFrom: e.target.value }))}
+                              className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
+                          </div>
+                          <div className="flex-1 min-w-[140px]">
+                            <label className="text-[12px] text-[var(--text-muted)] mb-1 block">{t('form.dateTo')}</label>
+                            <input type="date" data-testid="input-date-to" value={formData.dateTo} onChange={e => setFormData(p => ({ ...p, dateTo: e.target.value }))}
+                              className="w-full px-4 py-3 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560]" />
+                          </div>
+                        </div>
+                      )}
+                      {formData.dateMode === 'flexible-month' && (
+                        <>
+                          <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.dateMonthSub')}</p>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {months.map((m, i) => (
+                              <button key={i} type="button" data-testid={`month-${i}`} onClick={() => toggleMonth(m)}
+                                className={`px-3 py-2.5 rounded-xl text-[13px] border transition-all cursor-pointer ${formData.selectedMonths.includes(m) ? 'border-[#E94560] bg-[#E94560] text-white font-medium' : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560]'}`}
+                              >{m}</button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      {formData.dateMode === 'flexible-period' && (
+                        <>
+                          <p className="text-[12px] text-[var(--text-muted)] mb-3">{t('form.datePeriodSub')}</p>
+                          <div className="flex flex-wrap gap-3">
+                            {[['Spring', t('form.periodSpring')], ['Summer', t('form.periodSummer')], ['Autumn', t('form.periodAutumn')], ['Winter', t('form.periodWinter')], ['Anytime', t('form.periodAnytime')]].map(([val, label]) => (
+                              <FormChip key={val} label={label} selected={formData.selectedPeriods.includes(val)} onClick={() => togglePeriod(val)} testId={`period-${val.toLowerCase()}`} />
+                            ))}
+                          </div>
+                        </>
+                      )}
 
-                      <div className="pt-4 border-t border-dashed border-[var(--border-input)] mt-4 grid gap-6 md:grid-cols-2">
+                      <div className="grid gap-6 md:grid-cols-2 mt-6 pt-5 border-t border-dashed border-[var(--border-input)]">
                         <div onFocus={() => setFormFocus('duration')}>
-                          <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.duration')}</h3>
+                          <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.duration')}</h3>
                           <div className="flex flex-wrap gap-2.5 mt-3">
                             {[['weekend', t('form.durationWeekend')], ['week', t('form.durationWeek')], ['10-14', t('form.duration1014')], ['long', t('form.durationLong')]].map(([val, label]) => (
                               <FormChip key={val} label={label} selected={formData.duration === val} onClick={() => setFormData(p => ({ ...p, duration: val }))} testId={`duration-${val}`} />
                             ))}
                           </div>
                         </div>
-
-                        <div className="space-y-6">
-                          <div onFocus={() => setFormFocus('departure')}>
-                            <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.departure')}</h3>
-                            <input type="text" data-testid="input-departure" value={formData.departure} onChange={e => setFormData(p => ({ ...p, departure: e.target.value }))} placeholder={t('form.departurePlaceholder')}
-                              className="w-full mt-2 px-5 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl text-[15px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_4px_20px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all" />
-                          </div>
-
-                          <div onFocus={() => setFormFocus('companions')}>
-                            <h3 className="text-[15px] font-semibold mb-1.5 text-[var(--text-primary)]">{t('form.companions')}</h3>
-                            <div className="flex flex-wrap gap-2.5 mt-3">
-                              {[['solo', t('form.solo')], ['couple', t('form.partner')], ['friends', t('form.friends')], ['family', t('form.family')]].map(([val, label]) => (
-                                <FormChip key={val} label={label} selected={formData.companions === val} onClick={() => setFormData(p => ({ ...p, companions: val }))} testId={`companions-${val}`} />
-                              ))}
-                            </div>
+                        <div onFocus={() => setFormFocus('companions')}>
+                          <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.companions')}</h3>
+                          <div className="flex flex-wrap gap-2.5 mt-3">
+                            {[['solo', t('form.solo')], ['couple', t('form.partner')], ['friends', t('form.friends')], ['family', t('form.family')]].map(([val, label]) => (
+                              <FormChip key={val} label={label} selected={formData.companions === val} onClick={() => setFormData(p => ({ ...p, companions: val }))} testId={`companions-${val}`} />
+                            ))}
                           </div>
                         </div>
                       </div>
                     </div>
+
+                    {/* Partenza */}
+                    <div
+                      className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]"
+                      style={{ background: sidePanelBg }}
+                      onFocus={() => setFormFocus('departure')}
+                    >
+                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.departure')}</h3>
+                      <input type="text" data-testid="input-departure" value={formData.departure} onChange={e => setFormData(p => ({ ...p, departure: e.target.value }))} placeholder={t('form.departurePlaceholder')}
+                        className="w-full mt-3 px-5 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl text-[15px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_4px_20px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all" />
+                    </div>
+
                   </div>
                 )}
-{formStep === 2 && (
-                  <div className="space-y-8">
-                    <p className="text-[11px] font-semibold tracking-[2.5px] uppercase text-[#E94560] opacity-70 mb-2">
-                      {t('form.step2label') || 'Affina il tuo viaggio'}
-                    </p>
 
-                    <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70" onFocus={() => setFormFocus('accommodation')}>
+                {formStep === 2 && (
+                  <div className="space-y-6">
+
+                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('accommodation')}>
                       <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.accommodation')}</h3>
                       <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.accommodationSub')}</p>
                       <div className="flex flex-wrap gap-3">
@@ -963,7 +978,7 @@ export default function Profiling() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70" onFocus={() => setFormFocus('food')}>
+                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('food')}>
                       <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.food')}</h3>
                       <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.foodSub')}</p>
                       <div className="flex flex-wrap gap-3">
@@ -973,7 +988,7 @@ export default function Profiling() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70" onFocus={() => setFormFocus('effort')}>
+                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('effort')}>
                       <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.effort')}</h3>
                       <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.effortSub')}</p>
                       <div className="flex flex-wrap gap-3">
@@ -983,7 +998,7 @@ export default function Profiling() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70">
+                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }}>
                       <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.dietary')}</h3>
                       <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.dietarySub')}</p>
                       <div className="flex flex-wrap gap-3">
@@ -993,7 +1008,7 @@ export default function Profiling() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-[var(--border-input)] p-5 md:p-6 bg-[var(--surface-card)]/70" onFocus={() => setFormFocus('constraints')}>
+                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('constraints')}>
                       <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.constraints')}</h3>
                       <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.constraintsSub')}</p>
                       <textarea
@@ -1004,37 +1019,24 @@ export default function Profiling() {
                         className="w-full px-5 py-4 bg-[var(--surface)] border-[1.5px] border-[var(--border-input)] rounded-2xl text-[14px] leading-[1.7] text-[var(--text-primary)] outline-none resize-none min-h-[100px] focus:border-[#E94560] focus:shadow-[0_4px_20px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all"
                       />
                     </div>
+
                   </div>
                 )}
-                <div className="flex items-center justify-between pt-4">             
+
+                <div className="flex items-center justify-between pt-4">
                   <button type="button" onClick={goBack} data-testid="button-form-back"
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border border-transparent cursor-pointer rounded-full hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] hover:border-[var(--border-input)] transition-all">
                     <ArrowLeft className="w-4 h-4" /> {t('q.back')}
                   </button>
                   {formStep === 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!canProceedFormStep1()) {
-                          toast({ title: t('form.fillAll') || "Please fill in all mandatory fields", variant: "destructive" });
-                          return;
-                        }
-                        setFormStep(2);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] transition-all group"
-                    >
-                      {t('q.continue')}
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    <button type="button" onClick={() => { if (!canProceedFormStep1()) { toast({ title: t('form.fillAll') || "Compila tutti i campi obbligatori", variant: "destructive" }); return; } setFormStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      className="inline-flex items-center gap-2 px-8 py-4 bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 transition-all group">
+                      {t('q.continue')} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={handleDiscoverClick}
-                      data-testid="button-submit"
-                      className="inline-flex items-center gap-2 px-8 py-4 md:px-10 md:py-[18px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] transition-all group">
-                      {t('form.discover')}
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    <button type="button" onClick={handleDiscoverClick} data-testid="button-submit"
+                      className="inline-flex items-center gap-2 px-8 py-4 bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 transition-all group">
+                      {t('form.discover')} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                   )}
                 </div>
@@ -1042,23 +1044,113 @@ export default function Profiling() {
             </motion.div>
           </main>
 
-          <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[80px] h-[calc(100vh-80px)] justify-center pr-7 py-12 overflow-y-auto">
-            <div className="border border-[var(--border-input)] rounded-[24px] p-5 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both', background: sidePanelBg }}>
+          {/* SIDEBAR PROFILO LIVE */}
+          <aside className="hidden lg:flex flex-col gap-4 sticky top-[88px] h-[calc(100vh-88px)] py-10 pr-8 overflow-y-auto">
+
+            {/* Sezione Quiz */}
+            {Object.keys(answers).filter(k => !k.includes('_') && answers[k]).length > 0 && (
+              <div className="rounded-[20px] border border-[var(--border-input)] p-5" style={{ background: sidePanelBg, animation: 'sidebarIn 0.4s ease both' }}>
+                <div className="text-[10px] font-bold tracking-[2px] uppercase text-[#E94560] mb-3 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
+                  Il tuo profilo
+                </div>
+                <div className="space-y-2">
+                  {questions.map((q, i) => {
+                    const a = answers[i];
+                    if (!a) return null;
+                    const short = a.length > 48 ? a.substring(0, 48) + '…' : a;
+                    return (
+                      <div key={i} className="flex gap-2 items-start" style={{ animation: `profileIn 0.3s ease ${i * 0.04}s both` }}>
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-[rgba(233,69,96,0.1)] text-[#E94560] text-[10px] font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-[0.5px] text-[var(--text-muted)] font-medium">{q.section}</p>
+                          <p className="text-[12px] text-[var(--text-secondary)] leading-[1.5]">{short}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Sezione Logistica */}
+            {(formData.budget || formData.selectedMonths.length > 0 || formData.duration || formData.departure || formData.companions || formData.accommodation || formData.food || formData.effort) && (
+              <div className="rounded-[20px] border border-[var(--border-input)] p-5" style={{ background: sidePanelBg, animation: 'sidebarIn 0.4s ease 0.1s both' }}>
+                <div className="text-[10px] font-bold tracking-[2px] uppercase text-[#E94560] mb-3 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
+                  Logistica
+                </div>
+                <div className="space-y-2">
+                  {formData.budget && (
+                    <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease both' }}>
+                      <span className="text-[var(--text-muted)]">Budget</span>
+                      <span className="text-[var(--text-primary)] font-medium capitalize">{formData.budget}</span>
+                    </div>
+                  )}
+                  {(formData.selectedMonths.length > 0 || formData.dateFrom) && (
+                    <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease 0.05s both' }}>
+                      <span className="text-[var(--text-muted)]">Periodo</span>
+                      <span className="text-[var(--text-primary)] font-medium">{formData.selectedMonths.length > 0 ? formData.selectedMonths.slice(0, 2).join(', ') + (formData.selectedMonths.length > 2 ? '…' : '') : formData.dateFrom}</span>
+                    </div>
+                  )}
+                  {formData.duration && (
+                    <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease 0.1s both' }}>
+                      <span className="text-[var(--text-muted)]">Durata</span>
+                      <span className="text-[var(--text-primary)] font-medium">{formData.duration}</span>
+                    </div>
+                  )}
+                  {formData.departure && (
+                    <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease 0.15s both' }}>
+                      <span className="text-[var(--text-muted)]">Partenza</span>
+                      <span className="text-[var(--text-primary)] font-medium">{formData.departure}</span>
+                    </div>
+                  )}
+                  {formData.companions && (
+                    <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease 0.2s both' }}>
+                      <span className="text-[var(--text-muted)]">Con chi</span>
+                      <span className="text-[var(--text-primary)] font-medium capitalize">{formData.companions}</span>
+                    </div>
+                  )}
+                  {formData.accommodation && (
+                    <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease 0.25s both' }}>
+                      <span className="text-[var(--text-muted)]">Alloggio</span>
+                      <span className="text-[var(--text-primary)] font-medium capitalize">{formData.accommodation}</span>
+                    </div>
+                  )}
+                  {formData.food && (
+                    <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease 0.3s both' }}>
+                      <span className="text-[var(--text-muted)]">Cibo</span>
+                      <span className="text-[var(--text-primary)] font-medium capitalize">{formData.food}</span>
+                    </div>
+                  )}
+                  {formData.effort && (
+                    <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease 0.35s both' }}>
+                      <span className="text-[var(--text-muted)]">Ritmo fisico</span>
+                      <span className="text-[var(--text-primary)] font-medium capitalize">{formData.effort}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Help contestuale */}
+            <div className="rounded-[20px] border border-[var(--border-input)] p-5" style={{ background: sidePanelBg, animation: 'sidebarIn 0.4s ease 0.2s both' }}>
               <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
                 <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
                 {sideInfo.title}
               </div>
               <p className="text-[13px] text-[var(--text-secondary)] leading-[1.7] font-light">{sideInfo.desc}</p>
             </div>
-            <div className="flex items-start gap-2 p-3.5 rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5] border border-[var(--border-input)]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both', background: subtlePanelBg }}>
+
+            <div className="flex items-start gap-2 p-3.5 rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5] border border-[var(--border-input)]" style={{ background: subtlePanelBg }}>
               <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               {t('sidebar.privacy')}
             </div>
+
           </aside>
         </div>
       </div>
     );
-  }
 
   const renderQuestionInput = () => {
     if (!currentQ) return null;
