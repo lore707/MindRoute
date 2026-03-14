@@ -13,6 +13,7 @@ import { createProfilingContent } from "./profiling/questions";
 import { SliderTrack } from "./profiling/SliderTrack";
 import type { ChipsQuestion, Question, TextQuestion } from "./profiling/types";
 import { getQuestionBackground } from './profiling/questionBackgrounds';
+import { getQuestionTheme } from './profiling/questionThemes';
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
     <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85" />
@@ -1469,23 +1470,26 @@ export default function Profiling() {
               </div>
 
               {/* Background contestuale sfocato */}
-{currentQ.type === 'chips' && (
-  <div
-    className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[30px]"
-    style={{
-      opacity: (chipSelections[step] || []).length > 0 ? 0.13 : 0,
-      transition: 'opacity 1s ease'
-    }}
-  >
-    <img
-      src={getQuestionBackground(chipSelections[step] || [])}
-      alt=""
-      className="h-full w-full object-cover"
-      style={{ filter: 'blur(18px)', transform: 'scale(1.1)' }}
-    />
-  </div>
-)}
-
+{currentQ.type === 'chips' && (() => {
+  const qTheme = getQuestionTheme(chipSelections[step] || []);
+  const hasSelection = (chipSelections[step] || []).length > 0;
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[30px] transition-all duration-700"
+      style={{ opacity: hasSelection ? 1 : 0 }}
+    >
+      <div className="absolute inset-0 transition-all duration-700" style={{ background: qTheme.gradient }} />
+      <svg
+        viewBox={qTheme.svgViewBox}
+        className="absolute bottom-[-10px] right-[-10px] w-[160px] h-[160px] transition-all duration-700"
+        style={{ color: qTheme.accentColor }}
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        dangerouslySetInnerHTML={{ __html: qTheme.svgPath }}
+      />
+    </div>
+  );
+})()}
 <div className="rounded-[24px] border border-[var(--border-input)] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg }}>
   {renderQuestionInput()}
 </div>
