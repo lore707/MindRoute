@@ -703,11 +703,11 @@ export default function Profiling() {
               {t('split.micro')}
             </p>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-7 max-w-[980px] mx-auto text-left">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-7 max-w-[980px] mx-auto text-left items-start">
               <button
                 onClick={() => choosePath('a')}
                 data-testid="button-path-a"
-                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate"
+                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate h-auto"
                 style={{ boxShadow: splitCardGlow }}
               >
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: theme === "dark" ? "linear-gradient(135deg, rgba(233,69,96,0.16), transparent 45%)" : "linear-gradient(135deg, rgba(233,69,96,0.10), transparent 45%)" }} />
@@ -743,7 +743,7 @@ export default function Profiling() {
               <button
                 onClick={() => choosePath('b')}
                 data-testid="button-path-b"
-                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate"
+                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate h-auto"
                 style={{ boxShadow: splitCardGlow }}
               >
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: theme === "dark" ? "linear-gradient(135deg, rgba(255,255,255,0.08), transparent 46%)" : "linear-gradient(135deg, rgba(233,69,96,0.08), transparent 46%)" }} />
