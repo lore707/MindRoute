@@ -49,7 +49,7 @@ export default function Profiling() {
   const sidePanelBg = theme === "dark"
     ? "linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03))"
     : "linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.68))";
-  const subtlePanelBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.58)";
+ const subtlePanelBg = theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.35)";
 
   const ThemeToggle = () => (
     <button
@@ -1442,15 +1442,17 @@ export default function Profiling() {
              className="relative z-20 rounded-[30px] p-6 sm:p-8 md:p-9 xl:p-10 w-full max-w-[820px]"
 style={{
  background: theme === 'dark'
-    ? 'rgba(20,18,35,0.55)'
-    : 'rgba(255,255,255,0.62)',
-  backdropFilter: 'blur(32px) saturate(1.8) brightness(1.05)',
-  WebkitBackdropFilter: 'blur(32px) saturate(1.8) brightness(1.05)',
+    ? 'rgba(15,12,28,0.38)'
+    : 'rgba(255,255,255,0.28)',
+  backdropFilter: 'blur(40px) saturate(2.2) brightness(1.08)',
+  WebkitBackdropFilter: 'blur(40px) saturate(2.2) brightness(1.08)',
   WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
- border: 'none',
+border: theme === 'dark'
+    ? '1px solid rgba(255,255,255,0.06)'
+    : '1px solid rgba(255,255,255,0.30)', 
   boxShadow: theme === 'dark'
-    ? '0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.07), inset 0 1px 0 rgba(255,255,255,0.10)'
-    : '0 32px 80px rgba(160,140,150,0.30), 0 0 0 1px rgba(255,255,255,0.50), inset 0 1px 0 rgba(255,255,255,0.95)',
+    ? '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.20)'
+    : '0 40px 100px rgba(100,80,90,0.20), 0 0 0 1px rgba(255,255,255,0.25), inset 0 1px 0 rgba(255,255,255,0.80), inset 0 -1px 0 rgba(0,0,0,0.04)',
 }}
             >
 <div className="relative z-10 flex items-start justify-between gap-4 mb-5">           
@@ -1502,7 +1504,7 @@ style={{
     </div>
   );
 })()}
-<div className="relative z-10 rounded-[24px] border border-[var(--border-input)] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg }}>
+<div className="relative z-10 rounded-[24px] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.35)' }}>
   {renderQuestionInput()}
 </div>
 
