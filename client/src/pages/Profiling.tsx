@@ -1376,9 +1376,9 @@ export default function Profiling() {
           ? getQuestionTheme(chipSelections[step] || [])
           : null;
         return bgTheme ? (
-          <div className="fixed inset-0 z-0 pointer-events-none transition-all duration-1000" style={{ opacity: 0.35 }}>
-            <img src={bgTheme.imageUrl} alt="" className="w-full h-full object-cover" style={{ filter: 'blur(60px)', transform: 'scale(1.1)' }} />
-            <div className="absolute inset-0" style={{ background: theme === 'dark' ? 'rgba(10,8,20,0.55)' : 'rgba(255,255,255,0.45)' }} />
+         <div className="fixed inset-0 z-0 pointer-events-none transition-all duration-1000" style={{ opacity: 0.8 }}>
+            <img src={bgTheme.imageUrl} alt="" className="w-full h-full object-cover" style={{ filter: 'blur(22px)', transform: 'scale(1.1)' }} />
+            <div className="absolute inset-0" style={{ background: theme === 'dark' ? 'rgba(10,8,20,0.45)' : 'rgba(255,255,255,0.35)' }} />
           </div>
         ) : null;
       })()}
