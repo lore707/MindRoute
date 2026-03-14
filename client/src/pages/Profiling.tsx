@@ -31,11 +31,11 @@ export default function Profiling() {
   const [, setLocation] = useLocation();
   const splitSceneBackground = theme === "dark"
     ? "radial-gradient(circle at 50% 16%, rgba(233,69,96,0.14), transparent 26%), radial-gradient(circle at 20% 22%, rgba(78,84,200,0.16), transparent 30%), linear-gradient(180deg, #141727 0%, #0d1020 58%, #101427 100%)"
-    : "radial-gradient(circle at 50% 16%, rgba(233,69,96,0.10), transparent 24%), radial-gradient(circle at 18% 22%, rgba(233,69,96,0.07), transparent 28%), linear-gradient(180deg, #fbf8f4 0%, #f7f2ec 100%)";
+   : "radial-gradient(circle at 50% 16%, rgba(233,69,96,0.18), transparent 28%), radial-gradient(circle at 18% 22%, rgba(233,69,96,0.10), transparent 32%), radial-gradient(circle at 80% 80%, rgba(233,69,96,0.08), transparent 30%), linear-gradient(180deg, #fdf5f0 0%, #f5ede6 60%, #f0e6dd 100%)";
   const splitStroke = theme === "dark" ? "rgba(255,255,255,0.11)" : "rgba(233,69,96,0.18)";
   const splitBadgeBg = theme === "dark" ? "rgba(255,255,255,0.07)" : "rgba(233,69,96,0.07)";
-  const splitCardGlow = theme === "dark" ? "0 24px 70px rgba(4, 8, 20, 0.46)" : "0 24px 70px rgba(226, 170, 181, 0.22)";
-  const splitTrustBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.68)";
+  const splitCardGlow = theme === "dark" ? "0 24px 70px rgba(4, 8, 20, 0.46)" : "0 24px 70px rgba(233, 69, 96, 0.14), 0 4px 20px rgba(180, 80, 80, 0.08)";
+  const splitTrustBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.85)";
   const splitQuoteBg = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.56)";
   const profilingStageGlow = theme === "dark"
     ? "radial-gradient(circle at 50% 0%, rgba(233,69,96,0.18), transparent 42%)"
@@ -656,7 +656,7 @@ export default function Profiling() {
         </svg>
 
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <svg viewBox="0 0 120 120" fill="none" className={`w-[280px] h-[280px] md:w-[500px] md:h-[500px] ${theme === "dark" ? "opacity-[0.09]" : "opacity-[0.04]"}`}>
+          <svg viewBox="0 0 120 120" fill="none" className={`w-[280px] h-[280px] md:w-[500px] md:h-[500px] ${theme === "dark" ? "opacity-[0.09]" :"opacity-[0.10]" }`}>
             <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" />
             <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" />
             <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" />
@@ -677,7 +677,7 @@ export default function Profiling() {
         </svg>
 
         <div className="absolute inset-x-0 top-[88px] z-0 flex justify-center pointer-events-none">
-          <div className="h-[320px] w-[320px] rounded-full blur-3xl opacity-80" style={{ background: theme === "dark" ? "radial-gradient(circle, rgba(233,69,96,0.28), transparent 70%)" : "radial-gradient(circle, rgba(233,69,96,0.18), transparent 70%)", animation: "splitPulse 7s ease-in-out infinite" }} />
+          <div className="h-[320px] w-[320px] rounded-full blur-3xl opacity-80" style={{ background: theme === "dark" ? "radial-gradient(circle, rgba(233,69,96,0.28), transparent 70%)" : "radial-gradient(circle, rgba(233,69,96,0.32), transparent 70%)", animation: "splitPulse 7s ease-in-out infinite" }} />
         </div>
 
         <div className="relative z-10 flex-1 flex flex-col items-center px-4 md:px-8 pt-[88px] pb-10 overflow-y-auto">
@@ -692,7 +692,7 @@ export default function Profiling() {
             </span>
 
             <h1 className="font-serif text-[clamp(34px,5vw,62px)] leading-[1.06] tracking-tight mb-4 text-[var(--text-primary)] max-w-[820px] mx-auto">
-              <span dangerouslySetInnerHTML={{ __html: t('split.title') }} />
+              <span dangerouslySetInnerHTML={{ __html: t('split.title').replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">') }} />
             </h1>
 
             <p className="text-[15px] md:text-[18px] text-[var(--text-secondary)] font-light italic leading-[1.7] mb-5 max-w-[660px] mx-auto">
