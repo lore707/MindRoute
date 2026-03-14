@@ -10,7 +10,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "nav.contact": { en: "Contact", it: "Contatti" },
   "nav.copyright": { en: "© 2025 MindRoute. Built for travelers who think differently.", it: "© 2025 MindRoute. Creato per viaggiatori che pensano diversamente." },
 
-  "split.title": { en: "What kind of traveler are you <em>today?</em>", it: "Che tipo di viaggiatore sei <em>oggi?</em>" },
+  "split.title": { en: "What kind of traveler <em>are you today?</em>", it: "Che tipo di viaggiatore <em>sei oggi?</em>" },
   "split.hint": { en: "Start from the way you feel today. The rest of the journey will follow that direction.", it: "Parti da come ti senti oggi. Il resto del viaggio seguirà quella direzione." },
   "split.micro": { en: "Choose the way you want us to guide you", it: "Scegli da quale punto vuoi cominciare" },
   "split.a.title": { en: "I don't know where to go", it: "Non so dove andare" },
