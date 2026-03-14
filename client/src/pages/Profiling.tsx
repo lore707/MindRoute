@@ -1441,17 +1441,16 @@ export default function Profiling() {
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
              className="relative z-20 rounded-[30px] p-6 sm:p-8 md:p-9 xl:p-10 w-full max-w-[820px]"
 style={{
-  background: theme === 'dark'
-    ? 'rgba(20,18,35,0.72)'
-    : 'rgba(255,255,255,0.78)',
-  backdropFilter: 'blur(24px) saturate(1.4)',
+ background: theme === 'dark'
+    ? 'rgba(20,18,35,0.55)'
+    : 'rgba(255,255,255,0.62)',
+  backdropFilter: 'blur(32px) saturate(1.8) brightness(1.05)',
+  WebkitBackdropFilter: 'blur(32px) saturate(1.8) brightness(1.05)',
   WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
-  border: theme === 'dark'
-    ? '1px solid rgba(255,255,255,0.10)'
-    : '1px solid rgba(255,255,255,0.85)',
+ border: 'none',
   boxShadow: theme === 'dark'
-    ? '0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)'
-    : '0 28px 80px rgba(200,185,195,0.22), inset 0 1px 0 rgba(255,255,255,0.9)',
+    ? '0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.07), inset 0 1px 0 rgba(255,255,255,0.10)'
+    : '0 32px 80px rgba(160,140,150,0.30), 0 0 0 1px rgba(255,255,255,0.50), inset 0 1px 0 rgba(255,255,255,0.95)',
 }}
             >
 <div className="relative z-10 flex items-start justify-between gap-4 mb-5">           
