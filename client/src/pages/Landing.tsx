@@ -55,7 +55,7 @@ export default function Landing() {
 
         <div className="relative max-w-[980px] mx-auto min-h-[calc(100vh-132px)] flex items-center justify-center">
           <div className="w-full text-center">
-            <div className="pointer-events-none absolute inset-x-0 top-[22%] hidden lg:block">
+            <div className="pointer-events-none absolute inset-x-0 top-[22%] hidden xl:block">
               {heroTags.map((tag, index) => (
                 <motion.div
                   key={tag}
@@ -156,7 +156,7 @@ export default function Landing() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.55 }}
           transition={{ delay: 1.1, duration: 1 }}
-          className="absolute bottom-7 left-0 right-0 flex flex-col items-center gap-2 text-[10px] sm:text-[11px] tracking-[2px] uppercase pointer-events-none" style={{ color: theme === "dark" ? "rgba(255,255,255,0.34)" : "rgba(29,25,53,0.42)" }}
+         className="absolute bottom-10 sm:bottom-8 left-0 right-0 flex flex-col items-center gap-2 text-[10px] sm:text-[11px] tracking-[2px] uppercase pointer-events-none"  style={{ color: theme === "dark" ? "rgba(255,255,255,0.34)" : "rgba(29,25,53,0.42)" }}
         >
           {t("landing.hero.scroll")}
           <svg className="w-4 h-4 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
