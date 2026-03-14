@@ -1442,17 +1442,17 @@ export default function Profiling() {
              className="relative z-20 rounded-[30px] p-6 sm:p-8 md:p-9 xl:p-10 w-full max-w-[820px]"
 style={{
  background: theme === 'dark'
-    ? 'rgba(15,12,28,0.38)'
-    : 'rgba(255,255,255,0.28)',
-  backdropFilter: 'blur(40px) saturate(2.2) brightness(1.08)',
-  WebkitBackdropFilter: 'blur(40px) saturate(2.2) brightness(1.08)',
+    ? 'rgba(15,12,28,0.32)'
+    : 'rgba(255,255,255,0.18)',
+  backdropFilter: 'blur(48px) saturate(2.5) brightness(1.10)',
+  WebkitBackdropFilter: 'blur(48px) saturate(2.5) brightness(1.10)',
   WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
 border: theme === 'dark'
     ? '1px solid rgba(255,255,255,0.06)'
     : '1px solid rgba(255,255,255,0.30)', 
   boxShadow: theme === 'dark'
-    ? '0 40px 100px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.20)'
-    : '0 40px 100px rgba(100,80,90,0.20), 0 0 0 1px rgba(255,255,255,0.25), inset 0 1px 0 rgba(255,255,255,0.80), inset 0 -1px 0 rgba(0,0,0,0.04)',
+    ? '0 48px 120px rgba(0,0,0,0.70), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1.5px 0 rgba(255,255,255,0.10), inset 0 -1px 0 rgba(0,0,0,0.25)'
+    : '0 48px 120px rgba(80,60,70,0.22), 0 8px 32px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.22), inset 0 1.5px 0 rgba(255,255,255,0.90), inset 0 -1px 0 rgba(0,0,0,0.03)',
 }}
             >
 <div className="relative z-10 flex items-start justify-between gap-4 mb-5">           
