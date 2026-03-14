@@ -27,9 +27,9 @@ export const questionThemes: Record<string, QuestionTheme> = {
     overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(240,255,245,0.65) 100%)",
     overlayDark: "linear-gradient(180deg, rgba(0,30,20,0.50) 0%, rgba(0,0,0,0.38) 100%)",
   },
-  africa: {
-    imageUrl: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1200&q=80",
-    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,248,235,0.65) 100%)",
+   africa: {
+    imageUrl: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=1200&q=80",
+    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.58) 0%, rgba(255,248,235,0.52) 100%)",
     overlayDark: "linear-gradient(180deg, rgba(40,20,0,0.50) 0%, rgba(0,0,0,0.38) 100%)",
   },
   oceania: {
