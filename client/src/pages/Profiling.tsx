@@ -1442,8 +1442,8 @@ export default function Profiling() {
               className="relative z-20 rounded-[30px] border border-[var(--border-input)] p-6 sm:p-8 md:p-9 xl:p-10 w-full max-w-[820px]"
               style={{ background: questionPanelBg, boxShadow: questionPanelShadow }}
             >
-              <div className="flex items-start justify-between gap-4 mb-5">
-                <div className="min-w-0">
+<div className="relative z-10 flex items-start justify-between gap-4 mb-5">           
+  <div className="min-w-0">
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-[6px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-4 border border-[rgba(233,69,96,0.14)]">
                     <Info className="w-3 h-3" />
                     {t('q.label')} {String(step + 1).padStart(2, '0')}
@@ -1491,7 +1491,7 @@ export default function Profiling() {
     </div>
   );
 })()}
-<div className="rounded-[24px] border border-[var(--border-input)] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg }}>
+<div className="relative z-10 rounded-[24px] border border-[var(--border-input)] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg }}>
   {renderQuestionInput()}
 </div>
 
