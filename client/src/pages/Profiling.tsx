@@ -1371,6 +1371,17 @@ export default function Profiling() {
 
   return (
     <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
+     {(() => {
+        const bgTheme = currentQ?.type === 'chips' && (chipSelections[step] || []).length > 0
+          ? getQuestionTheme(chipSelections[step] || [])
+          : null;
+        return bgTheme ? (
+          <div className="fixed inset-0 z-0 pointer-events-none transition-all duration-1000" style={{ opacity: 0.35 }}>
+            <img src={bgTheme.imageUrl} alt="" className="w-full h-full object-cover" style={{ filter: 'blur(60px)', transform: 'scale(1.1)' }} />
+            <div className="absolute inset-0" style={{ background: theme === 'dark' ? 'rgba(10,8,20,0.55)' : 'rgba(255,255,255,0.45)' }} />
+          </div>
+        ) : null;
+      })()}
       <div className="fixed inset-x-0 top-[84px] h-[340px] pointer-events-none z-0 opacity-90" style={{ background: profilingStageGlow }} />
       <svg className="fixed inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none" viewBox="0 0 1440 900">
         <path d="M-20 180 C 200 120, 400 280, 620 200 S 900 80, 1100 220 S 1350 340, 1460 180" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.04" />
