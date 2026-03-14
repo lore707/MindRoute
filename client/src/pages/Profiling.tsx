@@ -12,7 +12,6 @@ import { FormChip } from "./profiling/FormChip";
 import { createProfilingContent } from "./profiling/questions";
 import { SliderTrack } from "./profiling/SliderTrack";
 import type { ChipsQuestion, Question, TextQuestion } from "./profiling/types";
-import { getQuestionBackground } from './profiling/questionBackgrounds';
 import { getQuestionTheme } from './profiling/questionThemes';
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
@@ -1473,19 +1472,21 @@ export default function Profiling() {
 {currentQ.type === 'chips' && (() => {
   const qTheme = getQuestionTheme(chipSelections[step] || []);
   const hasSelection = (chipSelections[step] || []).length > 0;
+  const overlay = theme === 'dark' ? qTheme.overlayDark : qTheme.overlayLight;
   return (
     <div
       className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[30px] transition-all duration-700"
       style={{ opacity: hasSelection ? 1 : 0 }}
     >
-      <div className="absolute inset-0 transition-all duration-700" style={{ background: qTheme.gradient }} />
-      <svg
-        viewBox={qTheme.svgViewBox}
-        className="absolute bottom-[-10px] right-[-10px] w-[160px] h-[160px] transition-all duration-700"
-        style={{ color: qTheme.accentColor }}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        dangerouslySetInnerHTML={{ __html: qTheme.svgPath }}
+      <img
+        src={qTheme.imageUrl}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ transition: 'opacity 0.7s ease' }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{ background: overlay }}
       />
     </div>
   );
