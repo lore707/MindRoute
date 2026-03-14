@@ -680,7 +680,7 @@ export default function Profiling() {
           <div className="h-[320px] w-[320px] rounded-full blur-3xl opacity-80" style={{ background: theme === "dark" ? "radial-gradient(circle, rgba(233,69,96,0.28), transparent 70%)" : "radial-gradient(circle, rgba(233,69,96,0.18), transparent 70%)", animation: "splitPulse 7s ease-in-out infinite" }} />
         </div>
 
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 md:px-8 pt-16 md:pt-20 pb-10 overflow-y-auto">
+        <div className="relative z-10 flex-1 flex flex-col items-center px-4 md:px-8 pt-[88px] pb-10 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
