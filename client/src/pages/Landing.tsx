@@ -55,25 +55,7 @@ export default function Landing() {
 
         <div className="relative max-w-[980px] mx-auto min-h-[calc(100vh-132px)] flex items-center justify-center">
           <div className="w-full text-center">
-            <div className="pointer-events-none absolute inset-x-0 top-[22%] hidden 2xl:block">
-              {heroTags.map((tag, index) => (
-                <motion.div
-                  key={tag}
-                  initial={{ opacity: 0, y: 16, scale: 0.92 }}
-                  animate={{ opacity: theme === "dark" ? 0.82 : 0.58, y: 0, scale: 1 }}
-                  transition={{ delay: 0.45 + index * 0.08, duration: 0.7 }}
-                  className={`absolute rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] backdrop-blur-[8px] ${theme === "dark" ? "border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] text-white/80" : "border-[rgba(29,25,53,0.08)] bg-[rgba(255,255,255,0.52)] text-[rgba(29,25,53,0.58)]"}`}
-                  style={
-                    index === 0 ? { left: "6%", top: "18%", animation: "float 7s ease-in-out infinite" } :
-                    index === 1 ? { right: "8%", top: "12%", animation: "float 8s ease-in-out infinite 0.6s" } :
-                    index === 2 ? { left: "12%", top: "56%", animation: "float 7.5s ease-in-out infinite 1s" } :
-                    { right: "12%", top: "58%", animation: "float 8.5s ease-in-out infinite 1.4s" }
-                  }
-                >
-                  {tag}
-                </motion.div>
-              ))}
-            </div>
+        
             <motion.div
               initial={{ opacity: 0, scale: 0.88, y: -14 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -131,7 +113,7 @@ export default function Landing() {
                   </motion.svg>
                 </Link>
               </motion.div>
-              <motion.div whileHover={{ y: -2 }} className={`inline-flex items-center gap-3 rounded-full px-4 py-3 text-left ${heroReactionCard}`}>
+              <motion.div whileHover={{ y: -2 }} className={`inline-flex items-center gap-3 rounded-full px-4 py-3 text-left border-none ${heroReactionCard}`}>
                 <div className="flex -space-x-2">
                   {["S", "M", "A"].map((initial) => (
                     <span key={initial} className="flex h-9 w-9 items-center justify-center rounded-full border border-white bg-[linear-gradient(135deg,#F48B9A,#E94560)] text-[12px] font-semibold text-white">
