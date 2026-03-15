@@ -54,21 +54,49 @@ const generatedResponseSchema = z.object({
 type GeneratedDestination = z.infer<typeof generatedDestinationSchema>;
 type GeneratedItinerary = z.infer<typeof generatedItinerarySchema>;
 
-// Normalizes and validates the AI JSON payload before the rest of the app uses it.
 function parseModelResponse(responseText: string) {
   const cleanJson = responseText
     .replace(/```json\n?/g, "")
     .replace(/```\n?/g, "")
     .trim();
-
   return generatedResponseSchema.parse(JSON.parse(cleanJson));
 }
-function buildPrompt(input: ProfilingInput): string {
-  const rawAnswers = (input.answers[0] === "path_a" || input.answers[0] === "path_b")
-    ? input.answers.slice(1)
-    : input.answers;
 
-  // Se l'ultima risposta è un JSON strutturato, usalo come profilo forte per l'AI
+function buildCheckinCheckout(leaveDate: string, days: number): {
+  checkin: string;
+  checkout: string;
+  checkinCompact: string;
+  checkoutCompact: string;
+} {
+  try {
+    const d = new Date(leaveDate);
+    if (isNaN(d.getTime())) throw new Error("invalid");
+    const checkout = new Date(d);
+    checkout.setDate(checkout.getDate() + days);
+    const fmt = (dt: Date) => dt.toISOString().split("T")[0];
+    const fmtCompact = (dt: Date) => fmt(dt).replace(/-/g, "");
+    return {
+      checkin: fmt(d),
+      checkout: fmt(checkout),
+      checkinCompact: fmtCompact(d),
+      checkoutCompact: fmtCompact(checkout),
+    };
+  } catch {
+    return {
+      checkin: "2025-06-15",
+      checkout: "2025-06-22",
+      checkinCompact: "20250615",
+      checkoutCompact: "20250622",
+    };
+  }
+}
+
+function buildPrompt(input: ProfilingInput): string {
+  const rawAnswers =
+    input.answers[0] === "path_a" || input.answers[0] === "path_b"
+      ? input.answers.slice(1)
+      : input.answers;
+
   let structuredProfileBlock = "";
   let profileAnswers = rawAnswers;
   if (rawAnswers.length > 0) {
@@ -80,91 +108,107 @@ function buildPrompt(input: ProfilingInput): string {
         profileAnswers = rawAnswers.slice(0, -1);
       }
     } catch {
-      // non è JSON, ignora
+      // not JSON, ignore
     }
   }
 
-  const path = input.answers[0] === "path_b" ? "Path B (ha già un'idea di zona)" : "Path A (aperto a sorprese)";
+  const path =
+    input.answers[0] === "path_b"
+      ? "Path B (user already has a destination area in mind)"
+      : "Path A (open to surprises)";
   const days = Math.min(input.days, 7);
 
-  // Budget massimo per persona
   const budgetMap: Record<string, string> = {
-    "< €500": "massimo 500€ a persona tutto incluso",
-    "€500 – €1.500": "tra 500€ e 1.500€ a persona tutto incluso, non superare mai 1.500€",
-    "€1.500 – €3.000": "tra 1.500€ e 3.000€ a persona tutto incluso, non superare mai 3.000€",
-    "No limits": "budget illimitato, punta alla qualità"
+    "< €500": "maximum €500 per person all included",
+    "€500 – €1.500": "between €500 and €1,500 per person all included, never exceed €1,500",
+    "€1.500 – €3.000": "between €1,500 and €3,000 per person all included, never exceed €3,000",
+    "No limits": "unlimited budget, aim for quality",
   };
   const budgetText = budgetMap[input.budget] || input.budget;
 
-  // Stima date di check-in/check-out per i link
-  const period = input.leaveDate || "estate 2025";
+  const period = input.leaveDate || "2025-06-15";
+  const { checkin, checkout, checkinCompact, checkoutCompact } =
+    buildCheckinCheckout(period, days);
 
-  return `Sei il motore di MindRoute, piattaforma di travel profiling psicologico.
+  return `You are the engine of MindRoute, a psychological travel profiling platform.
 
-PROFILO UTENTE:
-Percorso: ${path}
-Budget: ${budgetText} — RISPETTA QUESTO VINCOLO, è fondamentale
-Parti da: ${input.departure} | Giorni: ${days} | Periodo: ${period}
-Compagni: ${input.companions || "non specificato"} | Vincoli: ${input.constraints || "nessuno"}
-${structuredProfileBlock ? `Profilo strutturato (JSON):\n${structuredProfileBlock}\n\n` : ""}Risposte quiz: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
+USER PROFILE:
+Path: ${path}
+Budget: ${budgetText} — STRICTLY RESPECT THIS CONSTRAINT
+Departing from: ${input.departure} | Days: ${days} | Period: ${period}
+Travel companions: ${input.companions || "not specified"} | Constraints: ${input.constraints || "none"}
+${structuredProfileBlock ? `Structured profile (JSON):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 
-COMPITO: Genera 1 sola destinazione perfettamente personalizzata con itinerario di ${days} giorni.
+TASK: Generate exactly 1 perfectly personalized destination with a ${days}-day itinerary.
 
-REGOLE:
-- Analizza il profilo psicologico: bisogni emotivi, estetica, tolleranza al caos
-- Destinazione non ovvia, sorprendente
-- Tono personale, non da catalogo
-- Mantieni le frasi corte e concrete
-- Ogni campo deve essere sintetico
-- Il budget totale stimato DEVE stare dentro il range indicato
-- Rispondi SOLO con JSON valido, zero testo fuori dal JSON
+RULES:
+- Deeply analyze the psychological profile: emotional needs, aesthetics, tolerance for chaos, travel style
+- Choose a non-obvious, surprising destination that truly matches this person
+- Use a personal tone, not a travel catalog tone
+- Keep all sentences short and concrete
+- Every field must be concise
+- Total estimated budget MUST fit within the stated range
+- Respond ONLY with valid JSON, absolutely no text outside the JSON
 
-LINK:
-- Genera SOLO topAffiliateLinks finali
-- Non generare affiliateLinks dentro i singoli giorni
-- booking: link Booking di ricerca hotel in città
-- skyscanner: link Skyscanner tratta principale
-- getyourguide: link GetYourGuide esperienze città
+MANDATORY SPECIFIC NAMES — this is critical for quality:
+- Choose 1 REAL hotel with a precise name matching the profile and budget (e.g. "Casa Camper Barcelona", "Riad Yasmine Marrakech", "Generator Hostel Lisboa")
+- Choose 2 REAL experiences with precise searchable names on GetYourGuide (e.g. "Alhambra Skip-the-Line Guided Tour", "Lisbon Fado Night with Dinner")
+- Choose 1 REAL restaurant with a precise name (e.g. "Bar del Pla Barcelona", "Cervejaria Ramiro Lisbon", "Trattoria da Enzo al 29 Rome")
+- Use REAL IATA airport codes: departure from "${input.departure}", arrival at the chosen destination
+- Use real dates: check-in ${checkin}, check-out ${checkout}
 
-JSON RICHIESTO:
+AFFILIATE LINKS — build using the real names chosen above:
+- booking_hotel: direct search for the specific hotel chosen, with real dates
+- booking_search: general hotel search in the destination city, with real dates
+- skyscanner: flight link with real IATA codes and compact dates
+- getyourguide_1: link for the first specific experience chosen
+- getyourguide_2: link for the second specific experience chosen
+- thefork: search link for the specific restaurant chosen
+
+RESPONSE LANGUAGE: Write all text fields (whyYours, experiencePreview, practicalInfo, title, morning, lunch, afternoon, evening, budgetSummary, packingList, bestTime, gettingThere, closingMessage) in Italian.
+
+REQUIRED JSON:
 {
   "destinations": [
     {
-      "name": "Città, Paese",
+      "name": "City, Country",
       "imageUrl": "https://images.unsplash.com/photo-[ID]?w=600&h=400&fit=crop",
-      "whyYours": "1 frase breve sul perché psicologico",
-      "experiencePreview": "1 frase breve evocativa in prima persona",
-      "practicalInfo": "costi, voli, periodo in 1 riga breve"
+      "whyYours": "1 short sentence on the psychological reason this destination fits",
+      "experiencePreview": "1 short evocative sentence in first person",
+      "practicalInfo": "costs, flights, period in 1 short line"
     }
   ],
   "itineraries": [
     {
-      "destinationName": "Città, Paese",
+      "destinationName": "City, Country",
       "days": [
         {
           "dayNumber": 1,
-          "title": "Titolo breve",
-          "morning": "Massimo 10 parole",
-          "lunch": "Massimo 10 parole",
-          "afternoon": "Massimo 10 parole",
-          "evening": "Massimo 10 parole"
+          "title": "Short title",
+          "morning": "Max 10 words",
+          "lunch": "Real restaurant name + max 5 words description",
+          "afternoon": "Max 10 words",
+          "evening": "Max 10 words"
         }
       ],
-      "budgetSummary": "1 riga breve con totale stimato dentro budget",
-      "packingList": "5 item separati da virgola",
-      "bestTime": "massimo 8 parole",
-      "gettingThere": "massimo 12 parole con aeroporto IATA se utile",
-      "closingMessage": "1 frase finale breve",
+      "budgetSummary": "1 short line with estimated total within budget",
+      "packingList": "5 items separated by commas",
+      "bestTime": "max 8 words",
+      "gettingThere": "max 12 words with real IATA airport code",
+      "closingMessage": "1 short final sentence",
       "topAffiliateLinks": {
-        "booking": "https://www.booking.com/search.html?ss=NOMEHOTEL+CITTA&aid=304142",
-        "skyscanner": "https://www.skyscanner.net/transport/flights/IATA_PARTENZA/IATA_ARRIVO/YYYYMMDD/YYYYMMDD/",
-        "getyourguide": "https://www.getyourguide.com/s/?q=CITTA+esperienze"
+        "booking_hotel": "https://www.booking.com/search.html?ss=SPECIFIC+HOTEL+NAME&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
+        "booking_search": "https://www.booking.com/search.html?ss=CITY+COUNTRY&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
+        "skyscanner": "https://www.skyscanner.net/transport/flights/DEPARTURE_IATA/ARRIVAL_IATA/${checkinCompact}/${checkoutCompact}/",
+        "getyourguide_1": "https://www.getyourguide.com/s/?q=SPECIFIC+EXPERIENCE+NAME&partner_id=0BCSNBX8",
+        "getyourguide_2": "https://www.getyourguide.com/s/?q=SECOND+SPECIFIC+EXPERIENCE&partner_id=0BCSNBX8",
+        "thefork": "https://www.thefork.it/ricerca?q=SPECIFIC+RESTAURANT+NAME"
       }
     }
   ]
 }
 
-Genera esattamente ${days} giorni nell'itinerario.`;
+Generate exactly ${days} days in the itinerary.`;
 }
 
 export async function generateDestinations(input: ProfilingInput): Promise<{
@@ -174,8 +218,8 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
   const prompt = buildPrompt(input);
 
   const message = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 2800,
+    model: "claude-sonnet-4-6",
+    max_tokens: 3200,
     messages: [
       {
         role: "user",
@@ -201,6 +245,7 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
     itineraries,
   };
 }
+
 
 
 
