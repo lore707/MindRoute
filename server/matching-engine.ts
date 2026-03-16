@@ -30,6 +30,8 @@ const itineraryDaySchema = z.object({
     slot: z.string(),
     lat: z.number(),
     lng: z.number(),
+    imageUrl: z.string().optional(),
+    affiliateUrl: z.string().optional(),
   })).optional(),
 });
 
@@ -228,6 +230,9 @@ MAP POINTS — for each day, include a "mapPoints" array with GPS coordinates fo
 - Any ferry port or boat departure if mentioned (slot: "Traghetto")
 - Any car/scooter/quad rental location if mentioned (slot: "Noleggio")
 Use precise real-world GPS coordinates. Skip generic flight/airport slots.
+For each mapPoint also include:
+- "imageUrl": a real Unsplash photo URL for that specific place — use format https://images.unsplash.com/photo-[REAL_PHOTO_ID]?w=400&h=250&fit=crop — choose a photo that actually matches the place
+- "affiliateUrl": the most relevant affiliate link for that point — use the booking_hotel link for Hotel slot, getyourguide/klook/viator link for experiences, thefork/tripadvisor link for restaurants, leave empty string for landmarks
 
 RESPONSE LANGUAGE: Write all text fields in Italian.
 
@@ -260,10 +265,10 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
             "tripadvisor_evening_fallback": "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME"
           },
           "mapPoints": [
-            { "label": "EXPERIENCE_1_NAME", "slot": "Mattina", "lat": 0.0000, "lng": 0.0000 },
-            { "label": "LUNCH_SPOT_NAME", "slot": "Pranzo", "lat": 0.0000, "lng": 0.0000 },
-            { "label": "PLACE_1_NAME", "slot": "Pomeriggio", "lat": 0.0000, "lng": 0.0000 },
-            { "label": "HOTEL_NAME", "slot": "Hotel", "lat": 0.0000, "lng": 0.0000 }
+            { "label": "EXPERIENCE_1_NAME", "slot": "Mattina", "lat": 0.0000, "lng": 0.0000, "imageUrl": "https://images.unsplash.com/photo-[ID]?w=400&h=250&fit=crop", "affiliateUrl": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8" },
+            { "label": "LUNCH_SPOT_NAME", "slot": "Pranzo", "lat": 0.0000, "lng": 0.0000, "imageUrl": "https://images.unsplash.com/photo-[ID]?w=400&h=250&fit=crop", "affiliateUrl": "https://www.thefork.it/search#q=LUNCH_SPOT_NAME" },
+            { "label": "PLACE_1_NAME", "slot": "Pomeriggio", "lat": 0.0000, "lng": 0.0000, "imageUrl": "https://images.unsplash.com/photo-[ID]?w=400&h=250&fit=crop", "affiliateUrl": "" },
+            { "label": "HOTEL_NAME", "slot": "Hotel", "lat": 0.0000, "lng": 0.0000, "imageUrl": "https://images.unsplash.com/photo-[ID]?w=400&h=250&fit=crop", "affiliateUrl": "https://www.booking.com/search.html?ss=HOTEL_NAME&aid=304142" }
           ]
         },
         {
