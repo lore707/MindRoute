@@ -42,8 +42,8 @@ function buildPathB(t: Translate): Question[] {
       tags: ["trip type", "category", "combination"],
       section: t("section.b.type"),
     },
-    {
-      text: "Quale momento renderebbe questo viaggio davvero giusto?",
+  {
+      text: "Quale momento renderebbe questo viaggio davvero <em>speciale</em>?",
       hint: "Il momento che non vorresti perdere.",
       type: "chips",
       options: [
@@ -52,10 +52,13 @@ function buildPathB(t: Translate): Question[] {
         "vedere luoghi iconici",
         "stare immerso nella natura",
         "vivere qualcosa di completamente nuovo",
+        "fotografare qualcosa di straordinario",
+        "trovare un posto che non sapevo esistesse",
       ],
-      multi: false,
+      multi: true,
+      max: 3,
       addendum: "Hai qualcosa di specifico in mente? (opzionale)",
-      why: "Ci dice qual è il momento che deve assolutamente accadere perché il viaggio sia giusto per te.",
+      why: "Ci dice qual è il momento che deve assolutamente accadere perché il viaggio sia davvero speciale per te.",
       tags: ["must-see", "motivation", "highlight"],
       section: t("section.b.specific"),
     },
