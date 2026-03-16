@@ -151,23 +151,33 @@ RULES:
 - Respond ONLY with valid JSON, absolutely no text outside the JSON
 
 MANDATORY SPECIFIC NAMES — this is critical for quality:
-- Choose 1 REAL hotel with a precise name matching the profile and budget (e.g. "Casa Camper Barcelona", "Riad Yasmine Marrakech", "Generator Hostel Lisboa")
-- Choose 2 REAL experiences with precise searchable names on GetYourGuide (e.g. "Alhambra Skip-the-Line Guided Tour", "Lisbon Fado Night with Dinner")
-- Choose 1 REAL restaurant with a precise name (e.g. "Bar del Pla Barcelona", "Cervejaria Ramiro Lisbon", "Trattoria da Enzo al 29 Rome")
+- Choose 1 REAL hotel with a precise name matching the profile and budget (e.g. "Casa Camper Barcelona", "Riad Yasmine Marrakech", "Generator Hostel Lisboa") — call it HOTEL_NAME
+- Choose 2 REAL experiences with precise searchable names on GetYourGuide (e.g. "Alhambra Skip-the-Line Guided Tour", "Lisbon Fado Night with Dinner") — call them EXPERIENCE_1 and EXPERIENCE_2
+- Choose 1 REAL restaurant for dinner with a precise name (e.g. "Bar del Pla Barcelona", "Cervejaria Ramiro Lisbon", "Trattoria da Enzo al 29 Rome") — call it DINNER_RESTAURANT
+- Choose 1 REAL café or lunch spot with a precise name — call it LUNCH_SPOT
 - Use REAL IATA airport codes: departure from "${input.departure}", arrival at the chosen destination
 - Use real dates: check-in ${checkin}, check-out ${checkout}
 
-AFFILIATE LINKS — build using the real names chosen above:
-- booking_hotel: direct search for the specific hotel chosen, with real dates
-- booking_search: general hotel search in the destination city, with real dates
-- skyscanner: flight link with real IATA codes and compact dates
-- getyourguide_1: link for the first specific experience chosen
-- getyourguide_2: link for the second specific experience chosen
-- thefork: search link for the specific restaurant chosen
+AFFILIATE LINKS RULES:
+topAffiliateLinks (one block for the whole itinerary):
+- booking_hotel: Booking.com search for HOTEL_NAME with real dates
+- booking_search: Booking.com general search for the destination city with real dates
+- skyscanner: Skyscanner flight link with real IATA codes and compact dates
+- getyourguide_1: GetYourGuide search for EXPERIENCE_1
+- getyourguide_2: GetYourGuide search for EXPERIENCE_2
+- thefork: TheFork search for DINNER_RESTAURANT
+- tripadvisor: TripAdvisor search for the destination city
 
-RESPONSE LANGUAGE: Write all text fields (whyYours, experiencePreview, practicalInfo, title, morning, lunch, afternoon, evening, budgetSummary, packingList, bestTime, gettingThere, closingMessage) in Italian.
+affiliateLinks inside each day (only add keys that genuinely match that day's content):
+- "getyourguide_morning": add ONLY on the day when EXPERIENCE_1 appears in the morning field
+- "getyourguide_afternoon": add ONLY on the day when EXPERIENCE_2 appears in the afternoon field
+- "thefork_lunch": add ONLY on the day when LUNCH_SPOT appears in the lunch field
+- "thefork_evening": add ONLY on the day when DINNER_RESTAURANT appears in the evening field
+- Do NOT add affiliateLinks to days where none of the above match
 
-REQUIRED JSON:
+RESPONSE LANGUAGE: Write all text fields in Italian.
+
+REQUIRED JSON (the day examples below show the affiliateLinks structure — apply the same logic to all ${days} days):
 {
   "destinations": [
     {
@@ -185,10 +195,26 @@ REQUIRED JSON:
         {
           "dayNumber": 1,
           "title": "Short title",
-          "morning": "Max 10 words",
-          "lunch": "Real restaurant name + max 5 words description",
+          "morning": "EXPERIENCE_1 real name + max 8 words",
+          "lunch": "LUNCH_SPOT real name + max 5 words description",
           "afternoon": "Max 10 words",
-          "evening": "Max 10 words"
+          "evening": "Max 10 words",
+          "affiliateLinks": {
+            "getyourguide_morning": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME_URL_ENCODED&partner_id=0BCSNBX8",
+            "thefork_lunch": "https://www.thefork.it/ricerca?q=LUNCH_SPOT_NAME_URL_ENCODED"
+          }
+        },
+        {
+          "dayNumber": 2,
+          "title": "Short title",
+          "morning": "Max 10 words",
+          "lunch": "Max 8 words",
+          "afternoon": "EXPERIENCE_2 real name + max 8 words",
+          "evening": "DINNER_RESTAURANT real name + max 5 words",
+          "affiliateLinks": {
+            "getyourguide_afternoon": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME_URL_ENCODED&partner_id=0BCSNBX8",
+            "thefork_evening": "https://www.thefork.it/ricerca?q=DINNER_RESTAURANT_NAME_URL_ENCODED"
+          }
         }
       ],
       "budgetSummary": "1 short line with estimated total within budget",
@@ -197,12 +223,13 @@ REQUIRED JSON:
       "gettingThere": "max 12 words with real IATA airport code",
       "closingMessage": "1 short final sentence",
       "topAffiliateLinks": {
-        "booking_hotel": "https://www.booking.com/search.html?ss=SPECIFIC+HOTEL+NAME&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
-        "booking_search": "https://www.booking.com/search.html?ss=CITY+COUNTRY&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
+        "booking_hotel": "https://www.booking.com/search.html?ss=HOTEL_NAME_URL_ENCODED&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
+        "booking_search": "https://www.booking.com/search.html?ss=CITY_COUNTRY_URL_ENCODED&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
         "skyscanner": "https://www.skyscanner.net/transport/flights/DEPARTURE_IATA/ARRIVAL_IATA/${checkinCompact}/${checkoutCompact}/",
-        "getyourguide_1": "https://www.getyourguide.com/s/?q=SPECIFIC+EXPERIENCE+NAME&partner_id=0BCSNBX8",
-        "getyourguide_2": "https://www.getyourguide.com/s/?q=SECOND+SPECIFIC+EXPERIENCE&partner_id=0BCSNBX8",
-        "thefork": "https://www.thefork.it/ricerca?q=SPECIFIC+RESTAURANT+NAME"
+        "getyourguide_1": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME_URL_ENCODED&partner_id=0BCSNBX8",
+        "getyourguide_2": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME_URL_ENCODED&partner_id=0BCSNBX8",
+        "thefork": "https://www.thefork.it/ricerca?q=DINNER_RESTAURANT_NAME_URL_ENCODED",
+        "tripadvisor": "https://www.tripadvisor.it/Search?q=CITY_NAME_URL_ENCODED"
       }
     }
   ]
@@ -245,11 +272,3 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
     itineraries,
   };
 }
-
-
-
-
-
-
-
-
