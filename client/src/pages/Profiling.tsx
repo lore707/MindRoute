@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, ChevronDown, Moon, Sun, HelpCircle as QuestionIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, ChevronDown, Moon, Sun, HelpCircle as QuestionIcon, Leaf, Volume2, Zap, Heart, User, Sparkles, Landmark, Compass, Home, Globe, Plane, UtensilsCrossed, Waves, Building2, Tent, Car, Mountain, Flower2, Dice5, Camera, Search, Battery, Wind, Bird, Eye, Bus, Users, Clock, MessageCircle, Footprints, PiggyBank, Timer, Star, Coffee, Sunset } from "lucide-react";
 import { useSubmitProfiling } from "@/hooks/use-profiling";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
@@ -1153,70 +1153,78 @@ export default function Profiling() {
       </div>
     );
    }
-  const getChipEmoji = (opt: string): string => {
+ const getChipIcon = (opt: string): JSX.Element | null => {
     const o = opt.toLowerCase();
-    if (o.includes("selvag") || o.includes("wild")) return "🌿";
-    if (o.includes("silenz") || o.includes("quiet")) return "🤫";
-    if (o.includes("caotico") || o.includes("chaotic")) return "🌀";
-    if (o.includes("intimo") || o.includes("intimate")) return "🕯️";
-    if (o.includes("solitario") || o.includes("solitary")) return "🚶";
-    if (o.includes("rigenerante") || o.includes("regenerating")) return "🌱";
-    if (o.includes("autentico") || o.includes("authentic")) return "🏺";
-    if (o.includes("lusso") || o.includes("luxury")) return "✨";
-    if (o.includes("spirituale") || o.includes("spiritual")) return "🕌";
-    if (o.includes("festoso") || o.includes("festive")) return "🎉";
-    if (o.includes("avventuroso") || o.includes("adventure")) return "⛺";
-    if (o.includes("romantico") || o.includes("romantic")) return "🌹";
-    if (o.includes("culturale") || o.includes("cultural")) return "🏛️";
-    if (o.includes("esplorativo") || o.includes("explorative")) return "🧭";
-    if (o.includes("vicino a casa") || o.includes("close to home")) return "🏠";
-    if (o.includes("stesso continente") || o.includes("same continent")) return "🗺️";
-    if (o.includes("lontano") || o.includes("far away")) return "✈️";
-    if (o.includes("ovunque") || o.includes("anywhere")) return "🌍";
-    if (o.includes("europa") || o.includes("europe")) return "🏰";
-    if (o.includes("asia")) return "🏯";
-    if (o.includes("americhe") || o.includes("americas")) return "🗽";
-    if (o.includes("africa") || o.includes("medio") || o.includes("middle")) return "🌅";
-    if (o.includes("oceania")) return "🐨";
-    if (o.includes("cultura") || o.includes("storia") || o.includes("history")) return "🏛️";
-    if (o.includes("natura") || o.includes("nature") || o.includes("avventura")) return "🌿";
-    if (o.includes("food") || o.includes("vino") || o.includes("wine")) return "🍷";
-    if (o.includes("mare") || o.includes("beach") || o.includes("relax")) return "🏖️";
-    if (o.includes("città") || o.includes("city") || o.includes("notturna")) return "🌃";
-    if (o.includes("fuori dal mondo") || o.includes("off the grid")) return "🏕️";
-    if (o.includes("road trip")) return "🚗";
-    if (o.includes("trekking") || o.includes("sport")) return "🥾";
-    if (o.includes("wellness") || o.includes("spa")) return "🧘";
-    if (o.includes("scoperta") || o.includes("discovery") || o.includes("sorprendimi") || o.includes("surprise")) return "🎲";
-    if (o.includes("mangiare") || o.includes("posti locali")) return "🍽️";
-    if (o.includes("quartieri") || o.includes("autentici")) return "🏘️";
-    if (o.includes("iconici") || o.includes("iconic")) return "📍";
-    if (o.includes("immerso") || o.includes("natura")) return "🌲";
-    if (o.includes("completamente nuovo") || o.includes("completely new")) return "🚀";
-    if (o.includes("fotografare") || o.includes("photograph")) return "📸";
-    if (o.includes("non sapevo esistesse")) return "🗺️";
-    if (o.includes("staccare") || o.includes("disconnect")) return "🔋";
-    if (o.includes("energia") || o.includes("leggerezza")) return "⚡";
-    if (o.includes("libero") || o.includes("spontaneo")) return "🕊️";
-    if (o.includes("meravigliarmi") || o.includes("wonder")) return "✨";
-    if (o.includes("profondamente") || o.includes("deeply")) return "🌊";
-    if (o.includes("zona di comfort") || o.includes("comfort zone")) return "🦋";
-    if (o.includes("visite guidate") || o.includes("guided")) return "🚌";
-    if (o.includes("affollat") || o.includes("crowded")) return "👥";
-    if (o.includes("musei") || o.includes("museum")) return "🏛️";
-    if (o.includes("resort")) return "🏨";
-    if (o.includes("club")) return "🎵";
-    if (o.includes("turistici") || o.includes("touristy")) return "🍕";
-    if (o.includes("trasferimenti") || o.includes("transit")) return "🚌";
-    if (o.includes("sveglie") || o.includes("mornings")) return "⏰";
-    if (o.includes("rigidi") || o.includes("schedules")) return "📋";
-    if (o.includes("sconosciuti") || o.includes("smalltalk")) return "💬";
-    if (o.includes("cibo sconosciuto") || o.includes("unfamiliar food")) return "🍱";
-    if (o.includes("camminare") || o.includes("walking")) return "👟";
-    if (o.includes("isolato") || o.includes("isolated")) return "🏝️";
-    if (o.includes("spendere") || o.includes("spending")) return "💸";
-    if (o.includes("troppo a lungo") || o.includes("too long")) return "⏳";
-    return "";
+    const icon = (I: React.ComponentType<{className?: string}>) => <I className="w-3.5 h-3.5 shrink-0" />;
+    // Path A — stile viaggio
+    if (o.includes("selvag") || o.includes("wild")) return icon(Leaf);
+    if (o.includes("silenz") || o.includes("quiet")) return icon(Volume2);
+    if (o.includes("caotico") || o.includes("chaotic")) return icon(Zap);
+    if (o.includes("intimo") || o.includes("intimate")) return icon(Heart);
+    if (o.includes("solitario") || o.includes("solitary")) return icon(User);
+    if (o.includes("rigenerante") || o.includes("regenerating")) return icon(Sparkles);
+    if (o.includes("autentico") || o.includes("authentic")) return icon(Star);
+    if (o.includes("lusso") || o.includes("luxury")) return icon(Sparkles);
+    if (o.includes("spirituale") || o.includes("spiritual")) return icon(Sunset);
+    if (o.includes("festoso") || o.includes("festive")) return icon(Zap);
+    if (o.includes("avventuroso") || o.includes("adventure")) return icon(Tent);
+    if (o.includes("romantico") || o.includes("romantic")) return icon(Heart);
+    if (o.includes("culturale") || o.includes("cultural")) return icon(Landmark);
+    if (o.includes("esplorativo") || o.includes("explorative")) return icon(Compass);
+    // Path A — distanza
+    if (o.includes("vicino a casa") || o.includes("close to home")) return icon(Home);
+    if (o.includes("stesso continente") || o.includes("same continent")) return icon(Globe);
+    if (o.includes("lontano") || o.includes("far away")) return icon(Plane);
+    if (o.includes("ovunque") || o.includes("anywhere")) return icon(Globe);
+    // Path B — geo
+    if (o.includes("europa") || o.includes("europe")) return icon(Landmark);
+    if (o.includes("asia")) return icon(Sunset);
+    if (o.includes("americhe") || o.includes("americas")) return icon(Globe);
+    if (o.includes("africa") || o.includes("medio") || o.includes("middle")) return icon(Sunset);
+    if (o.includes("oceania")) return icon(Waves);
+    // Path B — tipo viaggio
+    if (o.includes("cultura") || o.includes("storia") || o.includes("history")) return icon(Landmark);
+    if (o.includes("natura") || o.includes("nature") || o.includes("avventura")) return icon(Leaf);
+    if (o.includes("food") || o.includes("vino") || o.includes("wine")) return icon(UtensilsCrossed);
+    if (o.includes("mare") || o.includes("beach") || o.includes("relax")) return icon(Waves);
+    if (o.includes("città") || o.includes("city") || o.includes("notturna")) return icon(Building2);
+    if (o.includes("fuori dal mondo") || o.includes("off the grid")) return icon(Tent);
+    if (o.includes("road trip")) return icon(Car);
+    if (o.includes("trekking") || o.includes("sport")) return icon(Mountain);
+    if (o.includes("wellness") || o.includes("spa")) return icon(Flower2);
+    if (o.includes("scoperta") || o.includes("discovery") || o.includes("sorprendimi") || o.includes("surprise")) return icon(Dice5);
+    // Path B — momento speciale
+    if (o.includes("mangiare") || o.includes("posti locali")) return icon(UtensilsCrossed);
+    if (o.includes("quartieri") || o.includes("autentici")) return icon(Building2);
+    if (o.includes("iconici") || o.includes("iconic")) return icon(Camera);
+    if (o.includes("immerso")) return icon(Leaf);
+    if (o.includes("completamente nuovo") || o.includes("completely new")) return icon(Sparkles);
+    if (o.includes("fotografare") || o.includes("photograph")) return icon(Camera);
+    if (o.includes("non sapevo esistesse")) return icon(Search);
+    // Path B — sensazione
+    if (o.includes("staccare") || o.includes("disconnect")) return icon(Battery);
+    if (o.includes("energia") || o.includes("leggerezza")) return icon(Zap);
+    if (o.includes("libero") || o.includes("spontaneo")) return icon(Bird);
+    if (o.includes("meravigliarmi") || o.includes("wonder")) return icon(Eye);
+    if (o.includes("profondamente") || o.includes("deeply")) return icon(Heart);
+    if (o.includes("zona di comfort") || o.includes("comfort zone")) return icon(Sparkles);
+    // Drains
+    if (o.includes("visite guidate") || o.includes("guided")) return icon(Bus);
+    if (o.includes("affollat") || o.includes("crowded")) return icon(Users);
+    if (o.includes("musei") || o.includes("museum")) return icon(Landmark);
+    if (o.includes("resort")) return icon(Building2);
+    if (o.includes("club")) return icon(Zap);
+    if (o.includes("turistici") || o.includes("touristy")) return icon(UtensilsCrossed);
+    if (o.includes("trasferimenti") || o.includes("transit")) return icon(Bus);
+    if (o.includes("sveglie") || o.includes("mornings")) return icon(Clock);
+    if (o.includes("rigidi") || o.includes("schedules")) return icon(Clock);
+    if (o.includes("sconosciuti") || o.includes("smalltalk")) return icon(MessageCircle);
+    if (o.includes("cibo sconosciuto") || o.includes("unfamiliar food")) return icon(UtensilsCrossed);
+    if (o.includes("camminare") || o.includes("walking")) return icon(Footprints);
+    if (o.includes("isolato") || o.includes("isolated")) return icon(User);
+    if (o.includes("spendere") || o.includes("spending")) return icon(PiggyBank);
+    if (o.includes("troppo a lungo") || o.includes("too long")) return icon(Timer);
+    return null;
   };
   const renderQuestionInput = () => {
     if (!currentQ) return null;
@@ -1279,7 +1287,7 @@ export default function Profiling() {
                       : 'border-white/25 text-white bg-white/10 hover:border-[#E94560] hover:bg-white/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(233,69,96,0.15)] cursor-pointer backdrop-blur-sm'
                   }`}
               >
-               {getChipEmoji(opt) ? <span className="mr-1">{getChipEmoji(opt)}</span> : null}{opt}
+           {getChipIcon(opt) ? <span className="mr-1.5 opacity-80">{getChipIcon(opt)}</span> : null}{opt}
               </button>
             ))}
           </div>
