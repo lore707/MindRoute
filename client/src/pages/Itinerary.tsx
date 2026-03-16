@@ -12,6 +12,93 @@ import { useI18n } from "@/lib/i18n";
 
 type AffiliateCfg = { icon: JSX.Element; label: string; color: string };
 
+// ── Rileva regione da destinationName ─────────────────────────────────────────
+function detectRegion(name: string): string {
+  const n = name.toLowerCase();
+  if (/grecia|greece|creta|crete|cipro|cyprus|malta|croazia|croatia|montenegro|albania|turchia|turkey/.test(n)) return "mediterranean";
+  if (/india|mumbai|delhi|bangalore|chennai|kolkata|jaipur|goa/.test(n)) return "india";
+  if (/giappone|japan|cina|china|corea|korea|thailand|tailandia|vietnam|indonesia|bali|cambogia|cambodia|laos|myanmar|malesia|malaysia|singapore|filippine|philippines|sri lanka/.test(n)) return "asia";
+  if (/messico|mexico|colombia|peru|perù|brasile|brazil|argentina|cile|chile|ecuador|bolivia|venezuela|costa rica|panama|guatemala|cuba|dominicana/.test(n)) return "latam";
+  if (/marocco|morocco|egitto|egypt|kenya|tanzania|sudafrica|south africa|ghana|senegal|etiopia|ethiopia|nigeria|tunisia|algeria/.test(n)) return "africa";
+  if (/italia|italy|france|francia|spagna|spain|portogallo|portugal|germania|germany|austria|svizzera|switzerland|belgio|belgium|olanda|netherlands|polonia|poland|czech|ceca|ungheria|hungary|romania|bulgaria|svezia|sweden|norvegia|norway|danimarca|denmark|finlandia|finland|irlanda|ireland|scozia|scotland|inghilterra|england|uk|londra|london|parigi|paris|barcellona|barcelona|amsterdam|berlino|berlin|vienna|praga|prague|budapest|lisbona|lisbon|madrid|roma|rome|milano|milan|napoli|naples|firenze|florence|venezia|venice/.test(n)) return "europe";
+  return "europe"; // fallback
+}
+
+// ── Link per regione (max 5 nel conversion block) ─────────────────────────────
+function getRegionLinks(region: string, links: Record<string, string>): { key: string; url: string; icon: JSX.Element; label: string; style: string }[] {
+  const pill = (icon: JSX.Element, label: string, style: string, key: string) => {
+    const url = links[key];
+    if (!url) return null;
+    return { key, url, icon, label, style };
+  };
+
+  const primary = "flex items-center gap-2 px-5 py-3 font-bold rounded-full shadow-md text-sm text-white transition-all";
+  const secondary = "flex items-center gap-2 px-4 py-2.5 font-bold rounded-full border text-sm transition-all bg-[var(--surface-alt)] text-[var(--text-primary)] border-[var(--border-subtle)]";
+
+  const skyscanner = pill(<Plane className="w-4 h-4" />, "Cerca voli", `${primary} bg-sky-500 hover:bg-sky-600`, "skyscanner");
+  const bookingHotel = pill(<Hotel className="w-4 h-4" />, "Hotel consigliato", `${primary} bg-primary hover:bg-primary/90`, "booking_hotel");
+  const bookingSearch = pill(<Hotel className="w-4 h-4" />, "Hotel su Booking", `${primary} bg-primary hover:bg-primary/90`, "booking_search");
+  const hotelLink = bookingHotel ?? bookingSearch;
+
+  const gyg1 = pill(<Ticket className="w-4 h-4 text-primary" />, "Esperienza 1", `${secondary} hover:bg-primary/10`, "getyourguide_1");
+  const gyg2 = pill(<Ticket className="w-4 h-4 text-primary" />, "Esperienza 2", `${secondary} hover:bg-primary/10`, "getyourguide_2");
+  const tripadvisor = pill(<Star className="w-4 h-4 text-green-600" />, "TripAdvisor", `${secondary} hover:bg-green-500/10 hover:border-green-500/30`, "tripadvisor");
+  const thefork = pill(<Utensils className="w-4 h-4 text-orange-500" />, "Ristorante", `${secondary} hover:bg-orange-500/10 hover:border-orange-500/30`, "thefork");
+  const agoda = pill(<Hotel className="w-4 h-4 text-blue-400" />, "Agoda", `${secondary} hover:bg-blue-500/10`, "agoda");
+  const klook = pill(<Ticket className="w-4 h-4 text-red-500" />, "Klook", `${secondary} hover:bg-red-500/10`, "klook");
+  const viator = pill(<Ticket className="w-4 h-4 text-primary" />, "Viator", `${secondary} hover:bg-primary/10`, "viator");
+  const civitatis = pill(<Ticket className="w-4 h-4 text-yellow-600" />, "Civitatis", `${secondary} hover:bg-yellow-500/10`, "civitatis");
+  const hostelworld = pill(<Hotel className="w-4 h-4 text-purple-500" />, "Hostelworld", `${secondary} hover:bg-purple-500/10`, "hostelworld");
+  const ferryhopper = pill(<Plane className="w-4 h-4 text-blue-500" />, "Traghetti", `${secondary} hover:bg-blue-500/10`, "ferryhopper");
+  const rentalcars = pill(<Plane className="w-4 h-4 text-gray-500" />, "Noleggio auto", `${secondary}`, "rentalcars");
+  const go12 = pill(<Plane className="w-4 h-4 text-teal-500" />, "Trasporti locali", `${secondary} hover:bg-teal-500/10`, "12go");
+  const bookaway = pill(<Plane className="w-4 h-4 text-indigo-500" />, "Bus locali", `${secondary} hover:bg-indigo-500/10`, "bookaway");
+
+  const sets: Record<string, (typeof skyscanner)[]> = {
+    europe: [skyscanner, hotelLink, gyg1, thefork, tripadvisor],
+    mediterranean: [skyscanner, hotelLink, gyg1, ferryhopper, tripadvisor],
+    asia: [skyscanner, hotelLink ?? agoda, klook ?? gyg1, go12, tripadvisor],
+    india: [skyscanner, hotelLink ?? agoda, klook ?? viator, tripadvisor, null],
+    africa: [skyscanner, hotelLink, viator, tripadvisor, rentalcars],
+    latam: [skyscanner, hotelLink ?? hostelworld, viator ?? civitatis, tripadvisor, bookaway],
+  };
+
+  return (sets[region] ?? sets.europe).filter(Boolean) as { key: string; url: string; icon: JSX.Element; label: string; style: string }[];
+}
+
+function AffiliateLinks({ links }: { links?: Record<string, string> }) {
+  if (!links) return null;
+  const entries = Object.entries(links).filter(
+    ([, url]) => url && !url.includes("YOUR_") && !url.includes("SPECIFIC") && !url.includes("CITY")
+  );
+  if (entries.length === 0) return null;
+
+  const cfg: Record<string, AffiliateCfg> = {
+    booking_hotel: { icon: <Hotel className="w-3 h-3" />, label: "Hotel", color: "bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500 hover:text-white" },
+    booking_search: { icon: <Hotel className="w-3 h-3" />, label: "Alloggi", color: "bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500 hover:text-white" },
+    skyscanner: { icon: <Plane className="w-3 h-3" />, label: "Voli", color: "bg-sky-500/10 text-sky-600 border-sky-500/20 hover:bg-sky-500 hover:text-white" },
+    getyourguide_1: { icon: <Ticket className="w-3 h-3" />, label: "Esperienza 1", color: "bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white" },
+    getyourguide_2: { icon: <Ticket className="w-3 h-3" />, label: "Esperienza 2", color: "bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white" },
+    thefork: { icon: <Utensils className="w-3 h-3" />, label: "Ristorante", color: "bg-orange-500/10 text-orange-600 border-orange-500/20 hover:bg-orange-500 hover:text-white" },
+    tripadvisor: { icon: <Star className="w-3 h-3" />, label: "Recensioni", color: "bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500 hover:text-white" },
+  };
+
+  return (
+    <div className="flex flex-wrap gap-2 mt-4">
+      {entries.map(([key, url]) => {
+        const c: AffiliateCfg = cfg[key] ?? { icon: <ExternalLink className="w-3 h-3" />, label: key, color: "bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white" };
+        return (
+          <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full border transition-all duration-200 ${c.color}`}>
+            {c.icon}{c.label}
+            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 const AFFILIATE_CONFIG: Record<string, AffiliateCfg> = {
   booking_hotel: {
     icon: <Hotel className="w-3 h-3" />,
@@ -118,7 +205,9 @@ export default function Itinerary() {
     );
   }
 
-  const links = itinerary.topAffiliateLinks ?? {};
+ const links = itinerary.topAffiliateLinks ?? {};
+  const region = detectRegion(itinerary.destinationName ?? "");
+  const regionLinks = getRegionLinks(region, links);
 
   return (
     <div className="bg-[var(--surface)] min-h-screen pt-32 pb-24 transition-colors duration-300">
@@ -180,81 +269,24 @@ export default function Itinerary() {
               transition={{ delay: 0.5 }}
               className="space-y-6"
             >
-              {/* CONVERSION BLOCK */}
+             {/* CONVERSION BLOCK */}
               <div className="p-6 md:p-10 bg-[var(--surface-card)] rounded-[24px] border border-[var(--border-subtle)] space-y-6">
                 <div className="space-y-1">
                   <h3 className="font-serif font-bold text-xl text-[var(--text-primary)]">Pronto a partire?</h3>
                   <p className="text-sm text-[var(--text-secondary)]">Le opzioni migliori per il tuo profilo, già filtrate.</p>
                 </div>
-
-                {/* Riga principale: voli + hotel */}
                 <div className="flex flex-wrap gap-3">
-                  {links.skyscanner && (
-                    <a href={links.skyscanner} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-5 py-3 bg-sky-500 text-white font-bold rounded-full hover:bg-sky-600 transition-all shadow-md text-sm">
-                      <Plane className="w-4 h-4" /> Cerca voli
-                      <ExternalLink className="w-3 h-3 opacity-70" />
+                  {regionLinks.map(({ key, url, icon, label, style }) => (
+                    <a key={key} href={url} target="_blank" rel="noopener noreferrer" className={style}>
+                      {icon} {label}
+                      <ExternalLink className="w-3 h-3 opacity-60 ml-1" />
                     </a>
-                  )}
-                  {links.booking_hotel && (
-                    <a href={links.booking_hotel} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-5 py-3 bg-primary text-white font-bold rounded-full hover:bg-primary/90 transition-all shadow-md text-sm">
-                      <Hotel className="w-4 h-4" /> Hotel consigliato
-                      <ExternalLink className="w-3 h-3 opacity-70" />
-                    </a>
-                  )}
-                  {links.booking_search && !links.booking_hotel && (
-                    <a href={links.booking_search} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-5 py-3 bg-primary text-white font-bold rounded-full hover:bg-primary/90 transition-all shadow-md text-sm">
-                      <Hotel className="w-4 h-4" /> Hotel su Booking
-                      <ExternalLink className="w-3 h-3 opacity-70" />
-                    </a>
-                  )}
-                </div>
-
-                <div className="w-full h-px bg-[var(--border-subtle)]" />
-
-                {/* Riga secondaria: esperienze + ristorante + tripadvisor + tutti gli hotel */}
-                <div className="flex flex-wrap gap-3">
-                  {links.getyourguide_1 && (
-                    <a href={links.getyourguide_1} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface-alt)] text-[var(--text-primary)] font-bold rounded-full hover:bg-primary/10 border border-[var(--border-subtle)] transition-all text-sm">
-                      <Ticket className="w-4 h-4 text-primary" /> Esperienza 1
-                      <ExternalLink className="w-3 h-3 opacity-50" />
-                    </a>
-                  )}
-                  {links.getyourguide_2 && (
+                  ))}
+                  {/* gyg2 separato se disponibile */}
+                  {links.getyourguide_2 && region !== "asia" && (
                     <a href={links.getyourguide_2} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface-alt)] text-[var(--text-primary)] font-bold rounded-full hover:bg-primary/10 border border-[var(--border-subtle)] transition-all text-sm">
+                      className="flex items-center gap-2 px-4 py-2.5 font-bold rounded-full border text-sm transition-all bg-[var(--surface-alt)] text-[var(--text-primary)] border-[var(--border-subtle)] hover:bg-primary/10">
                       <Ticket className="w-4 h-4 text-primary" /> Esperienza 2
-                      <ExternalLink className="w-3 h-3 opacity-50" />
-                    </a>
-                  )}
-                  {links.getyourguide && !links.getyourguide_1 && (
-                    <a href={links.getyourguide} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface-alt)] text-[var(--text-primary)] font-bold rounded-full hover:bg-primary/10 border border-[var(--border-subtle)] transition-all text-sm">
-                      <Ticket className="w-4 h-4 text-primary" /> Esperienze
-                      <ExternalLink className="w-3 h-3 opacity-50" />
-                    </a>
-                  )}
-                  {links.thefork && (
-                    <a href={links.thefork} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface-alt)] text-[var(--text-primary)] font-bold rounded-full hover:bg-orange-500/10 border border-[var(--border-subtle)] hover:border-orange-500/30 transition-all text-sm">
-                      <Utensils className="w-4 h-4 text-orange-500" /> Ristorante
-                      <ExternalLink className="w-3 h-3 opacity-50" />
-                    </a>
-                  )}
-                  {links.tripadvisor && (
-                    <a href={links.tripadvisor} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface-alt)] text-[var(--text-primary)] font-bold rounded-full hover:bg-green-500/10 border border-[var(--border-subtle)] hover:border-green-500/30 transition-all text-sm">
-                      <Star className="w-4 h-4 text-green-600" /> TripAdvisor
-                      <ExternalLink className="w-3 h-3 opacity-50" />
-                    </a>
-                  )}
-                  {links.booking_search && links.booking_hotel && (
-                    <a href={links.booking_search} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2.5 bg-[var(--surface-alt)] text-[var(--text-primary)] font-bold rounded-full hover:bg-blue-500/10 border border-[var(--border-subtle)] hover:border-blue-500/30 transition-all text-sm">
-                      <Hotel className="w-4 h-4 text-blue-500" /> Tutti gli hotel
                       <ExternalLink className="w-3 h-3 opacity-50" />
                     </a>
                   )}
@@ -393,10 +425,11 @@ function DayCard({ day, isOpen, onToggle, index, t }: { day: any; isOpen: boolea
                   <Utensils className="w-3.5 h-3.5" /> {t('itin.lunch')}
                 </div>
                 <p className="text-[var(--text-secondary)] font-sans leading-relaxed text-[15px]">{day.lunch}</p>
-                {day.affiliateLinks?.thefork_lunch && (
-                  <a href={day.affiliateLinks.thefork_lunch} target="_blank" rel="noopener noreferrer"
+           {(day.affiliateLinks?.thefork_lunch || day.affiliateLinks?.googlemaps_lunch) && (
+                  <a href={day.affiliateLinks.thefork_lunch ?? day.affiliateLinks.googlemaps_lunch} target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20 hover:bg-orange-500 hover:text-white transition-all duration-200">
-                    <Utensils className="w-3 h-3" /> Prenota tavolo
+                    {day.affiliateLinks?.thefork_lunch ? <Utensils className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                    {day.affiliateLinks?.thefork_lunch ? "Prenota tavolo" : "Vedi su Maps"}
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 )}
