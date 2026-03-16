@@ -1530,7 +1530,7 @@ border: theme === 'dark'
                   onClick={handleNext}
                   disabled={!canContinue()}
                   data-testid="button-continue"
-                  className="inline-flex items-center gap-2 px-[34px] py-[15px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] disabled:bg-[#ccc] disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none transition-all group"
+                 className="inline-flex items-center gap-2 px-[34px] py-[15px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 hover:shadow-[0_12px_34px_rgba(233,69,96,0.3)] disabled:bg-[rgba(233,69,96,0.25)] disabled:text-white/60 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none transition-all group"
                 >
                   {t('q.continue')}
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:enabled:translate-x-1" />
