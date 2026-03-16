@@ -332,17 +332,17 @@ function DayCard({ day, isOpen, onToggle, index, t }: { day: any; isOpen: boolea
                   <Clock className="w-3.5 h-3.5" /> {t('itin.morning')}
                 </div>
                 <p className="text-[var(--text-secondary)] font-sans leading-relaxed text-[15px]">{day.morning}</p>
-                {(day.affiliateLinks?.getyourguide_morning || day.affiliateLinks?.klook_morning || day.affiliateLinks?.viator_morning) && (
+           {(day.affiliateLinks?.getyourguide_morning || day.affiliateLinks?.klook_morning || day.affiliateLinks?.viator_morning) && (
                   <a href={day.affiliateLinks.getyourguide_morning ?? day.affiliateLinks.klook_morning ?? day.affiliateLinks.viator_morning} target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all duration-200">
                     <Ticket className="w-3 h-3" /> Prenota attività
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 )}
-                {day.affiliateLinks?.googlemaps_place && (
-                  <a href={day.affiliateLinks.googlemaps_place} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full bg-gray-500/10 text-gray-600 border border-gray-500/20 hover:bg-gray-500 hover:text-white transition-all duration-200">
-                    <MapPin className="w-3 h-3" /> Vedi su Maps
+                {(day.affiliateLinks?.getyourguide_place_morning || day.affiliateLinks?.klook_place_morning || day.affiliateLinks?.viator_place_morning) && (
+                  <a href={day.affiliateLinks.getyourguide_place_morning ?? day.affiliateLinks.klook_place_morning ?? day.affiliateLinks.viator_place_morning} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all duration-200">
+                    <Ticket className="w-3 h-3" /> Tour del luogo
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 )}
@@ -356,11 +356,11 @@ function DayCard({ day, isOpen, onToggle, index, t }: { day: any; isOpen: boolea
                   <Utensils className="w-3.5 h-3.5" /> {t('itin.lunch')}
                 </div>
                 <p className="text-[var(--text-secondary)] font-sans leading-relaxed text-[15px]">{day.lunch}</p>
-           {(day.affiliateLinks?.thefork_lunch || day.affiliateLinks?.googlemaps_lunch) && (
-                  <a href={day.affiliateLinks.thefork_lunch ?? day.affiliateLinks.googlemaps_lunch} target="_blank" rel="noopener noreferrer"
+          {(day.affiliateLinks?.thefork_lunch || day.affiliateLinks?.tripadvisor_lunch) && (
+                  <a href={day.affiliateLinks.thefork_lunch ?? day.affiliateLinks.tripadvisor_lunch} target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20 hover:bg-orange-500 hover:text-white transition-all duration-200">
-                    {day.affiliateLinks?.thefork_lunch ? <Utensils className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
-                    {day.affiliateLinks?.thefork_lunch ? "Prenota tavolo" : "Vedi su Maps"}
+                    <Utensils className="w-3 h-3" />
+                    {day.affiliateLinks?.thefork_lunch ? "Prenota tavolo" : "Vedi su TripAdvisor"}
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 )}
@@ -374,17 +374,17 @@ function DayCard({ day, isOpen, onToggle, index, t }: { day: any; isOpen: boolea
                   <Sun className="w-3.5 h-3.5" /> {t('itin.afternoon')}
                 </div>
                 <p className="text-[var(--text-secondary)] font-sans leading-relaxed text-[15px]">{day.afternoon}</p>
-             {(day.affiliateLinks?.getyourguide_afternoon || day.affiliateLinks?.klook_afternoon || day.affiliateLinks?.viator_afternoon) && (
+       {(day.affiliateLinks?.getyourguide_afternoon || day.affiliateLinks?.klook_afternoon || day.affiliateLinks?.viator_afternoon) && (
                   <a href={day.affiliateLinks.getyourguide_afternoon ?? day.affiliateLinks.klook_afternoon ?? day.affiliateLinks.viator_afternoon} target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all duration-200">
                     <Ticket className="w-3 h-3" /> Prenota attività
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 )}
-                {day.affiliateLinks?.googlemaps_place_afternoon && (
-                  <a href={day.affiliateLinks.googlemaps_place_afternoon} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full bg-gray-500/10 text-gray-600 border border-gray-500/20 hover:bg-gray-500 hover:text-white transition-all duration-200">
-                    <MapPin className="w-3 h-3" /> Vedi su Maps
+                {(day.affiliateLinks?.getyourguide_place_afternoon || day.affiliateLinks?.klook_place_afternoon || day.affiliateLinks?.viator_place_afternoon) && (
+                  <a href={day.affiliateLinks.getyourguide_place_afternoon ?? day.affiliateLinks.klook_place_afternoon ?? day.affiliateLinks.viator_place_afternoon} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all duration-200">
+                    <Ticket className="w-3 h-3" /> Tour del luogo
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 )}
@@ -398,10 +398,11 @@ function DayCard({ day, isOpen, onToggle, index, t }: { day: any; isOpen: boolea
                   <Clock className="w-3.5 h-3.5" /> {t('itin.evening')}
                 </div>
                 <p className="text-[var(--text-secondary)] font-sans leading-relaxed text-[15px]">{day.evening}</p>
-                {day.affiliateLinks?.thefork_evening && (
-                  <a href={day.affiliateLinks.thefork_evening} target="_blank" rel="noopener noreferrer"
+          {(day.affiliateLinks?.thefork_evening || day.affiliateLinks?.tripadvisor_evening || day.affiliateLinks?.tripadvisor_evening_fallback) && (
+                  <a href={day.affiliateLinks.thefork_evening ?? day.affiliateLinks.tripadvisor_evening ?? day.affiliateLinks.tripadvisor_evening_fallback} target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[1.5px] rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20 hover:bg-orange-500 hover:text-white transition-all duration-200">
-                    <Utensils className="w-3 h-3" /> Prenota tavolo
+                    <Utensils className="w-3 h-3" />
+                    {day.affiliateLinks?.thefork_evening ? "Prenota tavolo" : "Ristoranti consigliati"}
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 )}
@@ -409,12 +410,12 @@ function DayCard({ day, isOpen, onToggle, index, t }: { day: any; isOpen: boolea
 
               {/* Link generici rimanenti del giorno */}
               {day.affiliateLinks && Object.keys(day.affiliateLinks).filter(
-               k => !["getyourguide_morning", "getyourguide_afternoon", "klook_morning", "klook_afternoon", "viator_morning", "viator_afternoon", "thefork_lunch", "thefork_evening", "googlemaps_lunch", "googlemaps_evening", "googlemaps_place", "googlemaps_place_afternoon"].includes(k)
+             k => !["getyourguide_morning", "getyourguide_afternoon", "klook_morning", "klook_afternoon", "viator_morning", "viator_afternoon", "getyourguide_place_morning", "getyourguide_place_afternoon", "klook_place_morning", "klook_place_afternoon", "viator_place_morning", "viator_place_afternoon", "thefork_lunch", "thefork_evening", "tripadvisor_lunch", "tripadvisor_evening", "tripadvisor_evening_fallback"].includes(k)
               ).length > 0 && (
                 <div className="pt-2">
                   <AffiliateLinks links={Object.fromEntries(
                     Object.entries(day.affiliateLinks).filter(
-                    k => !["getyourguide_morning", "getyourguide_afternoon", "klook_morning", "klook_afternoon", "viator_morning", "viator_afternoon", "thefork_lunch", "thefork_evening", "googlemaps_lunch", "googlemaps_evening", "googlemaps_place", "googlemaps_place_afternoon"].includes(k)
+               k => !["getyourguide_morning", "getyourguide_afternoon", "klook_morning", "klook_afternoon", "viator_morning", "viator_afternoon", "getyourguide_place_morning", "getyourguide_place_afternoon", "klook_place_morning", "klook_place_afternoon", "viator_place_morning", "viator_place_afternoon", "thefork_lunch", "thefork_evening", "tripadvisor_lunch", "tripadvisor_evening", "tripadvisor_evening_fallback"].includes(k)
                     )
                   )} />
                 </div>
