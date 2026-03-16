@@ -443,49 +443,91 @@ function DayCard({ day, isOpen, onToggle, index, t }: { day: any; isOpen: boolea
 function ItineraryMap({ days, destinationName }: { days: any[]; destinationName: string }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [activeDay, setActiveDay] = useState<number | null>(null);
+  const [activeSlot, setActiveSlot] = useState<string | null>(null);
+  const [allPoints, setAllPoints] = useState<{ label: string; slot: string; lat: number; lng: number; dayNum: number; imageUrl?: string; affiliateUrl?: string }[]>([]);
+
+  const slotColors: Record<string, string> = {
+    "Mattina": "#E94560", "Pranzo": "#FF8C42", "Pomeriggio": "#4ECDC4",
+    "Sera": "#9B59B6", "Hotel": "#1A1A2E", "Traghetto": "#0EA5E9", "Noleggio": "#10B981",
+  };
+  const slotLabels: Record<string, string> = {
+    "Mattina": "🌅 Mattina", "Pranzo": "🍽️ Pranzo", "Pomeriggio": "☀️ Pomeriggio",
+    "Sera": "🌙 Sera", "Hotel": "🏨 Hotel", "Traghetto": "⛴️ Traghetto", "Noleggio": "🚗 Noleggio",
+  };
+
+  const uniqueDays = [...new Set(allPoints.map(p => p.dayNum))].sort((a, b) => a - b);
+  const uniqueSlots = [...new Set(allPoints.map(p => p.slot))];
+
+  const filteredPoints = allPoints.filter(p => {
+    if (activeDay !== null && p.dayNum !== activeDay) return false;
+    if (activeSlot !== null && p.slot !== activeSlot) return false;
+    return true;
+  });
+
+  const buildPopup = (point: typeof allPoints[0]) => {
+    const color = slotColors[point.slot] ?? "#E94560";
+    const slotLabel = slotLabels[point.slot] ?? point.slot;
+    const imgHtml = point.imageUrl
+      ? `<img src="${point.imageUrl}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;margin-bottom:8px;" />`
+      : "";
+    const btnHtml = point.affiliateUrl
+      ? `<a href="${point.affiliateUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;padding:6px 14px;background:${color};color:white;border-radius:20px;font-size:11px;font-weight:bold;text-decoration:none;">Prenota →</a>`
+      : "";
+    return `<div style="font-family:sans-serif;width:210px;padding:2px;">
+      ${imgHtml}
+      <div style="display:inline-block;padding:2px 8px;background:${color}20;color:${color};border-radius:20px;font-size:10px;font-weight:bold;margin-bottom:5px;">${slotLabel} · Giorno ${point.dayNum}</div>
+      <div style="font-size:13px;font-weight:bold;color:#1a1a2e;line-height:1.3;">${point.label}</div>
+      ${btnHtml}
+    </div>`;
+  };
+
+  // Aggiorna marker visibili quando cambiano i filtri
+  useEffect(() => {
+    if (!mapInstanceRef.current || allPoints.length === 0) return;
+    const map = mapInstanceRef.current;
+
+    // Rimuovi tutti i marker esistenti
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    const bounds: [number, number][] = [];
+    filteredPoints.forEach((point) => {
+      const color = slotColors[point.slot] ?? "#E94560";
+      bounds.push([point.lat, point.lng]);
+      const icon = L.divIcon({
+        className: "",
+        html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${point.dayNum}</span></div>`,
+        iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34],
+      });
+      const marker = L.marker([point.lat, point.lng], { icon }).addTo(map).bindPopup(buildPopup(point), { maxWidth: 240 });
+      markersRef.current.push(marker);
+    });
+
+    if (bounds.length > 1) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [40, 40] });
+    else if (bounds.length === 1) map.setView(bounds[0], 15);
+  }, [activeDay, activeSlot, allPoints]);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    const allPoints: { label: string; slot: string; lat: number; lng: number; dayNum: number; imageUrl?: string; affiliateUrl?: string }[] = [];
+    const points: typeof allPoints = [];
     days.forEach((day: any) => {
       if (day.mapPoints && Array.isArray(day.mapPoints)) {
         day.mapPoints.forEach((p: any) => {
           if (p.lat && p.lng && p.lat !== 0 && p.lng !== 0) {
-            allPoints.push({ ...p, dayNum: day.dayNumber });
+            points.push({ ...p, dayNum: day.dayNumber });
           }
         });
       }
     });
 
-    const slotColors: Record<string, string> = {
-      "Mattina": "#E94560", "Pranzo": "#FF8C42", "Pomeriggio": "#4ECDC4",
-      "Sera": "#9B59B6", "Hotel": "#1A1A2E", "Traghetto": "#0EA5E9", "Noleggio": "#10B981",
-    };
-    const slotLabels: Record<string, string> = {
-      "Mattina": "🌅 Mattina", "Pranzo": "🍽️ Pranzo", "Pomeriggio": "☀️ Pomeriggio",
-      "Sera": "🌙 Sera", "Hotel": "🏨 Hotel", "Traghetto": "⛴️ Traghetto", "Noleggio": "🚗 Noleggio",
-    };
-
-    const buildPopup = (point: typeof allPoints[0]) => {
-      const color = slotColors[point.slot] ?? "#E94560";
-      const slotLabel = slotLabels[point.slot] ?? point.slot;
-      const imgHtml = point.imageUrl
-        ? `<img src="${point.imageUrl}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;margin-bottom:8px;" />`
-        : "";
-      const btnHtml = point.affiliateUrl
-        ? `<a href="${point.affiliateUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;padding:6px 14px;background:${color};color:white;border-radius:20px;font-size:11px;font-weight:bold;text-decoration:none;">Prenota →</a>`
-        : "";
-      return `<div style="font-family:sans-serif;width:210px;padding:2px;">
-        ${imgHtml}
-        <div style="display:inline-block;padding:2px 8px;background:${color}20;color:${color};border-radius:20px;font-size:10px;font-weight:bold;margin-bottom:5px;">${slotLabel} · Giorno ${point.dayNum}</div>
-        <div style="font-size:13px;font-weight:bold;color:#1a1a2e;line-height:1.3;">${point.label}</div>
-        ${btnHtml}
-      </div>`;
-    };
+    const avgLat = points.length > 0 ? points.reduce((s, p) => s + p.lat, 0) / points.length : 0;
+    const avgLng = points.length > 0 ? points.reduce((s, p) => s + p.lng, 0) / points.length : 0;
 
     const initMap = (centerLat: number, centerLon: number) => {
       const map = L.map(mapRef.current!, {
@@ -501,26 +543,9 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
       return map;
     };
 
-    const addMarkers = (map: L.Map, points: typeof allPoints) => {
-      const bounds: [number, number][] = [];
-      points.forEach((point) => {
-        const color = slotColors[point.slot] ?? "#E94560";
-        bounds.push([point.lat, point.lng]);
-        const icon = L.divIcon({
-          className: "",
-          html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${point.dayNum}</span></div>`,
-          iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34],
-        });
-        L.marker([point.lat, point.lng], { icon }).addTo(map).bindPopup(buildPopup(point), { maxWidth: 240 });
-      });
-      if (bounds.length > 1) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [40, 40] });
-    };
-
-    if (allPoints.length > 0) {
-      const avgLat = allPoints.reduce((s, p) => s + p.lat, 0) / allPoints.length;
-      const avgLng = allPoints.reduce((s, p) => s + p.lng, 0) / allPoints.length;
-      const map = initMap(avgLat, avgLng);
-      addMarkers(map, allPoints);
+    if (points.length > 0) {
+      initMap(avgLat, avgLng);
+      setAllPoints(points);
       setLoading(false);
     } else {
       fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`)
@@ -530,7 +555,7 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
           const map = initMap(parseFloat(results[0].lat), parseFloat(results[0].lon));
           const cityName = destinationName.split(",")[0].trim();
           const countryName = destinationName.split(",")[1]?.trim() ?? "";
-          const places: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
+          const fallbackPlaces: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
           days.forEach((day: any) => {
             [{ text: day.morning, slot: "Mattina" }, { text: day.lunch, slot: "Pranzo" },
              { text: day.afternoon, slot: "Pomeriggio" }, { text: day.evening, slot: "Sera" }]
@@ -539,33 +564,24 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
                 const lower = text.toLowerCase();
                 if (lower.includes("volo") || lower.includes("aeroporto") || lower.includes("trasferimento")) return;
                 const name = text.split(/—|,|\.|–/)[0].trim();
-                if (name.length > 3) places.push({ label: name, dayNum: day.dayNumber, slot, searchQuery: `${name} ${cityName} ${countryName}` });
+                if (name.length > 3) fallbackPlaces.push({ label: name, dayNum: day.dayNumber, slot, searchQuery: `${name} ${cityName} ${countryName}` });
               });
           });
-          const bounds: [number, number][] = [[parseFloat(results[0].lat), parseFloat(results[0].lon)]];
           const seen = new Set<string>();
-          for (const place of places.slice(0, 8)) {
+          const fallbackPoints: typeof allPoints = [];
+          for (const place of fallbackPlaces.slice(0, 8)) {
             if (seen.has(place.label)) continue;
             seen.add(place.label);
             try {
               const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.searchQuery)}&format=json&limit=1&accept-language=en`);
               const data = await res.json();
               if (data && data.length > 0) {
-                const lat = parseFloat(data[0].lat);
-                const lon = parseFloat(data[0].lon);
-                bounds.push([lat, lon]);
-                const color = slotColors[place.slot] ?? "#E94560";
-                const icon = L.divIcon({
-                  className: "",
-                  html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${place.dayNum}</span></div>`,
-                  iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34],
-                });
-                L.marker([lat, lon], { icon }).addTo(map).bindPopup(`<div style="font-family:sans-serif;font-size:13px;min-width:150px;"><div style="color:${color};font-weight:bold;margin-bottom:4px;">Giorno ${place.dayNum} — ${place.slot}</div><div>${place.label}</div></div>`);
+                fallbackPoints.push({ label: place.label, slot: place.slot, lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), dayNum: place.dayNum });
               }
               await new Promise(r => setTimeout(r, 250));
             } catch { /* skip */ }
           }
-          if (bounds.length > 1) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30] });
+          setAllPoints(fallbackPoints);
           setLoading(false);
         })
         .catch(() => { setError(true); setLoading(false); });
@@ -576,24 +592,26 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     };
   }, []);
 
-  // Quando expanded cambia, invalida la mappa DOPO che il CSS ha ridimensionato il div
   useEffect(() => {
     const timer = setTimeout(() => {
       mapInstanceRef.current?.invalidateSize();
-      if (mapInstanceRef.current) {
-        const allPoints: [number, number][] = [];
-        days.forEach((day: any) => {
-          day.mapPoints?.forEach((p: any) => {
-            if (p.lat && p.lng && p.lat !== 0 && p.lng !== 0) allPoints.push([p.lat, p.lng]);
-          });
-        });
-        if (allPoints.length > 1) {
-          mapInstanceRef.current.fitBounds(allPoints as L.LatLngBoundsExpression, { padding: [40, 40] });
-        }
+      if (mapInstanceRef.current && allPoints.length > 1) {
+        mapInstanceRef.current.fitBounds(allPoints.map(p => [p.lat, p.lng]) as L.LatLngBoundsExpression, { padding: [40, 40] });
       }
     }, 300);
     return () => clearTimeout(timer);
   }, [expanded]);
+
+  const flyTo = (point: typeof allPoints[0]) => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([point.lat, point.lng], 16, { duration: 0.8 });
+      const marker = markersRef.current.find(m => {
+        const ll = m.getLatLng();
+        return Math.abs(ll.lat - point.lat) < 0.0001 && Math.abs(ll.lng - point.lng) < 0.0001;
+      });
+      if (marker) setTimeout(() => marker.openPopup(), 900);
+    }
+  };
 
   if (error) return (
     <div className="w-full h-[280px] rounded-[16px] bg-[var(--surface-alt)] flex items-center justify-center text-[var(--text-secondary)] text-sm border border-[var(--border-subtle)]">
@@ -601,44 +619,108 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     </div>
   );
 
-  const legendItems = [
+  const legendItems: [string, string][] = [
     ["#E94560", "Mattina"], ["#FF8C42", "Pranzo"], ["#4ECDC4", "Pomeriggio"],
     ["#9B59B6", "Sera"], ["#1A1A2E", "Hotel"], ["#0EA5E9", "Traghetto"], ["#10B981", "Noleggio"],
   ];
 
   return (
     <>
-      {/* Overlay quando expanded */}
       {expanded && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-          onClick={() => setExpanded(false)}
-        />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={() => setExpanded(false)} />
       )}
 
-      {/* Contenitore mappa — stesso div, cambia solo stile */}
       <div
         className="transition-all duration-300"
         style={expanded ? {
-          position: "fixed",
-          top: "50%",
-          left: "50%",
+          position: "fixed", top: "50%", left: "50%",
           transform: "translate(-50%, -50%)",
-          width: "min(90vw, 1000px)",
-          height: "80vh",
-          zIndex: 50,
-          borderRadius: "20px",
-          overflow: "hidden",
-          boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
+          width: "min(92vw, 1100px)", height: "85vh",
+          zIndex: 50, borderRadius: "20px", overflow: "hidden",
+          boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+          display: "flex",
         } : {
-          position: "relative",
-          width: "100%",
-          height: "280px",
-          borderRadius: "16px",
-          overflow: "hidden",
+          position: "relative", width: "100%", height: "280px",
+          borderRadius: "16px", overflow: "hidden",
           border: "1px solid var(--border-subtle)",
         }}
       >
+        {/* Pannello lista — solo quando expanded */}
+        {expanded && (
+          <div style={{ width: "280px", flexShrink: 0, background: "white", overflowY: "auto", display: "flex", flexDirection: "column", zIndex: 10 }}>
+            {/* Header pannello */}
+            <div style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}>
+              <div style={{ fontFamily: "sans-serif", fontWeight: "bold", fontSize: "14px", color: "#1a1a2e", marginBottom: "10px" }}>
+                {allPoints.length} luoghi mappati
+              </div>
+
+              {/* Filtro per giorno */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "8px" }}>
+                <button
+                  onClick={() => setActiveDay(null)}
+                  style={{ padding: "3px 8px", borderRadius: "20px", fontSize: "11px", fontWeight: "bold", border: "1px solid #ddd", background: activeDay === null ? "#1a1a2e" : "white", color: activeDay === null ? "white" : "#666", cursor: "pointer" }}
+                >
+                  Tutti
+                </button>
+                {uniqueDays.map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setActiveDay(activeDay === d ? null : d)}
+                    style={{ padding: "3px 8px", borderRadius: "20px", fontSize: "11px", fontWeight: "bold", border: "1px solid #ddd", background: activeDay === d ? "#1a1a2e" : "white", color: activeDay === d ? "white" : "#666", cursor: "pointer" }}
+                  >
+                    G{d}
+                  </button>
+                ))}
+              </div>
+
+              {/* Filtro per slot */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                {uniqueSlots.map(slot => {
+                  const color = slotColors[slot] ?? "#E94560";
+                  const active = activeSlot === slot;
+                  return (
+                    <button
+                      key={slot}
+                      onClick={() => setActiveSlot(activeSlot === slot ? null : slot)}
+                      style={{ padding: "3px 8px", borderRadius: "20px", fontSize: "10px", fontWeight: "bold", border: `1px solid ${color}`, background: active ? color : `${color}15`, color: active ? "white" : color, cursor: "pointer" }}
+                    >
+                      {slot}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Lista luoghi */}
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {filteredPoints.map((point, i) => {
+                const color = slotColors[point.slot] ?? "#E94560";
+                return (
+                  <div
+                    key={i}
+                    onClick={() => flyTo(point)}
+                    style={{ padding: "10px 14px", borderBottom: "1px solid #f5f5f5", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "background 0.15s" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#f9f9f9")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "white")}
+                  >
+                    <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: color, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "bold", flexShrink: 0 }}>
+                      {point.dayNum}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: "12px", fontWeight: "bold", color: "#1a1a2e", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {point.label}
+                      </div>
+                      <div style={{ fontSize: "10px", color: color, fontWeight: "bold" }}>
+                        {slotLabels[point.slot] ?? point.slot}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {loading && (
           <div className="absolute inset-0 bg-[var(--surface-alt)] flex items-center justify-center z-10">
             <div className="flex flex-col items-center gap-3">
@@ -648,8 +730,7 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
           </div>
         )}
 
-        {/* La mappa Leaflet vive sempre qui */}
-        <div ref={mapRef} className="w-full h-full" />
+        <div ref={mapRef} style={{ flex: 1, height: "100%" }} />
 
         {/* Bottone espandi/chiudi */}
         <button
@@ -660,8 +741,15 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
           {expanded ? "Chiudi" : "Espandi"}
         </button>
 
-        {/* Legenda */}
-        {!loading && (
+        {/* Contatore pin — solo mappa piccola */}
+        {!expanded && !loading && allPoints.length > 0 && (
+          <div className="absolute top-3 left-3 z-20 bg-white/95 rounded-full px-2.5 py-1 text-[10px] font-bold text-gray-700 shadow-md border border-gray-100">
+            {allPoints.length} luoghi
+          </div>
+        )}
+
+        {/* Legenda — solo mappa piccola */}
+        {!expanded && !loading && (
           <div className="absolute bottom-3 left-3 z-20 bg-white/95 rounded-[10px] px-2.5 py-2 shadow-md border border-gray-100">
             {legendItems.map(([bg, label]) => (
               <div key={label} className="flex items-center gap-1.5 text-[10px] font-bold mb-1 last:mb-0">
