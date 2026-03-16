@@ -687,9 +687,10 @@ export default function Profiling() {
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="text-center w-full max-w-[1080px]"
           >
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-[5px] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-6 border border-[rgba(233,69,96,0.16)]" style={{ background: splitBadgeBg }}>
-              {t('split.label')}
-            </span>
+        <span className="inline-flex items-center gap-1.5 px-3.5 py-[6px] bg-[rgba(233,69,96,0.15)] rounded-full text-[11px] font-semibold text-white uppercase tracking-[2.5px] mb-4 border border-[rgba(233,69,96,0.4)] shadow-[0_0_12px_rgba(233,69,96,0.2)]">
+                    <Info className="w-3 h-3" />
+                    {t('q.label')} {String(step + 1).padStart(2, '0')}
+                  </span>
 
             <h1 className="font-serif text-[clamp(34px,5vw,62px)] leading-[1.06] tracking-tight mb-4 text-[var(--text-primary)] max-w-[820px] mx-auto">
               <span dangerouslySetInnerHTML={{ __html: t('split.title').replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">') }} />
@@ -1567,9 +1568,9 @@ border: theme === 'dark'
                   </p>
                 </div>
 
-                <div className="hidden md:flex flex-col items-end gap-2 shrink-0">
-                  <span className="text-[11px] uppercase tracking-[0.22em] text-[var(--text-muted)] font-medium">{currentQ.section}</span>
-                  <span className="rounded-full px-3 py-1.5 text-[12px] text-[var(--text-secondary)] border border-[var(--border-input)]" style={{ background: subtlePanelBg }}>
+            <div className="hidden md:flex flex-col items-end gap-2 shrink-0">
+                  <span className="text-[12px] uppercase tracking-[0.22em] text-white font-bold bg-white/15 px-3 py-1 rounded-full border border-white/30">{currentQ.section}</span>
+                  <span className="rounded-full px-3 py-1.5 text-[13px] font-bold text-white border border-white/30 bg-white/15">
                     {step + 1} / {questions.length}
                   </span>
                 </div>
@@ -1653,26 +1654,25 @@ border: theme === 'dark'
         </main>
 
         <aside className="hidden lg:flex flex-col gap-3.5 sticky top-[120px] h-[calc(100vh-120px)] justify-center pr-4 py-12 overflow-y-auto">
-          <div className="border border-[var(--border-input)] rounded-[24px] p-6 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.15s both', background: sidePanelBg }}>
-            <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
+         <div className="border border-white/20 rounded-[24px] p-6 hover:shadow-[0_4px_20px_rgba(233,69,96,0.15)] transition-all backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.08)', animation: 'sidebarIn 0.5s ease 0.15s both' }}>
+            <div className="flex items-center gap-2 mb-3 text-[13px] font-bold text-white">
               <HelpCircle className="w-4 h-4 text-[#E94560] shrink-0" />
               {t('sidebar.whyThis')}
             </div>
-            <p className="text-[14px] text-[var(--text-secondary)] leading-[1.8] font-light">{currentQ.why}</p>
+            <p className="text-[13px] text-white/80 leading-[1.8] font-light">{currentQ.why}</p>
           </div>
 
-          <div className="border border-[var(--border-input)] rounded-[24px] p-6 hover:shadow-[0_4px_20px_rgba(233,69,96,0.05)] transition-all" style={{ animation: 'sidebarIn 0.5s ease 0.25s both', background: sidePanelBg }}>
-            <div className="flex items-center gap-2 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">
+          <div className="border border-white/20 rounded-[24px] p-6 hover:shadow-[0_4px_20px_rgba(233,69,96,0.15)] transition-all backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.08)', animation: 'sidebarIn 0.5s ease 0.25s both' }}>
+            <div className="flex items-center gap-2 mb-3 text-[13px] font-bold text-white">
               <MapPin className="w-4 h-4 text-[#E94560] shrink-0" />
               {t('sidebar.mapping')}
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {currentQ.tags.map(tag => (
-                <span key={tag} className="text-[10px] px-3 py-1 rounded-full bg-[rgba(233,69,96,0.07)] text-[#E94560] font-semibold tracking-[0.2px]">{tag}</span>
+                <span key={tag} className="text-[11px] px-3 py-1.5 rounded-full border border-[#E94560]/40 bg-[#E94560]/15 text-[#E94560] font-bold tracking-[0.3px]">{tag}</span>
               ))}
             </div>
           </div>
-
           {renderProfileSoFar()}
 
           <div className="flex items-start gap-2 p-3.5 rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5] border border-[var(--border-input)]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both', background: subtlePanelBg }}>
