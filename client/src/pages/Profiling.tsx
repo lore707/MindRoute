@@ -1457,7 +1457,6 @@ style={{
     : 'rgba(255,255,255,0.18)',
   backdropFilter: 'blur(48px) saturate(2.5) brightness(1.10)',
   WebkitBackdropFilter: 'blur(48px) saturate(2.5) brightness(1.10)',
-  WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
 border: theme === 'dark'
     ? '1px solid rgba(255,255,255,0.06)'
     : '1px solid rgba(255,255,255,0.30)', 
