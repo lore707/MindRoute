@@ -154,3 +154,27 @@
 .animate-twinkle { animation: twinkle 4s ease-in-out infinite; }
 .animate-scroll-left { animation: scroll-left 28s linear infinite; }
 .animate-float { animation: float 6s ease-in-out infinite; }
+/* Leaflet overrides */
+.leaflet-control-zoom a {
+  font-family: 'Georgia', serif !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+  color: #1a1a2e !important;
+  line-height: 26px !important;
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #f5f5f5 !important;
+  color: #E94560 !important;
+}
+
+.leaflet-control-attribution {
+  display: none !important;
+}
