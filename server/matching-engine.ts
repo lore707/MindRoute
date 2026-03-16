@@ -25,6 +25,12 @@ const itineraryDaySchema = z.object({
   afternoon: z.string(),
   evening: z.string(),
   affiliateLinks: affiliateLinksSchema,
+  mapPoints: z.array(z.object({
+    label: z.string(),
+    slot: z.string(),
+    lat: z.number(),
+    lng: z.number(),
+  })).optional(),
 });
 
 const generatedDestinationSchema = z.object({
@@ -214,6 +220,15 @@ FALLBACK — if evening has no specific restaurant name:
 
 Do NOT use any Google Maps links anywhere — use only monetizable affiliate links.
 
+MAP POINTS — for each day, include a "mapPoints" array with GPS coordinates for ALL real places in that day including:
+- Experiences and activities (slot: "Mattina" or "Pomeriggio")
+- Restaurants and cafés (slot: "Pranzo" or "Sera")
+- Landmarks and neighborhoods (slot: "Mattina" or "Pomeriggio")
+- HOTEL_NAME on day 1 only (slot: "Hotel")
+- Any ferry port or boat departure if mentioned (slot: "Traghetto")
+- Any car/scooter/quad rental location if mentioned (slot: "Noleggio")
+Use precise real-world GPS coordinates. Skip generic flight/airport slots.
+
 RESPONSE LANGUAGE: Write all text fields in Italian.
 
 REQUIRED JSON (day examples show affiliateLinks structure — apply same logic to all ${days} days):
@@ -238,12 +253,18 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
           "lunch": "LUNCH_SPOT real name + max 5 words",
           "afternoon": "PLACE_1 real name + max 8 words",
           "evening": "Max 10 words — no specific restaurant",
-          "affiliateLinks": {
+  "affiliateLinks": {
             "getyourguide_morning": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8",
             "thefork_lunch": "https://www.thefork.it/search#q=LUNCH_SPOT_NAME",
             "getyourguide_place_afternoon": "https://www.getyourguide.com/s/?q=PLACE_1_NAME+tour&partner_id=0BCSNBX8",
             "tripadvisor_evening_fallback": "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME"
-          }
+          },
+          "mapPoints": [
+            { "label": "EXPERIENCE_1_NAME", "slot": "Mattina", "lat": 0.0000, "lng": 0.0000 },
+            { "label": "LUNCH_SPOT_NAME", "slot": "Pranzo", "lat": 0.0000, "lng": 0.0000 },
+            { "label": "PLACE_1_NAME", "slot": "Pomeriggio", "lat": 0.0000, "lng": 0.0000 },
+            { "label": "HOTEL_NAME", "slot": "Hotel", "lat": 0.0000, "lng": 0.0000 }
+          ]
         },
         {
           "dayNumber": 2,
