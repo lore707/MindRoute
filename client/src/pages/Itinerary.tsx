@@ -450,8 +450,7 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Raccogli tutti i mapPoints con coordinate dirette dall'AI
-    const allPoints: { label: string; slot: string; lat: number; lng: number; dayNum: number }[] = [];
+    const allPoints: { label: string; slot: string; lat: number; lng: number; dayNum: number; imageUrl?: string; affiliateUrl?: string }[] = [];
     days.forEach((day: any) => {
       if (day.mapPoints && Array.isArray(day.mapPoints)) {
         day.mapPoints.forEach((p: any) => {
@@ -463,13 +462,29 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     });
 
     const slotColors: Record<string, string> = {
-      "Mattina": "#E94560",
-      "Pranzo": "#FF8C42",
-      "Pomeriggio": "#4ECDC4",
-      "Sera": "#9B59B6",
-      "Hotel": "#1A1A2E",
-      "Traghetto": "#0EA5E9",
-      "Noleggio": "#10B981",
+      "Mattina": "#E94560", "Pranzo": "#FF8C42", "Pomeriggio": "#4ECDC4",
+      "Sera": "#9B59B6", "Hotel": "#1A1A2E", "Traghetto": "#0EA5E9", "Noleggio": "#10B981",
+    };
+    const slotLabels: Record<string, string> = {
+      "Mattina": "🌅 Mattina", "Pranzo": "🍽️ Pranzo", "Pomeriggio": "☀️ Pomeriggio",
+      "Sera": "🌙 Sera", "Hotel": "🏨 Hotel", "Traghetto": "⛴️ Traghetto", "Noleggio": "🚗 Noleggio",
+    };
+
+    const buildPopup = (point: typeof allPoints[0]) => {
+      const color = slotColors[point.slot] ?? "#E94560";
+      const slotLabel = slotLabels[point.slot] ?? point.slot;
+      const imgHtml = point.imageUrl
+        ? `<img src="${point.imageUrl}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;margin-bottom:8px;" />`
+        : "";
+      const btnHtml = point.affiliateUrl
+        ? `<a href="${point.affiliateUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;padding:6px 14px;background:${color};color:white;border-radius:20px;font-size:11px;font-weight:bold;text-decoration:none;">Prenota →</a>`
+        : "";
+      return `<div style="font-family:sans-serif;width:210px;padding:2px;">
+        ${imgHtml}
+        <div style="display:inline-block;padding:2px 8px;background:${color}20;color:${color};border-radius:20px;font-size:10px;font-weight:bold;margin-bottom:5px;">${slotLabel} · Giorno ${point.dayNum}</div>
+        <div style="font-size:13px;font-weight:bold;color:#1a1a2e;line-height:1.3;">${point.label}</div>
+        ${btnHtml}
+      </div>`;
     };
 
     const initMap = (centerLat: number, centerLon: number) => {
@@ -480,83 +495,55 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
         scrollWheelZoom: true,
       });
       mapInstanceRef.current = map;
-
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap",
-        maxZoom: 19,
+        attribution: "© OpenStreetMap", maxZoom: 19,
       }).addTo(map);
-
       return map;
     };
 
-    // Se abbiamo mapPoints con coordinate reali, usali direttamente
+    const addMarkers = (map: L.Map, points: typeof allPoints) => {
+      const bounds: [number, number][] = [];
+      points.forEach((point) => {
+        const color = slotColors[point.slot] ?? "#E94560";
+        bounds.push([point.lat, point.lng]);
+        const icon = L.divIcon({
+          className: "",
+          html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${point.dayNum}</span></div>`,
+          iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34],
+        });
+        L.marker([point.lat, point.lng], { icon }).addTo(map).bindPopup(buildPopup(point), { maxWidth: 240 });
+      });
+      if (bounds.length > 1) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [40, 40] });
+    };
+
     if (allPoints.length > 0) {
       const avgLat = allPoints.reduce((s, p) => s + p.lat, 0) / allPoints.length;
       const avgLng = allPoints.reduce((s, p) => s + p.lng, 0) / allPoints.length;
       const map = initMap(avgLat, avgLng);
-      const bounds: [number, number][] = [];
-
-      allPoints.forEach((point) => {
-        const color = slotColors[point.slot] ?? "#E94560";
-        bounds.push([point.lat, point.lng]);
-
-        const icon = L.divIcon({
-          className: "",
-          html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${point.dayNum}</span></div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -34],
-        });
-
-        L.marker([point.lat, point.lng], { icon }).addTo(map).bindPopup(`
-          <div style="font-family:sans-serif;font-size:13px;min-width:150px;">
-            <div style="color:${color};font-weight:bold;margin-bottom:4px;">Giorno ${point.dayNum} — ${point.slot}</div>
-            <div>${point.label}</div>
-          </div>
-        `);
-      });
-
-      if (bounds.length > 1) {
-        map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30] });
-      }
+      addMarkers(map, allPoints);
       setLoading(false);
-
     } else {
-      // Fallback: geocodifica solo la città se mapPoints non disponibili (itinerari vecchi)
       fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`)
         .then(r => r.json())
         .then(async (results) => {
           if (!results || results.length === 0) { setError(true); setLoading(false); return; }
-          const centerLat = parseFloat(results[0].lat);
-          const centerLon = parseFloat(results[0].lon);
-          const map = initMap(centerLat, centerLon);
-
-          // Fallback geocoding per luoghi dai testi dei giorni
-          const places: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
+          const map = initMap(parseFloat(results[0].lat), parseFloat(results[0].lon));
           const cityName = destinationName.split(",")[0].trim();
           const countryName = destinationName.split(",")[1]?.trim() ?? "";
-
+          const places: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
           days.forEach((day: any) => {
-            const slots = [
-              { text: day.morning, slot: "Mattina" },
-              { text: day.lunch, slot: "Pranzo" },
-              { text: day.afternoon, slot: "Pomeriggio" },
-              { text: day.evening, slot: "Sera" },
-            ];
-            slots.forEach(({ text, slot }) => {
-              if (!text || text.length <= 3) return;
-              const lower = text.toLowerCase();
-              if (lower.includes("volo") || lower.includes("aeroporto") || lower.includes("trasferimento")) return;
-              const name = text.split(/—|,|\.|–/)[0].trim();
-              if (name.length > 3) {
-                places.push({ label: name, dayNum: day.dayNumber, slot, searchQuery: `${name} ${cityName} ${countryName}` });
-              }
-            });
+            [{ text: day.morning, slot: "Mattina" }, { text: day.lunch, slot: "Pranzo" },
+             { text: day.afternoon, slot: "Pomeriggio" }, { text: day.evening, slot: "Sera" }]
+              .forEach(({ text, slot }) => {
+                if (!text || text.length <= 3) return;
+                const lower = text.toLowerCase();
+                if (lower.includes("volo") || lower.includes("aeroporto") || lower.includes("trasferimento")) return;
+                const name = text.split(/—|,|\.|–/)[0].trim();
+                if (name.length > 3) places.push({ label: name, dayNum: day.dayNumber, slot, searchQuery: `${name} ${cityName} ${countryName}` });
+              });
           });
-
-          const bounds: [number, number][] = [[centerLat, centerLon]];
+          const bounds: [number, number][] = [[parseFloat(results[0].lat), parseFloat(results[0].lon)]];
           const seen = new Set<string>();
-
           for (const place of places.slice(0, 8)) {
             if (seen.has(place.label)) continue;
             seen.add(place.label);
@@ -573,20 +560,12 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
                   html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${place.dayNum}</span></div>`,
                   iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34],
                 });
-                L.marker([lat, lon], { icon }).addTo(map).bindPopup(`
-                  <div style="font-family:sans-serif;font-size:13px;min-width:150px;">
-                    <div style="color:${color};font-weight:bold;margin-bottom:4px;">Giorno ${place.dayNum} — ${place.slot}</div>
-                    <div>${place.label}</div>
-                  </div>
-                `);
+                L.marker([lat, lon], { icon }).addTo(map).bindPopup(`<div style="font-family:sans-serif;font-size:13px;min-width:150px;"><div style="color:${color};font-weight:bold;margin-bottom:4px;">Giorno ${place.dayNum} — ${place.slot}</div><div>${place.label}</div></div>`);
               }
               await new Promise(r => setTimeout(r, 250));
             } catch { /* skip */ }
           }
-
-          if (bounds.length > 1) {
-            map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30] });
-          }
+          if (bounds.length > 1) map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30] });
           setLoading(false);
         })
         .catch(() => { setError(true); setLoading(false); });
@@ -597,10 +576,23 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     };
   }, []);
 
+  // Quando expanded cambia, invalida la mappa DOPO che il CSS ha ridimensionato il div
   useEffect(() => {
-    if (mapInstanceRef.current) {
-      setTimeout(() => mapInstanceRef.current?.invalidateSize(), 100);
-    }
+    const timer = setTimeout(() => {
+      mapInstanceRef.current?.invalidateSize();
+      if (mapInstanceRef.current) {
+        const allPoints: [number, number][] = [];
+        days.forEach((day: any) => {
+          day.mapPoints?.forEach((p: any) => {
+            if (p.lat && p.lng && p.lat !== 0 && p.lng !== 0) allPoints.push([p.lat, p.lng]);
+          });
+        });
+        if (allPoints.length > 1) {
+          mapInstanceRef.current.fitBounds(allPoints as L.LatLngBoundsExpression, { padding: [40, 40] });
+        }
+      }
+    }, 300);
+    return () => clearTimeout(timer);
   }, [expanded]);
 
   if (error) return (
@@ -609,9 +601,44 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     </div>
   );
 
+  const legendItems = [
+    ["#E94560", "Mattina"], ["#FF8C42", "Pranzo"], ["#4ECDC4", "Pomeriggio"],
+    ["#9B59B6", "Sera"], ["#1A1A2E", "Hotel"], ["#0EA5E9", "Traghetto"], ["#10B981", "Noleggio"],
+  ];
+
   return (
     <>
-      <div className={`relative transition-all duration-300 ${expanded ? "fixed inset-4 z-50 rounded-[20px] shadow-2xl overflow-hidden" : "w-full h-[280px] rounded-[16px] overflow-hidden border border-[var(--border-subtle)]"}`}>
+      {/* Overlay quando expanded */}
+      {expanded && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+          onClick={() => setExpanded(false)}
+        />
+      )}
+
+      {/* Contenitore mappa — stesso div, cambia solo stile */}
+      <div
+        className="transition-all duration-300"
+        style={expanded ? {
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "min(90vw, 1000px)",
+          height: "80vh",
+          zIndex: 50,
+          borderRadius: "20px",
+          overflow: "hidden",
+          boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
+        } : {
+          position: "relative",
+          width: "100%",
+          height: "280px",
+          borderRadius: "16px",
+          overflow: "hidden",
+          border: "1px solid var(--border-subtle)",
+        }}
+      >
         {loading && (
           <div className="absolute inset-0 bg-[var(--surface-alt)] flex items-center justify-center z-10">
             <div className="flex flex-col items-center gap-3">
@@ -620,27 +647,31 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
             </div>
           </div>
         )}
+
+        {/* La mappa Leaflet vive sempre qui */}
         <div ref={mapRef} className="w-full h-full" />
+
+        {/* Bottone espandi/chiudi */}
         <button
           onClick={() => setExpanded(e => !e)}
-          className="absolute top-2 right-2 z-20 bg-white text-gray-700 rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-gray-100 transition-all text-xs font-bold border border-gray-200"
-          title={expanded ? "Riduci mappa" : "Espandi mappa"}
+          className="absolute top-3 right-3 z-20 bg-white text-gray-700 rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-md hover:bg-gray-50 transition-all text-[11px] font-bold border border-gray-200"
         >
-          {expanded ? "✕" : "⛶"}
+          <MapPin className="w-3 h-3" />
+          {expanded ? "Chiudi" : "Espandi"}
         </button>
+
+        {/* Legenda */}
         {!loading && (
-          <div className="absolute bottom-2 left-2 z-20 bg-white/90 rounded-[10px] px-3 py-2 text-[10px] font-bold space-y-1 shadow-md border border-gray-100">
-            <div className="flex items-center gap-1.5"><span style={{background:"#E94560"}} className="w-3 h-3 rounded-full inline-block" /> Mattina</div>
-            <div className="flex items-center gap-1.5"><span style={{background:"#FF8C42"}} className="w-3 h-3 rounded-full inline-block" /> Pranzo</div>
-            <div className="flex items-center gap-1.5"><span style={{background:"#4ECDC4"}} className="w-3 h-3 rounded-full inline-block" /> Pomeriggio</div>
-            <div className="flex items-center gap-1.5"><span style={{background:"#9B59B6"}} className="w-3 h-3 rounded-full inline-block" /> Sera</div>
-            <div className="flex items-center gap-1.5"><span style={{background:"#1A1A2E"}} className="w-3 h-3 rounded-full inline-block" /> Hotel</div>
-            <div className="flex items-center gap-1.5"><span style={{background:"#0EA5E9"}} className="w-3 h-3 rounded-full inline-block" /> Traghetto</div>
-            <div className="flex items-center gap-1.5"><span style={{background:"#10B981"}} className="w-3 h-3 rounded-full inline-block" /> Noleggio</div>
+          <div className="absolute bottom-3 left-3 z-20 bg-white/95 rounded-[10px] px-2.5 py-2 shadow-md border border-gray-100">
+            {legendItems.map(([bg, label]) => (
+              <div key={label} className="flex items-center gap-1.5 text-[10px] font-bold mb-1 last:mb-0">
+                <span style={{ background: bg }} className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" />
+                {label}
+              </div>
+            ))}
           </div>
         )}
       </div>
-      {expanded && <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setExpanded(false)} />}
     </>
   );
 }
