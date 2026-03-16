@@ -313,7 +313,7 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 6000,
+    max_tokens: 10000,
     messages: [
       {
         role: "user",
