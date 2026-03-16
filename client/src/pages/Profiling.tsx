@@ -1152,6 +1152,71 @@ export default function Profiling() {
       </div>
     );
    }
+  const getChipEmoji = (opt: string): string => {
+    const o = opt.toLowerCase();
+    if (o.includes("selvag") || o.includes("wild")) return "🌿";
+    if (o.includes("silenz") || o.includes("quiet")) return "🤫";
+    if (o.includes("caotico") || o.includes("chaotic")) return "🌀";
+    if (o.includes("intimo") || o.includes("intimate")) return "🕯️";
+    if (o.includes("solitario") || o.includes("solitary")) return "🚶";
+    if (o.includes("rigenerante") || o.includes("regenerating")) return "🌱";
+    if (o.includes("autentico") || o.includes("authentic")) return "🏺";
+    if (o.includes("lusso") || o.includes("luxury")) return "✨";
+    if (o.includes("spirituale") || o.includes("spiritual")) return "🕌";
+    if (o.includes("festoso") || o.includes("festive")) return "🎉";
+    if (o.includes("avventuroso") || o.includes("adventure")) return "⛺";
+    if (o.includes("romantico") || o.includes("romantic")) return "🌹";
+    if (o.includes("culturale") || o.includes("cultural")) return "🏛️";
+    if (o.includes("esplorativo") || o.includes("explorative")) return "🧭";
+    if (o.includes("vicino a casa") || o.includes("close to home")) return "🏠";
+    if (o.includes("stesso continente") || o.includes("same continent")) return "🗺️";
+    if (o.includes("lontano") || o.includes("far away")) return "✈️";
+    if (o.includes("ovunque") || o.includes("anywhere")) return "🌍";
+    if (o.includes("europa") || o.includes("europe")) return "🏰";
+    if (o.includes("asia")) return "🏯";
+    if (o.includes("americhe") || o.includes("americas")) return "🗽";
+    if (o.includes("africa") || o.includes("medio") || o.includes("middle")) return "🌅";
+    if (o.includes("oceania")) return "🐨";
+    if (o.includes("cultura") || o.includes("storia") || o.includes("history")) return "🏛️";
+    if (o.includes("natura") || o.includes("nature") || o.includes("avventura")) return "🌿";
+    if (o.includes("food") || o.includes("vino") || o.includes("wine")) return "🍷";
+    if (o.includes("mare") || o.includes("beach") || o.includes("relax")) return "🏖️";
+    if (o.includes("città") || o.includes("city") || o.includes("notturna")) return "🌃";
+    if (o.includes("fuori dal mondo") || o.includes("off the grid")) return "🏕️";
+    if (o.includes("road trip")) return "🚗";
+    if (o.includes("trekking") || o.includes("sport")) return "🥾";
+    if (o.includes("wellness") || o.includes("spa")) return "🧘";
+    if (o.includes("scoperta") || o.includes("discovery") || o.includes("sorprendimi") || o.includes("surprise")) return "🎲";
+    if (o.includes("mangiare") || o.includes("posti locali")) return "🍽️";
+    if (o.includes("quartieri") || o.includes("autentici")) return "🏘️";
+    if (o.includes("iconici") || o.includes("iconic")) return "📍";
+    if (o.includes("immerso") || o.includes("natura")) return "🌲";
+    if (o.includes("completamente nuovo") || o.includes("completely new")) return "🚀";
+    if (o.includes("fotografare") || o.includes("photograph")) return "📸";
+    if (o.includes("non sapevo esistesse")) return "🗺️";
+    if (o.includes("staccare") || o.includes("disconnect")) return "🔋";
+    if (o.includes("energia") || o.includes("leggerezza")) return "⚡";
+    if (o.includes("libero") || o.includes("spontaneo")) return "🕊️";
+    if (o.includes("meravigliarmi") || o.includes("wonder")) return "✨";
+    if (o.includes("profondamente") || o.includes("deeply")) return "🌊";
+    if (o.includes("zona di comfort") || o.includes("comfort zone")) return "🦋";
+    if (o.includes("visite guidate") || o.includes("guided")) return "🚌";
+    if (o.includes("affollat") || o.includes("crowded")) return "👥";
+    if (o.includes("musei") || o.includes("museum")) return "🏛️";
+    if (o.includes("resort")) return "🏨";
+    if (o.includes("club")) return "🎵";
+    if (o.includes("turistici") || o.includes("touristy")) return "🍕";
+    if (o.includes("trasferimenti") || o.includes("transit")) return "🚌";
+    if (o.includes("sveglie") || o.includes("mornings")) return "⏰";
+    if (o.includes("rigidi") || o.includes("schedules")) return "📋";
+    if (o.includes("sconosciuti") || o.includes("smalltalk")) return "💬";
+    if (o.includes("cibo sconosciuto") || o.includes("unfamiliar food")) return "🍱";
+    if (o.includes("camminare") || o.includes("walking")) return "👟";
+    if (o.includes("isolato") || o.includes("isolated")) return "🏝️";
+    if (o.includes("spendere") || o.includes("spending")) return "💸";
+    if (o.includes("troppo a lungo") || o.includes("too long")) return "⏳";
+    return "";
+  };
   const renderQuestionInput = () => {
     if (!currentQ) return null;
 
@@ -1205,18 +1270,37 @@ export default function Profiling() {
                 type="button"
                 data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
                 onClick={() => toggleChip(opt)}
-                className={`px-5 md:px-6 py-3.5 rounded-full text-[14px] md:text-[15px] border-[1.5px] transition-all duration-300 cursor-pointer select-none ${selected.includes(opt)
-                  ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)] scale-[1.02]'
-                  : 'border-[var(--border-input)] text-[var(--text-secondary)] bg-[var(--surface-card)] hover:border-[#E94560] hover:text-[var(--text-primary)] hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(233,69,96,0.08)]'
+             className={`px-5 md:px-6 py-3.5 rounded-full text-[14px] md:text-[15px] border-[1.5px] transition-all duration-300 select-none ${
+                  selected.includes(opt)
+                    ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)] scale-[1.02] cursor-pointer'
+                    : q.max && selected.length >= q.max
+                      ? 'border-white/10 text-white/30 bg-white/5 cursor-not-allowed opacity-50'
+                      : 'border-white/25 text-white bg-white/10 hover:border-[#E94560] hover:bg-white/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(233,69,96,0.15)] cursor-pointer backdrop-blur-sm'
                   }`}
               >
-                {opt}
+               {getChipEmoji(opt) ? <span className="mr-1">{getChipEmoji(opt)}</span> : null}{opt}
               </button>
             ))}
           </div>
-          {q.max && (
-            <div className="text-left mt-4 text-[13px] text-[var(--text-muted)] max-w-[640px] mx-auto">
-              <span className="text-[#E94560] font-semibold">{selected.length}</span>/{q.max} {t('q.selected')}
+       {q.max && (
+            <div className="flex items-center justify-between max-w-[640px] mx-auto mt-4 px-1">
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-bold transition-all ${
+                selected.length >= q.max 
+                  ? 'bg-[#E94560] text-white shadow-[0_4px_16px_rgba(233,69,96,0.35)]' 
+                  : 'bg-white/10 text-white border border-white/20'
+              }`}>
+                <div className="flex gap-1">
+                  {Array.from({ length: q.max }).map((_, i) => (
+                    <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < selected.length ? 'bg-current scale-110' : 'bg-current opacity-25'}`} />
+                  ))}
+                </div>
+                <span>{selected.length}/{q.max} {t('q.selected')}</span>
+              </div>
+              {selected.length >= q.max && (
+                <span className="text-[11px] text-[#E94560] font-semibold animate-pulse">
+                  Massimo raggiunto
+                </span>
+              )}
             </div>
           )}
           {isPathBQ1 && selected.length > 0 && (
