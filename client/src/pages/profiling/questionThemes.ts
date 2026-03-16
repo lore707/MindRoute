@@ -171,6 +171,41 @@ export const questionThemes: Record<string, QuestionTheme> = {
     overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(240,255,252,0.32) 100%)",
     overlayDark: "linear-gradient(180deg, rgba(0,20,20,0.48) 0%, rgba(0,0,0,0.36) 100%)",
   },
+ "mangiare nei posti locali": {
+    imageUrl: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=80",
+    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,248,235,0.32) 100%)",
+    overlayDark: "linear-gradient(180deg, rgba(30,15,0,0.46) 0%, rgba(0,0,0,0.34) 100%)",
+  },
+  "perdermi nei quartieri autentici": {
+    imageUrl: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200&q=80",
+    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,248,240,0.32) 100%)",
+    overlayDark: "linear-gradient(180deg, rgba(30,15,0,0.48) 0%, rgba(0,0,0,0.36) 100%)",
+  },
+  "vedere luoghi iconici": {
+    imageUrl: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200&q=80",
+    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,245,248,0.34) 100%)",
+    overlayDark: "linear-gradient(180deg, rgba(30,5,15,0.48) 0%, rgba(0,0,0,0.36) 100%)",
+  },
+  "stare immerso nella natura": {
+    imageUrl: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1200&q=80",
+    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(240,255,240,0.32) 100%)",
+    overlayDark: "linear-gradient(180deg, rgba(0,20,10,0.48) 0%, rgba(0,0,0,0.36) 100%)",
+  },
+  "vivere qualcosa di completamente nuovo": {
+    imageUrl: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80",
+    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,248,240,0.32) 100%)",
+    overlayDark: "linear-gradient(180deg, rgba(30,10,0,0.48) 0%, rgba(0,0,0,0.36) 100%)",
+  },
+  "fotografare qualcosa di straordinario": {
+    imageUrl: "https://images.unsplash.com/photo-1542038374999-ef21d6b5a8c7?w=1200&q=80",
+    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(245,245,255,0.32) 100%)",
+    overlayDark: "linear-gradient(180deg, rgba(10,10,30,0.48) 0%, rgba(0,0,0,0.36) 100%)",
+  },
+  "trovare un posto che non sapevo esistesse": {
+    imageUrl: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80",
+    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(240,255,252,0.32) 100%)",
+    overlayDark: "linear-gradient(180deg, rgba(0,20,20,0.48) 0%, rgba(0,0,0,0.36) 100%)",
+  },
   default: {
     imageUrl: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1200&q=80",
     overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.34) 100%)",
