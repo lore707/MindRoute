@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import { useItinerary } from "@/hooks/use-profiling";
 import { motion } from "framer-motion";
@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { useI18n } from "@/lib/i18n";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 
 type AffiliateCfg = { icon: JSX.Element; label: string; color: string };
 
@@ -290,9 +292,19 @@ export default function Itinerary() {
                   <Compass className="w-5 h-5" />
                   <h3 className="font-bold font-serif text-lg text-[var(--text-primary)]">{t('itin.getting')}</h3>
                 </div>
-                <p className="text-sm font-sans text-[var(--text-secondary)] leading-relaxed">
+      <p className="text-sm font-sans text-[var(--text-secondary)] leading-relaxed">
                   {itinerary.gettingThere}
                 </p>
+              </div>
+
+              <div className="w-full h-px bg-[var(--border-subtle)]" />
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-primary">
+                  <MapPin className="w-5 h-5" />
+                  <h3 className="font-bold font-serif text-lg text-[var(--text-primary)]">Mappa del viaggio</h3>
+                </div>
+                <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
               </div>
             </motion.div>
           </aside>
@@ -426,5 +438,152 @@ function DayCard({ day, isOpen, onToggle, index, t }: { day: any; isOpen: boolea
         </div>
       </Collapsible.Root>
     </motion.div>
+  );
+}
+function ItineraryMap({ days, destinationName }: { days: any[]; destinationName: string }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+
+    // Estrai tutti i luoghi unici dall'itinerario
+    const places: { label: string; dayNum: number; slot: string }[] = [];
+    days.forEach((day: any) => {
+      const slots = [
+        { text: day.morning, slot: "Mattina" },
+        { text: day.lunch, slot: "Pranzo" },
+        { text: day.afternoon, slot: "Pomeriggio" },
+        { text: day.evening, slot: "Sera" },
+      ];
+      slots.forEach(({ text, slot }) => {
+        if (text && text.length > 3 && !text.toLowerCase().includes("volo") && !text.toLowerCase().includes("aeroporto")) {
+          // Estrai il nome del luogo (prima del — o della virgola)
+          const name = text.split(/—|,/)[0].trim();
+          if (name.length > 3) {
+            places.push({ label: name, dayNum: day.dayNumber, slot });
+          }
+        }
+      });
+    });
+
+    // Geocodifica il nome della destinazione principale
+    const cityName = destinationName.split(",")[0].trim();
+
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`)
+      .then(r => r.json())
+      .then(async (results) => {
+        if (!results || results.length === 0) {
+          setError(true);
+          setLoading(false);
+          return;
+        }
+
+        const centerLat = parseFloat(results[0].lat);
+        const centerLon = parseFloat(results[0].lon);
+
+        // Inizializza mappa
+        const map = L.map(mapRef.current!, {
+          center: [centerLat, centerLon],
+          zoom: 12,
+          zoomControl: true,
+          scrollWheelZoom: false,
+        });
+
+        mapInstanceRef.current = map;
+
+        // Tile scuro
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+          attribution: '© OpenStreetMap © CARTO',
+          maxZoom: 19,
+        }).addTo(map);
+
+        // Pin per ogni luogo unico (max 10 per non sovraccaricare Nominatim)
+        const uniquePlaces = places.slice(0, 10);
+        const bounds: [number, number][] = [[centerLat, centerLon]];
+
+        for (const place of uniquePlaces) {
+          try {
+            const query = `${place.label} ${cityName}`;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
+            const data = await res.json();
+            if (data && data.length > 0) {
+              const lat = parseFloat(data[0].lat);
+              const lon = parseFloat(data[0].lon);
+              bounds.push([lat, lon]);
+
+              // Pin personalizzato coral
+              const icon = L.divIcon({
+                className: "",
+                html: `<div style="
+                  background: #E94560;
+                  color: white;
+                  width: 28px;
+                  height: 28px;
+                  border-radius: 50% 50% 50% 0;
+                  transform: rotate(-45deg);
+                  border: 2px solid white;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                "><span style="transform: rotate(45deg); font-size: 10px; font-weight: bold; display: block; text-align: center; line-height: 24px;">${place.dayNum}</span></div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 28],
+                popupAnchor: [0, -30],
+              });
+
+              L.marker([lat, lon], { icon })
+                .addTo(map)
+                .bindPopup(`<div style="font-family: sans-serif; font-size: 13px;"><strong>Giorno ${place.dayNum} — ${place.slot}</strong><br/>${place.label}</div>`);
+
+              // Delay per rispettare rate limit Nominatim
+              await new Promise(r => setTimeout(r, 300));
+            }
+          } catch {
+            // skip place if geocoding fails
+          }
+        }
+
+        // Fit bounds su tutti i pin
+        if (bounds.length > 1) {
+          map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [20, 20] });
+        }
+
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  if (error) return (
+    <div className="w-full h-[300px] rounded-[16px] bg-[var(--surface-alt)] flex items-center justify-center text-[var(--text-secondary)] text-sm">
+      Mappa non disponibile
+    </div>
+  );
+
+  return (
+    <div className="relative w-full h-[300px] rounded-[16px] overflow-hidden border border-[var(--border-subtle)]">
+      {loading && (
+        <div className="absolute inset-0 bg-[var(--surface-alt)] flex items-center justify-center z-10">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-[var(--text-secondary)] text-xs">Caricamento mappa...</p>
+          </div>
+        </div>
+      )}
+      <div ref={mapRef} className="w-full h-full" />
+    </div>
   );
 }
