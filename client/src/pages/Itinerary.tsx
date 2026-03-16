@@ -633,7 +633,12 @@ const flyTo = (point: typeof allPoints[0], index?: number) => {
     if (!mapInstanceRef.current) return;
     if (routeLayerRef.current) { routeLayerRef.current.remove(); routeLayerRef.current = null; }
     if (!showRoute || filteredPoints.length < 2) return;
-    const latlngs = filteredPoints.map(p => [p.lat, p.lng] as [number, number]);
+const slotOrder: Record<string, number> = { "Hotel": 0, "Mattina": 1, "Pranzo": 2, "Pomeriggio": 3, "Sera": 4, "Traghetto": 5, "Noleggio": 6 };
+    const sortedPoints = [...filteredPoints].sort((a, b) => {
+      if (a.dayNum !== b.dayNum) return a.dayNum - b.dayNum;
+      return (slotOrder[a.slot] ?? 9) - (slotOrder[b.slot] ?? 9);
+    });
+    const latlngs = sortedPoints.map(p => [p.lat, p.lng] as [number, number]);
     routeLayerRef.current = L.polyline(latlngs, {
       color: "#E94560",
       weight: 2,
@@ -773,12 +778,12 @@ const flyTo = (point: typeof allPoints[0], index?: number) => {
         <div ref={mapRef} style={{ flex: 1, height: "100%" }} />
 
         {/* Bottone espandi/chiudi */}
-        <button
+  <button
           onClick={() => setExpanded(e => !e)}
-          className="absolute top-3 right-3 z-20 bg-white text-gray-700 rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-md hover:bg-gray-50 transition-all text-[11px] font-bold border border-gray-200"
+          className="absolute bottom-3 right-3 z-20 bg-primary text-white rounded-full px-4 py-2 flex items-center gap-1.5 shadow-lg hover:bg-primary/90 transition-all text-[11px] font-bold"
         >
           <MapPin className="w-3 h-3" />
-          {expanded ? "Chiudi" : "Espandi"}
+          {expanded ? "Chiudi" : "Esplora mappa"}
         </button>
 
         {/* Contatore pin — solo mappa piccola */}
