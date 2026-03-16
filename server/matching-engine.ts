@@ -169,7 +169,7 @@ DETECT DESTINATION REGION — use this to choose correct affiliate links:
 
 AFFILIATE LINKS RULES:
 
-topAffiliateLinks — include ALL of these, choosing the right experience platform by region:
+topAffiliateLinks — include ALL relevant links by region:
 - booking_hotel: always — Booking.com search for HOTEL_NAME with real dates
 - booking_search: always — Booking.com general search for destination city with real dates
 - skyscanner: always — flight link with real IATA codes and compact dates
@@ -182,29 +182,41 @@ topAffiliateLinks — include ALL of these, choosing the right experience platfo
 - viator_2: Africa + LatAm only — Viator search for EXPERIENCE_2
 - thefork: Europe only — TheFork search for DINNER_RESTAURANT
 - agoda: Asia + India only — Agoda search for HOTEL_NAME with real dates
-- ferryhopper: Mediterranean/Greece only — Ferryhopper search
-- 12go: Asia only — 12Go search for destination
-- bookaway: Asia + LatAm only — Bookaway search for destination
+- ferryhopper: Mediterranean/Greece only — Ferryhopper homepage
 - hostelworld: LatAm + Africa only — Hostelworld search for destination city
 
-affiliateLinks inside each day — add ONLY when the content genuinely matches:
-- "getyourguide_morning": Europe/Mediterranean — day when EXPERIENCE_1 is in the morning field
-- "getyourguide_afternoon": Europe/Mediterranean — day when EXPERIENCE_2 is in the afternoon field
-- "klook_morning": Asia/India — day when EXPERIENCE_1 is in the morning field
-- "klook_afternoon": Asia/India — day when EXPERIENCE_2 is in the afternoon field
-- "viator_morning": Africa/LatAm — day when EXPERIENCE_1 is in the morning field
-- "viator_afternoon": Africa/LatAm — day when EXPERIENCE_2 is in the afternoon field
-- "thefork_lunch": Europe ONLY — day when LUNCH_SPOT is in the lunch field
-- "thefork_evening": Europe ONLY — day when DINNER_RESTAURANT is in the evening field
-- "googlemaps_lunch": Asia + India + Africa + LatAm — day when LUNCH_SPOT is in the lunch field — format: https://www.google.com/maps/search/LUNCH_SPOT_NAME+CITY_NAME
-- "googlemaps_evening": Asia + India + Africa + LatAm — day when DINNER_RESTAURANT is in the evening field — format: https://www.google.com/maps/search/DINNER_RESTAURANT_NAME+CITY_NAME
-- "googlemaps_place": any region — day when PLACE_1 appears in the morning field — format: https://www.google.com/maps/search/PLACE_1_NAME+CITY_NAME
-- "googlemaps_place_afternoon": any region — day when PLACE_2 appears in the afternoon field — format: https://www.google.com/maps/search/PLACE_2_NAME+CITY_NAME
-- Do NOT add affiliateLinks to days where none of the above match
+affiliateLinks inside each day — STRATEGY: every slot must have a monetizable link, no Maps links:
+
+EXPERIENCES (morning/afternoon):
+- "getyourguide_morning": Europe/Mediterranean — day when EXPERIENCE_1 is in morning
+- "getyourguide_afternoon": Europe/Mediterranean — day when EXPERIENCE_2 is in afternoon
+- "klook_morning": Asia/India — day when EXPERIENCE_1 is in morning
+- "klook_afternoon": Asia/India — day when EXPERIENCE_2 is in afternoon
+- "viator_morning": Africa/LatAm — day when EXPERIENCE_1 is in morning
+- "viator_afternoon": Africa/LatAm — day when EXPERIENCE_2 is in afternoon
+
+PLACES/LANDMARKS (morning/afternoon without an experience):
+- "getyourguide_place_morning": Europe/Mediterranean — day when PLACE_1 is in morning with no experience — link a tour of that place on GetYourGuide
+- "getyourguide_place_afternoon": Europe/Mediterranean — day when PLACE_2 is in afternoon with no experience — link a tour of that place on GetYourGuide
+- "klook_place_morning": Asia/India — day when PLACE_1 is in morning with no experience — link a tour of that place on Klook
+- "klook_place_afternoon": Asia/India — day when PLACE_2 is in afternoon with no experience — link a tour of that place on Klook
+- "viator_place_morning": Africa/LatAm — day when PLACE_1 is in morning with no experience — link a tour of that place on Viator
+- "viator_place_afternoon": Africa/LatAm — day when PLACE_2 is in afternoon with no experience — link a tour of that place on Viator
+
+RESTAURANTS (lunch/evening):
+- "thefork_lunch": Europe ONLY — day when LUNCH_SPOT is in lunch
+- "thefork_evening": Europe ONLY — day when DINNER_RESTAURANT is in evening
+- "tripadvisor_lunch": Asia + India + Africa + LatAm — day when LUNCH_SPOT is in lunch — link TripAdvisor restaurant search for LUNCH_SPOT in city
+- "tripadvisor_evening": Asia + India + Africa + LatAm — day when DINNER_RESTAURANT is in evening — link TripAdvisor restaurant search for DINNER_RESTAURANT in city
+
+FALLBACK — if evening has no specific restaurant name:
+- "tripadvisor_evening_fallback": any region — add TripAdvisor restaurants search for the city: https://www.tripadvisor.it/Restaurants-gCITY_ID-CITY_NAME.html — use this when evening slot has no DINNER_RESTAURANT
+
+Do NOT use any Google Maps links anywhere — use only monetizable affiliate links.
 
 RESPONSE LANGUAGE: Write all text fields in Italian.
 
-REQUIRED JSON (day examples show the affiliateLinks structure — apply same logic to all ${days} days):
+REQUIRED JSON (day examples show affiliateLinks structure — apply same logic to all ${days} days):
 {
   "destinations": [
     {
@@ -225,11 +237,12 @@ REQUIRED JSON (day examples show the affiliateLinks structure — apply same log
           "morning": "EXPERIENCE_1 real name + max 8 words",
           "lunch": "LUNCH_SPOT real name + max 5 words",
           "afternoon": "PLACE_1 real name + max 8 words",
-          "evening": "Max 10 words",
+          "evening": "Max 10 words — no specific restaurant",
           "affiliateLinks": {
             "getyourguide_morning": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8",
             "thefork_lunch": "https://www.thefork.it/search#q=LUNCH_SPOT_NAME",
-            "googlemaps_place": "https://www.google.com/maps/search/PLACE_1_NAME+CITY_NAME"
+            "getyourguide_place_afternoon": "https://www.getyourguide.com/s/?q=PLACE_1_NAME+tour&partner_id=0BCSNBX8",
+            "tripadvisor_evening_fallback": "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME"
           }
         },
         {
