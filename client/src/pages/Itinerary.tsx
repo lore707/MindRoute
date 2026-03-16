@@ -449,7 +449,11 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
   const [expanded, setExpanded] = useState(false);
   const [activeDay, setActiveDay] = useState<number | null>(null);
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
-  const [allPoints, setAllPoints] = useState<{ label: string; slot: string; lat: number; lng: number; dayNum: number; imageUrl?: string; affiliateUrl?: string }[]>([]);
+const [allPoints, setAllPoints] = useState<{ label: string; slot: string; lat: number; lng: number; dayNum: number; imageUrl?: string; affiliateUrl?: string }[]>([]);
+  const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
+  const [showRoute, setShowRoute] = useState(false);
+  const routeLayerRef = useRef<L.Polyline | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const slotColors: Record<string, string> = {
     "Mattina": "#E94560", "Pranzo": "#FF8C42", "Pomeriggio": "#4ECDC4",
@@ -602,7 +606,7 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     return () => clearTimeout(timer);
   }, [expanded]);
 
-  const flyTo = (point: typeof allPoints[0]) => {
+const flyTo = (point: typeof allPoints[0], index?: number) => {
     if (mapInstanceRef.current) {
       mapInstanceRef.current.flyTo([point.lat, point.lng], 16, { duration: 0.8 });
       const marker = markersRef.current.find(m => {
@@ -610,8 +614,33 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
         return Math.abs(ll.lat - point.lat) < 0.0001 && Math.abs(ll.lng - point.lng) < 0.0001;
       });
       if (marker) setTimeout(() => marker.openPopup(), 900);
+      if (index !== undefined) {
+        setActivePointIndex(index);
+        // Scroll automatico nella lista
+        setTimeout(() => {
+          const listEl = listRef.current;
+          if (listEl) {
+            const item = listEl.querySelector(`[data-index="${index}"]`) as HTMLElement;
+            if (item) item.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 100);
+      }
     }
   };
+
+  // Aggiorna/rimuovi linea percorso
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    if (routeLayerRef.current) { routeLayerRef.current.remove(); routeLayerRef.current = null; }
+    if (!showRoute || filteredPoints.length < 2) return;
+    const latlngs = filteredPoints.map(p => [p.lat, p.lng] as [number, number]);
+    routeLayerRef.current = L.polyline(latlngs, {
+      color: "#E94560",
+      weight: 2,
+      opacity: 0.5,
+      dashArray: "6, 8",
+    }).addTo(mapInstanceRef.current);
+  }, [showRoute, filteredPoints, allPoints]);
 
   if (error) return (
     <div className="w-full h-[280px] rounded-[16px] bg-[var(--surface-alt)] flex items-center justify-center text-[var(--text-secondary)] text-sm border border-[var(--border-subtle)]">
@@ -648,10 +677,18 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
         {/* Pannello lista — solo quando expanded */}
         {expanded && (
           <div style={{ width: "280px", flexShrink: 0, background: "white", overflowY: "auto", display: "flex", flexDirection: "column", zIndex: 10 }}>
-            {/* Header pannello */}
+      {/* Header pannello */}
             <div style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}>
-              <div style={{ fontFamily: "sans-serif", fontWeight: "bold", fontSize: "14px", color: "#1a1a2e", marginBottom: "10px" }}>
-                {allPoints.length} luoghi mappati
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                <div style={{ fontFamily: "sans-serif", fontWeight: "bold", fontSize: "14px", color: "#1a1a2e" }}>
+                  {allPoints.length} luoghi mappati
+                </div>
+                <button
+                  onClick={() => setShowRoute(r => !r)}
+                  style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: "bold", border: `1px solid #E94560`, background: showRoute ? "#E94560" : "#E9456015", color: showRoute ? "white" : "#E94560", cursor: "pointer" }}
+                >
+                  {showRoute ? "✕ Percorso" : "↗ Percorso"}
+                </button>
               </div>
 
               {/* Filtro per giorno */}
@@ -691,17 +728,20 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
               </div>
             </div>
 
-            {/* Lista luoghi */}
-            <div style={{ flex: 1, overflowY: "auto" }}>
+       {/* Lista luoghi */}
+            <div ref={listRef} style={{ flex: 1, overflowY: "auto" }}>
               {filteredPoints.map((point, i) => {
                 const color = slotColors[point.slot] ?? "#E94560";
+                const globalIndex = allPoints.findIndex(p => p.lat === point.lat && p.lng === point.lng);
+                const isActive = activePointIndex === globalIndex;
                 return (
                   <div
                     key={i}
-                    onClick={() => flyTo(point)}
-                    style={{ padding: "10px 14px", borderBottom: "1px solid #f5f5f5", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "background 0.15s" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#f9f9f9")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "white")}
+                    data-index={globalIndex}
+                    onClick={() => flyTo(point, globalIndex)}
+                    style={{ padding: "10px 14px", borderBottom: "1px solid #f5f5f5", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", transition: "background 0.15s", background: isActive ? `${color}12` : "white", borderLeft: isActive ? `3px solid ${color}` : "3px solid transparent" }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#f9f9f9"; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "white"; }}
                   >
                     <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: color, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "bold", flexShrink: 0 }}>
                       {point.dayNum}
