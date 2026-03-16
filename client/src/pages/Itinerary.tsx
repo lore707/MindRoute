@@ -71,7 +71,7 @@ function AffiliateLinks({ links }: { links?: Record<string, string> }) {
           color: "bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white",
         };
         return (
-          
+          <a 
             key={key}
             href={url}
             target="_blank"
