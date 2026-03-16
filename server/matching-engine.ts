@@ -151,33 +151,60 @@ RULES:
 - Respond ONLY with valid JSON, absolutely no text outside the JSON
 
 MANDATORY SPECIFIC NAMES — this is critical for quality:
-- Choose 1 REAL hotel with a precise name matching the profile and budget (e.g. "Casa Camper Barcelona", "Riad Yasmine Marrakech", "Generator Hostel Lisboa") — call it HOTEL_NAME
-- Choose 2 REAL experiences with precise searchable names on GetYourGuide (e.g. "Alhambra Skip-the-Line Guided Tour", "Lisbon Fado Night with Dinner") — call them EXPERIENCE_1 and EXPERIENCE_2
-- Choose 1 REAL restaurant for dinner with a precise name (e.g. "Bar del Pla Barcelona", "Cervejaria Ramiro Lisbon", "Trattoria da Enzo al 29 Rome") — call it DINNER_RESTAURANT
+- Choose 1 REAL hotel with a precise name matching the profile and budget — call it HOTEL_NAME
+- Choose 2 REAL experiences with precise searchable names — call them EXPERIENCE_1 and EXPERIENCE_2
+- Choose 1 REAL restaurant for dinner with a precise name — call it DINNER_RESTAURANT
 - Choose 1 REAL café or lunch spot with a precise name — call it LUNCH_SPOT
+- Choose 2 REAL places/landmarks to visit (museums, neighborhoods, parks) — call them PLACE_1 and PLACE_2
 - Use REAL IATA airport codes: departure from "${input.departure}", arrival at the chosen destination
 - Use real dates: check-in ${checkin}, check-out ${checkout}
 
-AFFILIATE LINKS RULES:
-topAffiliateLinks (one block for the whole itinerary):
-- booking_hotel: Booking.com search for HOTEL_NAME with real dates
-- booking_search: Booking.com general search for the destination city with real dates
-- skyscanner: Skyscanner flight link with real IATA codes and compact dates
-- getyourguide_1: GetYourGuide search for EXPERIENCE_1
-- getyourguide_2: GetYourGuide search for EXPERIENCE_2
-- thefork: TheFork search for DINNER_RESTAURANT
-- tripadvisor: TripAdvisor search for the destination city
+DETECT DESTINATION REGION — use this to choose correct affiliate links:
+- Europe: Italy, France, Spain, Portugal, Germany, Austria, UK, Netherlands, Belgium, Poland, Czech Republic, Hungary, Romania, Sweden, Norway, Denmark, Finland, Ireland, Switzerland
+- Mediterranean: Greece, Croatia, Turkey, Cyprus, Malta, Montenegro, Albania
+- Asia: Japan, China, Korea, Thailand, Vietnam, Indonesia, Bali, Cambodia, Laos, Myanmar, Malaysia, Singapore, Philippines, Sri Lanka
+- India: India and all Indian cities
+- Africa: Morocco, Egypt, Kenya, Tanzania, South Africa, Ghana, Senegal, Ethiopia, Nigeria, Tunisia, Algeria
+- LatAm: Mexico, Colombia, Peru, Brazil, Argentina, Chile, Ecuador, Bolivia, Costa Rica, Panama, Guatemala, Cuba
 
-affiliateLinks inside each day (only add keys that genuinely match that day's content):
-- "getyourguide_morning": add ONLY on the day when EXPERIENCE_1 appears in the morning field
-- "getyourguide_afternoon": add ONLY on the day when EXPERIENCE_2 appears in the afternoon field
-- "thefork_lunch": add ONLY on the day when LUNCH_SPOT appears in the lunch field
-- "thefork_evening": add ONLY on the day when DINNER_RESTAURANT appears in the evening field
+AFFILIATE LINKS RULES:
+
+topAffiliateLinks — include ALL of these, choosing the right experience platform by region:
+- booking_hotel: always — Booking.com search for HOTEL_NAME with real dates
+- booking_search: always — Booking.com general search for destination city with real dates
+- skyscanner: always — flight link with real IATA codes and compact dates
+- tripadvisor: always — TripAdvisor search for destination city
+- getyourguide_1: Europe + Mediterranean only — GetYourGuide search for EXPERIENCE_1
+- getyourguide_2: Europe + Mediterranean only — GetYourGuide search for EXPERIENCE_2
+- klook_1: Asia + India only — Klook search for EXPERIENCE_1
+- klook_2: Asia + India only — Klook search for EXPERIENCE_2
+- viator_1: Africa + LatAm only — Viator search for EXPERIENCE_1
+- viator_2: Africa + LatAm only — Viator search for EXPERIENCE_2
+- thefork: Europe only — TheFork search for DINNER_RESTAURANT
+- agoda: Asia + India only — Agoda search for HOTEL_NAME with real dates
+- ferryhopper: Mediterranean/Greece only — Ferryhopper search
+- 12go: Asia only — 12Go search for destination
+- bookaway: Asia + LatAm only — Bookaway search for destination
+- hostelworld: LatAm + Africa only — Hostelworld search for destination city
+
+affiliateLinks inside each day — add ONLY when the content genuinely matches:
+- "getyourguide_morning": Europe/Mediterranean — day when EXPERIENCE_1 is in the morning field
+- "getyourguide_afternoon": Europe/Mediterranean — day when EXPERIENCE_2 is in the afternoon field
+- "klook_morning": Asia/India — day when EXPERIENCE_1 is in the morning field
+- "klook_afternoon": Asia/India — day when EXPERIENCE_2 is in the afternoon field
+- "viator_morning": Africa/LatAm — day when EXPERIENCE_1 is in the morning field
+- "viator_afternoon": Africa/LatAm — day when EXPERIENCE_2 is in the afternoon field
+- "thefork_lunch": Europe ONLY — day when LUNCH_SPOT is in the lunch field
+- "thefork_evening": Europe ONLY — day when DINNER_RESTAURANT is in the evening field
+- "googlemaps_lunch": Asia + India + Africa + LatAm — day when LUNCH_SPOT is in the lunch field — format: https://www.google.com/maps/search/LUNCH_SPOT_NAME+CITY_NAME
+- "googlemaps_evening": Asia + India + Africa + LatAm — day when DINNER_RESTAURANT is in the evening field — format: https://www.google.com/maps/search/DINNER_RESTAURANT_NAME+CITY_NAME
+- "googlemaps_place": any region — day when PLACE_1 appears in the morning field — format: https://www.google.com/maps/search/PLACE_1_NAME+CITY_NAME
+- "googlemaps_place_afternoon": any region — day when PLACE_2 appears in the afternoon field — format: https://www.google.com/maps/search/PLACE_2_NAME+CITY_NAME
 - Do NOT add affiliateLinks to days where none of the above match
 
 RESPONSE LANGUAGE: Write all text fields in Italian.
 
-REQUIRED JSON (the day examples below show the affiliateLinks structure — apply the same logic to all ${days} days):
+REQUIRED JSON (day examples show the affiliateLinks structure — apply same logic to all ${days} days):
 {
   "destinations": [
     {
@@ -196,12 +223,13 @@ REQUIRED JSON (the day examples below show the affiliateLinks structure — appl
           "dayNumber": 1,
           "title": "Short title",
           "morning": "EXPERIENCE_1 real name + max 8 words",
-          "lunch": "LUNCH_SPOT real name + max 5 words description",
-          "afternoon": "Max 10 words",
+          "lunch": "LUNCH_SPOT real name + max 5 words",
+          "afternoon": "PLACE_1 real name + max 8 words",
           "evening": "Max 10 words",
           "affiliateLinks": {
-            "getyourguide_morning": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME_URL_ENCODED&partner_id=0BCSNBX8",
-            "thefork_lunch": "https://www.thefork.it/ricerca?q=LUNCH_SPOT_NAME_URL_ENCODED"
+            "getyourguide_morning": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8",
+            "thefork_lunch": "https://www.thefork.it/search#q=LUNCH_SPOT_NAME",
+            "googlemaps_place": "https://www.google.com/maps/search/PLACE_1_NAME+CITY_NAME"
           }
         },
         {
@@ -212,8 +240,8 @@ REQUIRED JSON (the day examples below show the affiliateLinks structure — appl
           "afternoon": "EXPERIENCE_2 real name + max 8 words",
           "evening": "DINNER_RESTAURANT real name + max 5 words",
           "affiliateLinks": {
-            "getyourguide_afternoon": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME_URL_ENCODED&partner_id=0BCSNBX8",
-            "thefork_evening": "https://www.thefork.it/ricerca?q=DINNER_RESTAURANT_NAME_URL_ENCODED"
+            "getyourguide_afternoon": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME&partner_id=0BCSNBX8",
+            "thefork_evening": "https://www.thefork.it/search#q=DINNER_RESTAURANT_NAME"
           }
         }
       ],
@@ -223,19 +251,19 @@ REQUIRED JSON (the day examples below show the affiliateLinks structure — appl
       "gettingThere": "max 12 words with real IATA airport code",
       "closingMessage": "1 short final sentence",
       "topAffiliateLinks": {
-        "booking_hotel": "https://www.booking.com/search.html?ss=HOTEL_NAME_URL_ENCODED&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
-        "booking_search": "https://www.booking.com/search.html?ss=CITY_COUNTRY_URL_ENCODED&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
+        "booking_hotel": "https://www.booking.com/search.html?ss=HOTEL_NAME&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
+        "booking_search": "https://www.booking.com/search.html?ss=CITY_COUNTRY&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
         "skyscanner": "https://www.skyscanner.net/transport/flights/DEPARTURE_IATA/ARRIVAL_IATA/${checkinCompact}/${checkoutCompact}/",
-        "getyourguide_1": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME_URL_ENCODED&partner_id=0BCSNBX8",
-        "getyourguide_2": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME_URL_ENCODED&partner_id=0BCSNBX8",
-        "thefork": "https://www.thefork.it/ricerca?q=DINNER_RESTAURANT_NAME_URL_ENCODED",
-        "tripadvisor": "https://www.tripadvisor.it/Search?q=CITY_NAME_URL_ENCODED"
+        "tripadvisor": "https://www.tripadvisor.it/Search?q=CITY_NAME",
+        "getyourguide_1": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8",
+        "getyourguide_2": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME&partner_id=0BCSNBX8",
+        "thefork": "https://www.thefork.it/search#q=DINNER_RESTAURANT_NAME"
       }
     }
   ]
 }
 
-Generate exactly ${days} days in the itinerary.`;
+Generate exactly ${days} days in the itinerary.`
 }
 
 export async function generateDestinations(input: ProfilingInput): Promise<{
