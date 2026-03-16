@@ -450,93 +450,147 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    const cityName = destinationName.split(",")[0].trim();
-    const countryName = destinationName.split(",")[1]?.trim() ?? "";
-
-    const places: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
+    // Raccogli tutti i mapPoints con coordinate dirette dall'AI
+    const allPoints: { label: string; slot: string; lat: number; lng: number; dayNum: number }[] = [];
     days.forEach((day: any) => {
-      const slots = [
-        { text: day.morning, slot: "Mattina" },
-        { text: day.lunch, slot: "Pranzo" },
-        { text: day.afternoon, slot: "Pomeriggio" },
-        { text: day.evening, slot: "Sera" },
-      ];
-      slots.forEach(({ text, slot }) => {
-        if (!text || text.length <= 3) return;
-        const lower = text.toLowerCase();
-        if (lower.includes("volo") || lower.includes("aeroporto") || lower.includes("trasferimento") || lower.includes("check-in aeroporto")) return;
-        const name = text.split(/—|,|\.|–/)[0].trim();
-        if (name.length > 3) {
-          places.push({ label: name, dayNum: day.dayNumber, slot, searchQuery: `${name} ${cityName} ${countryName}` });
-        }
-      });
+      if (day.mapPoints && Array.isArray(day.mapPoints)) {
+        day.mapPoints.forEach((p: any) => {
+          if (p.lat && p.lng && p.lat !== 0 && p.lng !== 0) {
+            allPoints.push({ ...p, dayNum: day.dayNumber });
+          }
+        });
+      }
     });
 
-    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`)
-      .then(r => r.json())
-      .then(async (results) => {
-        if (!results || results.length === 0) { setError(true); setLoading(false); return; }
+    const slotColors: Record<string, string> = {
+      "Mattina": "#E94560",
+      "Pranzo": "#FF8C42",
+      "Pomeriggio": "#4ECDC4",
+      "Sera": "#9B59B6",
+      "Hotel": "#1A1A2E",
+      "Traghetto": "#0EA5E9",
+      "Noleggio": "#10B981",
+    };
 
-        const centerLat = parseFloat(results[0].lat);
-        const centerLon = parseFloat(results[0].lon);
+    const initMap = (centerLat: number, centerLon: number) => {
+      const map = L.map(mapRef.current!, {
+        center: [centerLat, centerLon],
+        zoom: 13,
+        zoomControl: true,
+        scrollWheelZoom: true,
+      });
+      mapInstanceRef.current = map;
 
-        const map = L.map(mapRef.current!, {
-          center: [centerLat, centerLon],
-          zoom: 13,
-          zoomControl: true,
-          scrollWheelZoom: true,
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap",
+        maxZoom: 19,
+      }).addTo(map);
+
+      return map;
+    };
+
+    // Se abbiamo mapPoints con coordinate reali, usali direttamente
+    if (allPoints.length > 0) {
+      const avgLat = allPoints.reduce((s, p) => s + p.lat, 0) / allPoints.length;
+      const avgLng = allPoints.reduce((s, p) => s + p.lng, 0) / allPoints.length;
+      const map = initMap(avgLat, avgLng);
+      const bounds: [number, number][] = [];
+
+      allPoints.forEach((point) => {
+        const color = slotColors[point.slot] ?? "#E94560";
+        bounds.push([point.lat, point.lng]);
+
+        const icon = L.divIcon({
+          className: "",
+          html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${point.dayNum}</span></div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -34],
         });
-        mapInstanceRef.current = map;
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '© OpenStreetMap',
-          maxZoom: 19,
-        }).addTo(map);
+        L.marker([point.lat, point.lng], { icon }).addTo(map).bindPopup(`
+          <div style="font-family:sans-serif;font-size:13px;min-width:150px;">
+            <div style="color:${color};font-weight:bold;margin-bottom:4px;">Giorno ${point.dayNum} — ${point.slot}</div>
+            <div>${point.label}</div>
+          </div>
+        `);
+      });
 
-        const bounds: [number, number][] = [[centerLat, centerLon]];
-        const seen = new Set<string>();
+      if (bounds.length > 1) {
+        map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30] });
+      }
+      setLoading(false);
 
-        for (const place of places) {
-          if (seen.has(place.label)) continue;
-          seen.add(place.label);
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.searchQuery)}&format=json&limit=1&accept-language=en`);
-            const data = await res.json();
-            if (data && data.length > 0) {
-              const lat = parseFloat(data[0].lat);
-              const lon = parseFloat(data[0].lon);
-              bounds.push([lat, lon]);
+    } else {
+      // Fallback: geocodifica solo la città se mapPoints non disponibili (itinerari vecchi)
+      fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`)
+        .then(r => r.json())
+        .then(async (results) => {
+          if (!results || results.length === 0) { setError(true); setLoading(false); return; }
+          const centerLat = parseFloat(results[0].lat);
+          const centerLon = parseFloat(results[0].lon);
+          const map = initMap(centerLat, centerLon);
 
-              const slotColors: Record<string, string> = {
-                "Mattina": "#E94560", "Pranzo": "#FF8C42", "Pomeriggio": "#4ECDC4", "Sera": "#9B59B6",
-              };
-              const color = slotColors[place.slot] ?? "#E94560";
+          // Fallback geocoding per luoghi dai testi dei giorni
+          const places: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
+          const cityName = destinationName.split(",")[0].trim();
+          const countryName = destinationName.split(",")[1]?.trim() ?? "";
 
-              const icon = L.divIcon({
-                className: "",
-                html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${place.dayNum}</span></div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 32],
-                popupAnchor: [0, -34],
-              });
+          days.forEach((day: any) => {
+            const slots = [
+              { text: day.morning, slot: "Mattina" },
+              { text: day.lunch, slot: "Pranzo" },
+              { text: day.afternoon, slot: "Pomeriggio" },
+              { text: day.evening, slot: "Sera" },
+            ];
+            slots.forEach(({ text, slot }) => {
+              if (!text || text.length <= 3) return;
+              const lower = text.toLowerCase();
+              if (lower.includes("volo") || lower.includes("aeroporto") || lower.includes("trasferimento")) return;
+              const name = text.split(/—|,|\.|–/)[0].trim();
+              if (name.length > 3) {
+                places.push({ label: name, dayNum: day.dayNumber, slot, searchQuery: `${name} ${cityName} ${countryName}` });
+              }
+            });
+          });
 
-              L.marker([lat, lon], { icon }).addTo(map).bindPopup(`
-                <div style="font-family:sans-serif;font-size:13px;min-width:150px;">
-                  <div style="color:${color};font-weight:bold;margin-bottom:4px;">Giorno ${place.dayNum} — ${place.slot}</div>
-                  <div>${place.label}</div>
-                </div>
-              `);
-            }
-            await new Promise(r => setTimeout(r, 250));
-          } catch { /* skip */ }
-        }
+          const bounds: [number, number][] = [[centerLat, centerLon]];
+          const seen = new Set<string>();
 
-        if (bounds.length > 1) {
-          map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30] });
-        }
-        setLoading(false);
-      })
-      .catch(() => { setError(true); setLoading(false); });
+          for (const place of places.slice(0, 8)) {
+            if (seen.has(place.label)) continue;
+            seen.add(place.label);
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.searchQuery)}&format=json&limit=1&accept-language=en`);
+              const data = await res.json();
+              if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lon = parseFloat(data[0].lon);
+                bounds.push([lat, lon]);
+                const color = slotColors[place.slot] ?? "#E94560";
+                const icon = L.divIcon({
+                  className: "",
+                  html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${place.dayNum}</span></div>`,
+                  iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34],
+                });
+                L.marker([lat, lon], { icon }).addTo(map).bindPopup(`
+                  <div style="font-family:sans-serif;font-size:13px;min-width:150px;">
+                    <div style="color:${color};font-weight:bold;margin-bottom:4px;">Giorno ${place.dayNum} — ${place.slot}</div>
+                    <div>${place.label}</div>
+                  </div>
+                `);
+              }
+              await new Promise(r => setTimeout(r, 250));
+            } catch { /* skip */ }
+          }
+
+          if (bounds.length > 1) {
+            map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30] });
+          }
+          setLoading(false);
+        })
+        .catch(() => { setError(true); setLoading(false); });
+    }
 
     return () => {
       if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
@@ -580,6 +634,9 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
             <div className="flex items-center gap-1.5"><span style={{background:"#FF8C42"}} className="w-3 h-3 rounded-full inline-block" /> Pranzo</div>
             <div className="flex items-center gap-1.5"><span style={{background:"#4ECDC4"}} className="w-3 h-3 rounded-full inline-block" /> Pomeriggio</div>
             <div className="flex items-center gap-1.5"><span style={{background:"#9B59B6"}} className="w-3 h-3 rounded-full inline-block" /> Sera</div>
+            <div className="flex items-center gap-1.5"><span style={{background:"#1A1A2E"}} className="w-3 h-3 rounded-full inline-block" /> Hotel</div>
+            <div className="flex items-center gap-1.5"><span style={{background:"#0EA5E9"}} className="w-3 h-3 rounded-full inline-block" /> Traghetto</div>
+            <div className="flex items-center gap-1.5"><span style={{background:"#10B981"}} className="w-3 h-3 rounded-full inline-block" /> Noleggio</div>
           </div>
         )}
       </div>
