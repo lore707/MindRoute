@@ -445,12 +445,15 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Estrai tutti i luoghi unici dall'itinerario
-    const places: { label: string; dayNum: number; slot: string }[] = [];
+    const cityName = destinationName.split(",")[0].trim();
+    const countryName = destinationName.split(",")[1]?.trim() ?? "";
+
+    const places: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
     days.forEach((day: any) => {
       const slots = [
         { text: day.morning, slot: "Mattina" },
@@ -459,131 +462,128 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
         { text: day.evening, slot: "Sera" },
       ];
       slots.forEach(({ text, slot }) => {
-        if (text && text.length > 3 && !text.toLowerCase().includes("volo") && !text.toLowerCase().includes("aeroporto")) {
-          // Estrai il nome del luogo (prima del — o della virgola)
-          const name = text.split(/—|,/)[0].trim();
-          if (name.length > 3) {
-            places.push({ label: name, dayNum: day.dayNumber, slot });
-          }
+        if (!text || text.length <= 3) return;
+        const lower = text.toLowerCase();
+        if (lower.includes("volo") || lower.includes("aeroporto") || lower.includes("trasferimento") || lower.includes("check-in aeroporto")) return;
+        const name = text.split(/—|,|\.|–/)[0].trim();
+        if (name.length > 3) {
+          places.push({ label: name, dayNum: day.dayNumber, slot, searchQuery: `${name} ${cityName} ${countryName}` });
         }
       });
     });
 
-    // Geocodifica il nome della destinazione principale
-    const cityName = destinationName.split(",")[0].trim();
-
-    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`)
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`)
       .then(r => r.json())
       .then(async (results) => {
-        if (!results || results.length === 0) {
-          setError(true);
-          setLoading(false);
-          return;
-        }
+        if (!results || results.length === 0) { setError(true); setLoading(false); return; }
 
         const centerLat = parseFloat(results[0].lat);
         const centerLon = parseFloat(results[0].lon);
 
-        // Inizializza mappa
         const map = L.map(mapRef.current!, {
           center: [centerLat, centerLon],
-          zoom: 12,
+          zoom: 13,
           zoomControl: true,
-          scrollWheelZoom: false,
+          scrollWheelZoom: true,
         });
-
         mapInstanceRef.current = map;
 
-        // Tile scuro
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-          attribution: '© OpenStreetMap © CARTO',
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '© OpenStreetMap',
           maxZoom: 19,
         }).addTo(map);
 
-        // Pin per ogni luogo unico (max 10 per non sovraccaricare Nominatim)
-        const uniquePlaces = places.slice(0, 10);
         const bounds: [number, number][] = [[centerLat, centerLon]];
+        const seen = new Set<string>();
 
-        for (const place of uniquePlaces) {
+        for (const place of places) {
+          if (seen.has(place.label)) continue;
+          seen.add(place.label);
           try {
-            const query = `${place.label} ${cityName}`;
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.searchQuery)}&format=json&limit=1&accept-language=en`);
             const data = await res.json();
             if (data && data.length > 0) {
               const lat = parseFloat(data[0].lat);
               const lon = parseFloat(data[0].lon);
               bounds.push([lat, lon]);
 
-              // Pin personalizzato coral
+              const slotColors: Record<string, string> = {
+                "Mattina": "#E94560", "Pranzo": "#FF8C42", "Pomeriggio": "#4ECDC4", "Sera": "#9B59B6",
+              };
+              const color = slotColors[place.slot] ?? "#E94560";
+
               const icon = L.divIcon({
                 className: "",
-                html: `<div style="
-                  background: #E94560;
-                  color: white;
-                  width: 28px;
-                  height: 28px;
-                  border-radius: 50% 50% 50% 0;
-                  transform: rotate(-45deg);
-                  border: 2px solid white;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                "><span style="transform: rotate(45deg); font-size: 10px; font-weight: bold; display: block; text-align: center; line-height: 24px;">${place.dayNum}</span></div>`,
-                iconSize: [28, 28],
-                iconAnchor: [14, 28],
-                popupAnchor: [0, -30],
+                html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${place.dayNum}</span></div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -34],
               });
 
-              L.marker([lat, lon], { icon })
-                .addTo(map)
-                .bindPopup(`<div style="font-family: sans-serif; font-size: 13px;"><strong>Giorno ${place.dayNum} — ${place.slot}</strong><br/>${place.label}</div>`);
-
-              // Delay per rispettare rate limit Nominatim
-              await new Promise(r => setTimeout(r, 300));
+              L.marker([lat, lon], { icon }).addTo(map).bindPopup(`
+                <div style="font-family:sans-serif;font-size:13px;min-width:150px;">
+                  <div style="color:${color};font-weight:bold;margin-bottom:4px;">Giorno ${place.dayNum} — ${place.slot}</div>
+                  <div>${place.label}</div>
+                </div>
+              `);
             }
-          } catch {
-            // skip place if geocoding fails
-          }
+            await new Promise(r => setTimeout(r, 250));
+          } catch { /* skip */ }
         }
 
-        // Fit bounds su tutti i pin
         if (bounds.length > 1) {
-          map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [20, 20] });
+          map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30] });
         }
-
         setLoading(false);
       })
-      .catch(() => {
-        setError(true);
-        setLoading(false);
-      });
+      .catch(() => { setError(true); setLoading(false); });
 
     return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
+      if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
     };
   }, []);
 
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      setTimeout(() => mapInstanceRef.current?.invalidateSize(), 100);
+    }
+  }, [expanded]);
+
   if (error) return (
-    <div className="w-full h-[300px] rounded-[16px] bg-[var(--surface-alt)] flex items-center justify-center text-[var(--text-secondary)] text-sm">
+    <div className="w-full h-[280px] rounded-[16px] bg-[var(--surface-alt)] flex items-center justify-center text-[var(--text-secondary)] text-sm border border-[var(--border-subtle)]">
       Mappa non disponibile
     </div>
   );
 
   return (
-    <div className="relative w-full h-[300px] rounded-[16px] overflow-hidden border border-[var(--border-subtle)]">
-      {loading && (
-        <div className="absolute inset-0 bg-[var(--surface-alt)] flex items-center justify-center z-10">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-[var(--text-secondary)] text-xs">Caricamento mappa...</p>
+    <>
+      <div className={`relative transition-all duration-300 ${expanded ? "fixed inset-4 z-50 rounded-[20px] shadow-2xl overflow-hidden" : "w-full h-[280px] rounded-[16px] overflow-hidden border border-[var(--border-subtle)]"}`}>
+        {loading && (
+          <div className="absolute inset-0 bg-[var(--surface-alt)] flex items-center justify-center z-10">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-[var(--text-secondary)] text-xs">Caricamento mappa...</p>
+            </div>
           </div>
-        </div>
-      )}
-      <div ref={mapRef} className="w-full h-full" />
-    </div>
+        )}
+        <div ref={mapRef} className="w-full h-full" />
+        <button
+          onClick={() => setExpanded(e => !e)}
+          className="absolute top-2 right-2 z-20 bg-white text-gray-700 rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-gray-100 transition-all text-xs font-bold border border-gray-200"
+          title={expanded ? "Riduci mappa" : "Espandi mappa"}
+        >
+          {expanded ? "✕" : "⛶"}
+        </button>
+        {!loading && (
+          <div className="absolute bottom-2 left-2 z-20 bg-white/90 rounded-[10px] px-3 py-2 text-[10px] font-bold space-y-1 shadow-md border border-gray-100">
+            <div className="flex items-center gap-1.5"><span style={{background:"#E94560"}} className="w-3 h-3 rounded-full inline-block" /> Mattina</div>
+            <div className="flex items-center gap-1.5"><span style={{background:"#FF8C42"}} className="w-3 h-3 rounded-full inline-block" /> Pranzo</div>
+            <div className="flex items-center gap-1.5"><span style={{background:"#4ECDC4"}} className="w-3 h-3 rounded-full inline-block" /> Pomeriggio</div>
+            <div className="flex items-center gap-1.5"><span style={{background:"#9B59B6"}} className="w-3 h-3 rounded-full inline-block" /> Sera</div>
+          </div>
+        )}
+      </div>
+      {expanded && <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setExpanded(false)} />}
+    </>
   );
 }
