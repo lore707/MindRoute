@@ -1287,7 +1287,10 @@ export default function Profiling() {
                       : 'border-white/25 text-white bg-white/10 hover:border-[#E94560] hover:bg-white/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(233,69,96,0.15)] cursor-pointer backdrop-blur-sm'
                   }`}
               >
-           {getChipIcon(opt) ? <span className="mr-1.5 opacity-80">{getChipIcon(opt)}</span> : null}{opt}
+         <span className="inline-flex items-center justify-center gap-1.5">
+                  {getChipIcon(opt) ? <span className="opacity-80 flex items-center">{getChipIcon(opt)}</span> : null}
+                  <span>{opt}</span>
+                </span>
               </button>
             ))}
           </div>
@@ -1432,7 +1435,53 @@ export default function Profiling() {
 
     return null;
   };
+const buildDynamicProfileMessage = (): string | null => {
+    const allAnswers = Object.entries(answers)
+      .filter(([k]) => !k.includes('_'))
+      .map(([, v]) => v.toLowerCase())
+      .join(' ');
+    
+    if (!allAnswers.trim()) return null;
 
+    // Legge segnali chiave dalle risposte
+    const isAdventurous = /avventur|wild|selvag|trekking|sport|off.grid|fuori dal mondo/.test(allAnswers);
+    const isRelaxed = /relax|silenz|quiet|wellness|spa|mare|beach|rigenerante/.test(allAnswers);
+    const isCultural = /cultur|storia|museum|landmark|autent|authentic/.test(allAnswers);
+    const isFoodie = /food|vino|wine|mangiare|ristorante|mercato/.test(allAnswers);
+    const isRomantic = /romantico|romantic|intimo|intimate|coppia|partner/.test(allAnswers);
+    const isSolitary = /solo|solitario|solitary|da solo/.test(allAnswers);
+    const isSpiritual = /spiritual|spirituale|quiete|silenzio|profondo/.test(allAnswers);
+    const wantsNature = /natura|nature|montagna|mountain|forest|bosco|lago/.test(allAnswers);
+    const wantsCity = /città|city|urban|notturna|nightlife|metropoli/.test(allAnswers);
+    const wantsUnknown = /sorprendimi|surprise|non sapevo|discovery|scoperta|ovunque/.test(allAnswers);
+    const wantsClose = /vicino|close|stesso continente/.test(allAnswers);
+    const wantsFar = /lontano|far|asia|americhe|africa|oceania/.test(allAnswers);
+    const needsBreak = /staccare|disconnect|routine|burnout|stanco|riposo/.test(allAnswers);
+    const needsWonder = /meravigliarmi|wonder|stupire|incredibile|straordinario/.test(allAnswers);
+
+    // Costruisce la frase combinando i segnali più forti
+    const traits: string[] = [];
+
+    if (needsBreak) traits.push("hai bisogno di staccare davvero");
+    if (needsWonder) traits.push("cerchi qualcosa che ti meravigli");
+    if (isAdventurous) traits.push("vuoi sentirti vivo");
+    if (isRelaxed) traits.push("cerchi ritmo lento");
+    if (isCultural) traits.push("ami immergerti nella storia dei luoghi");
+    if (isFoodie) traits.push("il cibo è parte del viaggio");
+    if (isRomantic) traits.push("cerchi un'atmosfera intima");
+    if (isSolitary) traits.push("preferisci il tuo spazio");
+    if (isSpiritual) traits.push("cerchi qualcosa di più profondo");
+    if (wantsNature) traits.push("la natura ti ricarica");
+    if (wantsCity) traits.push("ti accende l'energia urbana");
+    if (wantsUnknown) traits.push("vuoi essere sorpreso");
+    if (wantsFar) traits.push("sei pronto a spingerti lontano");
+    if (wantsClose) traits.push("preferisci restare vicino");
+
+    if (traits.length === 0) return null;
+    if (traits.length === 1) return `Emerge che ${traits[0]}.`;
+    if (traits.length === 2) return `Emerge che ${traits[0]} e ${traits[1]}.`;
+    return `Emerge che ${traits[0]}, ${traits[1]} e ${traits[2]}.`;
+  };
   const renderProfileSoFar = () => {
     if (step === 0) return null;
     const entries: { idx: number; section: string; text: string }[] = [];
@@ -1445,9 +1494,19 @@ export default function Profiling() {
     }
     if (entries.length === 0) return null;
 
+  const dynamicMessage = buildDynamicProfileMessage();
+
     return (
       <div className="mt-1">
-        <div className="text-[10px] font-semibold tracking-[2px] uppercase text-[#E94560] mb-2.5 opacity-65">{t('sidebar.profileSoFar')}</div>
+        {dynamicMessage && (
+          <div className="mb-3 px-4 py-3 rounded-[14px] border border-[#E94560]/30 bg-[#E94560]/10 backdrop-blur-sm">
+            <p className="text-[12px] text-white leading-[1.6] font-light italic">
+              <span className="text-[#E94560] font-bold not-italic">✦ </span>
+              {dynamicMessage}
+            </p>
+          </div>
+        )}
+        <div className="text-[10px] font-semibold tracking-[2px] uppercase text-white/60 mb-2.5">{t('sidebar.profileSoFar')}</div>
         {entries.map((entry, i) => (
           <div
             key={entry.idx}
