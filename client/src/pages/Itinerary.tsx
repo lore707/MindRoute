@@ -189,6 +189,20 @@ export default function Itinerary() {
               </div>
             </section>
 
+      {/* MAPPA A TUTTA LARGHEZZA */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center gap-3 text-primary">
+                <MapPin className="w-5 h-5" />
+                <h2 className="text-2xl font-serif font-bold text-[var(--text-primary)]">Mappa del viaggio</h2>
+              </div>
+              <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
+            </motion.div>
+
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -295,16 +309,6 @@ export default function Itinerary() {
       <p className="text-sm font-sans text-[var(--text-secondary)] leading-relaxed">
                   {itinerary.gettingThere}
                 </p>
-              </div>
-
-              <div className="w-full h-px bg-[var(--border-subtle)]" />
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-primary">
-                  <MapPin className="w-5 h-5" />
-                  <h3 className="font-bold font-serif text-lg text-[var(--text-primary)]">Mappa del viaggio</h3>
-                </div>
-                <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
               </div>
             </motion.div>
           </aside>
@@ -674,7 +678,7 @@ const slotOrder: Record<string, number> = { "Hotel": 0, "Mattina": 1, "Pranzo": 
           boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
           display: "flex",
         } : {
-          position: "relative", width: "100%", height: "280px",
+      position: "relative", width: "100%", height: "450px",
           borderRadius: "16px", overflow: "hidden",
           border: "1px solid var(--border-subtle)",
         }}
