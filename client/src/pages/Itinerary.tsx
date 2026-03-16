@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import { useItinerary } from "@/hooks/use-profiling";
 import { motion } from "framer-motion";
 import { 
-  ArrowLeft, Calendar, MapPin, Wallet, Briefcase, 
+  ArrowLeft, Wallet, Briefcase, 
   ChevronDown, Share2, Printer, Clock, Compass, Sun,
-  ExternalLink, Plane, Hotel, Ticket, Utensils, Star
+  ExternalLink, Plane, Hotel, Ticket, Utensils, Star, MapPin
 } from "lucide-react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { useI18n } from "@/lib/i18n";
 
-const AFFILIATE_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+type AffiliateCfg = { icon: JSX.Element; label: string; color: string };
+
+const AFFILIATE_CONFIG: Record<string, AffiliateCfg> = {
   booking_hotel: {
     icon: <Hotel className="w-3 h-3" />,
     label: "Hotel",
@@ -63,7 +65,7 @@ function AffiliateLinks({ links }: { links?: Record<string, string> }) {
   return (
     <div className="flex flex-wrap gap-2 mt-4">
       {entries.map(([key, url]) => {
-        const cfg = AFFILIATE_CONFIG[key] ?? {
+        const cfg: AffiliateCfg = AFFILIATE_CONFIG[key] ?? {
           icon: <ExternalLink className="w-3 h-3" />,
           label: key,
           color: "bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white",
