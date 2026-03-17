@@ -22,7 +22,9 @@ function detectRegion(name: string): string {
   if (/giappone|japan|cina|china|corea|korea|thailand|tailandia|vietnam|indonesia|bali|cambogia|cambodia|laos|myanmar|malesia|malaysia|singapore|filippine|philippines|sri lanka/.test(n)) return "asia";
   if (/messico|mexico|colombia|peru|perù|brasile|brazil|argentina|cile|chile|ecuador|bolivia|venezuela|costa rica|panama|guatemala|cuba|dominicana/.test(n)) return "latam";
   if (/marocco|morocco|egitto|egypt|kenya|tanzania|sudafrica|south africa|ghana|senegal|etiopia|ethiopia|nigeria|tunisia|algeria/.test(n)) return "africa";
-  if (/italia|italy|france|francia|spagna|spain|portogallo|portugal|germania|germany|austria|svizzera|switzerland|belgio|belgium|olanda|netherlands|polonia|poland|czech|ceca|ungheria|hungary|romania|bulgaria|svezia|sweden|norvegia|norway|danimarca|denmark|finlandia|finland|irlanda|ireland|scozia|scotland|inghilterra|england|uk|londra|london|parigi|paris|barcellona|barcelona|amsterdam|berlino|berlin|vienna|praga|prague|budapest|lisbona|lisbon|madrid|roma|rome|milano|milan|napoli|naples|firenze|florence|venezia|venice/.test(n)) return "europe";
+ if (/italia|italy|france|francia|spagna|spain|portogallo|portugal|germania|germany|austria|svizzera|switzerland|belgio|belgium|olanda|netherlands|polonia|poland|czech|ceca|ungheria|hungary|romania|bulgaria|svezia|sweden|norvegia|norway|danimarca|denmark|finlandia|finland|irlanda|ireland|scozia|scotland|inghilterra|england|uk|londra|london|parigi|paris|barcellona|barcelona|amsterdam|berlino|berlin|vienna|praga|prague|budapest|lisbona|lisbon|madrid|roma|rome|milano|milan|napoli|naples|firenze|florence|venezia|venice/.test(n)) return "europe";
+if (/stati uniti|usa|canada|new york|los angeles|chicago|san francisco|miami|las vegas|toronto|vancouver|montreal|north america/.test(n)) return "northamerica";
+  if (/australia|nuova zelanda|new zealand|fiji|sydney|melbourne|auckland|oceania/.test(n)) return "oceania";
   return "europe"; // fallback
 }
 
@@ -56,9 +58,11 @@ function getRegionLinks(region: string, links: Record<string, string>): { key: s
   const go12 = pill(<Plane className="w-4 h-4 text-teal-500" />, "Trasporti locali", `${secondary} hover:bg-teal-500/10`, "12go");
   const bookaway = pill(<Plane className="w-4 h-4 text-indigo-500" />, "Bus locali", `${secondary} hover:bg-indigo-500/10`, "bookaway");
 
-  const sets: Record<string, (typeof skyscanner)[]> = {
+const sets: Record<string, (typeof skyscanner)[]> = {
     europe: [skyscanner, hotelLink, gyg1, thefork, tripadvisor],
     mediterranean: [skyscanner, hotelLink, gyg1, ferryhopper, tripadvisor],
+   northamerica: [skyscanner, hotelLink ?? bookingSearch, viator, tripadvisor, rentalcars],
+    oceania: [skyscanner, hotelLink ?? bookingSearch, viator, tripadvisor, rentalcars],
    asia: [skyscanner, hotelLink ?? agoda, klook ?? gyg1, go12, tripadvisor],
     india: [skyscanner, hotelLink ?? agoda, klook ?? gyg1, viator ?? tripadvisor, tripadvisor],
     africa: [skyscanner, hotelLink, viator, tripadvisor, rentalcars],
