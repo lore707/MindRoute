@@ -452,11 +452,11 @@ const I18nContext = createContext<I18nContextType>({
 });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(() => {
+ const [lang, setLangState] = useState<Lang>(() => {
     const saved = localStorage.getItem("mindroute-lang");
-    return (saved === "it" ? "it" : "en") as Lang;
+    if (saved === "it" || saved === "en") return saved as Lang;
+    return "en";
   });
-
   const setLang = useCallback((newLang: Lang) => {
     setLangState(newLang);
     localStorage.setItem("mindroute-lang", newLang);
