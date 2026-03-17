@@ -7,6 +7,8 @@ export interface IStorage {
   getItinerary(destinationId: number): Promise<Itinerary | undefined>;
   createItinerary(itinerary: InsertItinerary): Promise<Itinerary>;
   clearAll(): Promise<void>;
+  saveProfilingInput(input: any): Promise<void>;
+  getProfilingInput(): Promise<any | undefined>;
 }
 
 // Current production behavior uses an in-memory store. This keeps the prototype simple,
@@ -41,11 +43,21 @@ export class MemoryStorage implements IStorage {
     return newItin;
   }
 
+private profilingInput: any = null;
+
   async clearAll(): Promise<void> {
     this.destinations = [];
     this.itineraries = [];
     this.destIdCounter = 1;
     this.itinIdCounter = 1;
+  }
+
+  async saveProfilingInput(input: any): Promise<void> {
+    this.profilingInput = input;
+  }
+
+  async getProfilingInput(): Promise<any | undefined> {
+    return this.profilingInput ?? undefined;
   }
 }
 
