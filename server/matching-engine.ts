@@ -14,6 +14,7 @@ interface ProfilingInput {
   companions?: string;
   travelStyle?: string;
   constraints?: string;
+  lang?: string;
 }
 
 const affiliateLinksSchema = z.record(z.string(), z.string()).optional();
@@ -418,7 +419,7 @@ For each mapPoint include:
 - "imageUrl": real Unsplash photo URL — https://images.unsplash.com/photo-[REAL_PHOTO_ID]?w=400&h=250&fit=crop
 - "affiliateUrl": most relevant affiliate link for that point
 
-RESPONSE LANGUAGE: Write all text fields in Italian.
+RESPONSE LANGUAGE: Write ALL text fields in ${input.lang === 'it' ? 'Italian' : 'English'} — every single field including day titles, slot descriptions, closing message, whyYours, experiencePreview, packingList, bestTime, gettingThere, budgetSummary. Do NOT mix languages.
 
 REQUIRED JSON (day examples show affiliateLinks structure — apply same logic to all ${days} days):
 {
