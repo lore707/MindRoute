@@ -588,7 +588,6 @@ export default function Profiling() {
         <span className="font-serif text-[18px]">MindRoute</span>
       </Link>
       <div className="flex items-center gap-3">
-        <ThemeToggle />
         <LangDropdown />
         <Link href="/" className="hidden sm:inline-flex px-4 py-[7px] border border-[var(--border-input)] text-[var(--text-secondary)] rounded-full text-[13px] no-underline hover:border-[#E94560] hover:text-[#E94560] transition-all bg-transparent cursor-pointer" data-testid="link-exit">
           {t('nav.saveExit')}
