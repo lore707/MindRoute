@@ -217,7 +217,8 @@ export default function Profiling() {
     selectedPeriods: [] as string[],
     duration: "",
     departure: "",
-    companions: "",
+  companions: "",
+    travelStyle: "",
     accommodation: "",
     food: "",
     effort: "",
@@ -536,13 +537,14 @@ export default function Profiling() {
       formData.dietary.length > 0 ? `dietary: ${formData.dietary.join(', ')}` : '',
     ].filter(Boolean).join(' | ');
 
-    submitMutation.mutate({
+   submitMutation.mutate({
       answers: quizAnswersArray,
       budget: formData.budget,
       departure: formData.departure,
       days: durationMap[formData.duration] || 7,
       leaveDate: getDateString(),
       companions: formData.companions,
+      travelStyle: formData.travelStyle,
       constraints: enrichedConstraints,
     });
   };
@@ -814,6 +816,7 @@ export default function Profiling() {
         accommodation: { title: t('form.sidebarAccommodationTitle'), desc: t('form.sidebarAccommodationDesc') },
         food: { title: t('form.sidebarFoodTitle'), desc: t('form.sidebarFoodDesc') },
         effort: { title: t('form.sidebarEffortTitle'), desc: t('form.sidebarEffortDesc') },
+        travelStyle: { title: t('form.sidebarTravelStyleTitle'), desc: t('form.sidebarTravelStyleDesc') },
         constraints: { title: t('form.sidebarConstraintsTitle'), desc: t('form.sidebarConstraintsDesc') },
       };
       const c = configs[formFocus] || configs.budget;
@@ -967,7 +970,15 @@ export default function Profiling() {
 
                 {formStep === 2 && (
                   <div className="space-y-6">
-
+<div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('travelStyle')}>
+                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.travelStyle')}</h3>
+                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.travelStyleSub')}</p>
+                      <div className="flex flex-wrap gap-3">
+                        {[['fixed', t('form.travelStyleFixed')], ['two', t('form.travelStyleTwo')], ['discover', t('form.travelStyleDiscover')]].map(([val, label]) => (
+                          <FormChip key={val} label={label} selected={formData.travelStyle === val} onClick={() => setFormData(p => ({ ...p, travelStyle: val }))} testId={`travelstyle-${val}`} />
+                        ))}
+                      </div>
+                    </div>
                     <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('accommodation')}>
                       <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.accommodation')}</h3>
                       <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.accommodationSub')}</p>
@@ -1109,6 +1120,12 @@ export default function Profiling() {
                     <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease 0.2s both' }}>
                       <span className="text-[var(--text-muted)]">Con chi</span>
                       <span className="text-[var(--text-primary)] font-medium capitalize">{formData.companions}</span>
+                    </div>
+                  )}
+                  {formData.travelStyle && (
+                    <div className="flex justify-between text-[12px]" style={{ animation: 'profileIn 0.3s ease 0.22s both' }}>
+                      <span className="text-[var(--text-muted)]">Stile viaggio</span>
+                      <span className="text-[var(--text-primary)] font-medium capitalize">{formData.travelStyle}</span>
                     </div>
                   )}
                   {formData.accommodation && (
