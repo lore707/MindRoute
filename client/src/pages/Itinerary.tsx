@@ -148,21 +148,47 @@ export default function Itinerary() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 md:gap-16 items-start">
           <div className="space-y-16">
-            <header>
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }} 
+         <header className="relative rounded-[24px] overflow-hidden">
+              {/* FOTO HERO */}
+              {itinerary.imageUrl && (
+                <div className="absolute inset-0 z-0">
+                  <img
+                    src={itinerary.imageUrl}
+                    alt={itinerary.destinationName}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
+                </div>
+              )}
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
+                className={`relative z-10 space-y-6 ${itinerary.imageUrl ? 'p-8 md:p-14 text-white' : 'space-y-6'}`}
               >
-                <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[3px] rounded-full">
+                <span className={`inline-block px-4 py-1.5 text-[10px] font-bold uppercase tracking-[3px] rounded-full ${itinerary.imageUrl ? 'bg-white/20 text-white border border-white/30' : 'bg-primary/10 text-primary'}`}>
                   {t('itin.label')}
                 </span>
-                <h1 className="text-3xl md:text-5xl lg:text-7xl font-serif font-bold text-[var(--text-primary)] tracking-tight" data-testid="text-itin-title">
+
+                <h1 className={`text-3xl md:text-5xl lg:text-7xl font-serif font-bold tracking-tight ${itinerary.imageUrl ? 'text-white' : 'text-[var(--text-primary)]'}`} data-testid="text-itin-title">
                   {t('itin.trip')} {itinerary.destinationName || ''}
                 </h1>
-                <p className="text-xl text-[var(--text-secondary)] font-sans font-light max-w-2xl leading-relaxed">
-                  {itinerary.days?.length || 7}{t('itin.experience')}
+
+                <p className={`text-lg font-sans font-light max-w-2xl leading-relaxed ${itinerary.imageUrl ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}>
+                  {itinerary.days?.length || 7} {t('itin.experienceDays')}
                 </p>
+
+                {/* WHYYOURS — dedica psicologica */}
+                {itinerary.whyYours && (
+                  <div className={`max-w-2xl p-5 rounded-[16px] border-l-4 border-primary ${itinerary.imageUrl ? 'bg-white/10 backdrop-blur-sm border-white/60' : 'bg-primary/5 border-primary'}`}>
+                    <p className={`text-[13px] font-bold uppercase tracking-[2px] mb-2 ${itinerary.imageUrl ? 'text-white/60' : 'text-primary'}`}>
+                      {t('itin.whyYours')}
+                    </p>
+                    <p className={`font-serif italic text-lg leading-relaxed ${itinerary.imageUrl ? 'text-white' : 'text-[var(--text-primary)]'}`}>
+                      "{itinerary.whyYours}"
+                    </p>
+                  </div>
+                )}
               </motion.div>
             </header>
 
