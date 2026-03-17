@@ -151,7 +151,7 @@ Travel companions: ${input.companions || "not specified"}
 Travel style preference: ${travelStyle}
 Constraints & preferences: ${input.constraints || "none"}
 ${structuredProfileBlock ? `Structured profile (JSON):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
-
+${(input as any)._destinationOverride ? `\nDESTINATION ALREADY CHOSEN: ${(input as any)._destinationOverride} — generate the itinerary ONLY for this specific destination. Do not suggest alternatives.` : ''}
 TASK: Generate exactly 1 perfectly personalized destination with a ${days}-day itinerary.
 
 ═══════════════════════════════════════
