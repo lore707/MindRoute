@@ -490,21 +490,74 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
 Generate exactly ${days} days in the itinerary.`;
 }
 
-export async function generateDestinations(input: ProfilingInput): Promise<{
-  destinations: GeneratedDestination[];
-  itineraries: Map<string, GeneratedItinerary>;
-}> {
-  const prompt = buildPrompt(input);
+export async function generateDestinationsOnly(input: ProfilingInput): Promise<GeneratedDestination[]> {
+  const rawAnswers = input.answers[0] === "path_a" || input.answers[0] === "path_b"
+    ? input.answers.slice(1) : input.answers;
+
+  let structuredProfileBlock = "";
+  let profileAnswers = rawAnswers;
+  if (rawAnswers.length > 0) {
+    const last = rawAnswers[rawAnswers.length - 1];
+    try {
+      const parsed = JSON.parse(last);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        structuredProfileBlock = JSON.stringify(parsed, null, 2);
+        profileAnswers = rawAnswers.slice(0, -1);
+      }
+    } catch { }
+  }
+
+  const path = input.answers[0] === "path_b"
+    ? "Path B (user already has a destination area in mind)"
+    : "Path A (open to surprises)";
+
+  const budgetMap: Record<string, string> = {
+    "< €500": "maximum €500 per person all included",
+    "€500 – €1.500": "between €500 and €1,500 per person all included",
+    "€1.500 – €3.000": "between €1,500 and €3,000 per person all included",
+    "No limits": "unlimited budget",
+  };
+  const budgetText = budgetMap[input.budget] || input.budget;
+
+  const prompt = `You are the engine of MindRoute, a psychological travel profiling platform.
+
+USER PROFILE:
+Path: ${path}
+Budget: ${budgetText}
+Departing from: ${input.departure} | Period: ${input.leaveDate}
+Travel companions: ${input.companions || "not specified"}
+${structuredProfileBlock ? `Structured profile:\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
+
+TASK: Generate exactly 3 perfectly personalized destinations based on this psychological profile.
+
+RULES:
+- The 3 destinations must be genuinely different — different countries, different emotional tones, different continents if possible
+- Each destination must deeply match the psychological profile
+- Never suggest the same destination twice
+- The whyYours must be devastatingly personal — reference specific quiz answers
+- Balance must-see iconic experiences with hidden local discoveries based on profile
+- Verify seasonality — destination must be pleasant during stated travel period
+- Respond ONLY with valid JSON, no text outside JSON
+
+RESPONSE LANGUAGE: Write all text fields in ${input.lang === 'it' ? 'Italian' : 'English'}.
+
+REQUIRED JSON:
+{
+  "destinations": [
+    {
+      "name": "City, Country",
+      "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
+      "whyYours": "2-3 sentences — devastatingly personal psychological reason referencing their actual quiz answers",
+      "experiencePreview": "1 short evocative sentence in first person",
+      "practicalInfo": "costs, flights, period in 1 short line"
+    }
+  ]
+}`;
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 10000,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
+    max_tokens: 2000,
+    messages: [{ role: "user", content: prompt }],
   });
 
   const responseText = message.content
@@ -512,15 +565,46 @@ export async function generateDestinations(input: ProfilingInput): Promise<{
     .map((block) => (block as any).text)
     .join("");
 
-  const parsed = parseModelResponse(responseText);
+  const cleanJson = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  const parsed = z.object({
+    destinations: z.array(generatedDestinationSchema).min(3).max(3),
+  }).parse(JSON.parse(cleanJson));
 
+  return parsed.destinations;
+}
+
+export async function generateItineraryForDestination(
+  input: ProfilingInput,
+  destinationName: string
+): Promise<GeneratedItinerary> {
+  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any);
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 10000,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const responseText = message.content
+    .filter((block) => block.type === "text")
+    .map((block) => (block as any).text)
+    .join("");
+
+  const cleanJson = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  const parsed = z.object({
+    destinations: z.array(generatedDestinationSchema).min(1),
+    itineraries: z.array(generatedItinerarySchema).min(1),
+  }).parse(JSON.parse(cleanJson));
+
+  return parsed.itineraries[0];
+}
+
+// Mantieni per compatibilità
+export async function generateDestinations(input: ProfilingInput): Promise<{
+  destinations: GeneratedDestination[];
+  itineraries: Map<string, GeneratedItinerary>;
+}> {
+  const destinations = await generateDestinationsOnly(input);
   const itineraries = new Map<string, GeneratedItinerary>();
-  for (const itin of parsed.itineraries) {
-    itineraries.set(itin.destinationName, itin);
-  }
-
-  return {
-    destinations: parsed.destinations,
-    itineraries,
-  };
+  return { destinations, itineraries };
 }
