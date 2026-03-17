@@ -785,10 +785,11 @@ const slotOrder: Record<string, number> = { "Hotel": 0, "Mattina": 1, "Pranzo": 
 
         <div ref={mapRef} style={{ flex: 1, height: "100%" }} />
 
-        {/* Bottone espandi/chiudi */}
-  <button
+       {/* Bottone espandi/chiudi */}
+        <button
           onClick={() => setExpanded(e => !e)}
-          className="absolute bottom-3 right-3 z-20 bg-primary text-white rounded-full px-4 py-2 flex items-center gap-1.5 shadow-lg hover:bg-primary/90 transition-all text-[11px] font-bold"
+          className="absolute top-3 right-3 bg-primary text-white rounded-full px-4 py-2 flex items-center gap-1.5 shadow-lg hover:bg-primary/90 transition-all text-[11px] font-bold"
+          style={{ zIndex: 9999, position: 'absolute', top: 12, right: 12 }}
         >
           <MapPin className="w-3 h-3" />
           {expanded ? "Chiudi" : "Esplora mappa"}
