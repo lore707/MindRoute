@@ -11,7 +11,18 @@ const pathBTypeChipKeys = ["culture", "nature", "food", "beach", "city", "offgri
 function buildPathA(t: Translate): Question[] {
   return [
     { text: t("a.q1.text"), hint: t("a.q1.hint"), type: "chips", options: pathAStyleChipKeys.map((k) => t(`a.q1.chips.${k}`)), multi: true, max: 3, why: t("a.q1.why"), tags: ["vibe", "emotional tone", "trip color"], section: t("section.a.style") },
-    { text: t("a.q2.text"), hint: t("a.q2.hint"), type: "text", placeholder: t("a.q2.placeholder"), why: t("a.q2.why"), tags: ["core need", "life phase", "emotional state"], section: t("section.a.need") },
+  { 
+  text: t("a.q2.text"), 
+  hint: t("a.q2.hint"), 
+  type: "chips", 
+  options: ["a.q2.chip1", "a.q2.chip2", "a.q2.chip3", "a.q2.chip4", "a.q2.chip5", "a.q2.chip6", "a.q2.chip7", "a.q2.chip8"].map(k => t(k)),
+  multi: true,
+  max: 3,
+  addendum: t("a.q2.addendum"),
+  why: t("a.q2.why"), 
+  tags: ["core need", "life phase", "emotional state"], 
+  section: t("section.a.need") 
+},
     { text: t("a.q3.text"), hint: t("a.q3.hint"), type: "chips", options: drainChipKeys.map((k) => t(`chips.${k}`)), multi: true, addendum: t("a.q3.addendum"), why: t("a.q3.why"), tags: ["anti-patterns", "boundaries", "identity"], section: t("section.a.drains") },
     {
       text: t("a.q4.text"), hint: t("a.q4.hint"), type: "images", options: [
