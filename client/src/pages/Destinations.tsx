@@ -8,10 +8,10 @@ import { useI18n } from "@/lib/i18n";
 
 export default function Destinations() {
   const { t } = useI18n();
-  const [destinations, setDestinations] = useState<Destination[]>([]);
+const [destinations, setDestinations] = useState<Destination[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [, setLocation] = useLocation();
-
   useEffect(() => {
     const stored = getStoredDestinations();
     if (!stored || stored.length === 0) {
@@ -27,9 +27,36 @@ export default function Destinations() {
     setSelectedId(destId);
   };
 
-  const handleContinue = () => {
-    if (selectedId) {
+ const handleContinue = async () => {
+    if (!selectedId) return;
+    const selectedDest = destinations.find(d => d.id === selectedId);
+    if (!selectedDest) return;
+
+    setIsGenerating(true);
+    try {
+      // Recupera l'input di profilazione salvato nel backend
+      const inputRes = await fetch("/api/profiling/input");
+      const profilingInput = await inputRes.json();
+
+      // Genera l'itinerario per la destinazione scelta
+      const res = await fetch("/api/itinerary/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: profilingInput,
+          destinationName: selectedDest.name,
+          destinationId: selectedId,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Errore generazione itinerario");
       setLocation(`/itinerary/${selectedId}`);
+    } catch (err) {
+      console.error(err);
+      // Fallback — naviga comunque
+      setLocation(`/itinerary/${selectedId}`);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -112,12 +139,22 @@ export default function Destinations() {
             exit={{ opacity: 0, y: 20 }}
             className="mt-16 flex justify-center"
           >
-            <button 
+          <button 
               onClick={handleContinue}
+              disabled={isGenerating}
               data-testid="button-continue-dest"
-              className="btn-primary group px-8 py-4 text-base md:px-12 md:py-5 md:text-lg shadow-2xl"
+              className="btn-primary group px-8 py-4 text-base md:px-12 md:py-5 md:text-lg shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {t('dest.choose')} {selectedName?.split(',')[0]} <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+              {isGenerating ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Creo il tuo itinerario...
+                </>
+              ) : (
+                <>
+                  {t('dest.choose')} {selectedName?.split(',')[0]} <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
             </button>
           </motion.div>
         )}
