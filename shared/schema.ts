@@ -45,5 +45,7 @@ export const profilingRequestSchema = z.object({
   departure: z.string(),
   companions: z.string().optional(),
   constraints: z.string().optional(),
+  travelStyle: z.string().optional(),
+  lang: z.string().optional(),
 });
 export type ProfilingRequest = z.infer<typeof profilingRequestSchema>;
