@@ -84,10 +84,10 @@ const translations: Record<string, Record<Lang, string>> = {
   "a.q5.hint": { en: "Drag the slider to your comfort zone.", it: "Trascina il cursore nella tua zona di comfort." },
   "a.q5.why": { en: "Your relationship with uncertainty changes the kind of trip that feels nourishing rather than draining.", it: "Il tuo rapporto con l'imprevisto cambia profondamente il tipo di viaggio che può nutrirti invece di prosciugarti." },
 
-  "a.q6.text": { en: "A place everyone recommends but that <em>never attracted you?</em>", it: "Un posto che tutti raccomandano ma che <em>non ti ha mai attirato?</em>" },
-  "a.q6.hint": { en: "What does this rejection say about you?", it: "Cosa dice di te questo rifiuto?" },
-  "a.q6.placeholder": { en: "For example: The Maldives, too polished and too still. I need something with more truth and movement.", it: "Per esempio: le Maldive, troppo patinate e troppo ferme. Ho bisogno di qualcosa di più vivo, più vero, più in movimento." },
-  "a.q6.why": { en: "What you reject defines you almost as much as what you desire.", it: "Quello che rifiuti ti definisce quasi quanto quello che desideri. È un modo molto diretto per capire che cosa, per te, non potrà mai sembrare il viaggio giusto." },
+"a.q6.text": { en: "A place everyone loves but that <em>does nothing for you?</em>", it: "Un posto che tutti amano ma che <em>non fa per te?</em>" },
+"a.q6.hint": { en: "No wrong answers. Even 'I don't know' tells us something.", it: "Nessuna risposta sbagliata. Anche 'non lo so' ci dice qualcosa." },
+"a.q6.placeholder": { en: "E.g. The Maldives — too perfect, too still. Or New York — never felt the pull. Or Barcellona in summer — too chaotic for me.", it: "Es. Le Maldive — troppo perfette, troppo ferme. Oppure New York — non mi ha mai detto niente. O Barcellona d'estate — troppo caotica per me." },
+"a.q6.why": { en: "What you reject defines you almost as much as what you desire.", it: "Quello che rifiuti ti definisce quasi quanto quello che desideri. È un modo molto diretto per capire che cosa, per te, non potrà mai sembrare il viaggio giusto." },
 
   "a.q7.text": { en: "How <em>far</em> do you want to go?", it: "Quanto <em>lontano</em> vuoi andare?" },
   "a.q7.hint": { en: "Distance preference reveals your comfort zone and desire for rupture.", it: "La preferenza di distanza rivela la tua comfort zone e il desiderio di rottura." },
