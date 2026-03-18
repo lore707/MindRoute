@@ -110,7 +110,7 @@ export default function Itinerary() {
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
   const { data: itinerary, isLoading, error } = useItinerary(id);
-  const [openDay, setOpenDay] = useState<number | null>(0);
+  const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
 
   if (isLoading) {
     return (
@@ -135,18 +135,28 @@ export default function Itinerary() {
   const links = itinerary.topAffiliateLinks ?? {};
   const region = detectRegion(itinerary.destinationName ?? "");
   const regionLinks = getRegionLinks(region, links);
-  const peakDayIndex = itinerary.days?.findIndex((_: any, i: number) => i === 3 || i === 4) ?? 3;
+ const peakDayIndex = itinerary.days?.findIndex((_: any, i: number) => i === 3 || i === 4) ?? 3;
+
+  useEffect(() => {
+    const defaults = new Set([0]);
+    if (peakDayIndex >= 0) defaults.add(peakDayIndex);
+    if (peakDayIndex + 1 < (itinerary.days?.length ?? 0)) defaults.add(peakDayIndex + 1);
+    setOpenDays(defaults);
+  }, []);
 
   return (
     <div className="min-h-screen" style={{ background: "#0a0814" }}>
 
       {/* ── HERO A TUTTO SCHERMO ─────────────────────────────── */}
       <div className="relative h-[70vh] min-h-[500px] overflow-hidden">
-        {itinerary.imageUrl ? (
+      {(itinerary.heroImageUrl || itinerary.imageUrl) ? (
           <img
-            src={itinerary.imageUrl}
+            src={itinerary.heroImageUrl || itinerary.imageUrl}
             alt={itinerary.destinationName}
             className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a14] to-[#0a0814]" />
@@ -183,9 +193,21 @@ export default function Itinerary() {
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white tracking-tight leading-[1.05] mb-4 max-w-4xl" data-testid="text-itin-title">
               {t('itin.trip')}<br />{itinerary.destinationName}
             </h1>
-            <div className="flex items-center gap-4 text-white/50 text-sm mb-6">
+         <div className="flex items-center gap-4 text-white/50 text-sm mb-6">
               <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {itinerary.days?.length || 7} {t('itin.experienceDays')}</span>
             </div>
+            {itinerary.heroPhotographer && (
+              <p className="text-white/30 text-[10px]">
+                Photo by{" "}
+                <a href={`${itinerary.heroPhotographerUrl}?utm_source=mindroute&utm_medium=referral`} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/50">
+                  {itinerary.heroPhotographer}
+                </a>
+                {" "}on{" "}
+                <a href="https://unsplash.com?utm_source=mindroute&utm_medium=referral" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/50">
+                  Unsplash
+                </a>
+              </p>
+            )}
           </motion.div>
         </div>
       </div>
@@ -223,11 +245,16 @@ export default function Itinerary() {
 
             {/* Day cards */}
             {itinerary.days.map((day: any, index: number) => (
-              <DayCard
+            <DayCard
                 key={index}
                 day={day}
-                isOpen={openDay === index}
-                onToggle={() => setOpenDay(openDay === index ? null : index)}
+                isOpen={openDays.has(index)}
+                onToggle={() => setOpenDays(prev => {
+                  const next = new Set(prev);
+                  if (next.has(index)) next.delete(index);
+                  else next.add(index);
+                  return next;
+                })}
                 index={index}
                 isPeak={index === peakDayIndex || index === peakDayIndex + 1}
                 t={t}
