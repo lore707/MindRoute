@@ -78,7 +78,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
 const itinerary = await generateItineraryForDestination(input, destinationName);
-      const heroImage = await fetchUnsplashHero(destinationName);
+     const heroImage = await fetchUnsplashHero(destinationName + "travel landscape");
       const saved = await storage.createItinerary({
         destinationId,
         ...itinerary,
