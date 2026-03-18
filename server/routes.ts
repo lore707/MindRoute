@@ -77,18 +77,16 @@ export async function registerRoutes(
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
-  const itinerary = await generateItineraryForDestination(input, destinationName);
+const itinerary = await generateItineraryForDestination(input, destinationName);
       const heroImage = await fetchUnsplashHero(destinationName);
       const saved = await storage.createItinerary({
         destinationId,
         ...itinerary,
-      });
-      res.json({
-        ...saved,
         heroImageUrl: heroImage?.url ?? null,
         heroPhotographer: heroImage?.photographer ?? null,
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,
       });
+      res.json(saved);
     } catch (err) {
       console.error("Error generating itinerary:", err);
       return res.status(500).json({ message: "Errore nella generazione dell'itinerario. Riprova." });
