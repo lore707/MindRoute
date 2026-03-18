@@ -1,5 +1,28 @@
 import type { Express } from "express";
 import type { Server } from "http";
+async function fetchUnsplashHero(query: string): Promise<{ url: string; photographer: string; photographerUrl: string } | null> {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  if (!key) return null;
+  try {
+    const res = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
+      { headers: { Authorization: `Client-ID ${key}` } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.results && data.results.length > 0) {
+      const photo = data.results[0];
+      return {
+        url: photo.urls?.full ?? photo.urls?.regular ?? null,
+        photographer: photo.user?.name ?? "Unknown",
+        photographerUrl: photo.user?.links?.html ?? "https://unsplash.com",
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
@@ -54,12 +77,18 @@ export async function registerRoutes(
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
-      const itinerary = await generateItineraryForDestination(input, destinationName);
+  const itinerary = await generateItineraryForDestination(input, destinationName);
+      const heroImage = await fetchUnsplashHero(destinationName);
       const saved = await storage.createItinerary({
         destinationId,
         ...itinerary,
       });
-      res.json(saved);
+      res.json({
+        ...saved,
+        heroImageUrl: heroImage?.url ?? null,
+        heroPhotographer: heroImage?.photographer ?? null,
+        heroPhotographerUrl: heroImage?.photographerUrl ?? null,
+      });
     } catch (err) {
       console.error("Error generating itinerary:", err);
       return res.status(500).json({ message: "Errore nella generazione dell'itinerario. Riprova." });
