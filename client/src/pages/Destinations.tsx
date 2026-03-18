@@ -43,6 +43,10 @@ const [destinations, setDestinations] = useState<Destination[]>([]);
       const currentLang = localStorage.getItem("mindroute_lang") || "en";
       const inputWithLang = { ...profilingInput, lang: currentLang };
 
+     // Force current UI language into the input
+      const currentLang = localStorage.getItem("mindroute-lang") || "en";
+      const inputWithLang = { ...profilingInput, lang: currentLang };
+
       const res = await fetch("/api/itinerary/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
