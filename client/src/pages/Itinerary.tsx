@@ -477,15 +477,31 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                             ? 'bg-[#E94560]/10 text-[#E94560] border-[#E94560]/20 hover:bg-[#E94560] hover:text-white'
                             : 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500 hover:text-white'
                         }`}>
-                        {isActivity ? <Ticket className="w-3 h-3" /> : <Utensils className="w-3 h-3" />}
-                        {isActivity ? "Prenota attività" : (day.affiliateLinks?.thefork_lunch || day.affiliateLinks?.thefork_evening ? "Prenota tavolo" : "Ristoranti")}
+                    {isActivity ? <Ticket className="w-3 h-3" /> : <Utensils className="w-3 h-3" />}
+                        {(() => {
+                          const linkKey = isActivity
+                            ? (slot === 'morning'
+                              ? (day.affiliateLinks?.getyourguide_morning ? 'getyourguide_morning' : day.affiliateLinks?.klook_morning ? 'klook_morning' : 'viator_morning')
+                              : (day.affiliateLinks?.getyourguide_afternoon ? 'getyourguide_afternoon' : day.affiliateLinks?.klook_afternoon ? 'klook_afternoon' : 'viator_afternoon'))
+                            : (slot === 'lunch'
+                              ? (day.affiliateLinks?.thefork_lunch ? 'thefork_lunch' : 'tripadvisor_lunch')
+                              : (day.affiliateLinks?.thefork_evening ? 'thefork_evening' : day.affiliateLinks?.tripadvisor_evening ? 'tripadvisor_evening' : 'tripadvisor_evening_fallback'));
+                          const label = day.affiliateLabels?.[linkKey];
+                          if (label) return label;
+                          return isActivity ? "Prenota attività" : (day.affiliateLinks?.thefork_lunch || day.affiliateLinks?.thefork_evening ? "Prenota tavolo" : "Ristoranti");
+                        })()}
                         <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                       </a>
                     )}
                     {placeLink && (
                       <a href={placeLink} target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[1px] rounded-xl bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 hover:text-white transition-all">
-                        <Ticket className="w-3 h-3" /> Tour del luogo
+                     <Ticket className="w-3 h-3" /> {(() => {
+                          const placeKey = slot === 'morning'
+                            ? (day.affiliateLinks?.getyourguide_place_morning ? 'getyourguide_place_morning' : day.affiliateLinks?.klook_place_morning ? 'klook_place_morning' : 'viator_place_morning')
+                            : (day.affiliateLinks?.getyourguide_place_afternoon ? 'getyourguide_place_afternoon' : day.affiliateLinks?.klook_place_afternoon ? 'klook_place_afternoon' : 'viator_place_afternoon');
+                          return day.affiliateLabels?.[placeKey] || "Tour del luogo";
+                        })()}
                         <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                       </a>
                     )}
