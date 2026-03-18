@@ -40,7 +40,22 @@ function getRegionLinks(region: string, links: Record<string, string>): { key: s
   const secondaryStyle = "bg-white/5 text-white border-white/10 hover:bg-white/10 hover:border-white/20";
 
   const skyscanner = pill(<Plane className="w-4 h-4" />, "Cerca voli", `${primary} bg-sky-500 hover:bg-sky-400`, "skyscanner");
-  const bookingHotel = pill(<Hotel className="w-4 h-4" />, "Hotel consigliato", `${primary} bg-[#E94560] hover:bg-[#d63050]`, "booking_hotel");
+ const hotelName = (() => {
+    const url = links["booking_hotel"] || "";
+    const match = url.match(/[?&]ss=([^&]+)/);
+    if (match) return decodeURIComponent(match[1].replace(/\+/g, " "));
+    return "Hotel consigliato";
+  })();
+const hotelName = (() => {
+    const url = links["booking_hotel"] || "";
+    const match = url.match(/[?&]ss=([^&]+)/);
+    if (match) {
+      const name = decodeURIComponent(match[1].replace(/\+/g, " "));
+      return name.length > 28 ? name.substring(0, 26) + "…" : name;
+    }
+    return "Hotel consigliato";
+  })();
+  const bookingHotel = pill(<Hotel className="w-4 h-4" />, hotelName, `${primary} bg-[#E94560] hover:bg-[#d63050]`, "booking_hotel");
   const bookingSearch = pill(<Hotel className="w-4 h-4" />, "Hotel su Booking", `${primary} bg-[#E94560] hover:bg-[#d63050]`, "booking_search");
   const hotelLink = bookingHotel ?? bookingSearch;
   const gyg1 = pill(<Ticket className="w-4 h-4" />, "Prenota esperienza", `${secondary} ${secondaryStyle}`, "getyourguide_1");
