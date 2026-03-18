@@ -1,27 +1,58 @@
 import type { Express } from "express";
 import type { Server } from "http";
-async function fetchUnsplashHero(query: string): Promise<{ url: string; photographer: string; photographerUrl: string } | null> {
+async function fetchUnsplashHero(destinationName: string): Promise<{ url: string; photographer: string; photographerUrl: string } | null> {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   if (!key) return null;
-  try {
-    const res = await fetch(
-      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
-      { headers: { Authorization: `Client-ID ${key}` } }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.results && data.results.length > 0) {
-      const photo = data.results[0];
-      return {
-        url: photo.urls?.full ?? photo.urls?.regular ?? null,
-        photographer: photo.user?.name ?? "Unknown",
-        photographerUrl: photo.user?.links?.html ?? "https://unsplash.com",
-      };
+
+  // Build multiple query variants from most specific to most generic
+  const parts = destinationName.split(",").map(s => s.trim());
+  const city = parts[0] ?? destinationName;
+  const country = parts[1] ?? "";
+
+  const queries = [
+    `${city} ${country} landscape`.trim(),
+    `${city} travel`.trim(),
+    `${city} beach ocean nature`.trim(),
+    `${country} landscape travel`.trim(),
+    `${country} nature`.trim(),
+  ].filter(q => q.length > 3);
+
+  // Remove duplicates
+  const uniqueQueries = [...new Set(queries)];
+
+  async function searchUnsplash(query: string): Promise<{ url: string; photographer: string; photographerUrl: string } | null> {
+    try {
+      const res = await fetch(
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=3`,
+        { headers: { Authorization: `Client-ID ${key}` } }
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.results && data.results.length > 0) {
+        // Pick the photo with highest resolution available, prefer wider photos
+        const photo = data.results[0];
+        const url = photo.urls?.full ?? photo.urls?.regular ?? null;
+        if (!url) return null;
+        return {
+          url,
+          photographer: photo.user?.name ?? "Unknown",
+          photographerUrl: photo.user?.links?.html ?? "https://unsplash.com",
+        };
+      }
+      return null;
+    } catch {
+      return null;
     }
-    return null;
-  } catch {
-    return null;
   }
+
+  // Try each query variant until we find a result
+  for (const query of uniqueQueries) {
+    const result = await searchUnsplash(query);
+    if (result) return result;
+  }
+
+  // Final fallback: generic tropical/travel photo
+  return searchUnsplash("tropical island paradise landscape");
 }
 import { storage } from "./storage";
 import { api } from "@shared/routes";
@@ -78,7 +109,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
       const itinerary = await generateItineraryForDestination(input, destinationName);
-      const heroImage = await fetchUnsplashHero(destinationName + " travel landscape");
+    const heroImage = await fetchUnsplashHero(destinationName);
       const saved = await storage.createItinerary({
         destinationId,
         ...itinerary,
