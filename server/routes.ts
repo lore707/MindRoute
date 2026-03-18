@@ -73,15 +73,16 @@ export async function registerRoutes(
   // STEP 3 — Genera itinerario completo per destinazione scelta
   app.post("/api/itinerary/generate", async (req, res) => {
     try {
-      const { input, destinationName, destinationId } = req.body;
+    const { input, destinationName, destinationId, whyYours } = req.body;
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
-const itinerary = await generateItineraryForDestination(input, destinationName);
-     const heroImage = await fetchUnsplashHero(destinationName + "travel landscape");
+      const itinerary = await generateItineraryForDestination(input, destinationName);
+      const heroImage = await fetchUnsplashHero(destinationName + " travel landscape");
       const saved = await storage.createItinerary({
         destinationId,
         ...itinerary,
+        whyYours: whyYours ?? itinerary.whyYours ?? null,
         heroImageUrl: heroImage?.url ?? null,
         heroPhotographer: heroImage?.photographer ?? null,
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,
