@@ -27,6 +27,7 @@ const itineraryDaySchema = z.object({
   afternoon: z.string(),
   evening: z.string(),
   affiliateLinks: affiliateLinksSchema,
+  affiliateLabels: z.record(z.string(), z.string()).optional(),
   mapPoints: z.array(z.object({
     label: z.string(),
     slot: z.string(),
@@ -407,6 +408,8 @@ RESTAURANTS (lunch/evening):
 
 Do NOT use any Google Maps links anywhere — use only monetizable affiliate links.
 
+affiliateLabels — for EVERY key in affiliateLinks, include a matching key in affiliateLabels with the REAL NAME of the place/experience/restaurant. This name will be shown to the user on the booking button. Use the actual name, not a generic label.
+
 MAP POINTS — for each day, include a "mapPoints" array with GPS coordinates for ALL real places:
 - Experiences and activities (slot: "Mattina" or "Pomeriggio")
 - Restaurants and cafés (slot: "Pranzo" or "Sera")
@@ -443,11 +446,17 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
           "lunch": "LUNCH_SPOT real name + brief sensory detail — max 10 words",
           "afternoon": "Sensory description of afternoon — max 15 words",
           "evening": "Sensory description of evening — max 15 words",
-          "affiliateLinks": {
+      "affiliateLinks": {
             "getyourguide_morning": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8",
             "thefork_lunch": "https://www.thefork.it/search#q=LUNCH_SPOT_NAME",
             "getyourguide_place_afternoon": "https://www.getyourguide.com/s/?q=PLACE_1_NAME+tour&partner_id=0BCSNBX8",
             "tripadvisor_evening_fallback": "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME"
+          },
+          "affiliateLabels": {
+            "getyourguide_morning": "EXPERIENCE_1_NAME",
+            "thefork_lunch": "LUNCH_SPOT_NAME",
+            "getyourguide_place_afternoon": "PLACE_1_NAME",
+            "tripadvisor_evening_fallback": "Ristoranti CITY_NAME"
           },
           "mapPoints": [
             { "label": "EXPERIENCE_1_NAME", "slot": "Mattina", "lat": 0.0000, "lng": 0.0000, "imageUrl": "https://images.unsplash.com/photo-[ID]?w=400&h=250&fit=crop", "affiliateUrl": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8" },
@@ -463,9 +472,13 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
           "lunch": "Max 10 words",
           "afternoon": "EXPERIENCE_2 real name + sensory detail — max 15 words",
           "evening": "DINNER_RESTAURANT real name + atmosphere — max 10 words",
-          "affiliateLinks": {
+      "affiliateLinks": {
             "getyourguide_afternoon": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME&partner_id=0BCSNBX8",
             "thefork_evening": "https://www.thefork.it/search#q=DINNER_RESTAURANT_NAME"
+          },
+          "affiliateLabels": {
+            "getyourguide_afternoon": "EXPERIENCE_2_NAME",
+            "thefork_evening": "DINNER_RESTAURANT_NAME"
           }
         }
       ],
