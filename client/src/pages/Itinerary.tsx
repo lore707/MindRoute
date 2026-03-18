@@ -453,7 +453,27 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
 
           <Collapsible.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
             <div className="px-5 md:px-7 pb-8 pt-0 space-y-7">
-             <div className="w-full h-px bg-white/12" />
+          <div className="w-full h-px bg-white/12" />
+
+              {/* Experience images */}
+              {(day.morningImage || day.afternoonImage) && (
+                <div className="flex gap-3 overflow-hidden rounded-xl">
+                  {day.morningImage && (
+                    <div className="flex-1 h-[140px] rounded-xl overflow-hidden relative">
+                      <img src={day.morningImage} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      <span className="absolute bottom-2 left-3 text-[10px] font-bold text-white/80 uppercase tracking-[1px]">{t('itin.morning')}</span>
+                    </div>
+                  )}
+                  {day.afternoonImage && (
+                    <div className="flex-1 h-[140px] rounded-xl overflow-hidden relative">
+                      <img src={day.afternoonImage} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      <span className="absolute bottom-2 left-3 text-[10px] font-bold text-white/80 uppercase tracking-[1px]">{t('itin.afternoon')}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {[
                 {
