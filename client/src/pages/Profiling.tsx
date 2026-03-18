@@ -537,7 +537,9 @@ export default function Profiling() {
       formData.dietary.length > 0 ? `dietary: ${formData.dietary.join(', ')}` : '',
     ].filter(Boolean).join(' | ');
 
-   submitMutation.mutate({
+ const currentLang = localStorage.getItem("mindroute-lang") || "en";
+
+    submitMutation.mutate({
       answers: quizAnswersArray,
       budget: formData.budget,
       departure: formData.departure,
@@ -546,6 +548,7 @@ export default function Profiling() {
       companions: formData.companions,
       travelStyle: formData.travelStyle,
       constraints: enrichedConstraints,
+      lang: currentLang,
     });
   };
 
