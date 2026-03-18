@@ -40,12 +40,7 @@ function getRegionLinks(region: string, links: Record<string, string>): { key: s
   const secondaryStyle = "bg-white/5 text-white border-white/10 hover:bg-white/10 hover:border-white/20";
 
   const skyscanner = pill(<Plane className="w-4 h-4" />, "Cerca voli", `${primary} bg-sky-500 hover:bg-sky-400`, "skyscanner");
- const hotelName = (() => {
-    const url = links["booking_hotel"] || "";
-    const match = url.match(/[?&]ss=([^&]+)/);
-    if (match) return decodeURIComponent(match[1].replace(/\+/g, " "));
-    return "Hotel consigliato";
-  })();
+
 const hotelName = (() => {
     const url = links["booking_hotel"] || "";
     const match = url.match(/[?&]ss=([^&]+)/);
