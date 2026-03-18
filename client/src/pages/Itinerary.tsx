@@ -109,8 +109,18 @@ export default function Itinerary() {
   const [, params] = useRoute("/itinerary/:id");
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
-  const { data: itinerary, isLoading, error } = useItinerary(id);
+const { data: itinerary, isLoading, error } = useItinerary(id);
   const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
+
+  const peakDayIndex = itinerary?.days?.findIndex((_: any, i: number) => i === 3 || i === 4) ?? 3;
+
+  useEffect(() => {
+    if (!itinerary?.days) return;
+    const defaults = new Set([0]);
+    if (peakDayIndex >= 0) defaults.add(peakDayIndex);
+    if (peakDayIndex + 1 < (itinerary.days?.length ?? 0)) defaults.add(peakDayIndex + 1);
+    setOpenDays(defaults);
+  }, [itinerary]);
 
   if (isLoading) {
     return (
@@ -135,14 +145,6 @@ export default function Itinerary() {
   const links = itinerary.topAffiliateLinks ?? {};
   const region = detectRegion(itinerary.destinationName ?? "");
   const regionLinks = getRegionLinks(region, links);
- const peakDayIndex = itinerary.days?.findIndex((_: any, i: number) => i === 3 || i === 4) ?? 3;
-
-  useEffect(() => {
-    const defaults = new Set([0]);
-    if (peakDayIndex >= 0) defaults.add(peakDayIndex);
-    if (peakDayIndex + 1 < (itinerary.days?.length ?? 0)) defaults.add(peakDayIndex + 1);
-    setOpenDays(defaults);
-  }, []);
 
   return (
     <div className="min-h-screen" style={{ background: "#0a0814" }}>
