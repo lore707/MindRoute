@@ -233,7 +233,7 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
         </motion.div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 md:px-12 pb-24">
+     <div className="max-w-7xl mx-auto px-4 md:px-12 pb-24 pt-4" style={{ background: "linear-gradient(180deg, #0a0814 0%, #0f0c1a 8%, #0f0c1a 85%, #0a0814 100%)" }}>
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-12 items-start">
 
           {/* ── COLONNA PRINCIPALE ───────────────────────────────── */}
@@ -363,8 +363,8 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-              className="rounded-[24px] border border-white/8 divide-y divide-white/8"
-              style={{ background: "rgba(255,255,255,0.03)" }}
+            className="rounded-[24px] border border-white/15 divide-y divide-white/10"
+              style={{ background: "linear-gradient(135deg, rgba(22,19,48,0.9), rgba(22,19,48,0.7))" }}
             >
               {[
                 { icon: <Wallet className="w-4 h-4" />, label: t('itin.budget'), value: itinerary.budgetSummary },
@@ -377,7 +377,7 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
                     {icon}
                     <h3 className="font-bold text-sm text-white">{label}</h3>
                   </div>
-                  <p className="text-white/40 text-xs leading-relaxed">{value}</p>
+                <p className="text-white/55 text-xs leading-relaxed">{value}</p>
                 </div>
               ))}
             </motion.div>
@@ -403,11 +403,11 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
             ? isOpen
               ? 'border-2 border-[#E94560] shadow-[0_0_40px_rgba(233,69,96,0.15)]'
               : 'border border-[#E94560]/40 hover:border-[#E94560]/70'
-            : isOpen
-              ? 'border border-white/15 shadow-xl'
-              : 'border border-white/8 hover:border-white/15'
+           : isOpen
+              ? 'border border-white/20 shadow-xl'
+              : 'border border-white/10 hover:border-white/20'
         }`}
-          style={{ background: isPeak ? "linear-gradient(135deg, rgba(233,69,96,0.06), rgba(233,69,96,0.02))" : "rgba(255,255,255,0.03)" }}
+         style={{ background: isPeak ? "linear-gradient(135deg, rgba(233,69,96,0.08), rgba(233,69,96,0.03))" : isOpen ? "rgba(20,17,36,0.8)" : "rgba(255,255,255,0.03)" }}
         >
           <Collapsible.Trigger className="w-full flex items-center justify-between p-5 md:p-7 text-left" data-testid={`day-trigger-${index}`}>
             <div className="flex items-center gap-4 md:gap-6">
@@ -438,7 +438,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
 
           <Collapsible.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
             <div className="px-5 md:px-7 pb-8 pt-0 space-y-7">
-              <div className="w-full h-px bg-white/8" />
+             <div className="w-full h-px bg-white/12" />
 
               {[
                 {
@@ -468,7 +468,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                   <div className="flex items-center gap-2 text-[10px] font-bold text-[#E94560] uppercase tracking-[2px]">
                     {icon} {label}
                   </div>
-                  <p className="text-white/60 font-sans leading-relaxed text-[14px] md:text-[15px]">{text}</p>
+               <p className="text-white/70 font-sans leading-relaxed text-[14px] md:text-[15px]">{text}</p>
                   <div className="flex flex-wrap gap-2">
                     {link && (
                       <a href={link} target="_blank" rel="noopener noreferrer"
