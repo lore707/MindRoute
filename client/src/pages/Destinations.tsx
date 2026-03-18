@@ -39,11 +39,15 @@ const [destinations, setDestinations] = useState<Destination[]>([]);
       const profilingInput = await inputRes.json();
 
       // Genera l'itinerario per la destinazione scelta
-    const res = await fetch("/api/itinerary/generate", {
+   // Ensure lang is set to current UI language
+      const currentLang = localStorage.getItem("mindroute_lang") || "en";
+      const inputWithLang = { ...profilingInput, lang: currentLang };
+
+      const res = await fetch("/api/itinerary/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          input: profilingInput,
+          input: inputWithLang,
           destinationName: selectedDest.name,
           destinationId: selectedId,
           whyYours: selectedDest.whyYours,
