@@ -108,11 +108,36 @@ export async function registerRoutes(
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
-      const itinerary = await generateItineraryForDestination(input, destinationName);
-    const heroImage = await fetchUnsplashHero(destinationName);
-      const saved = await storage.createItinerary({
+    const itinerary = await generateItineraryForDestination(input, destinationName);
+      const heroImage = await fetchUnsplashHero(destinationName);
+
+      // Fetch images for top experiences in each day
+      const daysWithImages = await Promise.all(
+        (itinerary.days || []).map(async (day: any) => {
+          const images: Record<string, string> = {};
+          // Try to get an image for morning activity
+          if (day.morning && day.morning.length > 5) {
+            const name = day.morning.split(/—|,|\.|–/)[0].trim();
+            if (name.length > 3) {
+              const img = await fetchUnsplashHero(name + " " + destinationName.split(",")[0]);
+              if (img) images.morningImage = img.url;
+            }
+          }
+          // Try to get an image for afternoon activity
+          if (day.afternoon && day.afternoon.length > 5) {
+            const name = day.afternoon.split(/—|,|\.|–/)[0].trim();
+            if (name.length > 3) {
+              const img = await fetchUnsplashHero(name + " " + destinationName.split(",")[0]);
+              if (img) images.afternoonImage = img.url;
+            }
+          }
+          return { ...day, ...images };
+        })
+      );
+    const saved = await storage.createItinerary({
         destinationId,
         ...itinerary,
+        days: daysWithImages,
         whyYours: whyYours ?? itinerary.whyYours ?? null,
         heroImageUrl: heroImage?.url ?? null,
         heroPhotographer: heroImage?.photographer ?? null,
