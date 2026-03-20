@@ -42,6 +42,8 @@ const generatedDestinationSchema = z.object({
 
 const generatedItinerarySchema = z.object({
   destinationName: z.string(),
+  tripSummary: z.string().optional(),
+  highlights: z.array(z.string()).optional(),
   days: z.array(itineraryDaySchema),
   budgetSummary: z.string(),
   packingList: z.string(),
@@ -49,6 +51,7 @@ const generatedItinerarySchema = z.object({
   gettingThere: z.string(),
   closingMessage: z.string(),
   topAffiliateLinks: z.record(z.string(), z.string()).optional(),
+});
 });
 
 const generatedResponseSchema = z.object({
@@ -320,6 +323,10 @@ THE WHYYOURS FIELD must be so personally precise that the user thinks "how did i
 - Feel like it was written by someone who truly understands them, not a travel catalog
 - Be 2-3 sentences maximum — devastatingly precise, never generic
 
+THE TRIP SUMMARY must be a single evocative line that captures the geographic and emotional arc of the entire trip — where it starts, where it goes, and what it feels like. Example: "Da Volos al Pèlio, tra boschi di castagni e calette nascoste dove il tempo si ferma". Max 15 words.
+
+THE HIGHLIGHTS must be exactly 4 short chips with emoji that represent the most memorable experiences of the trip — places, activities, or moments. Format: ["🏛 Place Name", "🏖 Beach Name", "🍽 Restaurant Name", "🌅 Experience"]. Use relevant emojis.
+
 THE CLOSING MESSAGE must be a single sentence that feels like a promise — something poetic that captures the essence of what this trip will give them. Not "buon viaggio". Something that makes them want to leave tomorrow.
 
 ═══════════════════════════════════════
@@ -435,7 +442,10 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
   ],
   "itineraries": [
     {
-      "destinationName": "City, Country",
+    "destinationName": "City, Country",
+      "tripSummary": "One evocative line describing the arc of the trip — e.g. 'Da Salonicco alla penisola Calcidica, tra storia e mare cristallino'",
+      "highlights": ["🏛 Ano Poli", "🏖 Halkidiki", "🍽 Ergon House", "🌅 Tramonto a Kassandra"],
+      "days": [
       "days": [
         {
       "dayNumber": 1,
