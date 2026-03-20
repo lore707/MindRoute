@@ -612,26 +612,68 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
           const map = initMap(parseFloat(results[0].lat), parseFloat(results[0].lon));
           const cityName = destinationName.split(",")[0].trim();
           const countryName = destinationName.split(",")[1]?.trim() ?? "";
-          const fallbackPlaces: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
+         const fallbackPlaces: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
+          const skipWords = /volo|aeroporto|airport|trasferimento|transfer|check.?in|check.?out|partenza|ritorno|rientro|colazione|prima colazione|breakfast|merenda|picnic|riposo/i;
+          const extractName = (text: string): string | null => {
+            if (!text || text.length <= 5 || skipWords.test(text)) return null;
+            // Try to find a proper place name (capitalized words)
+            const patterns = [
+              /(?:a|al|alla|alle|verso|to|at|in|di|del|della)\s+([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s''-]+?)(?:\s*[—,\.\-–:]|$)/,
+              /^([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s''-]+?)(?:\s*[—,\.\-–:])/,
+              /:\s*([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s''-]+?)(?:\s*[—,\.\-–]|$)/,
+            ];
+            for (const p of patterns) {
+              const m = text.match(p);
+              if (m?.[1]) {
+                const name = m[1].trim();
+                if (name.length > 2 && name.length < 50 && !skipWords.test(name)) return name;
+              }
+            }
+            return null;
+          };
           days.forEach((day: any) => {
-            [{ text: day.morning, slot: "Mattina" }, { text: day.lunch, slot: "Pranzo" }, { text: day.afternoon, slot: "Pomeriggio" }, { text: day.evening, slot: "Sera" }].forEach(({ text, slot }) => {
-              if (!text || text.length <= 3) return;
-              const lower = text.toLowerCase();
-              if (lower.includes("volo") || lower.includes("aeroporto") || lower.includes("trasferimento")) return;
-              const name = text.split(/—|,|\.|–/)[0].trim();
-              if (name.length > 3) fallbackPlaces.push({ label: name, dayNum: day.dayNumber, slot, searchQuery: `${name} ${cityName} ${countryName}` });
+            // Prioritize morning and afternoon (activities/places), then lunch/evening (restaurants — less likely to geocode)
+            [
+              { text: day.morning, slot: "Mattina" },
+              { text: day.afternoon, slot: "Pomeriggio" },
+              { text: day.lunch, slot: "Pranzo" },
+              { text: day.evening, slot: "Sera" },
+            ].forEach(({ text, slot }) => {
+              const name = extractName(text);
+              if (name) {
+                // For restaurants, search with city name; for places, try the place name alone first
+                const isFood = slot === "Pranzo" || slot === "Sera";
+                const query = isFood ? `${name} restaurant ${cityName}` : `${name} ${cityName} ${countryName}`;
+                fallbackPlaces.push({ label: name, dayNum: day.dayNumber, slot, searchQuery: query });
+              }
             });
+            // Also try the imageQuery as a geocoding source — often contains real place names
+            if (day.imageQuery) {
+              const iq = day.imageQuery.split(/\s+/).slice(0, 3).join(" ");
+              fallbackPlaces.push({ label: iq, dayNum: day.dayNumber, slot: "Mattina", searchQuery: `${day.imageQuery}` });
+            }
           });
           const seen = new Set<string>();
           const fallbackPoints: typeof allPoints = [];
-          for (const place of fallbackPlaces.slice(0, 8)) {
-            if (seen.has(place.label)) continue;
-            seen.add(place.label);
+          for (const place of fallbackPlaces.slice(0, 16)) {
+            const key = place.label.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
             try {
               const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.searchQuery)}&format=json&limit=1&accept-language=en`);
               const data = await res.json();
-              if (data && data.length > 0) fallbackPoints.push({ label: place.label, slot: place.slot, lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), dayNum: place.dayNum });
-              await new Promise(r => setTimeout(r, 250));
+              if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                // Verify the result is within reasonable distance of destination (not a random match)
+                const destLat = parseFloat(results[0].lat);
+                const destLng = parseFloat(results[0].lon);
+                const dist = Math.sqrt(Math.pow(lat - destLat, 2) + Math.pow(lng - destLng, 2));
+                if (dist < 3) { // roughly 300km max
+                  fallbackPoints.push({ label: place.label, slot: place.slot, lat, lng, dayNum: place.dayNum });
+                }
+              }
+              await new Promise(r => setTimeout(r, 200));
             } catch { }
           }
           setAllPoints(fallbackPoints);
