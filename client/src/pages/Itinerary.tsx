@@ -243,8 +243,25 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
         </motion.div>
       )}
 
-  {/* ── INFO PRATICHE + MAPPA AFFIANCATI ─────────────────── */}
+{/* ── PANORAMICA + MAPPA ─────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 md:px-12 py-8">
+        <div className="mb-8 space-y-4">
+          <div className="flex items-center gap-3">
+            <Compass className="w-5 h-5 text-[#E94560]" />
+            <h2 className="text-2xl font-serif font-bold text-white">Panoramica del viaggio</h2>
+            <span className="ml-auto text-white/30 text-sm">{itinerary.days?.length} giorni · {itinerary.bestTime}</span>
+          </div>
+          {itinerary.tripSummary && (
+            <p className="text-white/60 font-serif italic text-lg">{itinerary.tripSummary}</p>
+          )}
+          {itinerary.highlights && itinerary.highlights.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {itinerary.highlights.map((h: string, i: number) => (
+                <span key={i} className="px-4 py-2 rounded-full text-sm font-bold text-white/80 border border-white/15 bg-white/5">{h}</span>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Info pratiche + CTA */}
           <div className="space-y-4">
@@ -285,12 +302,12 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
                 { icon: <Sun className="w-4 h-4" />, label: t('itin.besttime'), value: itinerary.bestTime },
                 { icon: <Compass className="w-4 h-4" />, label: t('itin.getting'), value: itinerary.gettingThere },
               ].map(({ icon, label, value }, i) => (
-                <div key={label} className={`p-4 space-y-1.5 ${i >= 2 ? 'border-t border-white/10' : ''}`}>
+             <div key={label} className={`p-5 space-y-2 ${i >= 2 ? 'border-t border-white/10' : ''}`}>
                   <div className="flex items-center gap-2 text-[#E94560]">
                     {icon}
-                    <h3 className="font-bold text-xs text-white">{label}</h3>
+                    <h3 className="font-bold text-sm text-white">{label}</h3>
                   </div>
-                  <p className="text-white/55 text-[11px] leading-relaxed">{value}</p>
+                  <p className="text-white/60 text-[13px] leading-relaxed">{value}</p>
                 </div>
               ))}
             </motion.div>
