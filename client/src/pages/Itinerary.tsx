@@ -457,7 +457,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                   <span className="absolute bottom-3 left-4 text-[12px] font-bold text-white/90 font-serif italic">{day.title}</span>
                 </div>
-              )}
+              
               )}
 
               {[
