@@ -26,7 +26,8 @@ const itineraryDaySchema = z.object({
   lunch: z.string(),
   afternoon: z.string(),
   evening: z.string(),
-  imageQuery: z.string().optional(),
+imageQuery: z.string().optional(),
+  dayImageUrl: z.string().optional(),
   affiliateLinks: affiliateLinksSchema,
   affiliateLabels: z.record(z.string(), z.string()).optional(),
 });
@@ -401,7 +402,9 @@ RESTAURANTS (lunch/evening):
 
 Do NOT use any Google Maps links anywhere — use only monetizable affiliate links.
 
-IMAGE QUERY — for EVERY day, include an "imageQuery" field with a specific, visual, searchable phrase for Unsplash. This must describe the MOST VISUALLY STRIKING scene of that day — a real place, landscape, or experience. NOT generic descriptions like "beach" or "food". YES specific scenes like "Cheow Lan Lake limestone cliffs morning mist" or "Koh Lanta old town wooden houses sunset". The query must return a beautiful, relevant landscape photo.
+IMAGE QUERY & IMAGE URL — for EVERY day, include:
+- "imageQuery": a specific visual searchable phrase for the day's highlight
+- "dayImageUrl": a REAL Unsplash photo URL that you know exists. Use only photo IDs you are confident are real Unsplash photos of the destination or similar landscapes. Format: "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop". If you are not confident about a specific photo ID, use a well-known Unsplash photo of that country or region. NEVER invent fake photo IDs — use only IDs you have seen in your training data.
 
 affiliateLabels — for EVERY key in affiliateLinks, include a matching key in affiliateLabels with the REAL NAME of the place/experience/restaurant. This name will be shown to the user on the booking button. Use the actual name, not a generic label.
 
@@ -441,7 +444,8 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
           "lunch": "LUNCH_SPOT real name + brief sensory detail — max 10 words",
           "afternoon": "Sensory description of afternoon — max 15 words",
           "evening": "Sensory description of evening — max 15 words",
-          "imageQuery": "specific landscape or experience name for Unsplash photo search — e.g. 'Cheow Lan Lake floating bungalows' or 'Fushimi Inari shrine Kyoto morning light'",
+         "imageQuery": "specific landscape or experience name for Unsplash photo search",
+          "dayImageUrl": "https://images.unsplash.com/photo-[REAL_PHOTO_ID]?w=800&h=500&fit=crop",
       "affiliateLinks": {
             "getyourguide_morning": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8",
             "thefork_lunch": "https://www.thefork.it/search#q=LUNCH_SPOT_NAME",
@@ -468,7 +472,8 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
           "lunch": "Max 10 words",
           "afternoon": "EXPERIENCE_2 real name + sensory detail — max 15 words",
           "evening": "DINNER_RESTAURANT real name + atmosphere — max 10 words",
-          "imageQuery": "specific visual scene for this day — e.g. 'traditional Thai longtail boat turquoise water' or 'Kyoto bamboo forest path'",
+         "imageQuery": "specific visual scene for this day",
+          "dayImageUrl": "https://images.unsplash.com/photo-[REAL_PHOTO_ID]?w=800&h=500&fit=crop",
       "affiliateLinks": {
             "getyourguide_afternoon": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME&partner_id=0BCSNBX8",
             "thefork_evening": "https://www.thefork.it/search#q=DINNER_RESTAURANT_NAME"
