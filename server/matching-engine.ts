@@ -176,6 +176,34 @@ Before generating anything, build a precise psychological portrait of this trave
    - "festeggiare" = positive transition, wants to celebrate
    - "uscire dalla zona di comfort" = ready for transformation
 
+8. TRIP TYPE → CONCRETE REQUIREMENTS (every selected chip adds MANDATORY elements):
+   - "Cultura e storia" → at least 2 days must include a meaningful cultural experience (historical site, local tradition, artisan workshop, ancient ruins) — but NOT museums if "stanchezza da musei" is in anti-patterns. Culture can be lived, not just visited.
+   - "Natura e avventura" → at least 2 days must include outdoor/nature activities (hiking, kayaking, snorkeling, wildlife, national parks)
+   - "Food e vino" → at least 3 meals must be at NAMED specific restaurants known for quality. Include 1 food experience (cooking class, market tour, wine tasting, food trail).
+   - "Mare e relax" → at least 2 days must include beach/sea time with no scheduled activities — pure relaxation.
+   - "Città e vita notturna" → at least 2 evenings must include nightlife (bars, live music, clubs). Name specific real venues.
+   - "Fuori dal mondo" → destination must be remote, off-the-beaten-path. No major tourist cities.
+   - "Road trip" → itinerary must include driving/riding between locations as a core experience. Mention car/scooter rental.
+   - "Trekking e sport" → at least 3 days must include physical activities (hiking, climbing, diving, surfing, cycling).
+   - "Wellness e spa" → at least 2 experiences must be wellness-related (spa, hammam, thermal baths, yoga, meditation).
+   - "Scoperta, sorprendimi" → choose a destination the user would NEVER have searched for. Prioritize obscure, surprising, emotionally resonant places.
+
+9. MOMENT CHIPS → ITINERARY STRUCTURE:
+   - "mangiare nei posti locali" → EVERY meal must be at a local, non-touristic place. Zero international restaurants, zero hotel restaurants.
+   - "perdermi nei quartieri autentici" → at least 2 mornings/afternoons must be unstructured exploration of local neighborhoods with no specific destination.
+   - "vedere luoghi iconici" → include the destination's most famous landmark/experience, but at an off-peak time or from an unusual angle.
+   - "stare immerso nella natura" → at least 1 full day must be spent entirely in nature with zero urban elements.
+   - "vivere qualcosa di completamente nuovo" → include at least 1 experience the user has probably never done before (specific to the destination).
+   - "fotografare qualcosa di straordinario" → include at least 2 moments specifically chosen for visual impact, with time of day optimized for light (golden hour, blue hour, dawn).
+
+10. ATMOSPHERE CHIPS → TONE AND SETTING:
+    - "Terrazza sul mare al tramonto" → at least 2 evenings must be at waterfront/terrace settings with sunset views.
+    - "Mercato caotico e colorato" → include at least 1 vibrant market experience (morning market, night market, bazaar).
+    - "Sentiero di montagna all'alba" → include at least 1 early morning hike/walk with views.
+    - "Caffè europeo, giorno di pioggia" → include at least 1 slow café morning with no schedule.
+    - "Tempio silenzioso al tramonto" → include at least 1 spiritual/contemplative setting.
+    - "Festa di paese, luci e musica" → include at least 1 local festivity, live music, or community event.
+
 ═══════════════════════════════════════
 STEP 2 — DESTINATION SELECTION
 ═══════════════════════════════════════
@@ -202,6 +230,18 @@ REACHABILITY CHECK — consider departure city and trip duration:
 - 10-14 days or more: anywhere in the world.
 - Never suggest a destination that requires more travel time than the trip allows.
 
+BUDGET-DESTINATION FIT — CRITICAL CHECK before choosing any destination:
+- Calculate realistic round-trip flight cost per person from departure city.
+- Flights must NOT exceed 35% of the per-person budget. If budget is €1,500-3,000 per person, flights must be under €1,050 per person round-trip.
+- Calculate: (flight × people) + (accommodation × nights) + (food × days × people) + (activities). The TOTAL must fit within (budget per person × number of people).
+- If the destination is structurally too expensive for the budget (e.g. Raja Ampat on €1,500/person, Japan on €500/person), REJECT IT and choose a more affordable destination that still matches the psychological profile.
+- Budget categories translate to these HARD LIMITS per person per day (excluding flights):
+  * "< €500" total = max €50-70/day per person (accommodation + food + activities)
+  * "€500-€1,500" total = max €100-180/day per person
+  * "€1,500-€3,000" total = max €200-350/day per person
+  * "No limits" = no cap
+- ALWAYS show the math in budgetSummary so the user can verify.
+
 PATH B SPECIFIC:
 - The region is already defined. Focus on finding the BEST specific destination within that region.
 - If the user specified a precise place or city, honor it and build around it.
@@ -212,53 +252,104 @@ PATH A SPECIFIC:
 ═══════════════════════════════════════
 STEP 3 — COMPANIONS & TRAVEL STYLE
 ═══════════════════════════════════════
-COMPANIONS — apply as structural rules for every single day:
+COMPANIONS — apply as HARD STRUCTURAL RULES for every single day:
 
-PARTNER:
-- Every day must include at least one moment designed specifically for two — a shared sunset, an intimate dinner, a private experience, a romantic atmosphere.
-- Tone throughout must be warm, sensory, and connective — avoid generic framing.
-- Activities should deepen the bond between two people.
-- The itinerary should feel like it was written for them specifically as a couple.
+PARTNER (coppia):
+- Every day MUST include at least one intimate moment designed for two: a private dinner spot, a couples experience, a sunset just for them.
+- Restaurants must be romantic — no communal tables, no fast food, no noisy places. Prioritize candlelit terraces, hidden courtyards, seaside tables for two.
+- Accommodation must be couple-appropriate: double room with charm, no dorms, no shared bathrooms.
+- Activities should alternate between shared adventures (kayak for two, cooking class together) and slow contemplative moments (walking hand in hand through a village, lying on an empty beach).
+- Evening experiences must be intimate — never suggest group activities, pub crawls, or nightlife unless specifically requested.
+- Tone: warm, sensory, connective. Words like "insieme", "voi due", "condividere".
 
 SOLO:
 - Emphasize personal freedom and spontaneous choices throughout.
 - Include moments of deliberate solitude — a solo sunrise, a long walk alone, a café with a notebook.
-- Frame every activity as self-directed and self-paced.
-- Include opportunities for organic social encounters without forcing them.
+- Restaurants should be solo-friendly: bar seating, communal tables, street food markets where eating alone is natural.
+- Include at least 2 opportunities across the trip for organic social encounters (hostel common areas, group tours, local bars).
+- Accommodation: hostels with social spaces if budget is low, boutique hotels with character if budget allows.
+- Tone: empowering, self-directed. Words like "solo tu", "a modo tuo", "senza dover spiegare a nessuno".
 
-FRIENDS (2+):
-- Every day must include at least one shared group experience (group activity, communal meal, collective evening).
-- Energy should be dynamic, fun, and social — include moments of collective joy.
-- Balance group activities with individual freedom windows.
-- Tone should be energetic and celebratory.
+FRIENDS (amici, 2+):
+- Every day MUST include at least one high-energy shared experience: group activity, adventure sport, collective meal with drinks.
+- NIGHTLIFE IS MANDATORY unless "vita notturna e club" is in anti-patterns: include the BEST bars, rooftop cocktails, live music venues, or clubs in the destination. Name specific real venues.
+- At least 2 evenings must feature going out together — not just dinner but after-dinner drinks, dancing, or nightlife exploration.
+- Restaurants must be group-friendly: large tables, sharing plates, lively atmosphere, good for conversation.
+- Include at least 1 adrenaline/fun activity: boat party, quad biking, zip-lining, snorkeling group trip, wine tasting with laughs.
+- Balance group energy with 1-2 "free time" windows where individuals can recharge.
+- Accommodation: apartments or villas with shared living spaces if budget allows, otherwise adjacent rooms in a social hotel/hostel.
+- Tone: energetic, celebratory, fun. Words like "tutti insieme", "risate", "quella sera che non dimenticherete".
 
-FAMILY:
-- All activities must be accessible to mixed ages and energy levels.
-- Include a mix of active and calm moments every day.
-- Never suggest anything logistically complex, physically extreme, or age-inappropriate.
-- Meals must be family-friendly, accessible, and stress-free.
+FAMILY (famiglia):
+- ALL activities must be verified safe and accessible for children (specify ages if mentioned).
+- Zero physically extreme activities, zero long hikes (max 1-2 hours gentle walking), zero dangerous water sports.
+- Meals must be at family-friendly restaurants with children's options or flexible menus. No fine dining, no late-night-only places.
+- Include kid-friendly experiences: animal encounters, easy beaches, interactive cultural sites, gelato stops, playgrounds.
+- Accommodation MUST have family rooms or connecting rooms, be centrally located, and have practical amenities (washing machine, kitchen if possible).
+- Schedule must respect children's rhythms: no early starts, afternoon rest/pool time, dinner by 8pm.
+- Transport must be easy: no long transfers, prefer destinations where attractions are close together.
+- Tone: warm, practical, joyful. Words like "per tutta la famiglia", "i bambini adoreranno", "senza stress".
 
 TRAVEL STYLE — structural rules for itinerary architecture:
 
 BASE FISSA:
-- Traveler stays in ONE accommodation for ALL days. Zero location changes.
-- Day trips and explorations radiate from the base and always return.
-- The base itself becomes part of the experience — describe it with personality.
-- Emphasize depth of immersion over breadth of coverage.
+- Traveler stays in ONE accommodation for ALL 7 nights. ZERO location changes.
+- Name the SAME hotel in day 1 evening and day 7 morning. Every evening returns to this base.
+- Day trips radiate from the base (max 1-2 hours each way) and always return.
+- The base itself must be described with personality — it becomes "home" during the trip.
 
-DUE TAPPE:
-- Traveler moves ONCE, between day 3 and day 4.
-- Two distinct zones with different characters and rhythms.
-- The transition itself must be an experience, not a logistical note.
-- Each zone should feel like a complete mini-trip.
+DUE TAPPE — CRITICAL STRUCTURAL RULE:
+- The trip MUST have exactly TWO DISTINCT ZONES in TWO DIFFERENT LOCATIONS.
+- Zone 1: Days 1-3 (or 1-4). Zone 2: Days 4-7 (or 5-7).
+- The two zones MUST be geographically different — different cities, different islands, different regions. NOT two neighborhoods of the same city.
+- Each zone MUST have its own accommodation — name TWO DIFFERENT hotels.
+- Each zone must have a distinctly different CHARACTER: e.g. Zone 1 = coastal/relaxing, Zone 2 = mountain/active. Or Zone 1 = urban/cultural, Zone 2 = rural/nature.
+- The transition between zones must be described as an experience (scenic drive, ferry ride, train journey), not just "transfer".
+- BAD: "Giorni 1-3 Raja Ampat nord, Giorni 4-7 Raja Ampat sud" — this is NOT two zones.
+- GOOD: "Giorni 1-3 Salonicco (urban, culture, food), Giorni 4-7 Halkidiki coast (beach, nature, slow)" — this IS two zones.
 
 SCOPERTA:
-- Traveler moves every 1-2 days to a new location.
-- Transport between locations must be easy, scenic, and part of the experience.
-- Each location adds a distinctly different dimension.
-- Movement itself is a source of pleasure, not stress.
+- Traveler moves every 1-2 days to a new location — minimum 3 different accommodations across the trip.
+- Transport between locations must be easy (max 3 hours), scenic, and described as part of the experience.
+- Each location adds a distinctly different dimension — never repeat the same vibe.
+- Name a DIFFERENT hotel for each location.
 
 NOT SPECIFIED: infer travel style from pace slider (structured = base fissa, balanced = due tappe, spontaneous = scoperta) and quiz answers.
+
+═══════════════════════════════════════
+STEP 3B — ACCOMMODATION & FOOD MATCHING
+═══════════════════════════════════════
+The user's accommodation and food preferences are HARD CONSTRAINTS, not suggestions.
+
+ACCOMMODATION MATCHING — the selected price range defines the type:
+- "Ostello / Capsule (€0-30)": ONLY hostels, capsule hotels, or guesthouses under €30/night. Name real hostels.
+- "Economico ma carino (€30-60)": Budget hotels, B&Bs, guesthouses, riads in the €30-60 range. Clean and charming but not luxury.
+- "Comfort medio (€60-120)": Mid-range hotels, aparthotels, well-reviewed 3-star properties. Good location, good reviews.
+- "Boutique / Design (€120-200)": Design hotels, boutique properties with personality, unique stays. NOT generic chain hotels.
+- "Lusso (€200+)": 4-5 star hotels, luxury resorts, exceptional properties. Premium everything.
+- "Mix": Alternate between budget and splurge nights. First/last night can be nicer, middle nights more economical.
+The hotel you choose MUST fall within the selected price range. Verify real prices mentally before naming it.
+
+FOOD MATCHING — the selected food style defines every meal recommendation:
+- "Street food e mercati (€5-15)": ONLY street food stalls, market food, cheap local eateries. No sit-down restaurants over €15/person.
+- "Mix locale economico (€10-25)": Local restaurants, trattorias, family-run places. Authentic but affordable.
+- "Qualche buon ristorante (€20-50)": Mix of casual lunches and proper restaurant dinners. Dinner can be a real restaurant experience.
+- "Foodie (€40+)": Every meal is an experience. Recommend the BEST restaurants in the destination, hidden gems that foodies seek out.
+- "Mix — street food quotidiano, cena speciale ogni tanto": Daily meals are cheap street food/market food (€5-15). But 2-3 dinners across the trip should be at a proper restaurant (€25-40) — a reward evening.
+For EVERY lunch and dinner slot, the restaurant recommendation MUST match the food style selected. If "street food", never recommend a €50 restaurant. If "foodie", never recommend a generic tourist trap.
+
+DIETARY RESTRICTIONS — if any are selected, they are ABSOLUTE:
+- "Vegetariano": ZERO meat in any meal recommendation. Every restaurant must have verified vegetarian options.
+- "Vegano": ZERO animal products. Only restaurants with vegan menus or destinations where vegan eating is easy.
+- "Senza glutine": Verify that recommended restaurants can accommodate gluten-free. Mention it explicitly.
+- "Halal" / "Kosher": Only destinations and restaurants where these are readily available.
+- "Allergie specifiche": Mention that restaurants should be informed in advance.
+
+PHYSICAL EFFORT — defines activity intensity:
+- "Basso — comfort e trasporti comodi": Max 3-4km walking per day. Use taxis, transfers. No hiking, no strenuous activities.
+- "Normale — cammino volentieri": 5-8km walking per day is fine. Light hikes (1-2 hours), cycling, swimming. No extreme sports.
+- "Alto — adoro camminare per ore": 10-15km walking days are welcome. Multi-hour hikes, active exploration, physical challenges.
+- "Estremo — trekking serio": Full-day treks, mountaineering, serious physical challenges. The harder the better.
 
 ═══════════════════════════════════════
 STEP 4 — ANTI-PATTERN ENFORCEMENT
@@ -556,11 +647,34 @@ TASK: Generate exactly 3 perfectly personalized destinations based on this psych
 
 RULES:
 - The 3 destinations must be genuinely different — different countries, different emotional tones, different continents if possible
-- Each destination must deeply match the psychological profile
+- Each destination must deeply match the psychological profile AND all logistical constraints
 - Never suggest the same destination twice
 - The whyYours must be devastatingly personal — reference specific quiz answers
 - Balance must-see iconic experiences with hidden local discoveries based on profile
 - Verify seasonality — destination must be pleasant during stated travel period
+
+BUDGET-DESTINATION FIT — HARD CONSTRAINT:
+- Calculate realistic round-trip flight cost per person from the departure city.
+- Flights must NOT exceed 35% of the per-person budget.
+- If budget is "< €500": only destinations reachable for under €175 flight per person (short-haul Europe, nearby countries)
+- If budget is "€500-€1,500": flights under €525 per person (medium-haul, Southern Europe, North Africa, Turkey)
+- If budget is "€1,500-€3,000": flights under €1,050 per person (long-haul possible but not ultra-remote)
+- If budget is "No limits": any destination
+- If a destination is structurally too expensive for the budget, DO NOT suggest it regardless of how well it matches the profile. Find an equally fitting destination that is affordable.
+
+REACHABILITY — HARD CONSTRAINT:
+- Weekend (3-4 days): max 4h flight from departure city
+- One week (7 days): max 8-10h flight
+- 10-14 days: anywhere
+- Travel companions affect budget: "partner" = budget × 2, "friends" = budget × group size, "family" = budget × family size. The TOTAL must work.
+
+TRIP TYPE MATCHING:
+- If user selected "Cultura e storia": at least 2 of 3 destinations must have strong cultural/historical identity
+- If user selected "Mare e relax": at least 2 of 3 must have coastline/beaches
+- If user selected "Natura e avventura": at least 2 of 3 must have strong nature/outdoor offerings
+- If user selected "Città e vita notturna": at least 2 of 3 must be cities with nightlife
+- If multiple types selected: each destination should cover a different combination
+
 - Respond ONLY with valid JSON, no text outside JSON
 
 RESPONSE LANGUAGE: Write all text fields in ${input.lang === 'it' ? 'Italian' : 'English'}.
