@@ -52,7 +52,6 @@ const generatedItinerarySchema = z.object({
   closingMessage: z.string(),
   topAffiliateLinks: z.record(z.string(), z.string()).optional(),
 });
-});
 
 const generatedResponseSchema = z.object({
   destinations: z.array(generatedDestinationSchema).min(1),
@@ -446,7 +445,7 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
       "tripSummary": "One evocative line describing the arc of the trip — e.g. 'Da Salonicco alla penisola Calcidica, tra storia e mare cristallino'",
       "highlights": ["🏛 Ano Poli", "🏖 Halkidiki", "🍽 Ergon House", "🌅 Tramonto a Kassandra"],
       "days": [
-      "days": [
+      
         {
       "dayNumber": 1,
           "title": "Evocative emotional title — not descriptive",
