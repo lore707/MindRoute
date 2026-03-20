@@ -326,7 +326,7 @@ STEP 7 — QUALITY & REALISM CHECKS
 ═══════════════════════════════════════
 Before finalizing output, mentally verify:
 
-1. NAMES ARE REAL: Every hotel, restaurant, café, experience, and landmark must be a real verifiable place on Google Maps. Never invent plausible-sounding names.
+1. NAMES ARE REAL — THIS IS CRITICAL: Every hotel, restaurant, café, experience, and landmark must be a REAL SPECIFIC BUSINESS with a real name that exists on Google Maps or TripAdvisor. NEVER invent plausible-sounding names. NEVER use street names, neighborhood names, or area descriptions as restaurant names. BAD: "Krabi Town River Road" (this is a street, not a restaurant). GOOD: "Chalita Café & Restaurant" (this is a real business name). For restaurants in less-known destinations, if you cannot name a specific real restaurant, use the format "ristoranti locali di [SPECIFIC NEIGHBORHOOD]" — never a fake name.
 2. BUDGET IS RESPECTED: Mentally add up accommodation × nights + meals × days + activities. Verify it fits within the stated budget range.
 3. ANTI-PATTERNS ARE ZERO: Scan every day for any violation of anti-pattern prohibitions.
 4. COMPANIONS ARE HONORED: Every day contains at least one element specifically designed for the stated companions type.
