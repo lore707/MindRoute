@@ -111,25 +111,53 @@ export async function registerRoutes(
     const itinerary = await generateItineraryForDestination(input, destinationName);
       const heroImage = await fetchUnsplashHero(destinationName);
 
-      // Fetch images for top experiences in each day
+ // Fetch images only for key days (day 1, peak days, last day) — max 4 calls
+      const city = destinationName.split(",")[0].trim();
+      const keyDayIndices = new Set([0, 3, 4, (itinerary.days?.length ?? 7) - 1]);
+      
+      async function fetchDayImage(query: string): Promise<string | null> {
+        const key = process.env.UNSPLASH_ACCESS_KEY;
+        if (!key) return null;
+        try {
+          const res = await fetch(
+            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
+            { headers: { Authorization: `Client-ID ${key}` } }
+          );
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (data.results?.[0]?.urls?.regular) return data.results[0].urls.regular;
+          return null;
+        } catch { return null; }
+      }
+
+      function extractPlaceName(text: string): string | null {
+        if (!text || text.length < 5) return null;
+        const lower = text.toLowerCase();
+        if (/volo|aeroporto|airport|trasferimento|transfer|check.?in|check.?out|partenza|arrivo/.test(lower)) return null;
+        const patterns = [
+          /(?:al|at|to|verso|nella|nel|a)\s+([A-Z][a-zA-Zàèéìòù\s'-]+)/,
+          /^([A-Z][a-zA-Zàèéìòù\s'-]+?)(?:\s*[—,\.\-–])/,
+        ];
+        for (const pattern of patterns) {
+          const match = text.match(pattern);
+          if (match?.[1] && match[1].length > 2 && match[1].length < 40) return match[1].trim();
+        }
+        return null;
+      }
+
       const daysWithImages = await Promise.all(
-        (itinerary.days || []).map(async (day: any) => {
+        (itinerary.days || []).map(async (day: any, idx: number) => {
+          if (!keyDayIndices.has(idx)) return day;
           const images: Record<string, string> = {};
-          // Try to get an image for morning activity
-          if (day.morning && day.morning.length > 5) {
-            const name = day.morning.split(/—|,|\.|–/)[0].trim();
-            if (name.length > 3) {
-              const img = await fetchUnsplashHero(name + " " + destinationName.split(",")[0]);
-              if (img) images.morningImage = img.url;
-            }
+          const morningPlace = extractPlaceName(day.morning);
+          if (morningPlace) {
+            const img = await fetchDayImage(`${morningPlace} ${city}`);
+            if (img) images.morningImage = img;
           }
-          // Try to get an image for afternoon activity
-          if (day.afternoon && day.afternoon.length > 5) {
-            const name = day.afternoon.split(/—|,|\.|–/)[0].trim();
-            if (name.length > 3) {
-              const img = await fetchUnsplashHero(name + " " + destinationName.split(",")[0]);
-              if (img) images.afternoonImage = img.url;
-            }
+          const afternoonPlace = extractPlaceName(day.afternoon);
+          if (afternoonPlace) {
+            const img = await fetchDayImage(`${afternoonPlace} ${city}`);
+            if (img) images.afternoonImage = img;
           }
           return { ...day, ...images };
         })
