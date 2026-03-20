@@ -751,9 +751,9 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     <>
       {expanded && <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" onClick={() => setExpanded(false)} />}
       <div className="transition-all duration-300"
-        style={expanded ? {
+       style={expanded ? {
           position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-          width: "min(92vw, 1100px)", height: "85vh", zIndex: 50, borderRadius: "20px",
+          width: "min(92vw, 1100px)", height: "80vh", zIndex: 9998, borderRadius: "20px",
           overflow: "hidden", boxShadow: "0 25px 60px rgba(0,0,0,0.7)", display: "flex",
         } : {
           position: "relative", width: "100%", height: "450px", borderRadius: "16px",
