@@ -421,10 +421,10 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
 
     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
             <div className="relative px-5 md:px-7 pb-8 pt-0 overflow-hidden">
-              {(day.dayImageUrl || day.dayImage) && (
+            {(day.dayImage || day.dayImageUrl) && (
                 <>
-                  <img src={day.dayImageUrl || day.dayImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+                  <img src={day.dayImage || day.dayImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-25 blur-sm" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/50" />
                 </>
               )}
               <div className="relative z-10">
