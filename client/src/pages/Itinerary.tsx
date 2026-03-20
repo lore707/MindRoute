@@ -243,17 +243,74 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
         </motion.div>
       )}
 
-     <div className="max-w-7xl mx-auto px-4 md:px-12 pb-24 pt-4" style={{ background: "linear-gradient(180deg, #0a0814 0%, #0f0c1a 8%, #0f0c1a 85%, #0a0814 100%)" }}>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-12 items-start">
+  {/* ── INFO PRATICHE + MAPPA AFFIANCATI ─────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 md:px-12 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Info pratiche + CTA */}
+          <div className="space-y-4">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
+              className="rounded-[24px] overflow-hidden"
+              style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.12), rgba(233,69,96,0.04))", border: "1px solid rgba(233,69,96,0.2)" }}>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-[#E94560]" />
+                  <h3 className="font-serif font-bold text-white text-lg">Pronto a partire?</h3>
+                </div>
+                <div className="space-y-2.5">
+                  {regionLinks.slice(0, 2).map(({ key, url, icon, label }) => (
+                    <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-between w-full px-5 py-3.5 rounded-xl font-bold text-sm text-white transition-all hover:scale-[1.02]"
+                      style={{ background: key === 'skyscanner' ? 'rgba(14,165,233,0.15)' : 'rgba(233,69,96,0.15)', border: `1px solid ${key === 'skyscanner' ? 'rgba(14,165,233,0.3)' : 'rgba(233,69,96,0.3)'}` }}>
+                      <span className="flex items-center gap-2">{icon} {label}</span>
+                      <ExternalLink className="w-3.5 h-3.5 opacity-50" />
+                    </a>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {regionLinks.slice(2).map(({ key, url, icon, label }) => (
+                    <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-white/60 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all">
+                      {icon} {label}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
+              className="rounded-[24px] border border-white/15 grid grid-cols-2 divide-x divide-white/10"
+              style={{ background: "linear-gradient(135deg, rgba(22,19,48,0.9), rgba(22,19,48,0.7))" }}>
+              {[
+                { icon: <Wallet className="w-4 h-4" />, label: t('itin.budget'), value: itinerary.budgetSummary },
+                { icon: <Briefcase className="w-4 h-4" />, label: t('itin.packing'), value: itinerary.packingList },
+                { icon: <Sun className="w-4 h-4" />, label: t('itin.besttime'), value: itinerary.bestTime },
+                { icon: <Compass className="w-4 h-4" />, label: t('itin.getting'), value: itinerary.gettingThere },
+              ].map(({ icon, label, value }, i) => (
+                <div key={label} className={`p-4 space-y-1.5 ${i >= 2 ? 'border-t border-white/10' : ''}`}>
+                  <div className="flex items-center gap-2 text-[#E94560]">
+                    {icon}
+                    <h3 className="font-bold text-xs text-white">{label}</h3>
+                  </div>
+                  <p className="text-white/55 text-[11px] leading-relaxed">{value}</p>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+          {/* Mappa */}
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="h-[400px] lg:h-full min-h-[350px]">
+            <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
+          </motion.div>
+        </div>
+      </div>
 
-          {/* ── COLONNA PRINCIPALE ───────────────────────────────── */}
-          <div className="space-y-6">
+      {/* ── ITINERARIO FULL-WIDTH ────────────────────────────── */}
+      <div className="max-w-6xl mx-auto px-4 md:px-12 pb-24 pt-4" style={{ background: "linear-gradient(180deg, #0a0814 0%, #0f0c1a 8%, #0f0c1a 85%, #0a0814 100%)" }}>
+        <div className="space-y-6">
 
-            {/* Header sezione giorni */}
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">{t('itin.daybyday')}</h2>
-              <span className="text-white/30 text-sm">{itinerary.days?.length} giorni</span>
-            </div>
+          {/* Header sezione giorni */}
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">{t('itin.daybyday')}</h2>
+            <span className="text-white/30 text-sm">{itinerary.days?.length} giorni</span>
+          </div>
 
             {/* Day cards */}
             {itinerary.days.map((day: any, index: number) => (
@@ -273,16 +330,7 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
               />
             ))}
 
-            {/* MAPPA */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-4 mt-8">
-              <div className="flex items-center gap-3 text-[#E94560]">
-                <MapPin className="w-5 h-5" />
-                <h2 className="text-2xl font-serif font-bold text-white">Mappa del viaggio</h2>
-              </div>
-              <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
-            </motion.div>
-
-            {/* CLOSING MESSAGE */}
+      {/* CLOSING MESSAGE */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -317,81 +365,7 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
                 </div>
               </div>
             </motion.div>
-          </div>
-
-          {/* ── SIDEBAR STICKY ───────────────────────────────────── */}
-          <aside className="space-y-4 lg:sticky lg:top-8">
-
-            {/* CONVERSION BLOCK — priorità massima */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-[24px] overflow-hidden"
-              style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.12), rgba(233,69,96,0.04))", border: "1px solid rgba(233,69,96,0.2)" }}
-            >
-              <div className="p-6 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-[#E94560]" />
-                  <h3 className="font-serif font-bold text-white text-lg">Pronto a partire?</h3>
-                </div>
-                <p className="text-white/50 text-xs leading-relaxed">Le opzioni migliori per il tuo profilo, già selezionate.</p>
-
-                {/* Link primari grandi */}
-                <div className="space-y-2.5 pt-2">
-                  {regionLinks.slice(0, 2).map(({ key, url, icon, label, style }) => (
-                    <a key={key} href={url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-between w-full px-5 py-3.5 rounded-xl font-bold text-sm text-white transition-all hover:scale-[1.02]"
-                      style={{ background: key === 'skyscanner' ? 'rgba(14,165,233,0.15)' : 'rgba(233,69,96,0.15)', border: `1px solid ${key === 'skyscanner' ? 'rgba(14,165,233,0.3)' : 'rgba(233,69,96,0.3)'}` }}
-                    >
-                      <span className="flex items-center gap-2">{icon} {label}</span>
-                      <ExternalLink className="w-3.5 h-3.5 opacity-50" />
-                    </a>
-                  ))}
-                </div>
-
-                {/* Link secondari */}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {regionLinks.slice(2).map(({ key, url, icon, label }) => (
-                    <a key={key} href={url} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-white/60 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all">
-                      {icon} {label}
-                    </a>
-                  ))}
-                  {links.getyourguide_2 && region !== "asia" && (
-                    <a href={links.getyourguide_2} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-white/60 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all">
-                      <Ticket className="w-3.5 h-3.5" /> Esp. 2
-                    </a>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-
-            {/* INFO PRATICHE */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-            className="rounded-[24px] border border-white/15 divide-y divide-white/10"
-              style={{ background: "linear-gradient(135deg, rgba(22,19,48,0.9), rgba(22,19,48,0.7))" }}
-            >
-              {[
-                { icon: <Wallet className="w-4 h-4" />, label: t('itin.budget'), value: itinerary.budgetSummary },
-                { icon: <Briefcase className="w-4 h-4" />, label: t('itin.packing'), value: itinerary.packingList },
-                { icon: <Sun className="w-4 h-4" />, label: t('itin.besttime'), value: itinerary.bestTime },
-                { icon: <Compass className="w-4 h-4" />, label: t('itin.getting'), value: itinerary.gettingThere },
-              ].map(({ icon, label, value }) => (
-                <div key={label} className="p-5 space-y-2">
-                  <div className="flex items-center gap-2 text-[#E94560]">
-                    {icon}
-                    <h3 className="font-bold text-sm text-white">{label}</h3>
-                  </div>
-                <p className="text-white/55 text-xs leading-relaxed">{value}</p>
-                </div>
-              ))}
-            </motion.div>
-          </aside>
+       </div>
         </div>
       </div>
     </div>
@@ -446,20 +420,11 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
             <ChevronDown className={`w-5 h-5 text-white/30 transition-transform duration-300 shrink-0 ml-4 ${isOpen ? 'rotate-180 text-white/60' : ''}`} />
           </Collapsible.Trigger>
 
-          <Collapsible.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-            <div className="px-5 md:px-7 pb-8 pt-0 space-y-7">
-          <div className="w-full h-px bg-white/12" />
-
-             {/* Day highlight image */}
-              {day.dayImage && (
-                <div className="w-full h-[180px] rounded-xl overflow-hidden relative">
-                  <img src={day.dayImage} alt={day.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                  <span className="absolute bottom-3 left-4 text-[12px] font-bold text-white/90 font-serif italic">{day.title}</span>
-                </div>
-              
-              )}
-
+     <Collapsible.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+            <div className="px-5 md:px-7 pb-8 pt-0">
+              <div className="w-full h-px bg-white/12 mb-7" />
+              <div className={`${day.dayImage ? 'grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6' : ''}`}>
+              <div className="space-y-7">
               {[
                 {
                   slot: 'morning', icon: <Clock className="w-3.5 h-3.5" />, label: t('itin.morning'), text: day.morning,
@@ -538,7 +503,17 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                     !["getyourguide_morning", "getyourguide_afternoon", "klook_morning", "klook_afternoon", "viator_morning", "viator_afternoon", "getyourguide_place_morning", "getyourguide_place_afternoon", "klook_place_morning", "klook_place_afternoon", "viator_place_morning", "viator_place_afternoon", "thefork_lunch", "thefork_evening", "tripadvisor_lunch", "tripadvisor_evening", "tripadvisor_evening_fallback"].includes(k)
                   )
                 )} />
+            )}
+              </div>
+              {day.dayImage && (
+                <div className="hidden lg:block rounded-xl overflow-hidden relative h-full min-h-[300px]">
+                  <img src={day.dayImage} alt={day.title} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+                  <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/20" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  <span className="absolute bottom-4 left-4 right-4 text-[13px] font-bold text-white/90 font-serif italic leading-tight">{day.title}</span>
+                </div>
               )}
+              </div>
             </div>
           </Collapsible.Content>
         </div>
