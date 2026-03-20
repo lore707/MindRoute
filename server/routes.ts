@@ -117,7 +117,31 @@ export async function registerRoutes(
     const itinerary = await generateItineraryForDestination(input, destinationName);
       const heroImage = await fetchUnsplashHero(destinationName);
 
-const daysWithImages = itinerary.days || [];
+// Fetch real Unsplash images for key days using AI-generated imageQuery
+      const keyDayIndices = new Set([0, 3, 4, (itinerary.days?.length ?? 7) - 1]);
+      
+      async function fetchDayImage(query: string): Promise<string | null> {
+        const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
+        if (!unsplashKey || !query) return null;
+        try {
+          const res = await fetch(
+            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
+            { headers: { Authorization: `Client-ID ${unsplashKey}` } }
+          );
+          if (!res.ok) return null;
+          const data = await res.json();
+          return data.results?.[0]?.urls?.regular ?? null;
+        } catch { return null; }
+      }
+
+      const daysWithImages = await Promise.all(
+        (itinerary.days || []).map(async (day: any, idx: number) => {
+          if (!keyDayIndices.has(idx) || !day.imageQuery) return day;
+          const img = await fetchDayImage(day.imageQuery);
+          if (img) return { ...day, dayImage: img };
+          return day;
+        })
+      );
     const saved = await storage.createItinerary({
         destinationId,
         ...itinerary,
