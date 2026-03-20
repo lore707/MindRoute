@@ -422,7 +422,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
      <Collapsible.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
             <div className="px-5 md:px-7 pb-8 pt-0">
               <div className="w-full h-px bg-white/12 mb-7" />
-              <div className={`${day.dayImage ? 'grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6' : ''}`}>
+              <div className={`${(day.dayImageUrl || day.dayImage) ? 'grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6' : ''}`}>
               <div className="space-y-7">
               {[
                 {
@@ -504,9 +504,9 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                 )} />
             )}
               </div>
-              {day.dayImage && (
+            {(day.dayImageUrl || day.dayImage) && (
                 <div className="hidden lg:block rounded-xl overflow-hidden relative h-full min-h-[300px]">
-                  <img src={day.dayImage} alt={day.title} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+                  <img src={day.dayImageUrl || day.dayImage} alt={day.title} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
                   <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/20" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   <span className="absolute bottom-4 left-4 right-4 text-[13px] font-bold text-white/90 font-serif italic leading-tight">{day.title}</span>
