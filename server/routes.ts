@@ -70,9 +70,15 @@ export async function registerRoutes(
       const input = api.profiling.submit.input.parse(req.body);
       const destinations = await generateDestinationsOnly(input);
       await storage.clearAll();
-      const createdDests = [];
+   const createdDests = [];
       for (const dest of destinations) {
-        const created = await storage.createDestination(dest);
+        // Fetch real Unsplash image for each destination
+        const realImage = await fetchUnsplashHero(dest.name);
+        const destWithImage = {
+          ...dest,
+          imageUrl: realImage?.url ?? dest.imageUrl,
+        };
+        const created = await storage.createDestination(destWithImage);
         createdDests.push(created);
       }
       // Salva l'input per usarlo dopo nella generazione itinerario
