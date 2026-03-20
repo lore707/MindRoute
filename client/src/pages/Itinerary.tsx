@@ -367,7 +367,6 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
             </motion.div>
        </div>
         </div>
-      </div>
     </div>
   );
 }
