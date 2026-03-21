@@ -424,7 +424,28 @@ STEP 7 — QUALITY & REALISM CHECKS
 ═══════════════════════════════════════
 Before finalizing output, mentally verify:
 
-1. NAMES ARE REAL — THIS IS CRITICAL: Every hotel, restaurant, café, experience, and landmark must be a REAL SPECIFIC BUSINESS with a real name that exists on Google Maps or TripAdvisor. NEVER invent plausible-sounding names. NEVER use street names, neighborhood names, or area descriptions as restaurant names. BAD: "Krabi Town River Road" (this is a street, not a restaurant). GOOD: "Chalita Café & Restaurant" (this is a real business name). For restaurants in less-known destinations, if you cannot name a specific real restaurant, use the format "ristoranti locali di [SPECIFIC NEIGHBORHOOD]" — never a fake name.
+1. NAMES ARE REAL — THIS IS CRITICAL AND NON-NEGOTIABLE:
+   Every hotel, restaurant, café, experience, and landmark must be a REAL SPECIFIC BUSINESS that exists on Google Maps or TripAdvisor. NEVER invent plausible-sounding names.
+   
+   CONFIDENCE RULE:
+   - If you are 90%+ confident a place exists → use the specific name (e.g. "Taverna Aktaion, Volos")
+   - If you are 50-90% confident → use the name + area (e.g. "Warung near Senaru village entrance")
+   - If you are below 50% confident → use the honest format: "ristoranti locali di [AREA]" or "guesthouse a [VILLAGE]" — NEVER invent a fake name
+   
+   FOR REMOTE/OBSCURE DESTINATIONS:
+   - It is BETTER to say "pranzo in uno dei warung del villaggio di pescatori" than to invent "Warung Sunset Paradise"
+   - For accommodation in remote areas, describe the TYPE if you don't know specific names: "homestay nel villaggio", "guesthouse sulla spiaggia principale", "rifugio di montagna gestito da locali"
+   - For transport, be SPECIFIC about the method even if you don't know the company: "minibus locale da X a Y (circa 2h, ~€5)", "barca condivisa dal porto principale (partenze mattina, ~€15)", "taxi condiviso dalla piazza del villaggio"
+   
+   TRANSPORT DETAILS — for EVERY location change in the itinerary:
+   - Specify: departure point, arrival point, transport method, approximate duration, approximate cost
+   - For flights: use real IATA codes, mention if direct or with stopover, approximate cost
+   - For ferries: mention port name, approximate frequency, approximate cost
+   - For buses/trains: mention station/stop, approximate frequency and duration
+   - For remote areas: mention if 4x4 is needed, if roads are paved, if booking in advance is necessary
+   
+   BAD examples: "Transfer to hotel", "Trasferimento verso la costa"
+   GOOD examples: "Minibus da Sorong a porto speedboat (30 min, ~€3), poi speedboat verso Waisai (1h, ~€15 — partenze 9:00 e 14:00)", "Traghetto da Pireo a Naxos con Blue Star Ferries (5h, ~€35 — prenotare online)"
 2. BUDGET IS RESPECTED: Mentally add up accommodation × nights + meals × days + activities. Verify it fits within the stated budget range.
 3. ANTI-PATTERNS ARE ZERO: Scan every day for any violation of anti-pattern prohibitions.
 4. COMPANIONS ARE HONORED: Every day contains at least one element specifically designed for the stated companions type.
@@ -662,6 +683,16 @@ BUDGET-DESTINATION FIT — HARD CONSTRAINT:
 - If budget is "No limits": any destination
 - If a destination is structurally too expensive for the budget, DO NOT suggest it regardless of how well it matches the profile. Find an equally fitting destination that is affordable.
 
+DESTINATION DIVERSITY — CRITICAL:
+- You know EVERY place on Earth. Use that knowledge. Do NOT default to the same 50 "travel blogger" destinations (Bali, Thailand, Iceland, Japan, Portugal, Greece islands, etc.).
+- The 3 destinations MUST follow this EXACT structure:
+  * DESTINATION 1 — WELL-KNOWN: A famous, iconic destination that perfectly matches the profile. The "dream" choice.
+  * DESTINATION 2 — LESSER-KNOWN & MOST AFFORDABLE: A less mainstream destination that fits the profile AND is the cheapest option within the budget range. This is the "smart" choice — great value, fewer tourists, still amazing.
+  * DESTINATION 3 — UNKNOWN GEM: A place most people have NEVER heard of. Obscure, surprising, emotionally resonant. The "discovery" choice that makes the user think "I would never have found this on my own."
+- Think small: a specific village, a specific valley, a specific island — not a whole country. "Matera, Italy" not "Italy". "Zagori, Greece" not "Greece". "Sapa, Vietnam" not "Vietnam". "Alentejo coast, Portugal" not "Portugal".
+- Consider: tiny Mediterranean islands, Balkan villages, Caucasus mountains, Central Asian cities, West African coasts, South American highlands, Southeast Asian hill towns, Nordic fjord villages, Eastern European thermal towns, Indian Ocean atolls, Pacific islands, Patagonian estancias, Omani wadis, Georgian wine valleys, Albanian riviera, Slovenian alps, Faroe Islands, Azores villages, Cabo Verde, São Tomé, Reunion, Rodrigues, Socotra, Lofoten fishing villages, Scottish highlands bothies.
+- The more precisely you name the destination (specific town/area, not country/region), the better the result.
+
 REACHABILITY — HARD CONSTRAINT:
 - Weekend (3-4 days): max 4h flight from departure city
 - One week (7 days): max 8-10h flight
@@ -694,7 +725,7 @@ REQUIRED JSON:
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 2000,
+    max_tokens: 3000,
     messages: [{ role: "user", content: prompt }],
   });
 
@@ -719,7 +750,7 @@ export async function generateItineraryForDestination(
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 10000,
+    max_tokens: 16000,
     messages: [{ role: "user", content: prompt }],
   });
 
