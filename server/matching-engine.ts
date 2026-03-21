@@ -748,10 +748,13 @@ export async function generateItineraryForDestination(
 ): Promise<GeneratedItinerary> {
   const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any);
 
-  const message = await client.messages.create({
+const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 16000,
-    messages: [{ role: "user", content: prompt }],
+    messages: [
+      { role: "user", content: prompt },
+      { role: "assistant", content: "{" }
+    ],
   });
 
   const responseText = message.content
@@ -759,7 +762,7 @@ export async function generateItineraryForDestination(
     .map((block) => (block as any).text)
     .join("");
 
-  const cleanJson = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+const cleanJson = ("{" + responseText).replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
   const parsed = z.object({
     destinations: z.array(generatedDestinationSchema).min(1),
     itineraries: z.array(generatedItinerarySchema).min(1),
