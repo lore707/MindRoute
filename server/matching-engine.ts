@@ -623,7 +623,9 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
   ]
 }
 
-Generate exactly ${days} days in the itinerary.`;
+Generate exactly ${days} days in the itinerary.
+
+CRITICAL: Respond ONLY with the JSON object. No text before or after. No "I'll build", no explanations, no markdown. Start directly with { and end with }. Pure JSON only.`;
 }
 
 export async function generateDestinationsOnly(input: ProfilingInput): Promise<GeneratedDestination[]> {
@@ -751,10 +753,7 @@ export async function generateItineraryForDestination(
 const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 16000,
-    messages: [
-      { role: "user", content: prompt },
-      { role: "assistant", content: "{" }
-    ],
+   messages: [{ role: "user", content: prompt }],
   });
 
   const responseText = message.content
@@ -762,7 +761,7 @@ const message = await client.messages.create({
     .map((block) => (block as any).text)
     .join("");
 
-const cleanJson = ("{" + responseText).replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+const cleanJson = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
   const parsed = z.object({
     destinations: z.array(generatedDestinationSchema).min(1),
     itineraries: z.array(generatedItinerarySchema).min(1),
