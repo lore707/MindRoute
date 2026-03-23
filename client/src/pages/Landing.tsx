@@ -606,12 +606,11 @@ export default function Landing() {
             <span className="font-serif text-[14px] text-[rgba(255,255,255,0.35)]">MindRoute</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6">
-            <Link href="/privacy" className="hover:text-[#E94560] transition-colors no-underline">Privacy Policy</Link>
+        <Link href="/privacy" className="hover:text-[#E94560] transition-colors no-underline">{t('footer.privacy')}</Link>
             <a href="mailto:mindroutetravel@gmail.com" className="hover:text-[#E94560] transition-colors">mindroutetravel@gmail.com</a>
-            <span className="text-[rgba(255,255,255,0.12)]">I link negli itinerari possono essere link di affiliazione.</span>
+            <span className="text-[rgba(255,255,255,0.12)]">{t('footer.affiliate')}</span>
           </div>
-          <div>© 2026 MindRoute. Creato per viaggiatori che pensano diversamente.</div>
-        </div>
+          <div>{t('footer.copyright')}</div>
       </footer>
     </div>
   );
