@@ -599,17 +599,19 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="bg-[#1A1A2E] border-t border-[rgba(255,255,255,0.06)] py-8 px-4 md:px-10 flex flex-col md:flex-row items-center justify-between text-[12px] md:text-[13px] text-[rgba(255,255,255,0.3)] gap-4">
-        <div className="flex items-center gap-2">
-          <Logo className="w-6 h-6 opacity-50" />
-          <span className="font-serif text-[15px] text-[rgba(255,255,255,0.4)]">MindRoute</span>
+   <footer className="bg-[#1A1A2E] border-t border-[rgba(255,255,255,0.06)] py-8 px-6 md:px-12">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-[12px] text-[rgba(255,255,255,0.25)]">
+          <div className="flex items-center gap-2">
+            <Logo className="w-5 h-5 opacity-40" />
+            <span className="font-serif text-[14px] text-[rgba(255,255,255,0.35)]">MindRoute</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            <Link href="/privacy" className="hover:text-[#E94560] transition-colors no-underline">Privacy Policy</Link>
+            <a href="mailto:mindroutetravel@gmail.com" className="hover:text-[#E94560] transition-colors">mindroutetravel@gmail.com</a>
+            <span className="text-[rgba(255,255,255,0.12)]">I link negli itinerari possono essere link di affiliazione.</span>
+          </div>
+          <div>© 2026 MindRoute. Creato per viaggiatori che pensano diversamente.</div>
         </div>
-        <div className="flex gap-6">
-          <a href="#" className="hover:text-[#E94560] transition-colors" data-testid="link-about">{t("nav.about")}</a>
-          <a href="#" className="hover:text-[#E94560] transition-colors" data-testid="link-privacy">{t("nav.privacy")}</a>
-          <a href="#" className="hover:text-[#E94560] transition-colors" data-testid="link-contact">{t("nav.contact")}</a>
-        </div>
-        <div>{t("nav.copyright")}</div>
       </footer>
     </div>
   );
