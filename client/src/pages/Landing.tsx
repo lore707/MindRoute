@@ -147,7 +147,7 @@ export default function Landing() {
         </motion.div>
       </section>
 
- <section className="relative overflow-hidden px-6 py-24 transition-colors duration-300" style={{ background: "linear-gradient(160deg, #5a1828 0%, #7a2035 50%, #5a1828 100%)" }}>
+ <section className="relative overflow-hidden px-6 py-24 transition-colors duration-300"style={{ background: "linear-gradient(180deg, #0a0814 0%, #2d0a1a 50%, #5a1025 100%)" }}>
         <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,transparent,rgba(233,69,96,0.2),transparent)]" />
         <div className="absolute right-[8%] top-[16%] hidden h-[320px] w-[320px] rounded-full bg-[radial-gradient(circle,rgba(233,69,96,0.12),transparent_68%)] blur-[40px] md:block" />
         <div className="absolute left-[5%] bottom-[10%] hidden h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle,rgba(73,90,255,0.1),transparent_70%)] blur-[50px] md:block" />
@@ -344,7 +344,7 @@ export default function Landing() {
         </div>
       </section>
 
-    <section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(160deg, #5a1828 0%, #7a2035 50%, #5a1828 100%)" }}>
+    <section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(180deg, #5a1025 0%, #2d0a1a 50%, #0a0814 100%)" }}>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(233,69,96,0.05),transparent_60%)] pointer-events-none" />
         <div className="max-w-[1080px] mx-auto">
           <p className="text-[11px] font-semibold tracking-[3px] uppercase text-[#E94560] text-center mb-4">{t("landing.test.label")}</p>
@@ -528,7 +528,7 @@ export default function Landing() {
         </div>
       </section>
 
-     <section className="py-24 px-6 text-center relative overflow-hidden" style={{ background: "linear-gradient(160deg, #6a1e30 0%, #8a2540 50%, #6a1e30 100%)" }}>
+     <section className="py-24 px-6 text-center relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a0814 0%, #3d0e20 40%, #6a1530 70%, rgba(232,74,106,0.13) 100%)" }}>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(233,69,96,0.12),transparent_55%)] pointer-events-none" />
         <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(233,69,96,0.08)_0%,transparent_70%)] rounded-full pointer-events-none" />
         <div className="max-w-[1080px] mx-auto relative z-10">
