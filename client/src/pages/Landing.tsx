@@ -147,166 +147,107 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      <section className="relative overflow-hidden bg-[var(--surface-alt)] px-6 py-28 transition-colors duration-300">
-        <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,transparent,rgba(29,25,53,0.09),transparent)]" />
-        <div className="absolute right-[8%] top-[16%] hidden h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle,rgba(233,69,96,0.1),transparent_68%)] blur-[14px] md:block" />
+  <section className="relative overflow-hidden bg-[var(--surface-alt)] px-6 py-24 transition-colors duration-300">
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent)]" />
+        <div className="absolute right-[8%] top-[16%] hidden h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle,rgba(233,69,96,0.08),transparent_68%)] blur-[14px] md:block" />
         <div className="max-w-[1180px] mx-auto">
-          <div className="max-w-[760px] mx-auto text-center mb-16 md:mb-20">
+          <div className="max-w-[640px] mx-auto text-center mb-16">
             <p className="text-[11px] font-semibold tracking-[4px] uppercase text-[#E94560] mb-4">{t("landing.how.label")}</p>
-            <h2 className="font-serif text-[clamp(38px,5vw,58px)] text-center mb-5 tracking-[-1.6px] leading-[1.02] text-[var(--text-primary)]">{t("landing.how.title")}</h2>
-            <p className="text-center text-[var(--text-secondary)] text-[17px] md:text-[19px] font-light max-w-[620px] mx-auto leading-[1.85]">
-              {t("landing.how.desc")}
-            </p>
+            <h2 className="font-serif text-[clamp(34px,5vw,52px)] text-center mb-4 tracking-[-1.4px] leading-[1.04] text-[var(--text-primary)]">{t("landing.how.title")}</h2>
           </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-8 items-stretch">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr] gap-8 items-stretch">
             <motion.div
               initial={{ opacity: 0, y: 26 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7 }}
-              className="relative overflow-hidden rounded-[34px] border border-[rgba(29,25,53,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(255,255,255,0.82))] p-8 md:p-10 shadow-[0_28px_80px_rgba(29,25,53,0.06)]"
+              className="relative overflow-hidden rounded-[34px] border border-white/8 p-8 md:p-10"
+              style={{ background: "linear-gradient(135deg, rgba(20,17,36,0.95), rgba(15,12,28,0.98))" }}
             >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(233,69,96,0.1),transparent_40%)]" />
-              <div className="relative z-10 flex h-full flex-col justify-between">
-                <div>
-                  <div className="mb-8 flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-[3px] text-[rgba(29,25,53,0.36)]">
-                      {lang === "it" ? "Un processo più intuitivo" : "A more intuitive process"}
-                    </span>
-                    <span className="rounded-full bg-[rgba(233,69,96,0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[2px] text-[#E94560]">
-                      MindRoute
-                    </span>
-                  </div>
-                  <div className="space-y-5">
-                    {[
-                      {
-                        num: "01",
-                        title: t("landing.how.s1.title"),
-                        desc: t("landing.how.s1.desc"),
-                        icon: (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.8" strokeLinecap="round">
-                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-                            <circle cx="12" cy="10" r="1" fill="#E94560" />
-                            <circle cx="8" cy="10" r="1" fill="#E94560" />
-                            <circle cx="16" cy="10" r="1" fill="#E94560" />
-                          </svg>
-                        )
-                      },
-                      {
-                        num: "02",
-                        title: t("landing.how.s2.title"),
-                        desc: t("landing.how.s2.desc"),
-                        icon: (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.8" strokeLinecap="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
-                            <path d="M12 8l-2 4 4 0-2 4" fill="none" />
-                          </svg>
-                        )
-                      },
-                      {
-                        num: "03",
-                        title: t("landing.how.s3.title"),
-                        desc: t("landing.how.s3.desc"),
-                        icon: (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.8" strokeLinecap="round">
-                            <path d="M3 12h4l3-9 4 18 3-9h4" />
-                          </svg>
-                        )
-                      }
-                    ].map((step, i) => (
-                      <motion.div
-                        key={step.num}
-                        initial={{ opacity: 0, x: -16 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.08 }}
-                        className="grid grid-cols-[auto_1fr] gap-5 rounded-[28px] border border-[rgba(29,25,53,0.06)] bg-[rgba(255,255,255,0.72)] p-5 md:p-6"
-                      >
-                        <div className="flex flex-col items-center gap-4">
-                          <span className="font-serif text-[34px] leading-none text-[#E94560] opacity-70">{step.num}</span>
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[rgba(233,69,96,0.08)]">
-                            <div className="h-6 w-6">{step.icon}</div>
-                          </div>
-                        </div>
-                        <div className="pt-1">
-                          <h3 className="font-serif text-[24px] tracking-[-0.5px] text-[var(--text-primary)] mb-2">{step.title}</h3>
-                          <p className="text-[14px] md:text-[15px] leading-[1.8] font-light text-[var(--text-secondary)]">{step.desc}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(233,69,96,0.08),transparent_50%)]" />
+              <div className="relative z-10 space-y-6">
+                {[
+                  {
+                    num: "01",
+                    titleIt: "Dicci chi sei",
+                    titleEn: "Tell us who you are",
+                    descIt: "7 domande sul tuo modo di sentire, non sulle tue preferenze.",
+                    descEn: "7 questions about how you feel, not what you prefer.",
+                    icon: <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.8" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" /></svg>
+                  },
+                  {
+                    num: "02",
+                    titleIt: "Scopri il tuo posto",
+                    titleEn: "Discover your place",
+                    descIt: "3 destinazioni costruite sul tuo profilo emotivo.",
+                    descEn: "3 destinations built around your emotional profile.",
+                    icon: <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 8l-2 4 4 0-2 4" /></svg>
+                  },
+                  {
+                    num: "03",
+                    titleIt: "Ottieni il tuo piano",
+                    titleEn: "Get your custom plan",
+                    descIt: "Un itinerario completo, calibrato sul tuo ritmo.",
+                    descEn: "A full itinerary, tuned to your pace and energy.",
+                    icon: <svg viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.8" strokeLinecap="round"><path d="M3 12h4l3-9 4 18 3-9h4" /></svg>
+                  }
+                ].map((step, i) => (
+                  <motion.div
+                    key={step.num}
+                    initial={{ opacity: 0, x: -16 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-start gap-5 p-5 rounded-[20px] border border-white/6 bg-white/3 hover:bg-white/5 transition-all"
+                  >
+                    <div className="flex flex-col items-center gap-3 shrink-0">
+                      <span className="font-serif text-[28px] leading-none text-[#E94560] opacity-60">{step.num}</span>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[rgba(233,69,96,0.1)]">
+                        <div className="h-5 w-5">{step.icon}</div>
+                      </div>
+                    </div>
+                    <div className="pt-1">
+                      <h3 className="font-serif text-[20px] tracking-[-0.3px] text-white mb-1">{lang === "it" ? step.titleIt : step.titleEn}</h3>
+                      <p className="text-[13px] leading-[1.7] text-white/50">{lang === "it" ? step.descIt : step.descEn}</p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
-
             <motion.div
               initial={{ opacity: 0, y: 26 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.72, delay: 0.08 }}
-              className="relative overflow-hidden rounded-[34px] border border-[rgba(255,255,255,0.08)] bg-[#111325] p-7 md:p-10 text-white shadow-[0_34px_90px_rgba(29,25,53,0.22)]"
+              className="relative overflow-hidden rounded-[34px] border border-[rgba(255,255,255,0.08)] bg-[#111325] p-8 md:p-10 text-white"
             >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(242,85,110,0.24),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(73,90,255,0.18),transparent_48%)]" />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(8,10,20,0.22))]" />
-              <div className="relative z-10 flex h-full flex-col gap-6 md:gap-8">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(242,85,110,0.2),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(73,90,255,0.14),transparent_50%)]" />
+              <div className="relative z-10 flex h-full flex-col gap-8">
                 <div>
-                  <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.08)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[3px] text-white">
-                    {lang === "it" ? "Quello che cambia davvero" : "What truly changes"}
-                  </div>
-                  <h3 className="font-serif text-[30px] sm:text-[36px] md:text-[42px] leading-[1.02] tracking-[-1px] mb-4 text-white">
+                  <h3 className="font-serif text-[32px] sm:text-[38px] md:text-[44px] leading-[1.02] tracking-[-1px] mb-3 text-white">
                     {lang === "it" ? "Non una ricerca. Una lettura di te." : "Not a search. A reading of you."}
                   </h3>
-                  <p className="max-w-[520px] text-[15px] md:text-[16px] leading-[1.8] text-[rgba(255,255,255,0.82)]">
-                    {lang === "it"
-                      ? "Ogni passaggio toglie rumore, lascia emergere quello che conta e trasforma intuizioni sparse in una direzione chiara."
-                      : "Each step removes noise, filters out generic places, and turns personal intuition into a concrete direction."}
-                  </p>
                 </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-2 gap-4">
                   {[
-                    {
-                      valueIt: "7 domande",
-                      valueEn: "7 questions",
-                      labelIt: "per arrivare al tuo profilo",
-                      labelEn: "to reveal your profile"
-                    },
-                    {
-                      valueIt: "3 mete",
-                      valueEn: "3 destinations",
-                      labelIt: "già in sintonia con il tuo momento",
-                      labelEn: "already aligned with your moment"
-                    }
+                    { valueIt: "7 domande", valueEn: "7 questions", labelIt: "per il tuo profilo", labelEn: "to reveal your profile" },
+                    { valueIt: "3 mete", valueEn: "3 destinations", labelIt: "già in sintonia", labelEn: "already aligned" }
                   ].map((item) => (
-                    <div key={item.valueIt} className="rounded-[24px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.06)] px-5 py-5 backdrop-blur-[8px]">
-                      <div className="font-serif text-[28px] leading-none text-white mb-2">{lang === "it" ? item.valueIt : item.valueEn}</div>
-                      <div className="text-[13px] leading-[1.7] text-[rgba(255,255,255,0.72)]">{lang === "it" ? item.labelIt : item.labelEn}</div>
+                    <div key={item.valueIt} className="rounded-[20px] border border-white/10 bg-white/5 px-5 py-5">
+                      <div className="font-serif text-[26px] leading-none text-white mb-1">{lang === "it" ? item.valueIt : item.valueEn}</div>
+                      <div className="text-[12px] text-white/50">{lang === "it" ? item.labelIt : item.labelEn}</div>
                     </div>
                   ))}
                 </div>
-
-                <div className="rounded-[28px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] px-5 py-5 backdrop-blur-[10px]">
-                  <div className="text-[11px] font-semibold uppercase tracking-[3px] text-[rgba(255,255,255,0.62)] mb-3">
-                    {lang === "it" ? "La sensazione finale" : "Final feeling"}
-                  </div>
-                  <p className="text-[15px] md:text-[16px] leading-[1.8] text-white">
-                    {lang === "it"
-                      ? '"Meno ricerca a vuoto, più la sensazione di essere davvero capito."'
-                      : '"Less manual search, more the feeling of being understood."'}
-                  </p>
-                </div>
-
-                <div className="grid gap-3">
+                <div className="grid gap-3 mt-auto">
                   {[
-                    lang === "it" ? "Meno possibilità infinite, più chiarezza emotiva." : "Fewer endless options, more emotional clarity.",
-                    lang === "it" ? "Un percorso che sembra una conversazione, non un modulo da riempire." : "A flow that feels like conversation, not a cold form.",
-                    lang === "it" ? "Una destinazione che arriva già con un senso e con il suo ritmo." : "A destination that already arrives with meaning and rhythm."
+                    { it: "Meno scelte infinite, più chiarezza emotiva.", en: "Fewer endless options, more emotional clarity." },
+                    { it: "Una conversazione, non un modulo.", en: "A conversation, not a cold form." },
+                    { it: "Una destinazione che ti somiglia davvero.", en: "A destination that actually feels like you." }
                   ].map((line) => (
-                    <div key={line} className="flex items-start gap-3 rounded-[22px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] px-4 py-4 backdrop-blur-[6px]">
-                      <span className="mt-[5px] h-2.5 w-2.5 shrink-0 rounded-full bg-[#E94560]" />
-                      <p className="text-[14px] md:text-[15px] leading-[1.7] text-white">{line}</p>
+                    <div key={line.en} className="flex items-start gap-3 rounded-[16px] border border-white/8 bg-white/3 px-4 py-3.5">
+                      <span className="mt-[6px] h-2 w-2 shrink-0 rounded-full bg-[#E94560]" />
+                      <p className="text-[13px] leading-[1.6] text-white/70">{lang === "it" ? line.it : line.en}</p>
                     </div>
                   ))}
                 </div>
@@ -599,18 +540,57 @@ export default function Landing() {
         </div>
       </section>
 
-   <footer className="bg-[#1A1A2E] border-t border-[rgba(255,255,255,0.06)] py-8 px-6 md:px-12">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-[12px] text-[rgba(255,255,255,0.25)]">
-          <div className="flex items-center gap-2">
-            <Logo className="w-5 h-5 opacity-40" />
-            <span className="font-serif text-[14px] text-[rgba(255,255,255,0.35)]">MindRoute</span>
+ <footer className="bg-[#1A1A2E] border-t border-[rgba(255,255,255,0.08)] px-6 md:px-12 pt-14 pb-8">
+        <div className="max-w-7xl mx-auto">
+
+          {/* Colonne principali */}
+          <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 mb-12">
+
+            {/* Logo + tagline */}
+            <div className="flex flex-col gap-4">
+              <Link href="/" className="flex items-center gap-2.5 no-underline">
+                <Logo className="w-8 h-8" />
+                <span className="font-serif text-[18px] text-white">MindRoute</span>
+              </Link>
+              <p className="text-[13px] text-white/40 leading-relaxed max-w-[220px]">
+                {lang === "it" ? "Viaggi costruiti sul tuo carattere, non sulle tue preferenze." : "Trips built around who you are, not what you filter for."}
+              </p>
+            </div>
+
+            {/* Prodotto */}
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-[2.5px] text-white/25 mb-1">{lang === "it" ? "Prodotto" : "Product"}</p>
+              <Link href="/profiling" className="text-white/50 hover:text-[#E94560] text-[13px] transition-colors no-underline">{lang === "it" ? "Inizia il viaggio" : "Start your journey"}</Link>
+              <a href="#how" className="text-white/50 hover:text-[#E94560] text-[13px] transition-colors no-underline">{lang === "it" ? "Come funziona" : "How it works"}</a>
+              <Link href="/privacy" className="text-white/50 hover:text-[#E94560] text-[13px] transition-colors no-underline">Privacy Policy</Link>
+            </div>
+
+            {/* Contatti */}
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-[2.5px] text-white/25 mb-1">{lang === "it" ? "Contatti" : "Contact"}</p>
+              <a href="mailto:mindroutetravel@gmail.com" className="text-white/50 hover:text-[#E94560] text-[13px] transition-colors">mindroutetravel@gmail.com</a>
+            </div>
+
+            {/* Social */}
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-[2.5px] text-white/25 mb-1">Social</p>
+              <a href="#" className="text-white/50 hover:text-[#E94560] text-[13px] transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                Instagram
+              </a>
+              <a href="#" className="text-white/50 hover:text-[#E94560] text-[13px] transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.28 8.28 0 004.84 1.56V6.82a4.85 4.85 0 01-1.07-.13z"/></svg>
+                TikTok
+              </a>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-6">
-        <Link href="/privacy" className="hover:text-[#E94560] transition-colors no-underline">{t('footer.privacy')}</Link>
-            <a href="mailto:mindroutetravel@gmail.com" className="hover:text-[#E94560] transition-colors">mindroutetravel@gmail.com</a>
-            <span className="text-[rgba(255,255,255,0.12)]">{t('footer.affiliate')}</span>
+
+          {/* Barra inferiore */}
+          <div className="pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-3">
+            <p className="text-white/20 text-[11px]">{t('footer.copyright')}</p>
+            <p className="text-white/15 text-[11px]">{t('footer.affiliate')}</p>
           </div>
-       <div>{t('footer.copyright')}</div>
+
         </div>
       </footer>
     </div>
