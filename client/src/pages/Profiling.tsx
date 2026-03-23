@@ -1768,9 +1768,7 @@ border: theme === 'dark'
         </aside>
       </div>
 
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 hidden sm:flex items-center gap-2 text-[12px] text-[var(--text-muted)] opacity-40 z-50">
-        {t('q.pressEnter')} <span className="inline-flex px-2 py-[3px] bg-[var(--surface-card)] border border-[var(--border-input)] rounded text-[11px] font-semibold text-[var(--text-secondary)] shadow-[0_1px_2px_rgba(0,0,0,0.06)]">Enter</span> {t('q.toContinue')}
-      </div>
+   {/* press enter hint removed */}
     </div>
   );
 }
