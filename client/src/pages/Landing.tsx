@@ -147,9 +147,10 @@ export default function Landing() {
         </motion.div>
       </section>
 
-  <section className="relative overflow-hidden bg-[var(--surface-alt)] px-6 py-24 transition-colors duration-300">
-        <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent)]" />
-        <div className="absolute right-[8%] top-[16%] hidden h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle,rgba(233,69,96,0.08),transparent_68%)] blur-[14px] md:block" />
+ <section className="relative overflow-hidden px-6 py-24 transition-colors duration-300" style={{ background: "linear-gradient(160deg, #0f0a18 0%, #1a0d1f 40%, #0d1020 100%)" }}>
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,transparent,rgba(233,69,96,0.2),transparent)]" />
+        <div className="absolute right-[8%] top-[16%] hidden h-[320px] w-[320px] rounded-full bg-[radial-gradient(circle,rgba(233,69,96,0.12),transparent_68%)] blur-[40px] md:block" />
+        <div className="absolute left-[5%] bottom-[10%] hidden h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle,rgba(73,90,255,0.1),transparent_70%)] blur-[50px] md:block" />
         <div className="max-w-[1180px] mx-auto">
           <div className="max-w-[640px] mx-auto text-center mb-16">
             <p className="text-[11px] font-semibold tracking-[4px] uppercase text-[#E94560] mb-4">{t("landing.how.label")}</p>
@@ -259,7 +260,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="py-24 px-6 bg-[var(--surface)] transition-colors duration-300">
+   <section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(180deg, #0d1020 0%, #12101e 50%, #1a1228 100%)" }}>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_right,rgba(233,69,96,0.06),transparent_50%),radial-gradient(ellipse_at_left,rgba(73,90,255,0.06),transparent_50%)] pointer-events-none" />
         <div className="max-w-[1120px] mx-auto">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14 items-start">
             <div className="text-left max-w-[560px]">
@@ -342,7 +344,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="py-24 px-6 bg-[var(--surface-alt)] relative transition-colors duration-300">
+    <section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(180deg, #1a1228 0%, #0f0d1a 60%, #0d1020 100%)" }}>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(233,69,96,0.05),transparent_60%)] pointer-events-none" />
         <div className="max-w-[1080px] mx-auto">
           <p className="text-[11px] font-semibold tracking-[3px] uppercase text-[#E94560] text-center mb-4">{t("landing.test.label")}</p>
           <h2 className="font-serif text-[clamp(32px,5vw,44px)] text-center mb-3 tracking-[-1px]">{t("landing.test.title")}</h2>
@@ -386,8 +389,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-[var(--surface)] px-6 py-24 transition-colors duration-300">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(233,69,96,0.08),transparent_30%)]" />
+    <section className="relative overflow-hidden px-6 py-24 transition-colors duration-300" style={{ background: "linear-gradient(180deg, #0d1020 0%, #0a0814 50%, #130b1a 100%)" }}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(233,69,96,0.1),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(73,90,255,0.08),transparent_40%)] pointer-events-none" />
         <div className="max-w-[1180px] mx-auto relative z-10">
           <div className="max-w-[760px] mb-14 md:mb-16">
             <p className="text-[11px] font-semibold tracking-[4px] uppercase text-[#E94560] mb-4">
@@ -525,7 +528,8 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="py-24 px-6 bg-[#1A1A2E] text-center relative overflow-hidden">
+     <section className="py-24 px-6 text-center relative overflow-hidden" style={{ background: "linear-gradient(180deg, #130b1a 0%, #1a0d24 50%, #12101e 100%)" }}>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(233,69,96,0.12),transparent_55%)] pointer-events-none" />
         <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(233,69,96,0.08)_0%,transparent_70%)] rounded-full pointer-events-none" />
         <div className="max-w-[1080px] mx-auto relative z-10">
           <Logo className="w-[60px] h-[60px] mx-auto mb-7 opacity-90" />
