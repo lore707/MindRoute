@@ -610,7 +610,8 @@ export default function Landing() {
             <a href="mailto:mindroutetravel@gmail.com" className="hover:text-[#E94560] transition-colors">mindroutetravel@gmail.com</a>
             <span className="text-[rgba(255,255,255,0.12)]">{t('footer.affiliate')}</span>
           </div>
-          <div>{t('footer.copyright')}</div>
+       <div>{t('footer.copyright')}</div>
+        </div>
       </footer>
     </div>
   );
