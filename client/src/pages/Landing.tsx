@@ -161,8 +161,8 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7 }}
-              className="relative overflow-hidden rounded-[34px] border border-white/8 p-8 md:p-10"
-              style={{ background: "linear-gradient(135deg, rgba(20,17,36,0.95), rgba(15,12,28,0.98))" }}
+            className="relative overflow-hidden rounded-[34px] p-8 md:p-10"
+              style={{ background: "linear-gradient(135deg, rgba(20,17,36,0.95), rgba(15,12,28,0.98))", border: "1px solid rgba(233,69,96,0.25)" }}
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(233,69,96,0.08),transparent_50%)]" />
               <div className="relative z-10 space-y-6">
@@ -198,7 +198,8 @@ export default function Landing() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.1 }}
-                    className="flex items-start gap-5 p-5 rounded-[20px] border border-white/6 bg-white/3 hover:bg-white/5 transition-all"
+                  className="flex items-start gap-5 p-5 rounded-[20px] hover:bg-white/5 transition-all"
+                    style={{ background: "rgba(233,69,96,0.05)", border: "1px solid rgba(233,69,96,0.15)" }}
                   >
                     <div className="flex flex-col items-center gap-3 shrink-0">
                       <span className="font-serif text-[28px] leading-none text-[#E94560] opacity-60">{step.num}</span>
@@ -208,7 +209,7 @@ export default function Landing() {
                     </div>
                     <div className="pt-1">
                       <h3 className="font-serif text-[20px] tracking-[-0.3px] text-white mb-1">{lang === "it" ? step.titleIt : step.titleEn}</h3>
-                      <p className="text-[13px] leading-[1.7] text-white/50">{lang === "it" ? step.descIt : step.descEn}</p>
+                    <p className="text-[13px] leading-[1.7] text-white/75">{lang === "it" ? step.descIt : step.descEn}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -219,7 +220,8 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.72, delay: 0.08 }}
-              className="relative overflow-hidden rounded-[34px] border border-[rgba(255,255,255,0.08)] bg-[#111325] p-8 md:p-10 text-white"
+          className="relative overflow-hidden rounded-[34px] bg-[#111325] p-8 md:p-10 text-white"
+              style={{ border: "1px solid rgba(233,69,96,0.25)" }}
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(242,85,110,0.2),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(73,90,255,0.14),transparent_50%)]" />
               <div className="relative z-10 flex h-full flex-col gap-8">
@@ -233,7 +235,7 @@ export default function Landing() {
                     { valueIt: "7 domande", valueEn: "7 questions", labelIt: "per il tuo profilo", labelEn: "to reveal your profile" },
                     { valueIt: "3 mete", valueEn: "3 destinations", labelIt: "già in sintonia", labelEn: "already aligned" }
                   ].map((item) => (
-                    <div key={item.valueIt} className="rounded-[20px] border border-white/10 bg-white/5 px-5 py-5">
+                  <div key={item.valueIt} className="rounded-[20px] px-5 py-5" style={{ background: "rgba(233,69,96,0.07)", border: "1px solid rgba(233,69,96,0.2)" }}>
                       <div className="font-serif text-[26px] leading-none text-white mb-1">{lang === "it" ? item.valueIt : item.valueEn}</div>
                       <div className="text-[12px] text-white/50">{lang === "it" ? item.labelIt : item.labelEn}</div>
                     </div>
@@ -245,9 +247,9 @@ export default function Landing() {
                     { it: "Una conversazione, non un modulo.", en: "A conversation, not a cold form." },
                     { it: "Una destinazione che ti somiglia davvero.", en: "A destination that actually feels like you." }
                   ].map((line) => (
-                    <div key={line.en} className="flex items-start gap-3 rounded-[16px] border border-white/8 bg-white/3 px-4 py-3.5">
+               <div key={line.en} className="flex items-start gap-3 rounded-[16px] px-4 py-3.5" style={{ background: "rgba(233,69,96,0.05)", border: "1px solid rgba(233,69,96,0.15)" }}>
                       <span className="mt-[6px] h-2 w-2 shrink-0 rounded-full bg-[#E94560]" />
-                      <p className="text-[13px] leading-[1.6] text-white/70">{lang === "it" ? line.it : line.en}</p>
+                   <p className="text-[13px] leading-[1.6] text-white/85">{lang === "it" ? line.it : line.en}</p>
                     </div>
                   ))}
                 </div>
