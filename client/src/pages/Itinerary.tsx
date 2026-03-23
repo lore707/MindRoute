@@ -145,7 +145,7 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
 
   if (error || !itinerary) {
     return (
-      <div className="container max-w-lg mx-auto py-32 text-center min-h-screen" style={{ background: "#0a0814" }}>
+      <div className="container max-w-lg mx-auto py-32 text-center min-h-screen"style={{ background: "#0f0a10" }}>
         <h2 className="text-3xl font-serif font-bold text-white mb-6">{t('itin.notfound')}</h2>
         <Link href="/destinations" className="btn-primary">{t('itin.return')}</Link>
       </div>
@@ -252,7 +252,7 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
             <span className="ml-auto text-white/30 text-sm">{itinerary.days?.length} giorni · {itinerary.bestTime}</span>
           </div>
           {itinerary.tripSummary && (
-            <p className="text-white/60 font-serif italic text-lg">{itinerary.tripSummary}</p>
+            <p className="text-white/75 font-serif italic text-lg">{itinerary.tripSummary}</p>
           )}
           {itinerary.highlights && itinerary.highlights.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -320,7 +320,7 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
       </div>
 
       {/* ── ITINERARIO FULL-WIDTH ────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-4 md:px-12 pb-24 pt-4" style={{ background: "linear-gradient(180deg, #0a0814 0%, #0f0c1a 8%, #0f0c1a 85%, #0a0814 100%)" }}>
+      <div className="max-w-6xl mx-auto px-4 md:px-12 pb-24 pt-4"style={{ background: "linear-gradient(180deg, #0f0a10 0%, #1a0f12 8%, #1a0f12 85%, #0f0a10 100%)" }}>
         <div className="space-y-6">
 
           {/* Header sezione giorni */}
@@ -353,7 +353,7 @@ const { data: itinerary, isLoading, error } = useItinerary(id);
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
               className="relative rounded-[32px] overflow-hidden mt-8"
-              style={{ background: "linear-gradient(135deg, #1a0a14, #0d0820)" }}
+            style={{ background: "linear-gradient(135deg, #2a1018, #1a0d14)" }}
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(233,69,96,0.12),transparent_60%)]" />
               <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#E94560]/30 to-transparent" />
@@ -407,7 +407,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
               ? 'border border-white/20 shadow-xl'
               : 'border border-white/10 hover:border-white/20'
         }`}
-         style={{ background: isPeak ? "linear-gradient(135deg, rgba(233,69,96,0.08), rgba(233,69,96,0.03))" : isOpen ? "rgba(20,17,36,0.8)" : "rgba(255,255,255,0.03)" }}
+         style={{ background: isPeak ? "linear-gradient(135deg, rgba(233,69,96,0.08), rgba(233,69,96,0.03))" :isOpen ? "rgba(35,18,22,0.95)" : "rgba(255,255,255,0.06)" }}
         >
           <Collapsible.Trigger className="w-full flex items-center justify-between p-5 md:p-7 text-left" data-testid={`day-trigger-${index}`}>
             <div className="flex items-center gap-4 md:gap-6">
