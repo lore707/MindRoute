@@ -52,7 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait">
         <motion.main
           key={location}
           initial={{ opacity: 0 }}
@@ -64,6 +64,52 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </motion.main>
       </AnimatePresence>
+
+      <footer className="border-t border-white/5 bg-[#0a0814] px-6 md:px-12 py-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+            
+            {/* Logo + tagline */}
+            <div className="flex flex-col gap-2">
+              <Link href="/" className="flex items-center gap-2.5 text-white no-underline">
+                <svg className="w-7 h-7" viewBox="0 0 120 120" fill="none">
+                  <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+                  <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+                  <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
+                  <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
+                  <ellipse cx="60" cy="60" rx="5" ry="6" fill="currentColor"/>
+                  <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7"/>
+                  <circle cx="60" cy="48" r="3.5" fill="currentColor"/>
+                </svg>
+                <span className="font-serif text-[16px] tracking-[-0.3px]">MindRoute</span>
+              </Link>
+              <p className="text-white/30 text-[12px] max-w-[220px] leading-relaxed">
+                Viaggi costruiti sul tuo carattere, non sulle tue preferenze.
+              </p>
+            </div>
+
+            {/* Link colonne */}
+            <div className="flex flex-wrap gap-10 md:gap-16">
+              <div className="flex flex-col gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/30">Prodotto</p>
+                <Link href="/profiling" className="text-white/50 hover:text-white text-sm transition-colors no-underline">Inizia il viaggio</Link>
+                <Link href="/privacy" className="text-white/50 hover:text-white text-sm transition-colors no-underline">Privacy Policy</Link>
+              </div>
+              <div className="flex flex-col gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[2px] text-white/30">Contatti</p>
+                <a href="mailto:mindroutetravel@gmail.com" className="text-white/50 hover:text-white text-sm transition-colors no-underline">mindroutetravel@gmail.com</a>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Bottom bar */}
+          <div className="mt-10 pt-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-3">
+            <p className="text-white/20 text-[11px]">© 2026 MindRoute. Creato per viaggiatori che pensano diversamente.</p>
+            <p className="text-white/15 text-[11px]">I link presenti negli itinerari possono essere link di affiliazione.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
