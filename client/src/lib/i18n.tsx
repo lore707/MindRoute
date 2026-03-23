@@ -434,7 +434,20 @@ const translations: Record<string, Record<Lang, string>> = {
   "itin.different": { en: "Want something different?", it: "Vuoi qualcosa di diverso?" },
   "itin.goback": { en: "Go back and choose another destination.", it: "Torna indietro e scegli un'altra destinazione." },
   "itin.pdf": { en: "Save as PDF", it: "Salva come PDF" },
-  "itin.startover": { en: "Start Over", it: "Ricomincia" },
+ "itin.startover": { en: "Start Over", it: "Ricomincia" },
+
+  "cookie.text": { en: "We use essential technical cookies for the site to work. Affiliate links in your itineraries may set third-party cookies.", it: "Usiamo cookie tecnici essenziali per il funzionamento del sito. I link affiliate nei tuoi itinerari possono impostare cookie di terze parti." },
+  "cookie.privacy": { en: "Privacy Policy", it: "Privacy Policy" },
+  "cookie.accept": { en: "Accept", it: "Accetta" },
+  "cookie.decline": { en: "Decline", it: "Rifiuta" },
+
+  "footer.privacy": { en: "Privacy Policy", it: "Privacy Policy" },
+  "footer.copyright": { en: "© 2026 MindRoute. Built for travelers who think differently.", it: "© 2026 MindRoute. Creato per viaggiatori che pensano diversamente." },
+  "footer.affiliate": { en: "Links in itineraries may be affiliate links.", it: "I link negli itinerari possono essere link di affiliazione." },
+
+  "privacy.back": { en: "Back to home", it: "Torna alla home" },
+  "privacy.title": { en: "Privacy Policy", it: "Privacy Policy" },
+  "privacy.updated": { en: "Last updated: March 2026", it: "Ultimo aggiornamento: marzo 2026" },
   "itin.budget": { en: "Budget Summary", it: "Riepilogo budget" },
   "itin.packing": { en: "Packing List", it: "Lista bagagli" },
   "itin.besttime": { en: "Best time to visit", it: "Periodo migliore per visitare" },
