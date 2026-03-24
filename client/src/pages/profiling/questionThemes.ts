@@ -157,7 +157,7 @@ export const questionThemes: Record<string, QuestionTheme> = {
     overlayDark: "linear-gradient(180deg, rgba(30,10,0,0.48) 0%, rgba(0,0,0,0.36) 100%)",
   },
   trekking: {
-    imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80",
+  imageUrl: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=1200&q=80",
     overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(245,248,255,0.34) 100%)",
     overlayDark: "linear-gradient(180deg, rgba(10,15,30,0.50) 0%, rgba(0,0,0,0.38) 100%)",
   },
@@ -177,7 +177,7 @@ export const questionThemes: Record<string, QuestionTheme> = {
     overlayDark: "linear-gradient(180deg, rgba(30,15,0,0.46) 0%, rgba(0,0,0,0.34) 100%)",
   },
   "perdermi nei quartieri autentici": {
-    imageUrl: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200&q=80",
+ imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80",
     overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,248,240,0.32) 100%)",
     overlayDark: "linear-gradient(180deg, rgba(30,15,0,0.48) 0%, rgba(0,0,0,0.36) 100%)",
   },
