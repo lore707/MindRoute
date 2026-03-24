@@ -46,8 +46,31 @@ export default function Landing() {
 
   return (
     <div className="bg-[var(--surface)] text-[var(--text-primary)] font-sans selection:bg-[#E94560]/20 overflow-x-hidden transition-colors duration-300">
-      <section className="relative min-h-screen overflow-hidden px-6 pt-[118px] pb-14">
+      <style>{`
+        @keyframes landingDrift { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-18px) rotate(4deg); } }
+        @keyframes landingDriftSlow { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-12px) rotate(-3deg); } }
+        @keyframes landingPulse { 0%,100% { opacity: 0.06; } 50% { opacity: 0.16; } }
+        @keyframes landingRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes landingFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+      `}</style>
+  <section className="relative min-h-screen overflow-hidden px-6 pt-[118px] pb-14">
         <div className="absolute inset-0" style={{ background: heroBackdrop }} />
+        {/* Blob decorativi hero */}
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 18%, rgba(232,74,106,0.18), transparent 30%), radial-gradient(circle at 20% 25%, rgba(78,84,200,0.14), transparent 32%), radial-gradient(circle at 80% 70%, rgba(232,74,106,0.08), transparent 28%)" }} />
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-100" preserveAspectRatio="none" viewBox="0 0 1440 900">
+          <path d="M-20 180 C 220 120, 440 280, 660 200 S 940 80, 1160 220 S 1380 320, 1460 180" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.05" />
+          <path d="M-20 650 C 200 590, 420 710, 640 630 S 900 510, 1120 650 S 1360 750, 1460 650" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.04" />
+          <circle cx="720" cy="200" r="5" fill="#E84A6A" opacity="0.12" />
+          <circle cx="300" cy="600" r="3" fill="#E84A6A" opacity="0.08" />
+          <circle cx="1100" cy="400" r="4" fill="#E84A6A" opacity="0.08" />
+        </svg>
+        <svg className="absolute top-[10%] left-[4%] w-[130px] h-[130px] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="#E84A6A" strokeWidth="0.7" style={{ opacity: 0.08, animation: "landingDrift 9s ease-in-out infinite" }}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+        </svg>
+        <svg className="absolute bottom-[12%] right-[5%] w-[100px] h-[100px] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="#E84A6A" strokeWidth="0.9" style={{ opacity: 0.07, animation: "landingDriftSlow 12s ease-in-out infinite 1s" }}>
+          <polygon points="3 11 22 2 13 21 11 13 3 11" />
+        </svg>
         <div className="absolute inset-x-[8%] top-[16%] h-[1px]" style={{ background: `linear-gradient(90deg, transparent, ${heroLineColor}, transparent)` }} />
         <div className="absolute inset-x-[12%] bottom-[18%] h-[1px]" style={{ background: `linear-gradient(90deg, transparent, ${theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(29,25,53,0.08)"}, transparent)` }} />
         <div className="absolute -left-24 top-28 h-[280px] w-[280px] rounded-full bg-[radial-gradient(circle,rgba(233,69,96,0.14),transparent_68%)] blur-[28px] animate-drift" />
@@ -147,10 +170,17 @@ export default function Landing() {
         </motion.div>
       </section>
 
- <section className="relative overflow-hidden px-6 py-24 transition-colors duration-300"style={{ background: "linear-gradient(180deg, #0a0814 0%, #2d0a1a 50%, #5a1025 100%)" }}>
-        <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,transparent,rgba(233,69,96,0.2),transparent)]" />
-        <div className="absolute right-[8%] top-[16%] hidden h-[320px] w-[320px] rounded-full bg-[radial-gradient(circle,rgba(233,69,96,0.12),transparent_68%)] blur-[40px] md:block" />
-        <div className="absolute left-[5%] bottom-[10%] hidden h-[260px] w-[260px] rounded-full bg-[radial-gradient(circle,rgba(73,90,255,0.1),transparent_70%)] blur-[50px] md:block" />
+<section className="relative overflow-hidden px-6 py-24 transition-colors duration-300" style={{ background: "linear-gradient(180deg, #0d0a14 0%, #1a0810 50%, #2d0a1a 100%)" }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 80% 20%, rgba(232,74,106,0.14), transparent 35%), radial-gradient(circle at 10% 80%, rgba(78,84,200,0.10), transparent 30%)" }} />
+        <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,transparent,rgba(232,74,106,0.25),transparent)]" />
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
+          <path d="M-20 150 C 200 90, 420 230, 640 150 S 920 30, 1140 170 S 1360 270, 1460 150" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.05" />
+          <path d="M-20 750 C 180 690, 380 810, 600 730 S 860 610, 1080 750 S 1320 850, 1460 750" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.04" />
+        </svg>
+        <svg className="absolute top-[6%] right-[3%] w-[160px] h-[160px] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="#E84A6A" strokeWidth="0.6" style={{ opacity: 0.07, animation: "landingRotate 45s linear infinite" }}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+        </svg>
         <div className="max-w-[1180px] mx-auto">
           <div className="max-w-[640px] mx-auto text-center mb-16">
             <p className="text-[11px] font-semibold tracking-[4px] uppercase text-[#E94560] mb-4">{t("landing.how.label")}</p>
@@ -260,8 +290,14 @@ export default function Landing() {
         </div>
       </section>
 
-   <section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(180deg, #0d1020 0%, #12101e 50%, #1a1228 100%)" }}>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_right,rgba(233,69,96,0.06),transparent_50%),radial-gradient(ellipse_at_left,rgba(73,90,255,0.06),transparent_50%)] pointer-events-none" />
+ <section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(180deg, #2d0a1a 0%, #120810 50%, #0a0814 100%)" }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 15% 50%, rgba(232,74,106,0.10), transparent 35%), radial-gradient(circle at 85% 30%, rgba(78,84,200,0.08), transparent 30%)" }} />
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
+          <path d="M-20 400 C 220 340, 440 460, 660 380 S 940 260, 1160 400 S 1380 500, 1460 400" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.04" />
+        </svg>
+        <svg className="absolute bottom-[8%] right-[4%] w-[120px] h-[120px] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="#E84A6A" strokeWidth="0.8" style={{ opacity: 0.06, animation: "landingDrift 14s ease-in-out infinite" }}>
+          <polygon points="3 11 22 2 13 21 11 13 3 11" />
+        </svg>
         <div className="max-w-[1120px] mx-auto">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14 items-start">
             <div className="text-left max-w-[560px]">
@@ -344,8 +380,19 @@ export default function Landing() {
         </div>
       </section>
 
-    <section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(180deg, #5a1025 0%, #2d0a1a 50%, #0a0814 100%)" }}>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(233,69,96,0.05),transparent_60%)] pointer-events-none" />
+<section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(180deg, #0a0814 0%, #1a0810 40%, #2d0a1a 100%)" }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 40%, rgba(232,74,106,0.12), transparent 40%), radial-gradient(circle at 85% 80%, rgba(78,84,200,0.08), transparent 28%)" }} />
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
+          <path d="M-20 300 C 200 240, 400 360, 620 280 S 900 160, 1120 300 S 1360 400, 1460 300" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.05" />
+          <path d="M-20 600 C 180 540, 380 660, 600 580 S 860 460, 1080 600 S 1320 700, 1460 600" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.04" />
+        </svg>
+        <svg className="absolute top-[8%] left-[3%] w-[140px] h-[140px] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="#E84A6A" strokeWidth="0.7" style={{ opacity: 0.07, animation: "landingRotate 50s linear infinite reverse" }}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+        </svg>
+        <svg className="absolute bottom-[6%] right-[4%] w-[100px] h-[100px] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="#E84A6A" strokeWidth="0.9" style={{ opacity: 0.06, animation: "landingDriftSlow 11s ease-in-out infinite" }}>
+          <polygon points="3 11 22 2 13 21 11 13 3 11" />
+        </svg>
         <div className="max-w-[1080px] mx-auto">
           <p className="text-[11px] font-semibold tracking-[3px] uppercase text-[#E94560] text-center mb-4">{t("landing.test.label")}</p>
           <h2 className="font-serif text-[clamp(32px,5vw,44px)] text-center mb-3 tracking-[-1px]">{t("landing.test.title")}</h2>
@@ -389,8 +436,16 @@ export default function Landing() {
         </div>
       </section>
 
-    <section className="relative overflow-hidden px-6 py-24 transition-colors duration-300" style={{ background: "linear-gradient(180deg, #0d1020 0%, #0a0814 50%, #130b1a 100%)" }}>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(233,69,96,0.1),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(73,90,255,0.08),transparent_40%)] pointer-events-none" />
+   <section className="relative overflow-hidden px-6 py-24 transition-colors duration-300" style={{ background: "linear-gradient(180deg, #2d0a1a 0%, #120810 40%, #0a0814 100%)" }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 90% 15%, rgba(232,74,106,0.12), transparent 32%), radial-gradient(circle at 5% 85%, rgba(78,84,200,0.09), transparent 28%)" }} />
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
+          <path d="M-20 250 C 200 190, 440 310, 660 230 S 940 110, 1160 250 S 1380 350, 1460 250" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.05" />
+          <path d="M-20 700 C 180 640, 380 760, 600 680 S 860 560, 1080 700 S 1320 800, 1460 700" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.04" />
+        </svg>
+        <svg className="absolute top-[5%] left-[3%] w-[150px] h-[150px] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="#E84A6A" strokeWidth="0.7" style={{ opacity: 0.07, animation: "landingDrift 10s ease-in-out infinite" }}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+        </svg>
         <div className="max-w-[1180px] mx-auto relative z-10">
           <div className="max-w-[760px] mb-14 md:mb-16">
             <p className="text-[11px] font-semibold tracking-[4px] uppercase text-[#E94560] mb-4">
@@ -528,9 +583,23 @@ export default function Landing() {
         </div>
       </section>
 
-     <section className="py-24 px-6 text-center relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a0814 0%, #3d0e20 40%, #6a1530 70%, rgba(232,74,106,0.13) 100%)" }}>
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(233,69,96,0.12),transparent_55%)] pointer-events-none" />
-        <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(233,69,96,0.08)_0%,transparent_70%)] rounded-full pointer-events-none" />
+   <section className="py-24 px-6 text-center relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a0814 0%, #1a0810 30%, #3d0e20 70%, #2d0a1a 100%)" }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 50%, rgba(232,74,106,0.18), transparent 50%), radial-gradient(circle at 20% 20%, rgba(78,84,200,0.10), transparent 30%), radial-gradient(circle at 80% 80%, rgba(232,74,106,0.08), transparent 28%)" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(232,74,106,0.10), transparent 70%)", animation: "landingPulse 6s ease-in-out infinite" }} />
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
+          <path d="M-20 200 C 220 140, 440 260, 660 180 S 940 60, 1160 200 S 1380 300, 1460 200" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.07" />
+          <path d="M-20 700 C 200 640, 420 760, 640 680 S 920 560, 1140 700 S 1380 800, 1460 700" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.06" />
+          <circle cx="720" cy="450" r="4" fill="#E84A6A" opacity="0.15" />
+          <circle cx="240" cy="200" r="3" fill="#E84A6A" opacity="0.10" />
+          <circle cx="1200" cy="700" r="3" fill="#E84A6A" opacity="0.10" />
+        </svg>
+        <svg className="absolute top-[8%] left-[4%] w-[150px] h-[150px] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="#E84A6A" strokeWidth="0.7" style={{ opacity: 0.08, animation: "landingRotate 40s linear infinite" }}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+        </svg>
+        <svg className="absolute bottom-[8%] right-[4%] w-[110px] h-[110px] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="#E84A6A" strokeWidth="0.9" style={{ opacity: 0.08, animation: "landingDriftSlow 10s ease-in-out infinite" }}>
+          <polygon points="3 11 22 2 13 21 11 13 3 11" />
+        </svg>
         <div className="max-w-[1080px] mx-auto relative z-10">
           <Logo className="w-[60px] h-[60px] mx-auto mb-7 opacity-90" />
           <h2 className="font-serif text-[clamp(28px,5vw,42px)] text-white mb-4 tracking-[-0.5px]">{t("landing.cta.title")}</h2>
