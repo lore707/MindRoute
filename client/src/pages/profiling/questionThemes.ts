@@ -231,3 +231,83 @@ export function getQuestionTheme(selectedValues: string[]): QuestionTheme {
   const mapped = keyMap[first] ?? first;
   return questionThemes[mapped] ?? questionThemes.default;
 }
+export function getMultipleThemes(selectedValues: string[]): QuestionTheme[] {
+  if (!selectedValues || selectedValues.length === 0) return [questionThemes.default];
+  
+  const keyMap: Record<string, string> = {
+    'africa & middle east': 'africa',
+    'africa e medio oriente': 'africa',
+    'close to home': 'close',
+    'vicino a casa': 'close',
+    'americas': 'americas',
+    'americhe': 'americas',
+    'oceania': 'oceania',
+    'europe': 'europe',
+    'europa': 'europe',
+    'asia': 'asia',
+    // Path B Q2 tipo viaggio
+    'natura e avventura': 'nature',
+    'nature and adventure': 'nature',
+    'cibo e vino': 'food',
+    'food and wine': 'food',
+    'cultura e storia': 'culture',
+    'culture and history': 'culture',
+    'mare e relax': 'beach',
+    'sea and relax': 'beach',
+    'città e vita notturna': 'city',
+    'city and nightlife': 'city',
+    'fuori dal mondo': 'offgrid',
+    'off the grid': 'offgrid',
+    'road trip': 'roadtrip',
+    'trekking e sport': 'trekking',
+    'trekking and sport': 'trekking',
+    'wellness e spa': 'wellness',
+    'wellness and spa': 'wellness',
+    'scoperta e sorpresa': 'discovery',
+    'discovery and surprise': 'discovery',
+    // Path A Q1 stile
+    'selvaggio': 'wild',
+    'wild': 'wild',
+    'silenzioso': 'quiet',
+    'quiet': 'quiet',
+    'caotico': 'chaotic',
+    'chaotic': 'chaotic',
+    'intimo': 'intimate',
+    'intimate': 'intimate',
+    'solitario': 'solitary',
+    'solitary': 'solitary',
+    'rigenerante': 'regenerating',
+    'regenerating': 'regenerating',
+    'autentico': 'authentic',
+    'authentic': 'authentic',
+    'lusso quieto': 'quietluxury',
+    'quiet luxury': 'quietluxury',
+    'spirituale': 'spiritual',
+    'spiritual': 'spiritual',
+    'festoso': 'festive',
+    'festive': 'festive',
+    'avventuroso': 'adventure',
+    'adventurous': 'adventure',
+    'romantico': 'romantic',
+    'romantic': 'romantic',
+    'culturale': 'cultural',
+    'cultural': 'cultural',
+    'esplorativo': 'explorative',
+    'explorative': 'explorative',
+    // Path A Q2 distanza
+    'vicino a casa': 'close',
+    'close to home': 'close',
+    'stesso continente': 'continent',
+    'same continent': 'continent',
+    'lontano': 'far',
+    'far away': 'far',
+    'ovunque': 'anywhere',
+    'anywhere': 'anywhere',
+  };
+
+  return selectedValues.map(val => {
+    const key = val.toLowerCase().trim();
+    const mapped = keyMap[key] ?? key;
+    return questionThemes[mapped] ?? questionThemes.default;
+  });
+}
