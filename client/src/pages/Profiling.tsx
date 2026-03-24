@@ -310,7 +310,7 @@ export default function Profiling() {
       setAnswers(prev => ({
         ...prev,
         [step]: selected.join(', ')
-          + (precise ? ` â†’ ${precise}` : '')
+       + (precise ? ` → ${precise}` : '')
           + (addendum ? ` | ${addendum}` : '')
       }));
     } else if (currentQ.type === 'images') {
