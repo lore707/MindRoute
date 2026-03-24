@@ -171,7 +171,7 @@ export default function Landing() {
       </section>
 
 <section className="relative overflow-hidden px-6 py-24 transition-colors duration-300" style={{ background: "linear-gradient(180deg, #0d0a14 0%, #1a0810 50%, #2d0a1a 100%)" }}>
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 80% 20%, rgba(232,74,106,0.14), transparent 35%), radial-gradient(circle at 10% 80%, rgba(78,84,200,0.10), transparent 30%)" }} />
+        <div className="absolute inset-0 pointer-events-none"style={{ background: "radial-gradient(circle at 80% 20%, rgba(232,74,106,0.40), transparent 40%), radial-gradient(circle at 10% 80%, rgba(78,84,200,0.15), transparent 30%)" }} />
         <div className="absolute inset-x-0 top-0 h-[1px] bg-[linear-gradient(90deg,transparent,rgba(232,74,106,0.25),transparent)]" />
         <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
           <path d="M-20 150 C 200 90, 420 230, 640 150 S 920 30, 1140 170 S 1360 270, 1460 150" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.05" />
@@ -291,7 +291,7 @@ export default function Landing() {
       </section>
 
  <section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(180deg, #2d0a1a 0%, #120810 50%, #0a0814 100%)" }}>
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 15% 50%, rgba(232,74,106,0.10), transparent 35%), radial-gradient(circle at 85% 30%, rgba(78,84,200,0.08), transparent 30%)" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 15% 50%, rgba(232,74,106,0.35), transparent 40%), radial-gradient(circle at 85% 30%, rgba(78,84,200,0.12), transparent 30%)" }} />
         <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
           <path d="M-20 400 C 220 340, 440 460, 660 380 S 940 260, 1160 400 S 1380 500, 1460 400" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.04" />
         </svg>
@@ -381,7 +381,7 @@ export default function Landing() {
       </section>
 
 <section className="py-24 px-6 relative transition-colors duration-300" style={{ background: "linear-gradient(180deg, #0a0814 0%, #1a0810 40%, #2d0a1a 100%)" }}>
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 40%, rgba(232,74,106,0.12), transparent 40%), radial-gradient(circle at 85% 80%, rgba(78,84,200,0.08), transparent 28%)" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 40%, rgba(232,74,106,0.38), transparent 45%), radial-gradient(circle at 85% 80%, rgba(78,84,200,0.12), transparent 28%)" }} />
         <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
           <path d="M-20 300 C 200 240, 400 360, 620 280 S 900 160, 1120 300 S 1360 400, 1460 300" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.05" />
           <path d="M-20 600 C 180 540, 380 660, 600 580 S 860 460, 1080 600 S 1320 700, 1460 600" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.04" />
@@ -437,7 +437,7 @@ export default function Landing() {
       </section>
 
    <section className="relative overflow-hidden px-6 py-24 transition-colors duration-300" style={{ background: "linear-gradient(180deg, #2d0a1a 0%, #120810 40%, #0a0814 100%)" }}>
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 90% 15%, rgba(232,74,106,0.12), transparent 32%), radial-gradient(circle at 5% 85%, rgba(78,84,200,0.09), transparent 28%)" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 90% 15%, rgba(232,74,106,0.38), transparent 38%), radial-gradient(circle at 5% 85%, rgba(78,84,200,0.12), transparent 28%)" }} />
         <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
           <path d="M-20 250 C 200 190, 440 310, 660 230 S 940 110, 1160 250 S 1380 350, 1460 250" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.05" />
           <path d="M-20 700 C 180 640, 380 760, 600 680 S 860 560, 1080 700 S 1320 800, 1460 700" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.04" />
@@ -584,7 +584,7 @@ export default function Landing() {
       </section>
 
    <section className="py-24 px-6 text-center relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a0814 0%, #1a0810 30%, #3d0e20 70%, #2d0a1a 100%)" }}>
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 50%, rgba(232,74,106,0.18), transparent 50%), radial-gradient(circle at 20% 20%, rgba(78,84,200,0.10), transparent 30%), radial-gradient(circle at 80% 80%, rgba(232,74,106,0.08), transparent 28%)" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 50%, rgba(232,74,106,0.45), transparent 55%), radial-gradient(circle at 20% 20%, rgba(78,84,200,0.15), transparent 30%), radial-gradient(circle at 80% 80%, rgba(232,74,106,0.25), transparent 32%)" }} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(232,74,106,0.10), transparent 70%)", animation: "landingPulse 6s ease-in-out infinite" }} />
         <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 1440 900">
           <path d="M-20 200 C 220 140, 440 260, 660 180 S 940 60, 1160 200 S 1380 300, 1460 200" fill="none" stroke="#E84A6A" strokeWidth="1" opacity="0.07" />
