@@ -325,12 +325,12 @@ export default function Landing() {
               </p>
             </div>
 
-            <div className="relative overflow-hidden rounded-[26px] border border-[var(--border-subtle)] bg-[var(--surface-card)] shadow-[0_18px_55px_rgba(29,25,53,0.08)]">
-              <div className="grid grid-cols-2 bg-[var(--surface-alt)]">
-                <div className="p-4 md:p-5 text-[11px] md:text-[12px] font-semibold tracking-[2px] uppercase text-[var(--text-secondary)] border-r border-[var(--border-subtle)]">
+         <div className="relative overflow-hidden rounded-[26px]" style={{ background: "linear-gradient(145deg, rgba(20,10,20,0.97), rgba(12,8,18,0.99))", border: "1px solid rgba(232,74,106,0.35)", boxShadow: "0 0 60px rgba(232,74,106,0.10), 0 32px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)" }}>
+              <div className="grid grid-cols-2" style={{ background: "rgba(232,74,106,0.06)", borderBottom: "1px solid rgba(232,74,106,0.2)" }}>
+                <div className="p-4 md:p-5 text-[11px] md:text-[12px] font-semibold tracking-[2px] uppercase text-white/35 border-r border-[rgba(232,74,106,0.15)]">
                   {lang === "it" ? 'Altri pianificatori' : 'Other planners'}
                 </div>
-                <div className="p-4 md:p-5 text-[11px] md:text-[12px] font-semibold tracking-[2px] uppercase text-[#E94560]">
+                <div className="p-4 md:p-5 text-[11px] md:text-[12px] font-semibold tracking-[2px] uppercase text-[#E84A6A]">
                   MindRoute
                 </div>
               </div>
@@ -366,11 +366,11 @@ export default function Landing() {
                   rightEn: 'Optimizes transformation'
                 }
               ].map((row, i) => (
-                <div key={i} className="grid grid-cols-1 sm:grid-cols-2 border-t border-[var(--border-subtle)]">
-                  <div className="p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-secondary)] sm:border-r sm:border-[var(--border-subtle)]">
+           <div key={i} className="grid grid-cols-1 sm:grid-cols-2" style={{ borderTop: "1px solid rgba(232,74,106,0.12)" }}>
+                  <div className="p-4 md:p-5 text-[14px] leading-[1.7] text-white/30 sm:border-r" style={{ borderColor: "rgba(232,74,106,0.12)" }}>
                     {lang === "it" ? row.leftIt : row.leftEn}
                   </div>
-                  <div className="p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] font-medium bg-[rgba(233,69,96,0.04)]">
+                  <div className="p-4 md:p-5 text-[14px] leading-[1.7] text-white font-medium" style={{ background: "rgba(232,74,106,0.06)" }}>
                     {lang === "it" ? row.rightIt : row.rightEn}
                   </div>
                 </div>
