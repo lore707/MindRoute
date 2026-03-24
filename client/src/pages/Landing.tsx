@@ -192,8 +192,8 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.7 }}
-            className="relative overflow-hidden rounded-[34px] p-8 md:p-10"
-              style={{ background: "linear-gradient(135deg, rgba(20,17,36,0.95), rgba(15,12,28,0.98))", border: "1px solid rgba(233,69,96,0.25)" }}
+          className="relative overflow-hidden rounded-[34px] p-8 md:p-10"
+              style={{ background: "linear-gradient(135deg, rgba(20,17,36,0.95), rgba(15,12,28,0.98))", border: "1px solid rgba(232,74,106,0.45)", boxShadow: "0 0 40px rgba(232,74,106,0.12), 0 24px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)" }} }}
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(233,69,96,0.08),transparent_50%)]" />
               <div className="relative z-10 space-y-6">
@@ -251,8 +251,8 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.72, delay: 0.08 }}
-          className="relative overflow-hidden rounded-[34px] bg-[#111325] p-8 md:p-10 text-white"
-              style={{ border: "1px solid rgba(233,69,96,0.25)" }}
+       className="relative overflow-hidden rounded-[34px] bg-[#111325] p-8 md:p-10 text-white"
+              style={{ border: "1px solid rgba(232,74,106,0.45)", boxShadow: "0 0 40px rgba(232,74,106,0.12), 0 24px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)" }} }}
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(242,85,110,0.2),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(73,90,255,0.14),transparent_50%)]" />
               <div className="relative z-10 flex h-full flex-col gap-8">
