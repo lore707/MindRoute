@@ -62,8 +62,13 @@ export const questionThemes: Record<string, QuestionTheme> = {
     overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(245,248,255,0.34) 100%)",
     overlayDark: "linear-gradient(180deg, rgba(10,15,30,0.50) 0%, rgba(0,0,0,0.38) 100%)",
   },
+slowdown: {
+    imageUrl: "https://images.unsplash.com/photo-1545389336-cf090694435e?w=1200&q=80",
+    overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(240,255,250,0.34) 100%)",
+    overlayDark: "linear-gradient(180deg, rgba(0,20,15,0.48) 0%, rgba(0,0,0,0.36) 100%)",
+  },
   regenerating: {
-  imageUrl: "https://images.unsplash.com/photo-1520209759809-a9bcb6cb3241?w=1200&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1520209759809-a9bcb6cb3241?w=1200&q=80",
     overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(240,255,250,0.34) 100%)",
     overlayDark: "linear-gradient(180deg, rgba(0,20,15,0.48) 0%, rgba(0,0,0,0.36) 100%)",
   },
@@ -308,7 +313,8 @@ export function getQuestionTheme(selectedValues: string[]): QuestionTheme {
     // path a q2 need IT
     'staccare dalla routine': 'quiet',
     'sentirmi vivo di nuovo': 'adventure',
-    'rallentare': 'regenerating',
+  'rallentare': 'slowdown',
+    'slow down': 'slowdown',
     'sorprendermi': 'explorative',
     'ricaricare le energie': 'regenerating',
     'cambiare qualcosa': 'chaotic',
@@ -358,13 +364,32 @@ export function getMultipleThemes(selectedValues: string[]): QuestionTheme[] {
     'vivere qualcosa di completamente nuovo': 'adventure',
     'fotografare qualcosa di straordinario': 'fotografare qualcosa di straordinario',
     'trovare un posto che non sapevo esistesse': 'discovery',
-    // path b q6 IT
+ // path b q6 IT
     'staccare davvero dalla routine': 'quiet',
     'ritrovare energia e leggerezza': 'festive',
     'sentirmi libero e spontaneo': 'wild',
     'meravigliarmi di nuovo': 'explorative',
     'sentire profondamente il luogo': 'spiritual',
     'uscire dalla mia zona di comfort': 'adventure',
+    // path a q2 need IT
+    'staccare dalla routine': 'quiet',
+    'sentirmi vivo di nuovo': 'adventure',
+    'rallentare': 'slowdown',
+    'sorprendermi': 'explorative',
+    'ricaricare le energie': 'regenerating',
+    'cambiare qualcosa': 'chaotic',
+    'festeggiare': 'festive',
+    'ritrovarmi': 'spiritual',
+    // path a q2 need EN
+    'disconnect from routine': 'quiet',
+    'feel alive again': 'adventure',
+    'slow down': 'slowdown',
+    'be surprised': 'explorative',
+    'recharge my energy': 'regenerating',
+    'change something': 'chaotic',
+    'celebrate': 'festive',
+    'find myself': 'spiritual',
+  };
   
     // Path B Q2 tipo viaggio
     'natura e avventura': 'nature',
