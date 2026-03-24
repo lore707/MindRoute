@@ -365,7 +365,7 @@ export function getMultipleThemes(selectedValues: string[]): QuestionTheme[] {
     'meravigliarmi di nuovo': 'explorative',
     'sentire profondamente il luogo': 'spiritual',
     'uscire dalla mia zona di comfort': 'adventure',
-  };
+  
     // Path B Q2 tipo viaggio
     'natura e avventura': 'nature',
     'nature and adventure': 'nature',
