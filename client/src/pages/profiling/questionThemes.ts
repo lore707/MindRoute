@@ -196,8 +196,8 @@ export const questionThemes: Record<string, QuestionTheme> = {
     overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,248,240,0.32) 100%)",
     overlayDark: "linear-gradient(180deg, rgba(30,10,0,0.48) 0%, rgba(0,0,0,0.36) 100%)",
   },
-  "fotografare qualcosa di straordinario": {
-    imageUrl: "https://images.unsplash.com/photo-1542038374999-ef21d6b5a8c7?w=1200&q=80",
+"fotografare qualcosa di straordinario": {
+    imageUrl: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=1200&q=80",
     overlayLight: "linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(245,245,255,0.32) 100%)",
     overlayDark: "linear-gradient(180deg, rgba(10,10,30,0.48) 0%, rgba(0,0,0,0.36) 100%)",
   },
@@ -217,6 +217,7 @@ export function getQuestionTheme(selectedValues: string[]): QuestionTheme {
   if (!selectedValues || selectedValues.length === 0) return questionThemes.default;
   const first = selectedValues[0].toLowerCase().trim();
   const keyMap: Record<string, string> = {
+    // geo
     'africa & middle east': 'africa',
     'africa e medio oriente': 'africa',
     'close to home': 'close',
@@ -227,6 +228,46 @@ export function getQuestionTheme(selectedValues: string[]): QuestionTheme {
     'europe': 'europe',
     'europa': 'europe',
     'asia': 'asia',
+    // path b q2 tipo viaggio IT
+    'natura e avventura': 'nature',
+    'cultura e storia': 'culture',
+    'food e vino': 'food',
+    'mare e relax': 'beach',
+    'città e vita notturna': 'city',
+    'fuori dal mondo': 'offgrid',
+    'road trip': 'roadtrip',
+    'trekking e sport': 'trekking',
+    'wellness e spa': 'wellness',
+    'scoperta, sorprendimi': 'discovery',
+    // path b q2 tipo viaggio EN
+    'nature and adventure': 'nature',
+    'culture and history': 'culture',
+    'food and wine': 'food',
+    'sea and relax': 'beach',
+    'city and nightlife': 'city',
+    'off the grid': 'offgrid',
+    'trekking and sport': 'trekking',
+    'wellness and spa': 'wellness',
+    'discovery, surprise me': 'discovery',
+    // path a q1 stile
+    'selvaggio': 'wild',
+    'silenzioso': 'quiet',
+    'caotico': 'chaotic',
+    'intimo': 'intimate',
+    'solitario': 'solitary',
+    'rigenerante': 'regenerating',
+    'autentico': 'authentic',
+    'lusso quieto': 'quietluxury',
+    'spirituale': 'spiritual',
+    'festoso': 'festive',
+    'avventuroso': 'adventure',
+    'romantico': 'romantic',
+    'culturale': 'cultural',
+    'esplorativo': 'explorative',
+    // path a q2 distanza
+    'stesso continente': 'continent',
+    'lontano': 'far',
+    'ovunque': 'anywhere',
   };
   const mapped = keyMap[first] ?? first;
   return questionThemes[mapped] ?? questionThemes.default;
