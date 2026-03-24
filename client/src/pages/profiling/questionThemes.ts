@@ -384,7 +384,7 @@ export function getMultipleThemes(selectedValues: string[]): QuestionTheme[] {
     'cultural': 'cultural',
     'esplorativo': 'explorative',
     'explorative': 'explorative',
-    // Path A Q2 distanza
+  // path a q2 distanza
     'vicino a casa': 'close',
     'close to home': 'close',
     'stesso continente': 'continent',
@@ -393,6 +393,32 @@ export function getMultipleThemes(selectedValues: string[]): QuestionTheme[] {
     'far away': 'far',
     'ovunque': 'anywhere',
     'anywhere': 'anywhere',
+    // path b q2 EN
+    'nature & adventure': 'nature',
+    'culture & history': 'culture',
+    'food & wine': 'food',
+    'beach & relax': 'beach',
+    'city & nightlife': 'city',
+    'off the grid': 'offgrid',
+    'road trip': 'roadtrip',
+    'trekking & sports': 'trekking',
+    'wellness & spa': 'wellness',
+    'discovery, surprise me': 'discovery',
+    // path b q3 EN
+    'eating at local spots': 'food',
+    'getting lost in authentic neighborhoods': 'authentic',
+    'seeing iconic landmarks': 'cultural',
+    'being immersed in nature': 'nature',
+    'living something completely new': 'adventure',
+    'photographing something extraordinary': 'fotografare qualcosa di straordinario',
+    'finding a place i didn\'t know existed': 'discovery',
+    // path b q6 EN
+    'disconnect from routine': 'quiet',
+    'regain energy and lightness': 'festive',
+    'feel free and spontaneous': 'wild',
+    'be amazed again': 'explorative',
+    'feel the place deeply': 'spiritual',
+    'step outside my comfort zone': 'adventure',
   };
 
   return selectedValues.map(val => {
