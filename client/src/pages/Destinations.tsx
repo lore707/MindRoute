@@ -26,23 +26,25 @@ const [destinations, setDestinations] = useState<Destination[]>([]);
   const handleSelect = (destId: number) => {
     setSelectedId(destId);
   };
+const [streamMessage, setStreamMessage] = useState("");
+  const [streamStep, setStreamStep] = useState(0);
 
- const handleContinue = async () => {
+  const handleContinue = async () => {
     if (!selectedId) return;
     const selectedDest = destinations.find(d => d.id === selectedId);
     if (!selectedDest) return;
 
     setIsGenerating(true);
+    setStreamStep(0);
+    setStreamMessage("Avvio la generazione...");
+
     try {
-      // Recupera l'input di profilazione salvato nel backend
       const inputRes = await fetch("/api/profiling/input");
       const profilingInput = await inputRes.json();
-
-     // Force current UI language into the input
       const currentLang = localStorage.getItem("mindroute-lang") || "en";
       const inputWithLang = { ...profilingInput, lang: currentLang };
 
-      const res = await fetch("/api/itinerary/generate", {
+      const res = await fetch("/api/itinerary/generate-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,10 +56,42 @@ const [destinations, setDestinations] = useState<Destination[]>([]);
       });
 
       if (!res.ok) throw new Error("Errore generazione itinerario");
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        let currentEvent = "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (currentEvent === "progress") {
+                setStreamStep(data.step);
+                setStreamMessage(data.message);
+              } else if (currentEvent === "done") {
+                setLocation(`/itinerary/${selectedId}`);
+                return;
+              } else if (currentEvent === "error") {
+                throw new Error(data.message);
+              }
+            } catch (e) {
+              if (e instanceof Error && e.message !== "Errore generazione itinerario") console.warn("Parse error", e);
+            }
+          }
+        }
+      }
       setLocation(`/itinerary/${selectedId}`);
     } catch (err) {
       console.error(err);
-      // Fallback — naviga comunque
       setLocation(`/itinerary/${selectedId}`);
     } finally {
       setIsGenerating(false);
@@ -149,10 +183,10 @@ const [destinations, setDestinations] = useState<Destination[]>([]);
               data-testid="button-continue-dest"
               className="btn-primary group px-8 py-4 text-base md:px-12 md:py-5 md:text-lg shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isGenerating ? (
+          {isGenerating ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Creo il tuo itinerario...
+                  {streamMessage || "Creo il tuo itinerario..."}
                 </>
               ) : (
                 <>
