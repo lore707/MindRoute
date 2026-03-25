@@ -505,7 +505,20 @@ export async function registerRoutes(
     }
   });
 
-  // STEP 4 — Recupera itinerario per destinazione
+  // STEP 3d — Polling mapPoints (deve stare PRIMA del route generico)
+  app.get("/api/itinerary/:id/mappoints", async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Not found" });
+      const hasPoints = (itin as any).days?.some((d: any) => d.mapPoints?.length > 0);
+      res.json({ ready: hasPoints, days: hasPoints ? (itin as any).days : null });
+    } catch (err) {
+      res.status(500).json({ message: "Errore" });
+    }
+  });
+
+  // STEP 4 — Recupera itinerario per destinazione (route generico — deve stare DOPO)
   app.get(api.itinerary.get.path, async (req, res) => {
     try {
       const destId = z.coerce.number().parse(req.params.destinationId);
