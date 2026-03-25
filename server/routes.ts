@@ -466,11 +466,17 @@ export async function registerRoutes(
             return day;
           });
 
-          await storage.updateItineraryMapPoints(saved.id, updatedDays);
+      await storage.updateItineraryMapPoints(saved.id, updatedDays);
         } catch (bgErr) {
           console.error("Background geocoding error:", bgErr);
         }
       })();
+    } catch (err) {
+      console.error("Stream error:", err);
+      try {
+        res.write(`event: error\ndata: ${JSON.stringify({ message: "Errore nella generazione dell'itinerario." })}\n\n`);
+        res.end();
+      } catch {}
     }
   });
 
