@@ -144,11 +144,7 @@ const translations: Record<string, Record<Lang, string>> = {
 "b.q3.precisePlaceholder": { en: "For example: I've always felt drawn to Japan, to that balance between chaos, silence, culture, and food.", it: "Per esempio: ho sempre sentito un'attrazione per il Giappone, per quell'equilibrio tra caos, silenzio, cultura e cibo." },
 "b.q3.why": { en: "What feels unmissable reveals your priorities. Why that place matters reveals the emotional reason behind the trip.", it: "Quello che senti imperdibile racconta le tue priorità. Il motivo per cui proprio quel posto ti chiama racconta il bisogno emotivo che sta dietro al viaggio. Insieme, queste due cose ci aiutano a costruire un itinerario che ti somigli davvero." },
 
-  "b.q3.hint": { en: "Two questions, one space. The combination tells us everything.", it: "Due domande, uno spazio. La combinazione ci dice tutto." },
-  "b.q3.placeholder": { en: "E.g. I want to see the temples of Kyoto at dawn, the fish markets, the hidden neighborhoods...", it: "Es. Voglio vedere i templi di Kyoto all'alba, i mercati del pesce, i quartieri nascosti..." },
-  "b.q3.precise": { en: "Why that place specifically?", it: "Perché proprio quel posto?" },
-  "b.q3.precisePlaceholder": { en: "For example: I've always felt drawn to Japan, to that balance between chaos, silence, culture, and food.", it: "Per esempio: ho sempre sentito un'attrazione per il Giappone, per quell'equilibrio tra caos, silenzio, cultura e cibo." },
-  "b.q3.why": { en: "What feels unmissable reveals your priorities. Why that place matters reveals the emotional reason behind the trip.", it: "Quello che senti imperdibile racconta le tue priorità. Il motivo per cui proprio quel posto ti chiama racconta il bisogno emotivo che sta dietro al viaggio. Insieme, queste due cose ci aiutano a costruire un itinerario che ti somigli davvero." },
+ 
 
   "b.q4.text": { en: "What <em>atmosphere</em> are you looking for?", it: "Quale <em>atmosfera</em> cerchi?" },
   "b.q4.hint": { en: "Even practical travelers reveal their aesthetic soul here. Pick up to 2.", it: "Anche i viaggiatori pratici rivelano la loro anima estetica qui. Scegline fino a 2." },
@@ -177,9 +173,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "b.q6.addendum": { en: "Want to add something more personal? (optional)", it: "Vuoi aggiungere qualcosa di più personale? (opzionale)" },
   "b.q6.why": { en: "Defines the emotional tone of the trip, beyond the concrete activities.", it: "Definisce il tono emotivo del viaggio, oltre alle attività concrete." },
 "b.q6.placeholder": { en: "For example: I need to feel free again, disconnect from responsibilities, rediscover wonder.", it: "Per esempio: ho bisogno di sentirmi di nuovo libero, di staccare dalle responsabilità, di ritrovare un po' di meraviglia." },
-  "b.q6.hint": { en: "Not what you want to do, what you need to feel. What is missing from your life right now?", it: "Non quello che vuoi fare, ma quello che hai bisogno di sentire. Cosa manca dalla tua vita, in questo momento?" },
-  "b.q6.placeholder": { en: "For example: I need to feel free again, disconnect from responsibilities, rediscover wonder.", it: "Per esempio: ho bisogno di sentirmi di nuovo libero, di staccare dalle responsabilità, di ritrovare un po' di meraviglia." },
-  "b.q6.why": { en: "Even travelers with a clear destination often carry an unspoken emotional need.", it: "Anche chi ha già una meta chiara spesso si porta dentro un bisogno emotivo non detto. Questa domanda serve a intercettarlo prima che resti fuori dal viaggio." },
+
 
   "b.q7.text": { en: "What do you want to <em>avoid?</em>", it: "Cosa vuoi <em>evitare?</em>" },
   "b.q7.hint": { en: "A quick filter, so we do not send you toward experiences you know you cannot stand.", it: "Un filtro rapido, così evitiamo di spingerti verso esperienze che sai già di non sopportare." },
