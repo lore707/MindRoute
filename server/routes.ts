@@ -272,6 +272,160 @@ export async function registerRoutes(
     }
   });
 
+ // STEP 3b — Genera itinerario con SSE streaming progress
+  app.post("/api/itinerary/generate-stream", async (req, res) => {
+    const { input, destinationName, destinationId, whyYours } = req.body;
+    if (!input || !destinationName || !destinationId) {
+      return res.status(400).json({ message: "Missing fields" });
+    }
+
+    // Setup SSE
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const send = (event: string, data: any) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      send("progress", { step: 1, message: "Analizzo il tuo profilo psicologico..." });
+      const itinerary = await generateItineraryForDestination(input, destinationName);
+
+      send("progress", { step: 2, message: "Cerco l'immagine perfetta per il tuo viaggio..." });
+      const [heroImage] = await Promise.all([fetchUnsplashHero(destinationName)]);
+
+      send("progress", { step: 3, message: "Costruisco la mappa dei luoghi..." });
+
+      const keyDayIndices = new Set([0, 3, 4, (itinerary.days?.length ?? 7) - 1]);
+
+      async function fetchDayImage(query: string): Promise<string | null> {
+        const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
+        if (!unsplashKey || !query) return null;
+        try {
+          const r = await fetch(
+            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
+            { headers: { Authorization: `Client-ID ${unsplashKey}` } }
+          );
+          if (!r.ok) return null;
+          const d = await r.json();
+          return d.results?.[0]?.urls?.regular ?? null;
+        } catch { return null; }
+      }
+
+      async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
+        try {
+          const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=en`);
+          const d = await r.json();
+          if (d?.[0]) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+          return null;
+        } catch { return null; }
+      }
+
+      const destCenter = await geocode(destinationName);
+      const destLat = destCenter?.lat ?? 0;
+      const destLng = destCenter?.lng ?? 0;
+      const city = destinationName.split(",")[0].trim();
+
+      async function tryGeocode(name: string): Promise<{ lat: number; lng: number } | null> {
+        const coords = await geocode(`${name} ${city}`);
+        if (coords) {
+          const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
+          if (dist < 3) return coords;
+        }
+        return null;
+      }
+
+      send("progress", { step: 4, message: "Piazzo i punti sulla mappa..." });
+
+      const daysWithExtras = await Promise.all(
+        (itinerary.days || []).map(async (day: any, idx: number) => {
+          const extras: Record<string, any> = {};
+          if (keyDayIndices.has(idx) && day.imageQuery) {
+            const img = await fetchDayImage(day.imageQuery);
+            if (img) extras.dayImage = img;
+          }
+          const mapPoints: any[] = [];
+          const found = new Set<string>();
+          if (day.affiliateLabels) {
+            const slotMapping: Record<string, string> = {
+              getyourguide_morning: "Mattina", klook_morning: "Mattina", viator_morning: "Mattina",
+              getyourguide_place_morning: "Mattina", klook_place_morning: "Mattina", viator_place_morning: "Mattina",
+              getyourguide_afternoon: "Pomeriggio", klook_afternoon: "Pomeriggio", viator_afternoon: "Pomeriggio",
+              getyourguide_place_afternoon: "Pomeriggio", klook_place_afternoon: "Pomeriggio", viator_place_afternoon: "Pomeriggio",
+              thefork_lunch: "Pranzo", tripadvisor_lunch: "Pranzo",
+              thefork_evening: "Sera", tripadvisor_evening: "Sera",
+            };
+            for (const [key, label] of Object.entries(day.affiliateLabels)) {
+              if (found.has(label) || !label || (label as string).length < 3) continue;
+              if (/ristoranti\s/i.test(label as string)) continue;
+              const slot = slotMapping[key] || "Mattina";
+              const coords = await tryGeocode(label as string);
+              if (coords) {
+                mapPoints.push({ label, slot, lat: coords.lat, lng: coords.lng });
+                found.add(label as string);
+              }
+            }
+          }
+          if (mapPoints.length < 3) {
+            const slots = [
+              { text: day.morning, slot: "Mattina" },
+              { text: day.afternoon, slot: "Pomeriggio" },
+              { text: day.lunch, slot: "Pranzo" },
+              { text: day.evening, slot: "Sera" },
+            ];
+            for (const { text, slot } of slots) {
+              if (!text || text.length < 5) continue;
+              if (/volo|aeroporto|airport|trasferimento|transfer|check.?in|check.?out|partenza|ritorno/i.test(text)) continue;
+              const candidates: string[] = [];
+              const patterns = [
+                /(?:a|al|alla|alle|verso|nel|nella|to|at|in|del|della|das|do|da)\s+([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s''-]{2,40})(?:\s*[—,\.\-–:(]|$)/,
+                /^([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s''-]{2,40})(?:\s*[—,\.\-–:])/,
+              ];
+              for (const p of patterns) {
+                const m = text.match(p);
+                if (m?.[1] && m[1].trim().length > 2) candidates.push(m[1].trim());
+              }
+              const firstSeg = text.split(/\s*[—\-–]\s*/)[0].trim();
+              if (firstSeg.length > 3 && firstSeg.length < 45 && /^[A-Z]/.test(firstSeg)) candidates.push(firstSeg);
+              for (const name of candidates) {
+                if (found.has(name)) continue;
+                const coords = await tryGeocode(name);
+                if (coords) {
+                  mapPoints.push({ label: name, slot, lat: coords.lat, lng: coords.lng });
+                  found.add(name);
+                  break;
+                }
+              }
+            }
+          }
+          if (mapPoints.length > 0) extras.mapPoints = mapPoints;
+          return { ...day, ...extras };
+        })
+      );
+
+      send("progress", { step: 5, message: "Quasi pronto, ultime rifiniture..." });
+
+      const saved = await storage.createItinerary({
+        destinationId,
+        ...itinerary,
+        days: daysWithExtras,
+        whyYours: whyYours ?? itinerary.whyYours ?? null,
+        heroImageUrl: heroImage?.url ?? null,
+        heroPhotographer: heroImage?.photographer ?? null,
+        heroPhotographerUrl: heroImage?.photographerUrl ?? null,
+      });
+
+      send("done", { itineraryId: saved.id, destinationId });
+      res.end();
+    } catch (err) {
+      console.error("Stream error:", err);
+      send("error", { message: "Errore nella generazione dell'itinerario." });
+      res.end();
+    }
+  });
+
   // STEP 4 — Recupera itinerario per destinazione
   app.get(api.itinerary.get.path, async (req, res) => {
     try {
