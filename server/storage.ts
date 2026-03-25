@@ -7,8 +7,10 @@ export interface IStorage {
   getItinerary(destinationId: number): Promise<Itinerary | undefined>;
   createItinerary(itinerary: InsertItinerary): Promise<Itinerary>;
   clearAll(): Promise<void>;
-  saveProfilingInput(input: any): Promise<void>;
+ saveProfilingInput(input: any): Promise<void>;
   getProfilingInput(): Promise<any | undefined>;
+  getItineraryById(id: number): Promise<Itinerary | undefined>;
+  updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
 }
 
 // Current production behavior uses an in-memory store. This keeps the prototype simple,
@@ -52,8 +54,20 @@ private profilingInput: any = null;
     this.itinIdCounter = 1;
   }
 
-  async saveProfilingInput(input: any): Promise<void> {
+async saveProfilingInput(input: any): Promise<void> {
     this.profilingInput = input;
+  }
+
+  async getItineraryById(id: number): Promise<Itinerary | undefined> {
+    return this.itineraries.find(i => i.id === id);
+  }
+
+  async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
+    const idx = this.itineraries.findIndex(i => i.id === id);
+    if (idx >= 0) {
+      this.itineraries[idx] = { ...this.itineraries[idx], days: updatedDays };
+    }
+  }
   }
 
   async getProfilingInput(): Promise<any | undefined> {
