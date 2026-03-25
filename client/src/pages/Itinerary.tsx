@@ -283,33 +283,50 @@ export default function Itinerary() {
         </motion.div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 md:px-12 py-8">
-        <div className="mb-8 space-y-4">
-          <div className="flex items-center gap-3">
-            <Compass className="w-5 h-5 text-[#E94560]" />
-            <h2 className="text-2xl font-serif font-bold text-white">Panoramica del viaggio</h2>
-            <span className="ml-auto text-white/30 text-sm">{itinerary.days?.length} giorni · {itinerary.bestTime}</span>
-          </div>
-          {itinerary.tripSummary && (
-            <p className="text-white/75 font-serif italic text-lg">{itinerary.tripSummary}</p>
-          )}
-          {itinerary.highlights && itinerary.highlights.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {itinerary.highlights.map((h: string, i: number) => (
-                <span key={i} className="px-4 py-2 rounded-full text-sm font-bold text-white/80 border border-white/15 bg-white/5">{h}</span>
-              ))}
-            </div>
-          )}
+   {/* ── PANORAMICA — sfondo differenziato ─────────────────── */}
+      <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a0814 0%, #130a18 20%, #1a0d1a 50%, #130a18 80%, #0a0814 100%)" }}>
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#E94560]/20 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#E94560]/20 to-transparent" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, #E94560, transparent 70%)" }} />
+          <svg className="absolute inset-0 w-full h-full opacity-[0.04]" preserveAspectRatio="none" viewBox="0 0 1440 600">
+            <path d="M-20 200 C 200 140, 400 300, 620 220 S 900 100, 1100 240 S 1350 360, 1460 200" fill="none" stroke="#E94560" strokeWidth="1.5"/>
+            <path d="M-20 400 C 180 340, 350 460, 580 380 S 820 280, 1050 420 S 1300 520, 1460 400" fill="none" stroke="#E94560" strokeWidth="1"/>
+          </svg>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
+        <div className="relative max-w-7xl mx-auto px-4 md:px-12 py-12">
+          {/* Header */}
+          <div className="mb-10 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#E94560]/15 border border-[#E94560]/30 flex items-center justify-center">
+                <Compass className="w-4 h-4 text-[#E94560]" />
+              </div>
+              <h2 className="text-2xl font-serif font-bold text-white">Panoramica del viaggio</h2>
+              <span className="ml-auto text-white/30 text-sm hidden sm:block">{itinerary.days?.length} giorni · {itinerary.bestTime}</span>
+            </div>
+            {itinerary.tripSummary && (
+              <p className="text-white/70 font-serif italic text-lg leading-relaxed max-w-3xl">{itinerary.tripSummary}</p>
+            )}
+            {itinerary.highlights && itinerary.highlights.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {itinerary.highlights.map((h: string, i: number) => (
+                  <span key={i} className="px-4 py-2 rounded-full text-sm font-bold text-white/70 border border-[#E94560]/20 bg-[#E94560]/05">{h}</span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Main grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Left: CTA prenotazione */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
               className="rounded-[24px] overflow-hidden"
-              style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.12), rgba(233,69,96,0.04))", border: "1px solid rgba(233,69,96,0.2)" }}
+              style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.10), rgba(233,69,96,0.03))", border: "1px solid rgba(233,69,96,0.18)" }}
             >
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
@@ -318,14 +335,9 @@ export default function Itinerary() {
                 </div>
                 <div className="space-y-2.5">
                   {regionLinks.slice(0, 2).map(({ key, url, icon, label }) => (
-                    <a
-                      key={key}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <a key={key} href={url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-between w-full px-5 py-3.5 rounded-xl font-bold text-sm text-white transition-all hover:scale-[1.02]"
-                      style={{ background: key === 'skyscanner' ? 'rgba(14,165,233,0.15)' : 'rgba(233,69,96,0.15)', border: `1px solid ${key === 'skyscanner' ? 'rgba(14,165,233,0.3)' : 'rgba(233,69,96,0.3)'}` }}
-                    >
+                      style={{ background: key === 'skyscanner' ? 'rgba(14,165,233,0.15)' : 'rgba(233,69,96,0.15)', border: `1px solid ${key === 'skyscanner' ? 'rgba(14,165,233,0.3)' : 'rgba(233,69,96,0.3)'}` }}>
                       <span className="flex items-center gap-2">{icon} {label}</span>
                       <ExternalLink className="w-3.5 h-3.5 opacity-50" />
                     </a>
@@ -333,13 +345,8 @@ export default function Itinerary() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {regionLinks.slice(2).map(({ key, url, icon, label }) => (
-                    <a
-                      key={key}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-white/60 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all"
-                    >
+                    <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-white/60 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all">
                       {icon} {label}
                     </a>
                   ))}
@@ -347,36 +354,65 @@ export default function Itinerary() {
               </div>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="rounded-[24px] border border-white/15 grid grid-cols-2 divide-x divide-white/10"
-              style={{ background: "linear-gradient(135deg, rgba(22,19,48,0.9), rgba(22,19,48,0.7))" }}
-            >
-              {[
-                { icon: <Wallet className="w-4 h-4" />, label: t('itin.budget'), value: itinerary.budgetSummary },
-                { icon: <Briefcase className="w-4 h-4" />, label: t('itin.packing'), value: itinerary.packingList },
-                { icon: <Sun className="w-4 h-4" />, label: t('itin.besttime'), value: itinerary.bestTime },
-                { icon: <Compass className="w-4 h-4" />, label: t('itin.getting'), value: itinerary.gettingThere },
-              ].map(({ icon, label, value }, i) => (
-                <div key={label} className={`p-5 space-y-2 ${i >= 2 ? 'border-t border-white/10' : ''}`}>
-                  <div className="flex items-center gap-2 text-[#E94560]">
-                    {icon}
-                    <h3 className="font-bold text-sm text-white">{label}</h3>
-                  </div>
-                  <p className="text-white/60 text-[13px] leading-relaxed">{value}</p>
-                </div>
-              ))}
+            {/* Right: Mappa */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="h-[400px] lg:h-full min-h-[350px]">
+              <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="h-[400px] lg:h-full min-h-[350px]">
-            <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
+          {/* Info pratiche — riga sotto a piena larghezza */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          >
+            {/* Budget */}
+            <div className="sm:col-span-2 rounded-[20px] border border-white/10 p-5 space-y-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+              <div className="flex items-center gap-2">
+                <Wallet className="w-4 h-4 text-[#E94560]" />
+                <h3 className="font-bold text-sm text-white">{t('itin.budget')}</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {itinerary.budgetSummary?.split(/[|·\n]/).filter((s: string) => s.trim().length > 3).slice(0, 6).map((item: string, i: number) => (
+                  <span key={i} className="px-3 py-1.5 rounded-full text-[12px] text-white/70 border border-white/10 bg-white/5 leading-tight">{item.trim()}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Packing list */}
+            <div className="rounded-[20px] border border-white/10 p-5 space-y-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-[#E94560]" />
+                <h3 className="font-bold text-sm text-white">{t('itin.packing')}</h3>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {itinerary.packingList?.split(/[,;]/).filter((s: string) => s.trim().length > 1).map((item: string, i: number) => (
+                  <span key={i} className="px-2.5 py-1 rounded-full text-[11px] font-medium text-white/60 border border-white/8 bg-white/4">{item.trim()}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Periodo + Come arrivare */}
+            <div className="rounded-[20px] border border-white/10 p-5 space-y-4" style={{ background: "rgba(255,255,255,0.04)" }}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sun className="w-3.5 h-3.5 text-[#E94560]" />
+                  <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.besttime')}</h3>
+                </div>
+                <p className="text-white/60 text-[12px] leading-relaxed">{itinerary.bestTime}</p>
+              </div>
+              <div className="border-t border-white/8 pt-3 space-y-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Compass className="w-3.5 h-3.5 text-[#E94560]" />
+                  <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.getting')}</h3>
+                </div>
+                <p className="text-white/60 text-[12px] leading-relaxed">{itinerary.gettingThere}</p>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>
-
       <div className="max-w-6xl mx-auto px-4 md:px-12 pb-24 pt-4" style={{ background: "linear-gradient(180deg, #0f0a10 0%, #1a0f12 8%, #1a0f12 85%, #0f0a10 100%)" }}>
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-8">
