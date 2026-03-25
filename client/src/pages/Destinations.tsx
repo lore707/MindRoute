@@ -8,26 +8,33 @@ import { useI18n } from "@/lib/i18n";
 
 export default function Destinations() {
   const { t } = useI18n();
-const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [streamMessage, setStreamMessage] = useState("");
+  const [streamStep, setStreamStep] = useState(0);
   const [, setLocation] = useLocation();
+
   useEffect(() => {
     const stored = getStoredDestinations();
     if (!stored || stored.length === 0) {
       setLocation("/profiling");
-    } else {
-      setDestinations(stored);
+      return;
     }
+    setDestinations(stored);
   }, [setLocation]);
-
-  if (destinations.length === 0) return null;
 
   const handleSelect = (destId: number) => {
     setSelectedId(destId);
   };
-const [streamMessage, setStreamMessage] = useState("");
-  const [streamStep, setStreamStep] = useState(0);
+
+  const handleContinue = async () => {
+    ...
+  };
+
+  const selectedName = destinations.find(d => d.id === selectedId)?.name;
+
+  if (destinations.length === 0) return null;
 
   const handleContinue = async () => {
     if (!selectedId) return;
