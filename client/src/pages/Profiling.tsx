@@ -259,18 +259,7 @@ export default function Profiling() {
     setShowAnalyzing(false);
 
     try {
-     sessionStorage.setItem("mind_destinations", JSON.stringify(submitMutation.data));
-      sessionStorage.setItem("mind_profiling_input", JSON.stringify({
-        answers: quizAnswersArray,
-        budget: formData.budget,
-        departure: formData.departure,
-        days: durationMap[formData.duration] || 7,
-        leaveDate: getDateString(),
-        companions: formData.companions,
-        travelStyle: formData.travelStyle,
-        constraints: enrichedConstraints,
-        lang: currentLang,
-      }));
+    sessionStorage.setItem("mind_destinations", JSON.stringify(submitMutation.data));
       setLocation("/destinations");
     } catch (error) {
       console.error("Failed to persist destinations:", error);
@@ -550,7 +539,7 @@ export default function Profiling() {
 
  const currentLang = localStorage.getItem("mindroute-lang") || "en";
 
-    submitMutation.mutate({
+const profilingPayload = {
       answers: quizAnswersArray,
       budget: formData.budget,
       departure: formData.departure,
@@ -560,7 +549,10 @@ export default function Profiling() {
       travelStyle: formData.travelStyle,
       constraints: enrichedConstraints,
       lang: currentLang,
-    });
+    };
+
+    sessionStorage.setItem("mind_profiling_input", JSON.stringify(profilingPayload));
+    submitMutation.mutate(profilingPayload);
   };
 
   const canProceedFormStep1 = () => {
