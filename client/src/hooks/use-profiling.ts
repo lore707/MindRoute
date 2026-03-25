@@ -34,6 +34,23 @@ export function useItinerary(destinationId: number) {
   });
 }
 
+export function useMapPointsPolling(itineraryId: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ["mappoints", itineraryId],
+    queryFn: async () => {
+      const res = await fetch(`/api/itinerary/${itineraryId}/mappoints`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: enabled && !!itineraryId,
+    refetchInterval: (data) => {
+      if (data?.ready) return false;
+      return 3000; // riprova ogni 3 secondi finché non sono pronti
+    },
+    staleTime: Infinity,
+  });
+}
+
 export function getStoredDestinations() {
   try {
     const stored = sessionStorage.getItem("mind_destinations");
