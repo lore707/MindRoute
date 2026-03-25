@@ -388,7 +388,7 @@ export async function registerRoutes(
         })
       );
 
-      send("progress", { step: 5, message: "Quasi pronto, ultime rifiniture..." });
+  send("progress", { step: 5, message: "Quasi pronto, ultime rifiniture..." });
 
       const saved = await storage.createItinerary({
         destinationId,
@@ -400,12 +400,102 @@ export async function registerRoutes(
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,
       });
 
+      // Manda done SUBITO — utente vede l'itinerario
       send("done", { itineraryId: saved.id, destinationId });
       res.end();
+
+      // Geocoding in background — non blocca l'utente
+      (async () => {
+        try {
+          async function geocodeBg(query: string): Promise<{ lat: number; lng: number } | null> {
+            try {
+              const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=en`);
+              const d = await r.json();
+              if (d?.[0]) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+              return null;
+            } catch { return null; }
+          }
+
+          const destCoords = await geocodeBg(destinationName);
+          const destLat = destCoords?.lat ?? 0;
+          const destLng = destCoords?.lng ?? 0;
+          const city = destinationName.split(",")[0].trim();
+
+          // Raccogli candidati da affiliateLabels
+          const slotMappingBg: Record<string, string> = {
+            getyourguide_morning: "Mattina", klook_morning: "Mattina", viator_morning: "Mattina",
+            getyourguide_place_morning: "Mattina", klook_place_morning: "Mattina", viator_place_morning: "Mattina",
+            getyourguide_afternoon: "Pomeriggio", klook_afternoon: "Pomeriggio", viator_afternoon: "Pomeriggio",
+            getyourguide_place_afternoon: "Pomeriggio", klook_place_afternoon: "Pomeriggio", viator_place_afternoon: "Pomeriggio",
+            thefork_lunch: "Pranzo", tripadvisor_lunch: "Pranzo",
+            thefork_evening: "Sera", tripadvisor_evening: "Sera",
+          };
+
+          const candidates: { name: string; slot: string; dayNum: number }[] = [];
+          for (const day of (itinerary.days || [])) {
+            if (day.affiliateLabels) {
+              for (const [key, label] of Object.entries(day.affiliateLabels)) {
+                const l = label as string;
+                if (!l || l.length < 3 || /ristoranti\s/i.test(l)) continue;
+                if (!candidates.find(c => c.name === l)) {
+                  candidates.push({ name: l, slot: slotMappingBg[key] || "Mattina", dayNum: day.dayNumber });
+                }
+              }
+            }
+          }
+
+          // Geocodifica max 8 in parallelo
+          const top8 = candidates.slice(0, 8);
+          const results = await Promise.all(
+            top8.map(async (c) => {
+              const coords = await geocodeBg(`${c.name} ${city}`);
+              if (!coords) return null;
+              const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
+              if (dist > 3) return null;
+              return { label: c.name, slot: c.slot, dayNum: c.dayNum, lat: coords.lat, lng: coords.lng };
+            })
+          );
+
+          const validPoints = results.filter(Boolean) as any[];
+          if (validPoints.length === 0) return;
+
+          // Aggiorna i giorni con i mapPoints
+          const updatedDays = (saved.days || []).map((day: any) => {
+            const dayPoints = validPoints.filter(p => p.dayNum === day.dayNumber);
+            if (dayPoints.length > 0) return { ...day, mapPoints: dayPoints };
+            return day;
+          });
+
+          await storage.updateItineraryMapPoints(saved.id, updatedDays);
+        } catch (bgErr) {
+          console.error("Background geocoding error:", bgErr);
+        }
+      })();
+    }
+  });
+
+  // STEP 3c — Aggiorna mapPoints in background
+  app.patch("/api/itinerary/:id/mappoints", async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const { mapPoints } = req.body;
+      await storage.updateItineraryMapPoints(id, mapPoints);
+      res.json({ ok: true });
     } catch (err) {
-      console.error("Stream error:", err);
-      send("error", { message: "Errore nella generazione dell'itinerario." });
-      res.end();
+      res.status(500).json({ message: "Errore aggiornamento mappa" });
+    }
+  });
+
+  // STEP 3d — Polling mapPoints
+  app.get("/api/itinerary/:id/mappoints", async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itinerary = await storage.getItineraryById(id);
+      if (!itinerary) return res.status(404).json({ message: "Not found" });
+      const hasPoints = itinerary.days?.some((d: any) => d.mapPoints?.length > 0);
+      res.json({ ready: hasPoints, days: hasPoints ? itinerary.days : null });
+    } catch (err) {
+      res.status(500).json({ message: "Errore" });
     }
   });
 
