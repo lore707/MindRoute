@@ -7,19 +7,18 @@ export interface IStorage {
   getItinerary(destinationId: number): Promise<Itinerary | undefined>;
   createItinerary(itinerary: InsertItinerary): Promise<Itinerary>;
   clearAll(): Promise<void>;
- saveProfilingInput(input: any): Promise<void>;
+  saveProfilingInput(input: any): Promise<void>;
   getProfilingInput(): Promise<any | undefined>;
   getItineraryById(id: number): Promise<Itinerary | undefined>;
   updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
 }
 
-// Current production behavior uses an in-memory store. This keeps the prototype simple,
-// but data is lost on restart and each request cycle shares the same global state.
 export class MemoryStorage implements IStorage {
   private destinations: Destination[] = [];
   private itineraries: Itinerary[] = [];
   private destIdCounter = 1;
   private itinIdCounter = 1;
+  private profilingInput: any = null;
 
   async getDestinations(): Promise<Destination[]> {
     return this.destinations;
@@ -45,8 +44,6 @@ export class MemoryStorage implements IStorage {
     return newItin;
   }
 
-private profilingInput: any = null;
-
   async clearAll(): Promise<void> {
     this.destinations = [];
     this.itineraries = [];
@@ -54,8 +51,12 @@ private profilingInput: any = null;
     this.itinIdCounter = 1;
   }
 
-async saveProfilingInput(input: any): Promise<void> {
+  async saveProfilingInput(input: any): Promise<void> {
     this.profilingInput = input;
+  }
+
+  async getProfilingInput(): Promise<any | undefined> {
+    return this.profilingInput ?? undefined;
   }
 
   async getItineraryById(id: number): Promise<Itinerary | undefined> {
@@ -68,14 +69,6 @@ async saveProfilingInput(input: any): Promise<void> {
       this.itineraries[idx] = { ...this.itineraries[idx], days: updatedDays };
     }
   }
-  }
-
-  async getProfilingInput(): Promise<any | undefined> {
-    return this.profilingInput ?? undefined;
-  }
 }
 
-// When moving to a real database-backed implementation, swap this export while
-// keeping the IStorage interface stable for the rest of the application.
 export const storage = new MemoryStorage();
-
