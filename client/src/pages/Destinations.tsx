@@ -39,8 +39,9 @@ const [streamMessage, setStreamMessage] = useState("");
     setStreamMessage("Avvio la generazione...");
 
     try {
-      const inputRes = await fetch("/api/profiling/input");
-      const profilingInput = await inputRes.json();
+    const storedInput = sessionStorage.getItem("mind_profiling_input");
+      if (!storedInput) throw new Error("Profiling input non trovato");
+      const profilingInput = JSON.parse(storedInput);
       const currentLang = localStorage.getItem("mindroute-lang") || "en";
       const inputWithLang = { ...profilingInput, lang: currentLang };
 
