@@ -29,91 +29,8 @@ export default function Destinations() {
   };
 
   const handleContinue = async () => {
-   
-const handleContinue = async () => {
-  if (!selectedId) return;
-  const selectedDest = destinations.find(d => d.id === selectedId);
-  if (!selectedDest) return;
-
-  setIsGenerating(true);
-  setStreamStep(0);
-  setStreamMessage("Avvio la generazione...");
-
-  try {
-    const storedInput = sessionStorage.getItem("mind_profiling_input");
-    if (!storedInput) throw new Error("Profiling input non trovato");
-
-    const profilingInput = JSON.parse(storedInput);
-    const currentLang = localStorage.getItem("mindroute-lang") || "en";
-    const inputWithLang = { ...profilingInput, lang: currentLang };
-
-    const res = await fetch("/api/itinerary/generate-stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        input: inputWithLang,
-        destinationName: selectedDest.name,
-        destinationId: selectedId,
-        whyYours: selectedDest.whyYours,
-      }),
-    });
-
-    if (!res.ok) throw new Error("Errore generazione itinerario");
-
-    const reader = res.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-      let currentEvent = "";
-
-      for (const line of lines) {
-        if (line.startsWith("event: ")) {
-          currentEvent = line.slice(7).trim();
-        } else if (line.startsWith("data: ")) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (currentEvent === "progress") {
-              setStreamStep(data.step);
-              setStreamMessage(data.message);
-            } else if (currentEvent === "done") {
-              setLocation(`/itinerary/${selectedId}`);
-              return;
-            } else if (currentEvent === "error") {
-              throw new Error(data.message);
-            }
-          } catch (e) {
-            if (e instanceof Error && e.message !== "Errore generazione itinerario") {
-              console.warn("Parse error", e);
-            }
-          }
-        }
-      }
-    }
-
-    setLocation(`/itinerary/${selectedId}`);
-  } catch (err) {
-    console.error(err);
-    setLocation(`/itinerary/${selectedId}`);
-  } finally {
-    setIsGenerating(false);
-  }
-};
-
-
-  const selectedName = destinations.find(d => d.id === selectedId)?.name;
-
-  if (destinations.length === 0) return null;
-
-  const handleContinue = async () => {
     if (!selectedId) return;
-    const selectedDest = destinations.find(d => d.id === selectedId);
+    const selectedDest = destinations.find((d) => d.id === selectedId);
     if (!selectedDest) return;
 
     setIsGenerating(true);
@@ -121,8 +38,9 @@ const handleContinue = async () => {
     setStreamMessage("Avvio la generazione...");
 
     try {
-    const storedInput = sessionStorage.getItem("mind_profiling_input");
+      const storedInput = sessionStorage.getItem("mind_profiling_input");
       if (!storedInput) throw new Error("Profiling input non trovato");
+
       const profilingInput = JSON.parse(storedInput);
       const currentLang = localStorage.getItem("mindroute-lang") || "en";
       const inputWithLang = { ...profilingInput, lang: currentLang };
@@ -140,23 +58,28 @@ const handleContinue = async () => {
 
       if (!res.ok) throw new Error("Errore generazione itinerario");
 
-      const reader = res.body!.getReader();
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("Streaming non disponibile");
+
       const decoder = new TextDecoder();
       let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
         let currentEvent = "";
+
         for (const line of lines) {
           if (line.startsWith("event: ")) {
             currentEvent = line.slice(7).trim();
           } else if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
+
               if (currentEvent === "progress") {
                 setStreamStep(data.step);
                 setStreamMessage(data.message);
@@ -167,11 +90,14 @@ const handleContinue = async () => {
                 throw new Error(data.message);
               }
             } catch (e) {
-              if (e instanceof Error && e.message !== "Errore generazione itinerario") console.warn("Parse error", e);
+              if (e instanceof Error && e.message !== "Errore generazione itinerario") {
+                console.warn("Parse error", e);
+              }
             }
           }
         }
       }
+
       setLocation(`/itinerary/${selectedId}`);
     } catch (err) {
       console.error(err);
@@ -181,18 +107,20 @@ const handleContinue = async () => {
     }
   };
 
-  const selectedName = destinations.find(d => d.id === selectedId)?.name;
+  const selectedName = destinations.find((d) => d.id === selectedId)?.name;
+
+  if (destinations.length === 0) return null;
 
   return (
     <div className="container max-w-7xl mx-auto px-4 md:px-6 pt-24 pb-20">
       <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
-        <motion.h2 
+        <motion.h2
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl md:text-4xl font-serif font-bold"
           data-testid="text-dest-title"
         >
-          {t('dest.title')}
+          {t("dest.title")}
         </motion.h2>
       </div>
 
@@ -201,23 +129,23 @@ const handleContinue = async () => {
           <motion.div
             key={dest.id}
             initial={{ opacity: 0, y: 30 }}
-            animate={{ 
+            animate={{
               opacity: selectedId && selectedId !== dest.id ? 0.6 : 1,
               y: 0,
-              scale: selectedId === dest.id ? 1.02 : 1
+              scale: selectedId === dest.id ? 1.02 : 1,
             }}
             transition={{ delay: index * 0.1 }}
             onClick={() => handleSelect(dest.id)}
             data-testid={`card-dest-${dest.id}`}
             className={`
               group relative flex flex-col h-full bg-[var(--surface-card)] rounded-2xl overflow-hidden border transition-all duration-300 cursor-pointer
-              ${selectedId === dest.id ? 'border-primary ring-1 ring-primary' : 'border-[var(--border-subtle)] shadow-sm hover:shadow-xl hover:-translate-y-1'}
+              ${selectedId === dest.id ? "border-primary ring-1 ring-primary" : "border-[var(--border-subtle)] shadow-sm hover:shadow-xl hover:-translate-y-1"}
             `}
           >
             <div className="relative h-48 md:h-64 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
-              <img 
-                src={dest.imageUrl || `https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80`}
+              <img
+                src={dest.imageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80"}
                 alt={dest.name}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
@@ -228,21 +156,27 @@ const handleContinue = async () => {
 
             <div className="flex-1 p-5 md:p-8 flex flex-col gap-6">
               <div className="space-y-1">
-                <h4 className="text-[10px] font-sans font-bold text-primary uppercase tracking-[2px]">{t('dest.why')}</h4>
+                <h4 className="text-[10px] font-sans font-bold text-primary uppercase tracking-[2px]">
+                  {t("dest.why")}
+                </h4>
                 <p className="text-muted-foreground font-sans text-sm leading-relaxed">
                   {dest.whyYours}
                 </p>
               </div>
-              
+
               <div className="p-5 bg-[var(--surface-alt)] rounded-xl border border-[var(--border-subtle)]">
-                <h4 className="text-[10px] font-sans font-bold text-foreground uppercase tracking-[2px] mb-2">{t('dest.experience')}</h4>
+                <h4 className="text-[10px] font-sans font-bold text-foreground uppercase tracking-[2px] mb-2">
+                  {t("dest.experience")}
+                </h4>
                 <p className="text-foreground/80 font-serif italic text-[15px] leading-relaxed">
                   "{dest.experiencePreview}"
                 </p>
               </div>
 
               <div className="mt-auto pt-4 border-t border-[var(--border-subtle)]">
-                <h4 className="text-[10px] font-sans font-bold text-foreground uppercase tracking-[2px] mb-2">{t('dest.practical')}</h4>
+                <h4 className="text-[10px] font-sans font-bold text-foreground uppercase tracking-[2px] mb-2">
+                  {t("dest.practical")}
+                </h4>
                 <p className="text-muted-foreground font-sans text-xs leading-relaxed">
                   {dest.practicalInfo}
                 </p>
@@ -254,26 +188,27 @@ const handleContinue = async () => {
 
       <AnimatePresence>
         {selectedId && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             className="mt-16 flex justify-center"
           >
-          <button 
+            <button
               onClick={handleContinue}
               disabled={isGenerating}
               data-testid="button-continue-dest"
               className="btn-primary group px-8 py-4 text-base md:px-12 md:py-5 md:text-lg shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed"
             >
-          {isGenerating ? (
+              {isGenerating ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                   {streamMessage || "Creo il tuo itinerario..."}
                 </>
               ) : (
                 <>
-                  {t('dest.choose')} {selectedName?.split(',')[0]} <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+                  {t("dest.choose")} {selectedName?.split(",")[0]}{" "}
+                  <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
                 </>
               )}
             </button>
