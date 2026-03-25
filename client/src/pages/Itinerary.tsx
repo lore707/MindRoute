@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useRoute, useLocation } from "wouter";
-import { useItinerary } from "@/hooks/use-profiling";
+import { useItinerary, useMapPointsPolling } from "@/hooks/use-profiling";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Wallet, Briefcase,
@@ -126,8 +126,18 @@ export default function Itinerary() {
   const [, params] = useRoute("/itinerary/:id");
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
-  const { data: itinerary, isLoading, error } = useItinerary(id);
+ const { data: itinerary, isLoading, error, refetch } = useItinerary(id);
   const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
+
+  // Polling mapPoints finché non arrivano dal background geocoding
+  const hasMapPoints = itinerary?.days?.some((d: any) => d.mapPoints?.length > 0);
+  const { data: mapData } = useMapPointsPolling(id, !hasMapPoints && !isLoading && !!itinerary);
+
+  useEffect(() => {
+    if (mapData?.ready) {
+      refetch(); // ricarica l'itinerario con i mapPoints aggiornati
+    }
+  }, [mapData?.ready]);
 
   const peakDayIndex = itinerary?.days?.findIndex((_: any, i: number) => i === 3 || i === 4) ?? 3;
 
