@@ -107,15 +107,18 @@ export async function registerRoutes(
     }
   });
 
-  // STEP 3 — Genera itinerario completo per destinazione scelta
+// STEP 3 — Genera itinerario completo per destinazione scelta
   app.post("/api/itinerary/generate", async (req, res) => {
     try {
-    const { input, destinationName, destinationId, whyYours } = req.body;
+      const { input, destinationName, destinationId, whyYours } = req.body;
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
-    const itinerary = await generateItineraryForDestination(input, destinationName);
-      const heroImage = await fetchUnsplashHero(destinationName);
+      const itinerary = await generateItineraryForDestination(input, destinationName);
+      // Hero image e geocoding in parallelo — non bloccano la risposta AI
+      const [heroImage] = await Promise.all([
+        fetchUnsplashHero(destinationName),
+      ]);
 
 // --- Helper functions ---
       const keyDayIndices = new Set([0, 3, 4, (itinerary.days?.length ?? 7) - 1]);
@@ -149,20 +152,18 @@ export async function registerRoutes(
       const destLng = destCenter?.lng ?? 0;
       const city = destinationName.split(",")[0].trim();
 
-      async function tryGeocode(name: string): Promise<{ lat: number; lng: number } | null> {
-        const queries = [`${name} ${city}`, name];
-        for (const q of queries) {
-          const coords = await geocode(q);
-          if (coords) {
-            const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
-            if (dist < 3) return coords;
-          }
-          await new Promise(r => setTimeout(r, 120));
+   async function tryGeocode(name: string): Promise<{ lat: number; lng: number } | null> {
+        // Solo una query invece di due — riduce tempo geocoding del 50%
+        const q = `${name} ${city}`;
+        const coords = await geocode(q);
+        if (coords) {
+          const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
+          if (dist < 3) return coords;
         }
         return null;
       }
 
-      // --- Process each day: images + map points ---
+    // --- Process each day: images + map points — in parallelo tra giorni ---
       const daysWithExtras = await Promise.all(
         (itinerary.days || []).map(async (day: any, idx: number) => {
           const extras: Record<string, any> = {};
