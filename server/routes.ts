@@ -337,8 +337,43 @@ export async function registerRoutes(
         return null;
       }
 
-      send("progress", { step: 4, message: "Piazzo i punti sulla mappa..." });
+     send("progress", { step: 4, message: "Piazzo i punti sulla mappa..." });
 
+      // Raccogli max 5 nomi da geocodificare da tutto l'itinerario — non uno per slot per giorno
+      const slotMapping: Record<string, string> = {
+        getyourguide_morning: "Mattina", klook_morning: "Mattina", viator_morning: "Mattina",
+        getyourguide_place_morning: "Mattina", klook_place_morning: "Mattina", viator_place_morning: "Mattina",
+        getyourguide_afternoon: "Pomeriggio", klook_afternoon: "Pomeriggio", viator_afternoon: "Pomeriggio",
+        getyourguide_place_afternoon: "Pomeriggio", klook_place_afternoon: "Pomeriggio", viator_place_afternoon: "Pomeriggio",
+        thefork_lunch: "Pranzo", tripadvisor_lunch: "Pranzo",
+        thefork_evening: "Sera", tripadvisor_evening: "Sera",
+      };
+
+      // Estrai candidati da tutti i giorni
+      const geocodeCandidates: { name: string; slot: string; dayNum: number }[] = [];
+      for (const day of (itinerary.days || [])) {
+        if (day.affiliateLabels) {
+          for (const [key, label] of Object.entries(day.affiliateLabels)) {
+            const l = label as string;
+            if (!l || l.length < 3 || /ristoranti\s/i.test(l)) continue;
+            if (!geocodeCandidates.find(c => c.name === l)) {
+              geocodeCandidates.push({ name: l, slot: slotMapping[key] || "Mattina", dayNum: day.dayNumber });
+            }
+          }
+        }
+      }
+
+      // Geocodifica max 5 in parallelo
+      const top5 = geocodeCandidates.slice(0, 5);
+      const geocodeResults = await Promise.all(
+        top5.map(async (c) => {
+          const coords = await tryGeocode(c.name);
+          return coords ? { label: c.name, slot: c.slot, dayNum: c.dayNum, lat: coords.lat, lng: coords.lng } : null;
+        })
+      );
+      const globalMapPoints = geocodeResults.filter(Boolean) as any[];
+
+      // Fetch immagini giorni chiave in parallelo
       const daysWithExtras = await Promise.all(
         (itinerary.days || []).map(async (day: any, idx: number) => {
           const extras: Record<string, any> = {};
@@ -346,61 +381,9 @@ export async function registerRoutes(
             const img = await fetchDayImage(day.imageQuery);
             if (img) extras.dayImage = img;
           }
-          const mapPoints: any[] = [];
-          const found = new Set<string>();
-          if (day.affiliateLabels) {
-            const slotMapping: Record<string, string> = {
-              getyourguide_morning: "Mattina", klook_morning: "Mattina", viator_morning: "Mattina",
-              getyourguide_place_morning: "Mattina", klook_place_morning: "Mattina", viator_place_morning: "Mattina",
-              getyourguide_afternoon: "Pomeriggio", klook_afternoon: "Pomeriggio", viator_afternoon: "Pomeriggio",
-              getyourguide_place_afternoon: "Pomeriggio", klook_place_afternoon: "Pomeriggio", viator_place_afternoon: "Pomeriggio",
-              thefork_lunch: "Pranzo", tripadvisor_lunch: "Pranzo",
-              thefork_evening: "Sera", tripadvisor_evening: "Sera",
-            };
-            for (const [key, label] of Object.entries(day.affiliateLabels)) {
-              if (found.has(label) || !label || (label as string).length < 3) continue;
-              if (/ristoranti\s/i.test(label as string)) continue;
-              const slot = slotMapping[key] || "Mattina";
-              const coords = await tryGeocode(label as string);
-              if (coords) {
-                mapPoints.push({ label, slot, lat: coords.lat, lng: coords.lng });
-                found.add(label as string);
-              }
-            }
-          }
-          if (mapPoints.length < 3) {
-            const slots = [
-              { text: day.morning, slot: "Mattina" },
-              { text: day.afternoon, slot: "Pomeriggio" },
-              { text: day.lunch, slot: "Pranzo" },
-              { text: day.evening, slot: "Sera" },
-            ];
-            for (const { text, slot } of slots) {
-              if (!text || text.length < 5) continue;
-              if (/volo|aeroporto|airport|trasferimento|transfer|check.?in|check.?out|partenza|ritorno/i.test(text)) continue;
-              const candidates: string[] = [];
-              const patterns = [
-                /(?:a|al|alla|alle|verso|nel|nella|to|at|in|del|della|das|do|da)\s+([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s''-]{2,40})(?:\s*[—,\.\-–:(]|$)/,
-                /^([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s''-]{2,40})(?:\s*[—,\.\-–:])/,
-              ];
-              for (const p of patterns) {
-                const m = text.match(p);
-                if (m?.[1] && m[1].trim().length > 2) candidates.push(m[1].trim());
-              }
-              const firstSeg = text.split(/\s*[—\-–]\s*/)[0].trim();
-              if (firstSeg.length > 3 && firstSeg.length < 45 && /^[A-Z]/.test(firstSeg)) candidates.push(firstSeg);
-              for (const name of candidates) {
-                if (found.has(name)) continue;
-                const coords = await tryGeocode(name);
-                if (coords) {
-                  mapPoints.push({ label: name, slot, lat: coords.lat, lng: coords.lng });
-                  found.add(name);
-                  break;
-                }
-              }
-            }
-          }
-          if (mapPoints.length > 0) extras.mapPoints = mapPoints;
+          // Assegna map points di questo giorno
+          const dayPoints = globalMapPoints.filter(p => p.dayNum === day.dayNumber);
+          if (dayPoints.length > 0) extras.mapPoints = dayPoints;
           return { ...day, ...extras };
         })
       );
