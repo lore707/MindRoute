@@ -330,8 +330,33 @@ export default function Itinerary() {
                   <Wallet className="w-4 h-4 text-[#E94560]" />
                   <span className="text-xs font-bold text-white/50 uppercase tracking-[2px]">{t('itin.budget')}</span>
                 </div>
-                {/* Estrai totale */}
-                {(() => {
+           {(() => {
+                  try {
+                    const parsed = JSON.parse(itinerary.budgetSummary);
+                    if (parsed?.items) {
+                      return (
+                        <div className="space-y-0 overflow-hidden rounded-[14px]" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+                          {parsed.items.map((item: any, i: number) => {
+                            const isTotal = /totale/i.test(item.label);
+                            return (
+                              <div key={i} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-4 py-2.5" style={{
+                                background: isTotal ? "rgba(233,69,96,0.08)" : i % 2 === 0 ? "rgba(255,255,255,0.02)" : "transparent",
+                                borderTop: i > 0 ? "1px solid rgba(255,255,255,0.04)" : "none",
+                                borderLeft: isTotal ? "3px solid #E94560" : "3px solid transparent",
+                              }}>
+                                <div>
+                                  <span className={`text-[12px] font-bold ${isTotal ? "text-[#E94560]" : "text-white/80"}`}>{item.label}</span>
+                                  {item.detail && <span className="text-[11px] text-white/35 ml-2">{item.detail}</span>}
+                                </div>
+                                <span className="text-[11px] text-white/40 text-right">{item.perPerson}/pp</span>
+                                <span className={`text-[12px] font-bold text-right ${isTotal ? "text-[#E94560]" : "text-white/70"}`}>{item.total}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+                  } catch {}
                   const lines = itinerary.budgetSummary?.split(/[|·\n]/).filter((s: string) => s.trim().length > 3) ?? [];
                   const totalLine = lines.find((l: string) => /totale|total|TOTALE/i.test(l));
                   const otherLines = lines.filter((l: string) => !/totale|total|TOTALE/i.test(l));
@@ -398,20 +423,36 @@ export default function Itinerary() {
 
             {/* Colonna destra: packing + periodo + come arrivare */}
             <div className="flex flex-col gap-4">
-
-              {/* Packing list */}
+{/* Packing list — griglia con emoji */}
               <div className="rounded-[24px] p-5 flex-1" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Briefcase className="w-4 h-4 text-[#E94560]" />
                   <h3 className="font-bold text-sm text-white">{t('itin.packing')}</h3>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {itinerary.packingList?.split(/[,;]/).filter((s: string) => s.trim().length > 1).map((item: string, i: number) => (
-                    <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-white/70" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                      {item.trim()}
-                    </span>
-                  ))}
-                </div>
+                {(() => {
+                  try {
+                    const parsed = JSON.parse(itinerary.packingList);
+                    if (parsed?.items) {
+                      return (
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {parsed.items.map((item: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-[10px]" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                              <span className="text-base leading-none">{item.emoji}</span>
+                              <span className="text-[12px] text-white/70 font-medium">{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                  } catch {}
+                  return (
+                    <div className="flex flex-wrap gap-1.5">
+                      {itinerary.packingList?.split(/[,;]/).filter((s: string) => s.trim().length > 1).map((item: string, i: number) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-white/70" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>{item.trim()}</span>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Periodo migliore */}
@@ -423,13 +464,38 @@ export default function Itinerary() {
                 <p className="text-white/60 text-[12px] leading-relaxed">{itinerary.bestTime}</p>
               </div>
 
-              {/* Come arrivare */}
+              {/* Come arrivare — step strutturati */}
               <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <Plane className="w-4 h-4 text-[#E94560]" />
                   <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.getting')}</h3>
                 </div>
-                <p className="text-white/60 text-[12px] leading-relaxed">{itinerary.gettingThere}</p>
+                {(() => {
+                  try {
+                    const parsed = JSON.parse(itinerary.gettingThere);
+                    if (parsed?.steps) {
+                      return (
+                        <div className="space-y-2.5">
+                          {parsed.steps.map((step: any, i: number) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#E94560] mt-1.5 shrink-0" />
+                              <div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[11px] font-bold text-white/80">{step.from} → {step.to}</span>
+                                  <span className="text-[10px] text-white/40 px-1.5 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>{step.method}</span>
+                                  <span className="text-[10px] text-white/40">{step.duration}</span>
+                                  {step.cost && <span className="text-[10px] text-[#E94560]/70 font-bold">{step.cost}</span>}
+                                </div>
+                                {step.notes && <p className="text-[10px] text-white/30 mt-0.5">{step.notes}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                  } catch {}
+                  return <p className="text-white/60 text-[12px] leading-relaxed">{itinerary.gettingThere}</p>;
+                })()}
               </div>
 
             </div>
