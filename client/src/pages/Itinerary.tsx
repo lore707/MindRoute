@@ -284,13 +284,14 @@ export default function Itinerary() {
       )}
 
  {/* ── PANORAMICA REDESIGN ─────────────────────────────── */}
-      <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #1a0d2e 0%, #221035 40%, #1e0d2a 100%)" }}>
+     <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0d1a2e 0%, #0f2040 30%, #112244 60%, #0d1a2e 100%)" }}>
         {/* Top border glow */}
         <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, #E94560, #9b59b6, #E94560, transparent)" }} />
         {/* Subtle radial glow */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-[0.06]" style={{ background: "radial-gradient(circle, #E94560, transparent 70%)" }} />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] opacity-[0.04]" style={{ background: "radial-gradient(circle, #9b59b6, transparent 70%)" }} />
+     <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-[700px] h-[700px] opacity-[0.06]" style={{ background: "radial-gradient(circle, #4a9eff, transparent 65%)" }} />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] opacity-[0.04]" style={{ background: "radial-gradient(circle, #2060b0, transparent 65%)" }} />
+          <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)", backgroundSize: "32px 32px" }} />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 md:px-12 py-14">
@@ -413,61 +414,56 @@ export default function Itinerary() {
             </div>
           </div>
 
-          {/* ── ROW 2: Mappa + Packing + Info ── */}
+       {/* ── ROW 2: Mappa full width ── */}
+          <div className="rounded-[24px] overflow-hidden mb-5" style={{ height: "420px", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
+          </div>
+
+          {/* ── ROW 3: Packing + Periodo + Trasporti ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-            {/* Mappa — occupa 2 colonne */}
-            <div className="lg:col-span-2 rounded-[24px] overflow-hidden" style={{ height: "420px", border: "1px solid rgba(255,255,255,0.08)" }}>
-              <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
+            {/* Packing list — griglia con emoji */}
+            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Briefcase className="w-4 h-4 text-[#E94560]" />
+                <h3 className="font-bold text-sm text-white">{t('itin.packing')}</h3>
+              </div>
+              {(() => {
+                try {
+                  const parsed = JSON.parse(itinerary.packingList);
+                  if (parsed?.items) {
+                    return (
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {parsed.items.map((item: any, i: number) => (
+                          <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-[10px]" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                            <span className="text-base leading-none">{item.emoji}</span>
+                            <span className="text-[12px] text-white/70 font-medium">{item.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                } catch {}
+                return (
+                  <div className="flex flex-wrap gap-1.5">
+                    {itinerary.packingList?.split(/[,;]/).filter((s: string) => s.trim().length > 1).map((item: string, i: number) => (
+                      <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-white/70" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>{item.trim()}</span>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* Colonna destra: packing + periodo + come arrivare */}
-            <div className="flex flex-col gap-4">
-{/* Packing list — griglia con emoji */}
-              <div className="rounded-[24px] p-5 flex-1" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Briefcase className="w-4 h-4 text-[#E94560]" />
-                  <h3 className="font-bold text-sm text-white">{t('itin.packing')}</h3>
-                </div>
-                {(() => {
-                  try {
-                    const parsed = JSON.parse(itinerary.packingList);
-                    if (parsed?.items) {
-                      return (
-                        <div className="grid grid-cols-1 gap-1.5">
-                          {parsed.items.map((item: any, i: number) => (
-                            <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-[10px]" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                              <span className="text-base leading-none">{item.emoji}</span>
-                              <span className="text-[12px] text-white/70 font-medium">{item.label}</span>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }
-                  } catch {}
-                  return (
-                    <div className="flex flex-wrap gap-1.5">
-                      {itinerary.packingList?.split(/[,;]/).filter((s: string) => s.trim().length > 1).map((item: string, i: number) => (
-                        <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-white/70" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>{item.trim()}</span>
-                      ))}
-                    </div>
-                  );
-                })()}
+            {/* Periodo migliore */}
+            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Sun className="w-4 h-4 text-[#E94560]" />
+                <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.besttime')}</h3>
               </div>
-
-              {/* Periodo migliore */}
-              <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <p className="text-white/60 text-[12px] leading-relaxed mb-5">{itinerary.bestTime}</p>
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }} className="pt-4 space-y-2">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sun className="w-4 h-4 text-[#E94560]" />
-                  <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.besttime')}</h3>
-                </div>
-                <p className="text-white/60 text-[12px] leading-relaxed">{itinerary.bestTime}</p>
-              </div>
-
-              {/* Come arrivare — step strutturati */}
-              <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <Plane className="w-4 h-4 text-[#E94560]" />
+                  <Plane className="w-3.5 h-3.5 text-[#E94560]" />
                   <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.getting')}</h3>
                 </div>
                 {(() => {
@@ -497,8 +493,30 @@ export default function Itinerary() {
                   return <p className="text-white/60 text-[12px] leading-relaxed">{itinerary.gettingThere}</p>;
                 })()}
               </div>
-
             </div>
+
+            {/* Note di viaggio — slot libero per info extra */}
+            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Star className="w-4 h-4 text-[#E94560]" />
+                <h3 className="font-bold text-xs text-white uppercase tracking-wider">Da sapere</h3>
+              </div>
+              <div className="space-y-2.5">
+                {[
+                  { emoji: "💳", text: "Controlla se serve il visto per la destinazione" },
+                  { emoji: "📱", text: "Attiva il roaming o compra una SIM locale" },
+                  { emoji: "🏥", text: "Verifica la copertura della tua assicurazione viaggio" },
+                  { emoji: "💊", text: "Porta farmaci di base e prescrizioni in inglese" },
+                  { emoji: "🔌", text: "Verifica il tipo di presa elettrica locale" },
+                ].map((tip, i) => (
+                  <div key={i} className="flex items-start gap-2.5 px-3 py-2 rounded-[10px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <span className="text-sm leading-none mt-0.5">{tip.emoji}</span>
+                    <span className="text-[11px] text-white/50 leading-relaxed">{tip.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
 
         </div>
