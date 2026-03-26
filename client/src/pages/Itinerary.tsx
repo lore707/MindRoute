@@ -283,20 +283,164 @@ export default function Itinerary() {
         </motion.div>
       )}
 
-   {/* ── PANORAMICA — sfondo differenziato ─────────────────── */}
-      <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a0814 0%, #130a18 20%, #1a0d1a 50%, #130a18 80%, #0a0814 100%)" }}>
-        {/* Decorative background elements */}
+ {/* ── PANORAMICA REDESIGN ─────────────────────────────── */}
+      <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #1a0d2e 0%, #221035 40%, #1e0d2a 100%)" }}>
+        {/* Top border glow */}
+        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, #E94560, #9b59b6, #E94560, transparent)" }} />
+        {/* Subtle radial glow */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#E94560]/20 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#E94560]/20 to-transparent" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, #E94560, transparent 70%)" }} />
-          <svg className="absolute inset-0 w-full h-full opacity-[0.04]" preserveAspectRatio="none" viewBox="0 0 1440 600">
-            <path d="M-20 200 C 200 140, 400 300, 620 220 S 900 100, 1100 240 S 1350 360, 1460 200" fill="none" stroke="#E94560" strokeWidth="1.5"/>
-            <path d="M-20 400 C 180 340, 350 460, 580 380 S 820 280, 1050 420 S 1300 520, 1460 400" fill="none" stroke="#E94560" strokeWidth="1"/>
-          </svg>
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-[0.06]" style={{ background: "radial-gradient(circle, #E94560, transparent 70%)" }} />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] opacity-[0.04]" style={{ background: "radial-gradient(circle, #9b59b6, transparent 70%)" }} />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 md:px-12 py-12">
+        <div className="relative max-w-7xl mx-auto px-4 md:px-12 py-14">
+
+          {/* ── HEADER ── */}
+          <div className="mb-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(233,69,96,0.15)", border: "1px solid rgba(233,69,96,0.3)" }}>
+                <Compass className="w-4 h-4 text-[#E94560]" />
+              </div>
+              <h2 className="text-2xl font-serif font-bold text-white">Panoramica del viaggio</h2>
+              <div className="ml-auto flex items-center gap-2 px-3 py-1 rounded-full text-xs text-white/40" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <Calendar className="w-3 h-3" />
+                {itinerary.days?.length} giorni
+              </div>
+            </div>
+            {itinerary.tripSummary && (
+              <p className="text-white/60 font-serif italic text-lg leading-relaxed max-w-3xl ml-12">{itinerary.tripSummary}</p>
+            )}
+            {itinerary.highlights && itinerary.highlights.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4 ml-12">
+                {itinerary.highlights.map((h: string, i: number) => (
+                  <span key={i} className="px-3 py-1.5 rounded-full text-xs font-bold text-[#E94560]" style={{ background: "rgba(233,69,96,0.08)", border: "1px solid rgba(233,69,96,0.2)" }}>{h}</span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── ROW 1: Budget totale + CTA ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+
+            {/* Budget totale — hero number */}
+            <div className="lg:col-span-2 rounded-[24px] p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.12), rgba(155,89,182,0.08))", border: "1px solid rgba(233,69,96,0.2)" }}>
+              <div className="absolute top-0 right-0 w-40 h-40 opacity-[0.06]" style={{ background: "radial-gradient(circle, #E94560, transparent)" }} />
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-4">
+                  <Wallet className="w-4 h-4 text-[#E94560]" />
+                  <span className="text-xs font-bold text-white/50 uppercase tracking-[2px]">{t('itin.budget')}</span>
+                </div>
+                {/* Estrai totale */}
+                {(() => {
+                  const lines = itinerary.budgetSummary?.split(/[|·\n]/).filter((s: string) => s.trim().length > 3) ?? [];
+                  const totalLine = lines.find((l: string) => /totale|total|TOTALE/i.test(l));
+                  const otherLines = lines.filter((l: string) => !/totale|total|TOTALE/i.test(l));
+                  return (
+                    <>
+                      {totalLine && (
+                        <div className="mb-4 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                          <p className="text-[#E94560] font-bold text-lg leading-tight">{totalLine.trim()}</p>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        {otherLines.slice(0, 6).map((item: string, i: number) => {
+                          const parts = item.trim().split(/[:—–]/);
+                          const label = parts[0]?.trim();
+                          const value = parts.slice(1).join("—").trim();
+                          return (
+                            <div key={i} className="flex items-center justify-between gap-4 py-1.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                              <span className="text-white/50 text-[12px] leading-tight flex-1">{label}</span>
+                              {value && <span className="text-white/80 text-[12px] font-bold text-right shrink-0">{value}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* CTA prenotazione */}
+            <div className="rounded-[24px] p-6 flex flex-col gap-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Flame className="w-4 h-4 text-[#E94560]" />
+                <h3 className="font-serif font-bold text-white text-base">Pronto a partire?</h3>
+              </div>
+              <div className="flex flex-col gap-2.5 flex-1">
+                {regionLinks.slice(0, 2).map(({ key, url, icon, label }) => (
+                  <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-between w-full px-4 py-3 rounded-xl font-bold text-sm text-white transition-all hover:scale-[1.02] hover:brightness-110"
+                    style={{ background: key === 'skyscanner' ? 'rgba(14,165,233,0.18)' : 'rgba(233,69,96,0.18)', border: `1px solid ${key === 'skyscanner' ? 'rgba(14,165,233,0.35)' : 'rgba(233,69,96,0.35)'}` }}>
+                    <span className="flex items-center gap-2">{icon} {label}</span>
+                    <ExternalLink className="w-3.5 h-3.5 opacity-50" />
+                  </a>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                {regionLinks.slice(2).map(({ key, url, icon, label }) => (
+                  <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold text-white/50 hover:text-white border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all">
+                    {icon} {label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ── ROW 2: Mappa + Packing + Info ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+            {/* Mappa — occupa 2 colonne */}
+            <div className="lg:col-span-2 rounded-[24px] overflow-hidden" style={{ height: "420px", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName} />
+            </div>
+
+            {/* Colonna destra: packing + periodo + come arrivare */}
+            <div className="flex flex-col gap-4">
+
+              {/* Packing list */}
+              <div className="rounded-[24px] p-5 flex-1" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Briefcase className="w-4 h-4 text-[#E94560]" />
+                  <h3 className="font-bold text-sm text-white">{t('itin.packing')}</h3>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {itinerary.packingList?.split(/[,;]/).filter((s: string) => s.trim().length > 1).map((item: string, i: number) => (
+                    <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-white/70" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                      {item.trim()}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Periodo migliore */}
+              <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sun className="w-4 h-4 text-[#E94560]" />
+                  <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.besttime')}</h3>
+                </div>
+                <p className="text-white/60 text-[12px] leading-relaxed">{itinerary.bestTime}</p>
+              </div>
+
+              {/* Come arrivare */}
+              <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Plane className="w-4 h-4 text-[#E94560]" />
+                  <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.getting')}</h3>
+                </div>
+                <p className="text-white/60 text-[12px] leading-relaxed">{itinerary.gettingThere}</p>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+        {/* Bottom border */}
+        <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.3), transparent)" }} />
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 md:px-12 pb-24 pt-4"
           {/* Header */}
           <div className="mb-10 space-y-4">
             <div className="flex items-center gap-3">
