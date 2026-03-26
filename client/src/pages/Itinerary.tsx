@@ -573,153 +573,333 @@ export default function Itinerary() {
 function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
   day: any; isOpen: boolean; onToggle: () => void; index: number; isPeak: boolean; t: (key: string) => string
 }) {
+  const slots = [
+    {
+      key: "morning", icon: "🌅", label: t("itin.morning"), text: day.morning,
+      link: day.affiliateLinks?.getyourguide_morning ?? day.affiliateLinks?.klook_morning ?? day.affiliateLinks?.viator_morning ?? day.affiliateLinks?.skyscanner,
+      placeLink: day.affiliateLinks?.getyourguide_place_morning ?? day.affiliateLinks?.klook_place_morning ?? day.affiliateLinks?.viator_place_morning,
+      isActivity: true, color: "#E94560",
+    },
+    {
+      key: "lunch", icon: "🍽️", label: t("itin.lunch"), text: day.lunch,
+      link: day.affiliateLinks?.thefork_lunch ?? day.affiliateLinks?.tripadvisor_lunch,
+      isActivity: false, color: "#FF8C42",
+    },
+    {
+      key: "afternoon", icon: "☀️", label: t("itin.afternoon"), text: day.afternoon,
+      link: day.affiliateLinks?.getyourguide_afternoon ?? day.affiliateLinks?.klook_afternoon ?? day.affiliateLinks?.viator_afternoon ?? day.affiliateLinks?.booking_hotel,
+      placeLink: day.affiliateLinks?.getyourguide_place_afternoon ?? day.affiliateLinks?.klook_place_afternoon ?? day.affiliateLinks?.viator_place_afternoon,
+      isActivity: true, color: "#4ECDC4",
+    },
+    {
+      key: "evening", icon: "🌙", label: t("itin.evening"), text: day.evening,
+      link: day.affiliateLinks?.thefork_evening ?? day.affiliateLinks?.tripadvisor_evening ?? day.affiliateLinks?.tripadvisor_evening_fallback,
+      isActivity: false, color: "#9B59B6",
+    },
+  ];
+
+  const hasAnyLink = slots.some(s => s.link || (s as any).placeLink);
+  const filledSlots = slots.filter(s => s.text && s.text.length > 3).length;
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
+      transition={{ delay: index * 0.06, duration: 0.4 }}
+      className="group"
     >
-      <Collapsible.Root open={isOpen} onOpenChange={onToggle} className="group">
-        <div className={`rounded-[20px] transition-all duration-300 overflow-hidden ${
-          isPeak
-            ? isOpen
-              ? 'border-2 border-[#E94560] shadow-[0_0_40px_rgba(233,69,96,0.15)]'
-              : 'border border-[#E94560]/40 hover:border-[#E94560]/70'
+      <div
+        className="rounded-[24px] overflow-hidden transition-all duration-300"
+        style={{
+          background: isPeak
+            ? "linear-gradient(135deg, rgba(233,69,96,0.10), rgba(233,69,96,0.04), rgba(155,89,182,0.06))"
             : isOpen
-              ? 'border border-white/20 shadow-xl'
-              : 'border border-white/10 hover:border-white/20'
-        }`}
-          style={{ background: isPeak ? "linear-gradient(135deg, rgba(233,69,96,0.08), rgba(233,69,96,0.03))" : isOpen ? "rgba(35,18,22,0.95)" : "rgba(255,255,255,0.06)" }}
+              ? "rgba(255,255,255,0.05)"
+              : "rgba(255,255,255,0.03)",
+          border: isPeak
+            ? isOpen ? "1.5px solid rgba(233,69,96,0.4)" : "1px solid rgba(233,69,96,0.25)"
+            : isOpen
+              ? "1px solid rgba(255,255,255,0.12)"
+              : "1px solid rgba(255,255,255,0.07)",
+          boxShadow: isPeak && isOpen ? "0 0 40px rgba(233,69,96,0.08)" : "none",
+        }}
+      >
+        {/* ── HEADER ROW ── */}
+        <button
+          onClick={onToggle}
+          className="w-full text-left"
+          data-testid={`day-trigger-${index}`}
         >
-          <Collapsible.Trigger className="w-full flex items-center justify-between p-5 md:p-7 text-left" data-testid={`day-trigger-${index}`}>
-            <div className="flex items-center gap-4 md:gap-6">
-              <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center font-bold text-xl font-serif transition-all shrink-0 ${
-                isPeak
-                  ? 'bg-[#E94560] text-white shadow-[0_4px_20px_rgba(233,69,96,0.4)]'
-                  : isOpen
-                    ? 'bg-white/10 text-white'
-                    : 'bg-white/5 text-white/50 group-hover:bg-white/10 group-hover:text-white'
-              }`}>
-                {day.dayNumber}
-              </div>
-              <div className="space-y-1">
-                {isPeak && (
-                  <div className="flex items-center gap-1.5">
-                    <Flame className="w-3 h-3 text-[#E94560]" />
-                    <span className="text-[10px] font-bold text-[#E94560] uppercase tracking-[2px]">Momento clou</span>
-                  </div>
-                )}
-                <h4 className={`font-serif font-bold text-lg md:text-xl leading-tight transition-colors ${
-                  isOpen || isPeak ? 'text-white' : 'text-white/70 group-hover:text-white'
-                }`}>{day.title}</h4>
-              </div>
-            </div>
-            <ChevronDown className={`w-5 h-5 text-white/30 transition-transform duration-300 shrink-0 ml-4 ${isOpen ? 'rotate-180 text-white/60' : ''}`} />
-          </Collapsible.Trigger>
+          <div className="flex items-stretch gap-0">
 
-          <Collapsible.Content className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-            <div className="relative px-5 md:px-7 pb-8 pt-0 overflow-hidden">
-              {day.dayImage && (
-                <>
-                  <img src={day.dayImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  <div className="absolute inset-0 bg-gradient-to-b from-[#0a0814]/60 via-[#0a0814]/20 to-[#0a0814]/60" />
-                </>
+            {/* Day number column */}
+            <div
+              className="flex flex-col items-center justify-center px-5 py-5 shrink-0 relative"
+              style={{
+                width: "72px",
+                background: isPeak
+                  ? "linear-gradient(180deg, #E94560, #c73550)"
+                  : "rgba(255,255,255,0.04)",
+                borderRight: "1px solid rgba(255,255,255,0.06)",
+              }}
+            >
+              {isPeak && (
+                <div className="absolute -top-0.5 left-1/2 -translate-x-1/2">
+                  <Flame className="w-3 h-3 text-yellow-300/80" />
+                </div>
               )}
-              <div className="relative z-10">
-                <div className="w-full h-px bg-white/12 mb-7" />
-                <div className="space-y-7">
-                  {[
-                    {
-                      slot: 'morning', icon: <Clock className="w-3.5 h-3.5" />, label: t('itin.morning'), text: day.morning,
-                      link: day.affiliateLinks?.getyourguide_morning ?? day.affiliateLinks?.klook_morning ?? day.affiliateLinks?.viator_morning,
-                      placeLink: day.affiliateLinks?.getyourguide_place_morning ?? day.affiliateLinks?.klook_place_morning ?? day.affiliateLinks?.viator_place_morning,
-                      isActivity: true,
-                    },
-                    {
-                      slot: 'lunch', icon: <Utensils className="w-3.5 h-3.5" />, label: t('itin.lunch'), text: day.lunch,
-                      link: day.affiliateLinks?.thefork_lunch ?? day.affiliateLinks?.tripadvisor_lunch,
-                      isActivity: false,
-                    },
-                    {
-                      slot: 'afternoon', icon: <Sun className="w-3.5 h-3.5" />, label: t('itin.afternoon'), text: day.afternoon,
-                      link: day.affiliateLinks?.getyourguide_afternoon ?? day.affiliateLinks?.klook_afternoon ?? day.affiliateLinks?.viator_afternoon,
-                      placeLink: day.affiliateLinks?.getyourguide_place_afternoon ?? day.affiliateLinks?.klook_place_afternoon ?? day.affiliateLinks?.viator_place_afternoon,
-                      isActivity: true,
-                    },
-                    {
-                      slot: 'evening', icon: <Clock className="w-3.5 h-3.5" />, label: t('itin.evening'), text: day.evening,
-                      link: day.affiliateLinks?.thefork_evening ?? day.affiliateLinks?.tripadvisor_evening ?? day.affiliateLinks?.tripadvisor_evening_fallback,
-                      isActivity: false,
-                    },
-                  ].map(({ slot, icon, label, text, link, placeLink, isActivity }) => (
-                    <div key={slot} className="space-y-3">
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-[#E94560] uppercase tracking-[2px]">
-                        {icon} {label}
-                      </div>
-                      <p className="text-white/70 font-sans leading-relaxed text-[14px] md:text-[15px]">{text}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {link && (
-                          <a
-                            href={link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[1px] rounded-xl border transition-all duration-200 ${
-                              isActivity
-                                ? 'bg-[#E94560]/10 text-[#E94560] border-[#E94560]/20 hover:bg-[#E94560] hover:text-white'
-                                : 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500 hover:text-white'
-                            }`}
-                          >
-                            {isActivity ? <Ticket className="w-3 h-3" /> : <Utensils className="w-3 h-3" />}
-                            {(() => {
-                              const linkKey = isActivity
-                                ? (slot === 'morning'
-                                  ? (day.affiliateLinks?.getyourguide_morning ? 'getyourguide_morning' : day.affiliateLinks?.klook_morning ? 'klook_morning' : 'viator_morning')
-                                  : (day.affiliateLinks?.getyourguide_afternoon ? 'getyourguide_afternoon' : day.affiliateLinks?.klook_afternoon ? 'klook_afternoon' : 'viator_afternoon'))
-                                : (slot === 'lunch'
-                                  ? (day.affiliateLinks?.thefork_lunch ? 'thefork_lunch' : 'tripadvisor_lunch')
-                                  : (day.affiliateLinks?.thefork_evening ? 'thefork_evening' : day.affiliateLinks?.tripadvisor_evening ? 'tripadvisor_evening' : 'tripadvisor_evening_fallback'));
-                              const label = day.affiliateLabels?.[linkKey];
-                              if (label) return label;
-                              return isActivity ? "Prenota attività" : (day.affiliateLinks?.thefork_lunch || day.affiliateLinks?.thefork_evening ? "Prenota tavolo" : "Ristoranti");
-                            })()}
-                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                          </a>
-                        )}
-                        {placeLink && (
-                          <a
-                            href={placeLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-bold uppercase tracking-[1px] rounded-xl bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 hover:text-white transition-all"
-                          >
-                            <Ticket className="w-3 h-3" /> {(() => {
-                              const placeKey = slot === 'morning'
-                                ? (day.affiliateLinks?.getyourguide_place_morning ? 'getyourguide_place_morning' : day.affiliateLinks?.klook_place_morning ? 'klook_place_morning' : 'viator_place_morning')
-                                : (day.affiliateLinks?.getyourguide_place_afternoon ? 'getyourguide_place_afternoon' : day.affiliateLinks?.klook_place_afternoon ? 'klook_place_afternoon' : 'viator_place_afternoon');
-                              return day.affiliateLabels?.[placeKey] || "Tour del luogo";
-                            })()}
-                            <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+              <span
+                className="font-serif font-bold leading-none"
+                style={{
+                  fontSize: "28px",
+                  color: isPeak ? "white" : "rgba(255,255,255,0.35)",
+                }}
+              >
+                {day.dayNumber}
+              </span>
+              <span
+                className="text-[9px] uppercase tracking-[1.5px] mt-1 font-bold"
+                style={{ color: isPeak ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.2)" }}
+              >
+                giorno
+              </span>
+            </div>
 
-                  {day.affiliateLinks && Object.keys(day.affiliateLinks).filter(
-                    k => !["getyourguide_morning", "getyourguide_afternoon", "klook_morning", "klook_afternoon", "viator_morning", "viator_afternoon", "getyourguide_place_morning", "getyourguide_place_afternoon", "klook_place_morning", "klook_place_afternoon", "viator_place_morning", "viator_place_afternoon", "thefork_lunch", "thefork_evening", "tripadvisor_lunch", "tripadvisor_evening", "tripadvisor_evening_fallback"].includes(k)
-                  ).length > 0 && (
-                    <AffiliateLinks links={Object.fromEntries(
-                      Object.entries(day.affiliateLinks).filter(([k]) =>
-                        !["getyourguide_morning", "getyourguide_afternoon", "klook_morning", "klook_afternoon", "viator_morning", "viator_afternoon", "getyourguide_place_morning", "getyourguide_place_afternoon", "klook_place_morning", "klook_place_afternoon", "viator_place_morning", "viator_place_afternoon", "thefork_lunch", "thefork_evening", "tripadvisor_lunch", "tripadvisor_evening", "tripadvisor_evening_fallback"].includes(k)
-                      )
-                    )} />
+            {/* Main content */}
+            <div className="flex-1 px-5 py-4 min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  {isPeak && (
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-[9px] font-bold text-[#E94560] uppercase tracking-[2.5px]">Momento clou</span>
+                    </div>
                   )}
+                  <h4
+                    className="font-serif font-bold leading-tight transition-colors"
+                    style={{
+                      fontSize: "16px",
+                      color: isOpen || isPeak ? "white" : "rgba(255,255,255,0.65)",
+                    }}
+                  >
+                    {day.title}
+                  </h4>
+
+                  {/* Slot preview pills — visible when closed */}
+                  {!isOpen && (
+                    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                      {slots.map(slot => slot.text && slot.text.length > 3 ? (
+                        <span
+                          key={slot.key}
+                          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
+                          style={{
+                            background: `${slot.color}15`,
+                            color: `${slot.color}`,
+                            border: `1px solid ${slot.color}25`,
+                          }}
+                        >
+                          <span>{slot.icon}</span>
+                          <span className="opacity-80">{slot.label}</span>
+                        </span>
+                      ) : null)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right side: link count + chevron */}
+                <div className="flex items-center gap-2.5 shrink-0 pt-0.5">
+                  {hasAnyLink && !isOpen && (
+                    <span
+                      className="text-[10px] font-bold px-2 py-1 rounded-full"
+                      style={{ background: "rgba(233,69,96,0.1)", color: "#E94560", border: "1px solid rgba(233,69,96,0.2)" }}
+                    >
+                      {slots.filter(s => s.link).length} link
+                    </span>
+                  )}
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all"
+                    style={{
+                      background: isOpen ? "rgba(233,69,96,0.15)" : "rgba(255,255,255,0.05)",
+                      border: isOpen ? "1px solid rgba(233,69,96,0.3)" : "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    <ChevronDown
+                      className="w-3.5 h-3.5 transition-transform duration-300"
+                      style={{
+                        color: isOpen ? "#E94560" : "rgba(255,255,255,0.3)",
+                        transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </Collapsible.Content>
-        </div>
-      </Collapsible.Root>
+          </div>
+        </button>
+
+        {/* ── EXPANDED CONTENT ── */}
+        {isOpen && (
+          <div className="relative">
+            {/* Day image background */}
+            {day.dayImage && (
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <img
+                  src={day.dayImage}
+                  alt=""
+                  className="w-full h-full object-cover opacity-[0.07]"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(10,8,20,0.3), rgba(10,8,20,0.8))" }} />
+              </div>
+            )}
+
+            <div className="relative z-10 px-5 pb-6 pt-1">
+              {/* Divider */}
+              <div className="w-full h-px mb-5" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }} />
+
+              {/* Slots grid */}
+              <div className="space-y-0 rounded-[16px] overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+                {slots.map((slot, si) => {
+                  if (!slot.text || slot.text.length < 3) return null;
+                  const linkKey = slot.key === "morning"
+                    ? (day.affiliateLinks?.getyourguide_morning ? "getyourguide_morning" : day.affiliateLinks?.klook_morning ? "klook_morning" : day.affiliateLinks?.viator_morning ? "viator_morning" : "skyscanner")
+                    : slot.key === "lunch"
+                      ? (day.affiliateLinks?.thefork_lunch ? "thefork_lunch" : "tripadvisor_lunch")
+                      : slot.key === "afternoon"
+                        ? (day.affiliateLinks?.getyourguide_afternoon ? "getyourguide_afternoon" : day.affiliateLinks?.klook_afternoon ? "klook_afternoon" : day.affiliateLinks?.viator_afternoon ? "viator_afternoon" : "booking_hotel")
+                        : (day.affiliateLinks?.thefork_evening ? "thefork_evening" : day.affiliateLinks?.tripadvisor_evening ? "tripadvisor_evening" : "tripadvisor_evening_fallback");
+
+                  const placeKey = slot.key === "morning"
+                    ? (day.affiliateLinks?.getyourguide_place_morning ? "getyourguide_place_morning" : day.affiliateLinks?.klook_place_morning ? "klook_place_morning" : "viator_place_morning")
+                    : (day.affiliateLinks?.getyourguide_place_afternoon ? "getyourguide_place_afternoon" : day.affiliateLinks?.klook_place_afternoon ? "klook_place_afternoon" : "viator_place_afternoon");
+
+                  const linkLabel = day.affiliateLabels?.[linkKey];
+                  const placeLinkLabel = day.affiliateLabels?.[placeKey];
+
+                  return (
+                    <div
+                      key={slot.key}
+                      className="flex gap-0"
+                      style={{
+                        borderTop: si > 0 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                        background: si % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent",
+                      }}
+                    >
+                      {/* Slot indicator */}
+                      <div
+                        className="flex flex-col items-center pt-4 pb-3 shrink-0"
+                        style={{
+                          width: "52px",
+                          borderRight: "1px solid rgba(255,255,255,0.05)",
+                          background: `${slot.color}08`,
+                        }}
+                      >
+                        <span className="text-lg leading-none mb-1">{slot.icon}</span>
+                        <span
+                          className="text-[8px] font-bold uppercase tracking-[1px] text-center leading-tight"
+                          style={{ color: `${slot.color}80` }}
+                        >
+                          {slot.label}
+                        </span>
+                      </div>
+
+                      {/* Slot content */}
+                      <div className="flex-1 px-4 py-3.5 min-w-0">
+                        <p
+                          className="leading-relaxed mb-3"
+                          style={{ fontSize: "13px", color: "rgba(255,255,255,0.72)", lineHeight: "1.6" }}
+                        >
+                          {slot.text}
+                        </p>
+
+                        {/* Action buttons */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {slot.link && (
+                            
+                              href={slot.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 transition-all hover:scale-[1.02]"
+                              style={{
+                                padding: "5px 10px",
+                                borderRadius: "8px",
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                background: `${slot.color}12`,
+                                color: slot.color,
+                                border: `1px solid ${slot.color}25`,
+                                textDecoration: "none",
+                              }}
+                            >
+                              {slot.isActivity ? <Ticket className="w-2.5 h-2.5" /> : <Utensils className="w-2.5 h-2.5" />}
+                              {linkLabel || (slot.isActivity ? "Prenota" : "Ristorante")}
+                              <ExternalLink className="w-2 h-2 opacity-50" />
+                            </a>
+                          )}
+                          {(slot as any).placeLink && (
+                            
+                              href={(slot as any).placeLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 transition-all hover:scale-[1.02]"
+                              style={{
+                                padding: "5px 10px",
+                                borderRadius: "8px",
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                background: "rgba(255,255,255,0.04)",
+                                color: "rgba(255,255,255,0.45)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                                textDecoration: "none",
+                              }}
+                            >
+                              <MapPin className="w-2.5 h-2.5" />
+                              {placeLinkLabel || "Tour del luogo"}
+                              <ExternalLink className="w-2 h-2 opacity-50" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Extra affiliate links */}
+              {day.affiliateLinks && (() => {
+                const usedKeys = ["getyourguide_morning","getyourguide_afternoon","klook_morning","klook_afternoon","viator_morning","viator_afternoon","getyourguide_place_morning","getyourguide_place_afternoon","klook_place_morning","klook_place_afternoon","viator_place_morning","viator_place_afternoon","thefork_lunch","thefork_evening","tripadvisor_lunch","tripadvisor_evening","tripadvisor_evening_fallback","skyscanner","booking_hotel"];
+                const extras = Object.entries(day.affiliateLinks).filter(([k]) => !usedKeys.includes(k));
+                if (extras.length === 0) return null;
+                return (
+                  <div className="flex flex-wrap gap-1.5 mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                    {extras.map(([key, url]) => (
+                      
+                        key={key}
+                        href={url as string}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 transition-all hover:scale-[1.02]"
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: "8px",
+                          fontSize: "10px",
+                          fontWeight: "700",
+                          background: "rgba(233,69,96,0.08)",
+                          color: "#E94560",
+                          border: "1px solid rgba(233,69,96,0.15)",
+                          textDecoration: "none",
+                        }}
+                      >
+                        <ExternalLink className="w-2 h-2" />
+                        {day.affiliateLabels?.[key] || key}
+                      </a>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
