@@ -615,10 +615,10 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
           }
         }
       ],
-      "budgetSummary": "Estimated total with breakdown — fits within stated budget",
-      "packingList": "5 items separated by commas — specific to this destination and season",
+    "budgetSummary": "JSON string with this exact format: '{\"items\":[{\"label\":\"Voli a/r\",\"detail\":\"MXP→XXX a/r\",\"perPerson\":\"€XXX\",\"total\":\"€XXX\"},{\"label\":\"Alloggio\",\"detail\":\"X notti @ €XX/notte\",\"perPerson\":\"€XXX\",\"total\":\"€XXX\"},{\"label\":\"Pasti\",\"detail\":\"media €XX/giorno\",\"perPerson\":\"€XXX\",\"total\":\"€XXX\"},{\"label\":\"Esperienze\",\"detail\":\"attività principali\",\"perPerson\":\"€XXX\",\"total\":\"€XXX\"},{\"label\":\"Trasporti locali\",\"detail\":\"trasferimenti interni\",\"perPerson\":\"€XXX\",\"total\":\"€XXX\"},{\"label\":\"TOTALE STIMATO\",\"detail\":\"entro budget dichiarato\",\"perPerson\":\"€XXX\",\"total\":\"€XXX\"}]}'",
+      "packingList": "JSON string with this exact format: '{\"items\":[{\"emoji\":\"☀️\",\"label\":\"Crema solare SPF50+\"},{\"emoji\":\"🦟\",\"label\":\"Repellente antizanzare\"},{\"emoji\":\"👟\",\"label\":\"Scarpe da trekking leggere\"},{\"emoji\":\"🩱\",\"label\":\"Costume da bagno\"},{\"emoji\":\"🧴\",\"label\":\"Shampoo solido\"},{\"emoji\":\"📱\",\"label\":\"Adattatore prese locali\"}]}'",
       "bestTime": "max 8 words",
-      "gettingThere": "max 12 words with real IATA airport code",
+    "gettingThere": "JSON string with this exact format: '{\"steps\":[{\"day\":\"Giorno 1\",\"from\":\"Milano MXP\",\"to\":\"Bangkok BKK\",\"method\":\"Volo\",\"duration\":\"~11h\",\"cost\":\"~€600/pp\",\"notes\":\"con scalo a Dubai\"},{\"day\":\"Giorno 1\",\"from\":\"Bangkok BKK\",\"to\":\"Krabi KBV\",\"method\":\"Volo domestico\",\"duration\":\"~1h20\",\"cost\":\"~€50/pp\",\"notes\":\"Thai Airways, partenze mattina\"},{\"day\":\"Giorno 1\",\"from\":\"Aeroporto Krabi\",\"to\":\"Hotel\",\"method\":\"Taxi condiviso\",\"duration\":\"~45min\",\"cost\":\"~€8/pp\",\"notes\":\"prenotare all'uscita arrivi\"}]}'",
       "closingMessage": "1 poetic sentence that feels like a promise — never generic",
       "topAffiliateLinks": {
         "booking_hotel": "https://www.booking.com/search.html?ss=HOTEL_NAME&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
