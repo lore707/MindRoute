@@ -639,7 +639,7 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const [loading, setLoading] = useState(true);
+ const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [activeDay, setActiveDay] = useState<number | null>(null);
@@ -647,6 +647,9 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
   const [allPoints, setAllPoints] = useState<{ label: string; slot: string; lat: number; lng: number; dayNum: number; imageUrl?: string; affiliateUrl?: string }[]>([]);
   const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
   const [showRoute, setShowRoute] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchMarkersRef = useRef<L.Marker[]>([]);
 
   const slotColors: Record<string, string> = {
     "Mattina": "#E94560",
@@ -882,10 +885,11 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
           }
         }
 
-        setAllPoints(fallbackPoints);
+      setAllPoints(fallbackPoints);
         setLoading(false);
       } catch {
-        setError(true);
+        // Mostra comunque la mappa centrata sulla destinazione
+        setError(false);
         setLoading(false);
       }
     };
@@ -1001,6 +1005,41 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     }
   };
 
+ const handleSearch = async () => {
+    if (!searchQuery.trim() || !mapInstanceRef.current) return;
+    setSearchLoading(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5&accept-language=it`
+      );
+      const data = await res.json();
+      // Rimuovi pin di ricerca precedenti
+      searchMarkersRef.current.forEach(m => m.remove());
+      searchMarkersRef.current = [];
+      if (data && data.length > 0) {
+        const results = data.slice(0, 5);
+        results.forEach((r: any) => {
+          const lat = parseFloat(r.lat);
+          const lng = parseFloat(r.lon);
+          const icon = L.divIcon({
+            className: "",
+            html: `<div style="background:#6366f1;color:white;width:28px;height:28px;border-radius:50%;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:14px;">🔍</div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+            popupAnchor: [0, -16],
+          });
+          const marker = L.marker([lat, lng], { icon })
+            .addTo(mapInstanceRef.current!)
+            .bindPopup(`<div style="font-family:sans-serif;font-size:12px;font-weight:bold;color:#1a1a2e;max-width:180px;">${r.display_name}</div>`, { maxWidth: 200 });
+          searchMarkersRef.current.push(marker);
+        });
+        mapInstanceRef.current.flyTo([parseFloat(results[0].lat), parseFloat(results[0].lon)], 14, { duration: 1 });
+        setTimeout(() => searchMarkersRef.current[0]?.openPopup(), 1100);
+      }
+    } catch {}
+    setSearchLoading(false);
+  };
+
   if (error) {
     return (
       <div className="w-full h-[280px] rounded-[16px] flex items-center justify-center text-white/30 text-sm border border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
@@ -1088,6 +1127,27 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+          {/* Search bar */}
+            <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSearch()}
+                  placeholder="Cerca un luogo..."
+                  style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "10px", padding: "6px 10px", fontSize: "12px", color: "white", outline: "none" }}
+                />
+                <button
+                  onClick={handleSearch}
+                  disabled={searchLoading}
+                  style={{ padding: "6px 12px", borderRadius: "10px", background: "#E94560", color: "white", fontSize: "11px", fontWeight: "bold", border: "none", cursor: "pointer", opacity: searchLoading ? 0.6 : 1 }}
+                >
+                  {searchLoading ? "..." : "🔍"}
+                </button>
               </div>
             </div>
 
