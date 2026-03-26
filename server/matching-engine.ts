@@ -383,26 +383,46 @@ STEP 5 — ITINERARY ARCHITECTURE
 ═══════════════════════════════════════
 The itinerary must have a clear EMOTIONAL ARC — not flat identical days but a journey with intentional rhythm:
 
-DAY 1 — ARRIVAL & FIRST BREATH: Gentle, sensory, zero pressure. Let the destination wash over them slowly. Never schedule anything demanding. The first impression of the place should be the focus.
+DAY 1 — DEPARTURE & ARRIVAL (MANDATORY STRUCTURE):
+- morning slot: MUST start with the outbound flight. Format: "Volo [DEPARTURE_CITY] [IATA] → [DESTINATION_CITY] [IATA], [AIRLINE if known], durata ~[DURATION], costo ~[COST]/pp. [1 sentence about anticipation or aerial view]." Include skyscanner affiliate link in this slot.
+- lunch slot: either in-flight or first meal upon arrival — be honest. If long flight: "Pranzo a bordo o al gate di scalo." If short flight arriving by noon: first local meal near arrival point.
+- afternoon slot: MUST describe the full journey from airport to accommodation. Format: "[TRANSPORT_METHOD] dall'aeroporto [AIRPORT_NAME] → [HOTEL_NAME], [DURATION], ~[COST]/pp. [1 sentence first impression seen from road/window]. Check-in, prima doccia, primo respiro." Include booking_hotel affiliate link in this slot.
+- evening slot: first gentle immersion. Dinner near hotel, first walk, first sensory contact. Include tripadvisor or thefork link.
 
-DAYS 2-3 — IMMERSION: Deeper into the destination. First real experiences, building familiarity and comfort. The place starts to feel like theirs.
+DAY 2-3 — IMMERSION:
+- morning slot: specific activity or visit with affiliate link. Name the place + best time to arrive ("arriva alle 8 prima delle folle").
+- lunch slot: specific named restaurant with affiliate link. Never generic. Include neighborhood and price hint (~€X/pp).
+- afternoon slot: second activity or visit with affiliate link. Different character from morning.
+- evening slot: specific dinner venue with affiliate link + atmosphere. Cost hint (~€X/pp).
 
-DAYS 4-5 — PEAK EXPERIENCES: The defining moments of the trip. THE DEFINING MOMENT from Step 1 must appear here — the experience they will remember forever. This is the emotional climax of the itinerary.
+DAYS 4-5 — PEAK EXPERIENCES:
+- THE DEFINING MOMENT must appear in Day 4 or 5 — most fully described, most emotionally charged.
+- Every slot must have an affiliate link. Zero exceptions.
+- If travel style = "due tappe" or "scoperta": Day 4 morning = departure from Location 1 + travel to Location 2 + check-in Hotel 2. Include booking_hotel link for Hotel 2.
 
-DAY 6 — DECELERATION: Slower rhythm, more reflective. Savoring what has been lived. A day of integration and presence.
+DAY 6 — DECELERATION:
+- morning: slow and unstructured — market, café, walk. Still name a specific place with link.
+- afternoon: last meaningful experience — something they'll remember as "the last afternoon there".
+- evening: penultimate dinner — special but not the best. Save food peak for Day 5.
 
-DAY 7 — EMOTIONAL CLOSURE: A final intentional moment of beauty or meaning. The last memory must be deliberate and memorable — never end with just "transfer to airport". Give them a last image to carry home.
+DAY LAST — EMOTIONAL CLOSURE & DEPARTURE (MANDATORY STRUCTURE):
+- morning slot: final meaningful experience before departure. Specific place + time ("alle 7, prima dei bagagli"). Include affiliate link.
+- lunch slot: last meal — "L'ultimo caffè a [SPECIFIC_BAR] prima dell'aeroporto." Specific name + affiliate link.
+- afternoon slot: MUST describe full return journey. Format: "Transfer [HOTEL] → aeroporto [IATA], [TRANSPORT_METHOD], [DURATION], ~[COST]/pp. Volo [DESTINATION_IATA] → [DEPARTURE_IATA], durata ~[DURATION], atterraggio [TIME_RANGE]." Include skyscanner link.
+- evening slot: arrival home. "Arrivi a [HOME_CITY] con [emotional souvenir — not a physical object]." No affiliate link needed here.
 
-For trips shorter than 7 days, compress the arc proportionally while preserving its shape.
+For trips shorter than 7 days, compress proportionally: 4 days = Day 1 arrival / Days 2-3 peak / Day 4 closure+departure.
 
-DAILY STRUCTURE RULES:
-- Every day TITLE must be EVOCATIVE AND EMOTIONAL — it should create a feeling before the content is even read. ("Ultimi raggi e sale sulla pelle" YES. "Giorno 3 — Escursione" NO.)
-- Every slot description must paint a SENSORY IMAGE — include what it feels like, smells like, sounds like when relevant. Not a list of activities but a lived experience.
-- Logistical transitions must be framed as EXPERIENCES not logistics. ("Traghetto al tramonto verso Essaouira — due ore di oceano aperto e vento salato" not "Transfer to Essaouira")
-- TIME MUST BE REALISTIC — verify that morning + lunch + afternoon + evening activities are physically possible given real distances between locations.
-- THE DEFINING MOMENT must appear in Days 4-5 and be the most fully described, most emotionally charged element of the entire itinerary.
-- FIRST DAY RULE: If travel involves a long flight, Day 1 must be arrival + gentle settling in only. No demanding activities on arrival day.
-- LAST DAY RULE: If the flight home is in the afternoon or evening, include a meaningful final morning experience before departure.
+MANDATORY SLOT RULES — every day without exception:
+- Every morning slot: at least 1 affiliate link (activity, place, or flight on Day 1)
+- Every lunch slot: at least 1 restaurant affiliate link (thefork or tripadvisor). Exception: in-flight lunch on Day 1.
+- Every afternoon slot: at least 1 affiliate link (activity, place, hotel, or return flight on last day)
+- Every evening slot: at least 1 affiliate link (restaurant or tripadvisor fallback). Exception: arrival-home evening on last day.
+- ZERO days with zero affiliate links
+- Every slot: max 3 sentences. Sentence 1 = what. Sentence 2 = how it feels/looks/smells. Sentence 3 = practical detail or cost hint.
+- TIME HINTS required when relevant: "arriva alle 8 prima delle folle", "golden hour alle 19:30", "partenza ore 14"
+- Costs always shown: every transport ~€X/pp, every activity ~€X/pp, every restaurant ~€X/pp
+- Logistical transitions are EXPERIENCES: "40 min di taxi lungo la costa, finestre aperte, odore di sale" not "transfer to hotel"
 
 ═══════════════════════════════════════
 STEP 6 — TONE & EMOTIONAL LANGUAGE
@@ -568,31 +588,26 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
       "highlights": ["🏛 Ano Poli", "🏖 Halkidiki", "🍽 Ergon House", "🌅 Tramonto a Kassandra"],
       "days": [
       
-        {
-      "dayNumber": 1,
-          "title": "Evocative emotional title — not descriptive",
-          "morning": "Sensory description of morning experience — max 15 words",
-          "lunch": "LUNCH_SPOT real name + brief sensory detail — max 10 words",
-          "afternoon": "Sensory description of afternoon — max 15 words",
-          "evening": "Sensory description of evening — max 15 words",
-         "imageQuery": "specific landscape or experience name for Unsplash photo search",
+      {
+          "dayNumber": 1,
+          "title": "Evocative emotional title for departure+arrival day",
+          "morning": "Volo [DEPARTURE_CITY] [IATA] → [DESTINATION_CITY] [IATA], durata ~[DURATION], ~[COST]/pp. [1 sentence on anticipation or view from above].",
+          "lunch": "Pranzo a bordo / al gate — oppure [FIRST_LOCAL_SPOT] se volo breve e arrivo mattutino.",
+          "afternoon": "Transfer aeroporto [AIRPORT_NAME] → [HOTEL_NAME] in [TRANSPORT_METHOD], ~[DURATION], ~[COST]/pp. [1 sentence first impression from road]. Check-in e primo respiro.",
+          "evening": "[DINNER_RESTAURANT o area] — [1 sentence sensory]. [practical detail: distanza hotel, ~€X/pp].",
+          "imageQuery": "aerial view or arrival scene for this destination",
           "dayImageUrl": "https://images.unsplash.com/photo-[REAL_PHOTO_ID]?w=800&h=500&fit=crop",
-      "affiliateLinks": {
-            "getyourguide_morning": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8",
-            "thefork_lunch": "https://www.thefork.it/search#q=LUNCH_SPOT_NAME",
-            "getyourguide_place_afternoon": "https://www.getyourguide.com/s/?q=PLACE_1_NAME+tour&partner_id=0BCSNBX8",
+          "affiliateLinks": {
+            "skyscanner": "https://www.skyscanner.net/transport/flights/DEPARTURE_IATA/ARRIVAL_IATA/CHECKIN_COMPACT/CHECKOUT_COMPACT/",
+            "booking_hotel": "https://www.booking.com/search.html?ss=HOTEL_NAME&aid=304142&checkin=CHECKIN&checkout=CHECKOUT&lang=it",
             "tripadvisor_evening_fallback": "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME"
           },
           "affiliateLabels": {
-            "getyourguide_morning": "EXPERIENCE_1_NAME",
-            "thefork_lunch": "LUNCH_SPOT_NAME",
-            "getyourguide_place_afternoon": "PLACE_1_NAME",
+            "skyscanner": "Volo DEPARTURE_IATA → ARRIVAL_IATA",
+            "booking_hotel": "HOTEL_NAME",
             "tripadvisor_evening_fallback": "Ristoranti CITY_NAME"
           },
           "mapPoints": [
-            { "label": "EXPERIENCE_1_NAME", "slot": "Mattina", "lat": 0.0000, "lng": 0.0000, "imageUrl": "https://images.unsplash.com/photo-[ID]?w=400&h=250&fit=crop", "affiliateUrl": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8" },
-            { "label": "LUNCH_SPOT_NAME", "slot": "Pranzo", "lat": 0.0000, "lng": 0.0000, "imageUrl": "https://images.unsplash.com/photo-[ID]?w=400&h=250&fit=crop", "affiliateUrl": "https://www.thefork.it/search#q=LUNCH_SPOT_NAME" },
-            { "label": "PLACE_1_NAME", "slot": "Pomeriggio", "lat": 0.0000, "lng": 0.0000, "imageUrl": "https://images.unsplash.com/photo-[ID]?w=400&h=250&fit=crop", "affiliateUrl": "" },
             { "label": "HOTEL_NAME", "slot": "Hotel", "lat": 0.0000, "lng": 0.0000, "imageUrl": "https://images.unsplash.com/photo-[ID]?w=400&h=250&fit=crop", "affiliateUrl": "https://www.booking.com/search.html?ss=HOTEL_NAME&aid=304142" }
           ]
         },
