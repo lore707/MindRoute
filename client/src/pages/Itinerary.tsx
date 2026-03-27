@@ -521,7 +521,7 @@ export default function Itinerary() {
         {/* Bottom border */}
         <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.3), transparent)" }} />
       </div>
-      <div className="max-w-6xl mx-auto px-4 md:px-12 pb-24 pt-4" style={{ background: "linear-gradient(180deg, #0f0a10 0%, #1a0f12 8%, #1a0f12 85%, #0f0a10 100%)" }}>
+<div className="max-w-6xl mx-auto px-4 md:px-12 pb-24 pt-4" style={{ background: "linear-gradient(180deg, #0a0505 0%, #1a0a0a 8%, #1a0a0a 85%, #0a0505 100%)" }}>
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">{t('itin.daybyday')}</h2>
