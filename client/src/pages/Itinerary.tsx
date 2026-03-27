@@ -284,7 +284,7 @@ export default function Itinerary() {
       )}
 
  {/* ── PANORAMICA REDESIGN ─────────────────────────────── */}
-     <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0d1a2e 0%, #0f2040 30%, #112244 60%, #0d1a2e 100%)" }}>
+    <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a1628 0%, #0d1e3a 30%, #0f2240 60%, #0a1628 100%)" }}>
         {/* Top border glow */}
         <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, #E94560, #9b59b6, #E94560, transparent)" }} />
         {/* Subtle radial glow */}
@@ -324,7 +324,7 @@ export default function Itinerary() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
 
             {/* Budget totale — hero number */}
-            <div className="lg:col-span-2 rounded-[24px] p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.12), rgba(155,89,182,0.08))", border: "1px solid rgba(233,69,96,0.2)" }}>
+            <div className="lg:col-span-2 rounded-[24px] p-6 relative overflow-hidden"style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.15), rgba(155,89,182,0.10))", border: "1px solid rgba(233,69,96,0.30)" }}
               <div className="absolute top-0 right-0 w-40 h-40 opacity-[0.06]" style={{ background: "radial-gradient(circle, #E94560, transparent)" }} />
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-4">
@@ -388,7 +388,7 @@ export default function Itinerary() {
             </div>
 
             {/* CTA prenotazione */}
-            <div className="rounded-[24px] p-6 flex flex-col gap-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="rounded-[24px] p-6 flex flex-col gap-3" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)" }}>
               <div className="flex items-center gap-2 mb-1">
                 <Flame className="w-4 h-4 text-[#E94560]" />
                 <h3 className="font-serif font-bold text-white text-base">Pronto a partire?</h3>
@@ -423,7 +423,7 @@ export default function Itinerary() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
             {/* Packing list — griglia con emoji */}
-            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)" }}>
               <div className="flex items-center gap-2 mb-3">
                 <Briefcase className="w-4 h-4 text-[#E94560]" />
                 <h3 className="font-bold text-sm text-white">{t('itin.packing')}</h3>
@@ -455,7 +455,7 @@ export default function Itinerary() {
             </div>
 
             {/* Periodo migliore */}
-            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)" }}>
               <div className="flex items-center gap-2 mb-2">
                 <Sun className="w-4 h-4 text-[#E94560]" />
                 <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.besttime')}</h3>
@@ -496,7 +496,7 @@ export default function Itinerary() {
             </div>
 
             {/* Note di viaggio — slot libero per info extra */}
-            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)" }}>
               <div className="flex items-center gap-2 mb-3">
                 <Star className="w-4 h-4 text-[#E94560]" />
                 <h3 className="font-bold text-xs text-white uppercase tracking-wider">Da sapere</h3>
