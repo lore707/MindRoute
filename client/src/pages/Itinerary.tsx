@@ -629,16 +629,16 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
       <div
         className="rounded-[24px] overflow-hidden transition-all duration-300"
         style={{
-          background: isPeak
+         background: isPeak
             ? "linear-gradient(135deg, rgba(233,69,96,0.10), rgba(233,69,96,0.04), rgba(155,89,182,0.06))"
             : isOpen
-              ? "rgba(255,255,255,0.05)"
-              : "rgba(255,255,255,0.03)",
+              ? "rgba(255,255,255,0.06)"
+              : "rgba(255,255,255,0.05)",
           border: isPeak
-            ? isOpen ? "1.5px solid rgba(233,69,96,0.4)" : "1px solid rgba(233,69,96,0.25)"
+            ? isOpen ? "1.5px solid rgba(233,69,96,0.4)" : "1px solid rgba(233,69,96,0.3)"
             : isOpen
-              ? "1px solid rgba(255,255,255,0.12)"
-              : "1px solid rgba(255,255,255,0.07)",
+              ? "1px solid rgba(255,255,255,0.15)"
+              : "1px solid rgba(255,255,255,0.10)",
           boxShadow: isPeak && isOpen ? "0 0 40px rgba(233,69,96,0.08)" : "none",
         }}
       >
@@ -650,9 +650,9 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
         >
           <div className="flex items-stretch gap-0">
 
-            {/* Day number column */}
+      {/* Day number column */}
             <div
-              className="flex flex-col items-center justify-center px-5 py-5 shrink-0 relative"
+              className="flex flex-col items-center justify-center px-5 py-5 shrink-0 relative overflow-hidden"
               style={{
                 width: "72px",
                 background: isPeak
@@ -662,7 +662,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
               }}
             >
               {isPeak && (
-                <div className="absolute -top-0.5 left-1/2 -translate-x-1/2">
+                <div className="absolute top-1 left-1/2 -translate-x-1/2">
                   <Flame className="w-3 h-3 text-yellow-300/80" />
                 </div>
               )}
@@ -670,17 +670,32 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                 className="font-serif font-bold leading-none"
                 style={{
                   fontSize: "28px",
-                  color: isPeak ? "white" : "rgba(255,255,255,0.35)",
+                  color: isPeak ? "white" : "rgba(255,255,255,0.5)",
                 }}
               >
                 {day.dayNumber}
               </span>
               <span
                 className="text-[9px] uppercase tracking-[1.5px] mt-1 font-bold"
-                style={{ color: isPeak ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.2)" }}
+                style={{ color: isPeak ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.25)" }}
               >
                 giorno
               </span>
+              {/* Progress indicator */}
+              <div
+                className="absolute bottom-0 left-0 right-0"
+                style={{ height: "3px", background: "rgba(255,255,255,0.06)" }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${(index / 6) * 100}%`,
+                    background: isPeak ? "rgba(255,255,255,0.5)" : "#E94560",
+                    borderRadius: "0 2px 2px 0",
+                    transition: "width 0.3s ease",
+                  }}
+                />
+              </div>
             </div>
 
             {/* Main content */}
@@ -702,23 +717,43 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                     {day.title}
                   </h4>
 
-                  {/* Slot preview pills — visible when closed */}
+                {/* Slot preview — keyword estratta dal testo */}
                   {!isOpen && (
-                    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                      {slots.map(slot => slot.text && slot.text.length > 3 ? (
-                        <span
-                          key={slot.key}
-                          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
-                          style={{
-                            background: `${slot.color}15`,
-                            color: `${slot.color}`,
-                            border: `1px solid ${slot.color}25`,
-                          }}
-                        >
-                          <span>{slot.icon}</span>
-                          <span className="opacity-80">{slot.label}</span>
-                        </span>
-                      ) : null)}
+                    <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                      {slots.map(slot => {
+                        if (!slot.text || slot.text.length < 3) return null;
+                        // Estrai keyword: prima parte prima di — o , o .
+                        const keyword = slot.text
+                          .split(/[—–,.(]/)[0]
+                          .replace(/^(volo|transfer|taxi|pranzo a bordo|check.?in|partenza|arrivo)\s+/i, '')
+                          .trim()
+                          .split(' ')
+                          .slice(0, 4)
+                          .join(' ');
+                        if (!keyword || keyword.length < 2) return null;
+                        return (
+                          <span
+                            key={slot.key}
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all"
+                            style={{
+                              background: `${slot.color}18`,
+                              color: slot.link ? slot.color : `${slot.color}99`,
+                              border: `1px solid ${slot.color}30`,
+                              cursor: slot.link ? 'pointer' : 'default',
+                            }}
+                            onClick={slot.link ? (e) => {
+                              e.stopPropagation();
+                              window.open(slot.link!, '_blank', 'noopener,noreferrer');
+                            } : undefined}
+                          >
+                            <span className="text-[11px]">{slot.icon}</span>
+                            <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {keyword}
+                            </span>
+                            {slot.link && <ExternalLink className="w-2 h-2 opacity-50 shrink-0" />}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
