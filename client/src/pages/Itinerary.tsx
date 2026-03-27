@@ -984,19 +984,34 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
   const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
   const [searching, setSearching] = useState(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
-  const [zoom, setZoom] = useState(12);
+ const [zoom, setZoom] = useState(12);
+  const totalDays = 7; // per progress indicator
 
-  // Geocodifica la destinazione all'avvio
+ // Carica mappa subito con coordinate di default, poi aggiorna con geocoding
   useEffect(() => {
+    // Mostra subito la mappa centrata genericamente
+    setMapCenter({ lat: 41.9028, lng: 12.4964 }); // Roma come fallback visivo
+
     const cityName = destinationName?.split(",")[0]?.trim() || destinationName;
-    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`)
+    if (!cityName) return;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`, {
+      signal: controller.signal,
+      headers: { "Accept-Language": "en" }
+    })
       .then(r => r.json())
       .then(data => {
         if (data?.[0]) {
           setMapCenter({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => clearTimeout(timeout));
+
+    return () => { controller.abort(); clearTimeout(timeout); };
   }, [destinationName]);
 
   const handleSearch = async () => {
@@ -1119,22 +1134,23 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
 
       {/* Mappa iframe */}
       <div className="flex-1 relative min-h-0">
-        {!mapCenter ? (
+    {mapUrl && (
+          <iframe
+            key={`${mapCenter?.lat}-${mapCenter?.lng}-${zoom}`}
+            src={mapUrl}
+            className="w-full h-full"
+            style={{ border: "none", minHeight: "300px" }}
+            title="Mappa destinazione"
+          />
+        )}
+        {!mapUrl && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <div className="w-7 h-7 border-2 border-[#E94560] border-t-transparent rounded-full animate-spin" />
               <p className="text-white/30 text-xs">Caricamento mappa...</p>
             </div>
           </div>
-        ) : mapUrl ? (
-          <iframe
-            key={`${mapCenter.lat}-${mapCenter.lng}-${zoom}`}
-            src={mapUrl}
-            className="w-full h-full"
-            style={{ border: "none", minHeight: "300px" }}
-            title="Mappa destinazione"
-          />
-        ) : null}
+        )}
       </div>
 
     </div>
