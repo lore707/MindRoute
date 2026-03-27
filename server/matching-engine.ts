@@ -508,45 +508,49 @@ DETECT DESTINATION REGION — use this to choose correct affiliate links:
 AFFILIATE LINKS RULES:
 
 topAffiliateLinks — include ALL relevant links by region:
-- booking_hotel: always — Booking.com search for HOTEL_NAME with real dates
-- booking_search: always — Booking.com general search for destination city with real dates
-- skyscanner: always — flight link with real IATA codes and compact dates
+- expedia: always — Expedia CJ deep link for flights from departure city: "https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3ADEPARTURE_IATA%2Cto%3AARRIVAL_IATA%2Cdeparture%3ACHECKIN_COMPACT%2F1&leg2=from%3AARRIVAL_IATA%2Cto%3ADEPARTURE_IATA%2Cdeparture%3ACHECKOUT_COMPACT%2F1&passengers=adults%3A1&trip=roundtrip&mode=search"
+- hotels: always — Hotels.com CJ deep link for destination: "https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=CITY_NAME&q-check-in=CHECKIN&q-check-out=CHECKOUT"
 - tripadvisor: always — TripAdvisor search for destination city
-- getyourguide_1: Europe + Mediterranean only — GetYourGuide search for EXPERIENCE_1
-- getyourguide_2: Europe + Mediterranean only — GetYourGuide search for EXPERIENCE_2
-- klook_1: Asia + India only — Klook search for EXPERIENCE_1
-- klook_2: Asia + India only — Klook search for EXPERIENCE_2
-- viator_1: Africa + LatAm + NorthAmerica only — Viator search for EXPERIENCE_1
-- viator_2: Africa + LatAm + NorthAmerica only — Viator search for EXPERIENCE_2
-- thefork: Europe only — TheFork search for DINNER_RESTAURANT
-- agoda: Asia + India only — Agoda search for HOTEL_NAME with real dates
-- ferryhopper: Mediterranean/Greece only — Ferryhopper homepage
-- hostelworld: LatAm + Africa only — Hostelworld search for destination city
+- civitatis_1: Europe + Mediterranean + LatAm — Civitatis search for EXPERIENCE_1: "https://www.civitatis.com/it/DESTINATION_SLUG/?aid=112605&cmp=mindroute"
+- civitatis_2: Europe + Mediterranean + LatAm — Civitatis search for EXPERIENCE_2: "https://www.civitatis.com/it/DESTINATION_SLUG/?aid=112605&cmp=mindroute"
+- klook_1: Asia + India only — Klook search for EXPERIENCE_1: "https://www.klook.com/search/?q=EXPERIENCE_1_NAME&aid=116532"
+- klook_2: Asia + India only — Klook search for EXPERIENCE_2: "https://www.klook.com/search/?q=EXPERIENCE_2_NAME&aid=116532"
+- viator_1: Africa + NorthAmerica + Oceania — Viator search for EXPERIENCE_1: "https://www.viator.com/searchResults/all?text=EXPERIENCE_1_NAME&pid=P00293604&mcid=42383&medium=link"
+- viator_2: Africa + NorthAmerica + Oceania — Viator search for EXPERIENCE_2: "https://www.viator.com/searchResults/all?text=EXPERIENCE_2_NAME&pid=P00293604&mcid=42383&medium=link"
+- musement_1: Europe + Mediterranean only — Musement search for EXPERIENCE_1: "https://www.musement.com/it/DESTINATION_SLUG/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388"
+- undercovertourist: NorthAmerica only, ONLY if destination is Orlando or Los Angeles — "https://www.kqzyfj.com/click-101710513-15733832"
 
 affiliateLinks inside each day — STRATEGY: every slot must have a monetizable link, no Maps links:
 
 EXPERIENCES (morning/afternoon):
-- "getyourguide_morning": Europe/Mediterranean — day when EXPERIENCE_1 is in morning
-- "getyourguide_afternoon": Europe/Mediterranean — day when EXPERIENCE_2 is in afternoon
-- "klook_morning": Asia/India — day when EXPERIENCE_1 is in morning
-- "klook_afternoon": Asia/India — day when EXPERIENCE_2 is in afternoon
-- "viator_morning": Africa/LatAm/NorthAmerica — day when EXPERIENCE_1 is in morning
-- "viator_afternoon": Africa/LatAm/NorthAmerica — day when EXPERIENCE_2 is in afternoon
+- "civitatis_morning": Europe/Mediterranean/LatAm — day when EXPERIENCE_1 is in morning: "https://www.civitatis.com/it/DESTINATION_SLUG/EXPERIENCE_SLUG/?aid=112605&cmp=mindroute"
+- "civitatis_afternoon": Europe/Mediterranean/LatAm — day when EXPERIENCE_2 is in afternoon: "https://www.civitatis.com/it/DESTINATION_SLUG/EXPERIENCE_SLUG/?aid=112605&cmp=mindroute"
+- "musement_morning": Europe/Mediterranean — second activity option morning: "https://www.musement.com/it/DESTINATION_SLUG/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388"
+- "musement_afternoon": Europe/Mediterranean — second activity option afternoon: "https://www.musement.com/it/DESTINATION_SLUG/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388"
+- "klook_morning": Asia/India — day when EXPERIENCE_1 is in morning: "https://www.klook.com/search/?q=EXPERIENCE_1_NAME&aid=116532"
+- "klook_afternoon": Asia/India — day when EXPERIENCE_2 is in afternoon: "https://www.klook.com/search/?q=EXPERIENCE_2_NAME&aid=116532"
+- "viator_morning": Africa/NorthAmerica/Oceania — day when EXPERIENCE_1 is in morning: "https://www.viator.com/searchResults/all?text=EXPERIENCE_1_NAME&pid=P00293604&mcid=42383&medium=link"
+- "viator_afternoon": Africa/NorthAmerica/Oceania — day when EXPERIENCE_2 is in afternoon: "https://www.viator.com/searchResults/all?text=EXPERIENCE_2_NAME&pid=P00293604&mcid=42383&medium=link"
+- "undercovertourist": NorthAmerica only if Orlando or Los Angeles: "https://www.kqzyfj.com/click-101710513-15733832"
 
 PLACES/LANDMARKS (morning/afternoon without an experience):
-- "getyourguide_place_morning": Europe/Mediterranean — day when PLACE_1 is in morning with no experience
-- "getyourguide_place_afternoon": Europe/Mediterranean — day when PLACE_2 is in afternoon with no experience
+- "civitatis_place_morning": Europe/Mediterranean/LatAm — day when PLACE_1 is in morning with no experience
+- "civitatis_place_afternoon": Europe/Mediterranean/LatAm — day when PLACE_2 is in afternoon with no experience
 - "klook_place_morning": Asia/India — day when PLACE_1 is in morning with no experience
 - "klook_place_afternoon": Asia/India — day when PLACE_2 is in afternoon with no experience
-- "viator_place_morning": Africa/LatAm/NorthAmerica — day when PLACE_1 is in morning with no experience
-- "viator_place_afternoon": Africa/LatAm/NorthAmerica — day when PLACE_2 is in afternoon with no experience
+- "viator_place_morning": Africa/NorthAmerica/Oceania — day when PLACE_1 is in morning with no experience
+- "viator_place_afternoon": Africa/NorthAmerica/Oceania — day when PLACE_2 is in afternoon with no experience
+
+HOTELS (afternoon day 1 + topAffiliateLinks):
+- "hotels_hotel": always — Hotels.com CJ deep link for HOTEL_NAME: "https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=HOTEL_NAME%2C+CITY&q-check-in=CHECKIN&q-check-out=CHECKOUT"
+
+FLIGHTS (morning day 1 + afternoon last day + topAffiliateLinks):
+- "expedia_flights": always — Expedia CJ deep link: "https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3ADEPARTURE_IATA%2Cto%3AARRIVAL_IATA%2Cdeparture%3ACHECKIN_COMPACT%2F1&leg2=from%3AARRIVAL_IATA%2Cto%3ADEPARTURE_IATA%2Cdeparture%3ACHECKOUT_COMPACT%2F1&passengers=adults%3A1&trip=roundtrip&mode=search"
 
 RESTAURANTS (lunch/evening):
-- "thefork_lunch": Europe ONLY — day when LUNCH_SPOT is in lunch
-- "thefork_evening": Europe ONLY — day when DINNER_RESTAURANT is in evening
-- "tripadvisor_lunch": Asia + India + Africa + LatAm + NorthAmerica — day when LUNCH_SPOT is in lunch
-- "tripadvisor_evening": Asia + India + Africa + LatAm + NorthAmerica — day when DINNER_RESTAURANT is in evening
-- "tripadvisor_evening_fallback": any region — when evening has no specific restaurant name
+- "tripadvisor_lunch": all regions — day when LUNCH_SPOT is in lunch: "https://www.tripadvisor.it/Search?q=LUNCH_SPOT_NAME+CITY_NAME"
+- "tripadvisor_evening": all regions — day when DINNER_RESTAURANT is in evening: "https://www.tripadvisor.it/Search?q=DINNER_RESTAURANT_NAME+CITY_NAME"
+- "tripadvisor_evening_fallback": any region — when evening has no specific restaurant name: "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME"
 
 Do NOT use any Google Maps links anywhere — use only monetizable affiliate links.
 
@@ -597,10 +601,15 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
           "evening": "[DINNER_RESTAURANT o area] — [1 sentence sensory]. [practical detail: distanza hotel, ~€X/pp].",
           "imageQuery": "aerial view or arrival scene for this destination",
           "dayImageUrl": "https://images.unsplash.com/photo-[REAL_PHOTO_ID]?w=800&h=500&fit=crop",
-          "affiliateLinks": {
-            "skyscanner": "https://www.skyscanner.net/transport/flights/DEPARTURE_IATA/ARRIVAL_IATA/CHECKIN_COMPACT/CHECKOUT_COMPACT/",
-            "booking_hotel": "https://www.booking.com/search.html?ss=HOTEL_NAME&aid=304142&checkin=CHECKIN&checkout=CHECKOUT&lang=it",
+        "affiliateLinks": {
+            "expedia_flights": "https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3ADEPARTURE_IATA%2Cto%3AARRIVAL_IATA%2Cdeparture%3ACHECKIN_COMPACT%2F1&leg2=from%3AARRIVAL_IATA%2Cto%3ADEPARTURE_IATA%2Cdeparture%3ACHECKOUT_COMPACT%2F1&passengers=adults%3A1&trip=roundtrip&mode=search",
+            "hotels_hotel": "https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=HOTEL_NAME%2C+CITY&q-check-in=CHECKIN&q-check-out=CHECKOUT",
             "tripadvisor_evening_fallback": "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME"
+          },
+          "affiliateLabels": {
+            "expedia_flights": "Volo DEPARTURE_IATA → ARRIVAL_IATA",
+            "hotels_hotel": "HOTEL_NAME",
+            "tripadvisor_evening_fallback": "Ristoranti CITY_NAME"
           },
           "affiliateLabels": {
             "skyscanner": "Volo DEPARTURE_IATA → ARRIVAL_IATA",
@@ -620,10 +629,14 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
           "evening": "DINNER_RESTAURANT real name + atmosphere — max 10 words",
          "imageQuery": "specific visual scene for this day",
           "dayImageUrl": "https://images.unsplash.com/photo-[REAL_PHOTO_ID]?w=800&h=500&fit=crop",
-      "affiliateLinks": {
-            "getyourguide_afternoon": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME&partner_id=0BCSNBX8",
-            "thefork_evening": "https://www.thefork.it/search#q=DINNER_RESTAURANT_NAME"
+   "affiliateLinks": {
+            "civitatis_afternoon": "https://www.civitatis.com/it/DESTINATION_SLUG/EXPERIENCE_SLUG/?aid=112605&cmp=mindroute",
+            "tripadvisor_evening": "https://www.tripadvisor.it/Search?q=DINNER_RESTAURANT_NAME+CITY_NAME"
           },
+          "affiliateLabels": {
+            "civitatis_afternoon": "EXPERIENCE_2_NAME",
+            "tripadvisor_evening": "DINNER_RESTAURANT_NAME"
+          }
           "affiliateLabels": {
             "getyourguide_afternoon": "EXPERIENCE_2_NAME",
             "thefork_evening": "DINNER_RESTAURANT_NAME"
@@ -635,14 +648,17 @@ REQUIRED JSON (day examples show affiliateLinks structure — apply same logic t
       "bestTime": "max 8 words",
     "gettingThere": "JSON string with this exact format: '{\"steps\":[{\"day\":\"Giorno 1\",\"from\":\"Milano MXP\",\"to\":\"Bangkok BKK\",\"method\":\"Volo\",\"duration\":\"~11h\",\"cost\":\"~€600/pp\",\"notes\":\"con scalo a Dubai\"},{\"day\":\"Giorno 1\",\"from\":\"Bangkok BKK\",\"to\":\"Krabi KBV\",\"method\":\"Volo domestico\",\"duration\":\"~1h20\",\"cost\":\"~€50/pp\",\"notes\":\"Thai Airways, partenze mattina\"},{\"day\":\"Giorno 1\",\"from\":\"Aeroporto Krabi\",\"to\":\"Hotel\",\"method\":\"Taxi condiviso\",\"duration\":\"~45min\",\"cost\":\"~€8/pp\",\"notes\":\"prenotare all'uscita arrivi\"}]}'",
       "closingMessage": "1 poetic sentence that feels like a promise — never generic",
-      "topAffiliateLinks": {
-        "booking_hotel": "https://www.booking.com/search.html?ss=HOTEL_NAME&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
-        "booking_search": "https://www.booking.com/search.html?ss=CITY_COUNTRY&aid=304142&checkin=${checkin}&checkout=${checkout}&lang=it",
-        "skyscanner": "https://www.skyscanner.net/transport/flights/DEPARTURE_IATA/ARRIVAL_IATA/${checkinCompact}/${checkoutCompact}/",
+    "topAffiliateLinks": {
+        "expedia": "https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3ADEPARTURE_IATA%2Cto%3AARRIVAL_IATA%2Cdeparture%3ACHECKIN_COMPACT%2F1&leg2=from%3AARRIVAL_IATA%2Cto%3ADEPARTURE_IATA%2Cdeparture%3ACHECKOUT_COMPACT%2F1&passengers=adults%3A1&trip=roundtrip&mode=search",
+        "hotels": "https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=CITY_NAME&q-check-in=${checkin}&q-check-out=${checkout}",
         "tripadvisor": "https://www.tripadvisor.it/Search?q=CITY_NAME",
-        "getyourguide_1": "https://www.getyourguide.com/s/?q=EXPERIENCE_1_NAME&partner_id=0BCSNBX8",
-        "getyourguide_2": "https://www.getyourguide.com/s/?q=EXPERIENCE_2_NAME&partner_id=0BCSNBX8",
-        "thefork": "https://www.thefork.it/search#q=DINNER_RESTAURANT_NAME"
+        "civitatis_1": "https://www.civitatis.com/it/DESTINATION_SLUG/?aid=112605&cmp=mindroute",
+        "civitatis_2": "https://www.civitatis.com/it/DESTINATION_SLUG/?aid=112605&cmp=mindroute",
+        "klook_1": "https://www.klook.com/search/?q=EXPERIENCE_1_NAME&aid=116532",
+        "klook_2": "https://www.klook.com/search/?q=EXPERIENCE_2_NAME&aid=116532",
+        "viator_1": "https://www.viator.com/searchResults/all?text=EXPERIENCE_1_NAME&pid=P00293604&mcid=42383&medium=link",
+        "viator_2": "https://www.viator.com/searchResults/all?text=EXPERIENCE_2_NAME&pid=P00293604&mcid=42383&medium=link",
+        "musement_1": "https://www.musement.com/it/DESTINATION_SLUG/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388"
       }
     }
   ]
