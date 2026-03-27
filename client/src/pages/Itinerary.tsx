@@ -888,7 +888,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                         {/* Action buttons */}
                         <div className="flex flex-wrap gap-2 mt-3">
                           {slot.link && (
-                            
+                            <a
                               href={slot.link}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -910,7 +910,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                             </a>
                           )}
                           {(slot as any).placeLink && (
-                            
+                            <a
                               href={(slot as any).placeLink}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -1140,92 +1140,4 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     </div>
   );
 }
-
-          {/* Search bar */}
-            <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleSearch()}
-                  placeholder="Cerca un luogo..."
-                  style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "10px", padding: "6px 10px", fontSize: "12px", color: "white", outline: "none" }}
-                />
-                <button
-                  onClick={handleSearch}
-                  disabled={searchLoading}
-                  style={{ padding: "6px 12px", borderRadius: "10px", background: "#E94560", color: "white", fontSize: "11px", fontWeight: "bold", border: "none", cursor: "pointer", opacity: searchLoading ? 0.6 : 1 }}
-                >
-                  {searchLoading ? "..." : "🔍"}
-                </button>
-              </div>
-            </div>
-
-            <div ref={listRef} style={{ flex: 1, overflowY: "auto" }}>
-              {filteredPoints.map((point, i) => {
-                const color = slotColors[point.slot] ?? "#E94560";
-                const globalIndex = allPoints.findIndex((p) => p.lat === point.lat && p.lng === point.lng);
-                const isActive = activePointIndex === globalIndex;
-
-                return (
-                  <div
-                    key={i}
-                    data-index={globalIndex}
-                    onClick={() => flyTo(point, globalIndex)}
-                    style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.05)", cursor: "pointer", display: "flex", alignItems: "center", gap: "10px", background: isActive ? `${color}15` : "transparent", borderLeft: isActive ? `3px solid ${color}` : "3px solid transparent" }}
-                  >
-                    <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: color, color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "bold", flexShrink: 0 }}>
-                      {point.dayNum}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: "12px", fontWeight: "bold", color: "white", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{point.label}</div>
-                      <div style={{ fontSize: "10px", color: color, fontWeight: "bold" }}>{slotLabels[point.slot] ?? point.slot}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center z-10" style={{ background: "#0d0820" }}>
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-[#E94560] border-t-transparent rounded-full animate-spin" />
-              <p className="text-white/30 text-xs">Caricamento mappa...</p>
-            </div>
-          </div>
-        )}
-
-        <div ref={mapRef} style={{ flex: 1, height: "100%" }} />
-
-        <button
-          onClick={() => setExpanded((e) => !e)}
-          className="absolute top-3 right-3 bg-[#E94560] text-white rounded-full px-4 py-2 flex items-center gap-1.5 shadow-lg hover:bg-[#d63050] transition-all text-[11px] font-bold"
-          style={{ zIndex: 9999 }}
-        >
-          <MapPin className="w-3 h-3" />
-          {expanded ? "Chiudi" : "Esplora mappa"}
-        </button>
-
-        {!expanded && !loading && allPoints.length > 0 && (
-          <div className="absolute top-3 left-3 z-20 rounded-full px-2.5 py-1 text-[10px] font-bold text-white shadow-md" style={{ background: "rgba(10,8,20,0.8)", border: "1px solid rgba(255,255,255,0.1)" }}>
-            {allPoints.length} luoghi
-          </div>
-        )}
-
-        {!expanded && !loading && (
-          <div className="absolute bottom-3 left-3 z-20 rounded-[10px] px-2.5 py-2 shadow-md" style={{ background: "rgba(10,8,20,0.85)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            {legendItems.map(([bg, label]) => (
-              <div key={label} className="flex items-center gap-1.5 text-[10px] font-bold mb-1 last:mb-0 text-white/60">
-                <span style={{ background: bg }} className="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" />
-                {label}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
+ 
