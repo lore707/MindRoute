@@ -11,22 +11,28 @@ export const destinations = pgTable("destinations", {
   imageUrl: text("image_url"),
 });
 
+export const profilingInputs = pgTable("profiling_inputs", {
+  id: serial("id").primaryKey(),
+  input: jsonb("input").notNull(),
+});
+
 export const itineraries = pgTable("itineraries", {
   id: serial("id").primaryKey(),
   destinationId: integer("destination_id").references(() => destinations.id).notNull(),
-  days: jsonb("days").$type<Array<{
-    dayNumber: number;
-    title: string;
-    morning: string;
-    lunch: string;
-    afternoon: string;
-    evening: string;
-  }>>().notNull(),
+  days: jsonb("days").$type<any[]>().notNull(),
   budgetSummary: text("budget_summary").notNull(),
   packingList: text("packing_list").notNull(),
   bestTime: text("best_time").notNull(),
   gettingThere: text("getting_there").notNull(),
   closingMessage: text("closing_message").notNull(),
+  destinationName: text("destination_name"),
+  tripSummary: text("trip_summary"),
+  highlights: jsonb("highlights").$type<string[]>(),
+  whyYours: text("why_yours"),
+  heroImageUrl: text("hero_image_url"),
+  heroPhotographer: text("hero_photographer"),
+  heroPhotographerUrl: text("hero_photographer_url"),
+  topAffiliateLinks: jsonb("top_affiliate_links").$type<Record<string, string>>(),
 });
 
 export const insertDestinationSchema = createInsertSchema(destinations).omit({ id: true });
