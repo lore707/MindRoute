@@ -837,77 +837,100 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                         background: si % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent",
                       }}
                     >
-                      {/* Slot indicator */}
+                    {/* Slot indicator — linea colorata + icona + label */}
                       <div
-                        className="flex flex-col items-center pt-4 pb-3 shrink-0"
+                        className="flex flex-col items-center pt-5 pb-4 shrink-0 relative"
                         style={{
-                          width: "52px",
+                          width: "56px",
                           borderRight: "1px solid rgba(255,255,255,0.05)",
-                          background: `${slot.color}08`,
+                          background: `${slot.color}06`,
                         }}
                       >
-                        <span className="text-lg leading-none mb-1">{slot.icon}</span>
+                        {/* Linea colorata sinistra */}
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-[3px]"
+                          style={{ background: `linear-gradient(180deg, ${slot.color}, ${slot.color}40)` }}
+                        />
+                        <span className="text-xl leading-none mb-2">{slot.icon}</span>
                         <span
                           className="text-[8px] font-bold uppercase tracking-[1px] text-center leading-tight"
-                          style={{ color: `${slot.color}80` }}
+                          style={{ color: `${slot.color}90` }}
                         >
                           {slot.label}
                         </span>
                       </div>
 
                       {/* Slot content */}
-                      <div className="flex-1 px-4 py-3.5 min-w-0">
-                        <p
-                          className="leading-relaxed mb-3"
-                          style={{ fontSize: "13px", color: "rgba(255,255,255,0.72)", lineHeight: "1.6" }}
-                        >
-                          {slot.text}
-                        </p>
+                      <div className="flex-1 px-5 py-4 min-w-0">
+                        {/* Testo principale */}
+                        {(() => {
+                          const sentences = slot.text.split(/(?<=[.!?—])\s+/);
+                          const main = sentences[0] ?? slot.text;
+                          const details = sentences.slice(1).join(' ');
+                          return (
+                            <>
+                              <p
+                                className="font-medium mb-1"
+                                style={{ fontSize: "15px", color: "rgba(255,255,255,0.88)", lineHeight: "1.65" }}
+                              >
+                                {main}
+                              </p>
+                              {details && (
+                                <p
+                                  className="mb-3"
+                                  style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", lineHeight: "1.6" }}
+                                >
+                                  {details}
+                                </p>
+                              )}
+                            </>
+                          );
+                        })()}
 
                         {/* Action buttons */}
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-2 mt-3">
                           {slot.link && (
-                            <a
+                            
                               href={slot.link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 transition-all hover:scale-[1.02]"
+                              className="inline-flex items-center gap-2 transition-all hover:scale-[1.02] hover:brightness-110"
                               style={{
-                                padding: "5px 10px",
-                                borderRadius: "8px",
-                                fontSize: "11px",
+                                padding: "8px 14px",
+                                borderRadius: "10px",
+                                fontSize: "12px",
                                 fontWeight: "700",
-                                background: `${slot.color}12`,
+                                background: `${slot.color}18`,
                                 color: slot.color,
-                                border: `1px solid ${slot.color}25`,
+                                border: `1px solid ${slot.color}35`,
                                 textDecoration: "none",
                               }}
                             >
-                              {slot.isActivity ? <Ticket className="w-2.5 h-2.5" /> : <Utensils className="w-2.5 h-2.5" />}
-                              {linkLabel || (slot.isActivity ? "Prenota" : "Ristorante")}
-                              <ExternalLink className="w-2 h-2 opacity-50" />
+                              {slot.isActivity ? <Ticket className="w-3 h-3" /> : <Utensils className="w-3 h-3" />}
+                              {linkLabel || (slot.isActivity ? "Prenota attività" : "Prenota tavolo")}
+                              <ExternalLink className="w-2.5 h-2.5 opacity-50" />
                             </a>
                           )}
                           {(slot as any).placeLink && (
-                             <a
+                            
                               href={(slot as any).placeLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 transition-all hover:scale-[1.02]"
+                              className="inline-flex items-center gap-2 transition-all hover:scale-[1.02]"
                               style={{
-                                padding: "5px 10px",
-                                borderRadius: "8px",
-                                fontSize: "11px",
+                                padding: "8px 14px",
+                                borderRadius: "10px",
+                                fontSize: "12px",
                                 fontWeight: "700",
-                                background: "rgba(255,255,255,0.04)",
-                                color: "rgba(255,255,255,0.45)",
-                                border: "1px solid rgba(255,255,255,0.08)",
+                                background: "rgba(255,255,255,0.05)",
+                                color: "rgba(255,255,255,0.50)",
+                                border: "1px solid rgba(255,255,255,0.10)",
                                 textDecoration: "none",
                               }}
                             >
-                              <MapPin className="w-2.5 h-2.5" />
+                              <MapPin className="w-3 h-3" />
                               {placeLinkLabel || "Tour del luogo"}
-                              <ExternalLink className="w-2 h-2 opacity-50" />
+                              <ExternalLink className="w-2.5 h-2.5 opacity-50" />
                             </a>
                           )}
                         </div>
