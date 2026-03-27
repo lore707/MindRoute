@@ -10,8 +10,6 @@ import {
 } from "lucide-react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { useI18n } from "@/lib/i18n";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
 import html2pdf from "html2pdf.js";
 
 type AffiliateCfg = { icon: JSX.Element; label: string; color: string };
@@ -981,502 +979,167 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
 }
 
 function ItineraryMap({ days, destinationName }: { days: any[]; destinationName: string }) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.Marker[]>([]);
-  const routeLayerRef = useRef<L.Polyline | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
- const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [activeDay, setActiveDay] = useState<number | null>(null);
-  const [activeSlot, setActiveSlot] = useState<string | null>(null);
-  const [allPoints, setAllPoints] = useState<{ label: string; slot: string; lat: number; lng: number; dayNum: number; imageUrl?: string; affiliateUrl?: string }[]>([]);
-  const [activePointIndex, setActivePointIndex] = useState<number | null>(null);
-  const [showRoute, setShowRoute] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchLoading, setSearchLoading] = useState(false);
-  const searchMarkersRef = useRef<L.Marker[]>([]);
+  const [savedPins, setSavedPins] = useState<{ label: string; lat: number; lng: number }[]>([]);
+  const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [zoom, setZoom] = useState(12);
 
-  const slotColors: Record<string, string> = {
-    "Mattina": "#E94560",
-    "Pranzo": "#FF8C42",
-    "Pomeriggio": "#4ECDC4",
-    "Sera": "#9B59B6",
-    "Hotel": "#1A1A2E",
-    "Traghetto": "#0EA5E9",
-    "Noleggio": "#10B981",
-  };
-
-  const slotLabels: Record<string, string> = {
-    "Mattina": "🌅 Mattina",
-    "Pranzo": "🍽️ Pranzo",
-    "Pomeriggio": "☀️ Pomeriggio",
-    "Sera": "🌙 Sera",
-    "Hotel": "🏨 Hotel",
-    "Traghetto": "⛴️ Traghetto",
-    "Noleggio": "🚗 Noleggio",
-  };
-
-  const uniqueDays = [...new Set(allPoints.map((p) => p.dayNum))].sort((a, b) => a - b);
-  const uniqueSlots = [...new Set(allPoints.map((p) => p.slot))];
-
-  const filteredPoints = allPoints.filter((p) => {
-    if (activeDay !== null && p.dayNum !== activeDay) return false;
-    if (activeSlot !== null && p.slot !== activeSlot) return false;
-    return true;
-  });
-
-  const buildPopup = (point: typeof allPoints[0]) => {
-    const color = slotColors[point.slot] ?? "#E94560";
-    const slotLabel = slotLabels[point.slot] ?? point.slot;
-    const imgHtml = point.imageUrl
-      ? `<img src="${point.imageUrl}" style="width:100%;height:130px;object-fit:cover;border-radius:8px;margin-bottom:8px;" />`
-      : "";
-    const btnHtml = point.affiliateUrl
-      ? `<a href="${point.affiliateUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:8px;padding:6px 14px;background:${color};color:white;border-radius:20px;font-size:11px;font-weight:bold;text-decoration:none;">Prenota →</a>`
-      : "";
-
-    return `<div style="font-family:sans-serif;width:210px;padding:2px;">
-      ${imgHtml}
-      <div style="display:inline-block;padding:2px 8px;background:${color}20;color:${color};border-radius:20px;font-size:10px;font-weight:bold;margin-bottom:5px;">
-        ${slotLabel} · Giorno ${point.dayNum}
-      </div>
-      <div style="font-size:13px;font-weight:bold;color:#1a1a2e;line-height:1.3;">${point.label}</div>
-      ${btnHtml}
-    </div>`;
-  };
-
-  const clearMapLayers = () => {
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
-    if (routeLayerRef.current) {
-      routeLayerRef.current.remove();
-      routeLayerRef.current = null;
-    }
-  };
-
-  const invalidateMapSoon = () => {
-    setTimeout(() => {
-      mapInstanceRef.current?.invalidateSize();
-    }, 250);
-  };
-
-  const extractName = (text: string): string | null => {
-    if (!text || text.length <= 5) return null;
-
-    const skipWords =
-      /volo|aeroporto|airport|trasferimento|transfer|check.?in|check.?out|partenza|ritorno|rientro|colazione|prima colazione|breakfast|merenda|picnic|riposo/i;
-
-    if (skipWords.test(text)) return null;
-
-    const patterns = [
-      /(?:a|al|alla|alle|verso|to|at|in|di|del|della)\s+([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s'-]+?)(?:\s*[—,.\-–:]|$)/,
-      /^([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s'-]+?)(?:\s*[—,.\-–:])/,
-      /:\s*([A-Z][a-zA-ZàèéìòùÀÈÉÌÒÙãõçñ\s'-]+?)(?:\s*[—,.\-–]|$)/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match?.[1]) {
-        const name = match[1].trim();
-        if (name.length > 2 && name.length < 60 && !skipWords.test(name)) return name;
-      }
-    }
-
-    return null;
-  };
-
+  // Geocodifica la destinazione all'avvio
   useEffect(() => {
-    if (!mapRef.current) return;
-
-    setLoading(true);
-    setError(false);
-    setAllPoints([]);
-    clearMapLayers();
-
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
-
-    const directPoints: typeof allPoints = [];
-
-    days.forEach((day: any) => {
-      if (day.mapPoints && Array.isArray(day.mapPoints)) {
-        day.mapPoints.forEach((p: any) => {
-          if (p.lat && p.lng && p.lat !== 0 && p.lng !== 0) {
-            directPoints.push({
-              ...p,
-              dayNum: day.dayNumber,
-            });
-          }
-        });
-      }
-    });
-
-    const initMap = (centerLat: number, centerLng: number) => {
-      const map = L.map(mapRef.current!, {
-        center: [centerLat, centerLng],
-        zoom: 13,
-        zoomControl: true,
-        scrollWheelZoom: true,
-      });
-
-      mapInstanceRef.current = map;
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap",
-        maxZoom: 19,
-      }).addTo(map);
-
-      invalidateMapSoon();
-      return map;
-    };
-
-    const hydrateFromFallback = async () => {
-      try {
-        const geoRes = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`
-        );
-        const geoData = await geoRes.json();
-
-        if (!geoData || geoData.length === 0) {
-          setError(true);
-          setLoading(false);
-          return;
+    const cityName = destinationName?.split(",")[0]?.trim() || destinationName;
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`)
+      .then(r => r.json())
+      .then(data => {
+        if (data?.[0]) {
+          setMapCenter({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
         }
+      })
+      .catch(() => {});
+  }, [destinationName]);
 
-        const destLat = parseFloat(geoData[0].lat);
-        const destLng = parseFloat(geoData[0].lon);
-        const cityName = destinationName.split(",")[0].trim();
-        const countryName = destinationName.split(",")[1]?.trim() ?? "";
-
-        initMap(destLat, destLng);
-
-        const fallbackPlaces: { label: string; dayNum: number; slot: string; searchQuery: string }[] = [];
-
-        days.forEach((day: any) => {
-          [
-            { text: day.morning, slot: "Mattina" },
-            { text: day.afternoon, slot: "Pomeriggio" },
-            { text: day.lunch, slot: "Pranzo" },
-            { text: day.evening, slot: "Sera" },
-          ].forEach(({ text, slot }) => {
-            const name = extractName(text);
-            if (name) {
-              const isFood = slot === "Pranzo" || slot === "Sera";
-              const query = isFood
-                ? `${name} restaurant ${cityName}`
-                : `${name} ${cityName} ${countryName}`;
-              fallbackPlaces.push({
-                label: name,
-                dayNum: day.dayNumber,
-                slot,
-                searchQuery: query,
-              });
-            }
-          });
-
-          if (day.imageQuery) {
-            fallbackPlaces.push({
-              label: day.imageQuery.split(/\s+/).slice(0, 3).join(" "),
-              dayNum: day.dayNumber,
-              slot: "Mattina",
-              searchQuery: `${day.imageQuery} ${cityName}`,
-            });
-          }
-        });
-
-        const seen = new Set<string>();
-        const fallbackPoints: typeof allPoints = [
-          {
-            label: `Centro di ${cityName}`,
-            slot: "Hotel",
-            lat: destLat,
-            lng: destLng,
-            dayNum: 1,
-          },
-        ];
-
-        for (const place of fallbackPlaces.slice(0, 16)) {
-          const key = `${place.label}-${place.slot}`.toLowerCase();
-          if (seen.has(key)) continue;
-          seen.add(key);
-
-          try {
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place.searchQuery)}&format=json&limit=1&accept-language=en`
-            );
-            const data = await res.json();
-
-            if (data && data.length > 0) {
-              const lat = parseFloat(data[0].lat);
-              const lng = parseFloat(data[0].lon);
-              const dist = Math.sqrt(Math.pow(lat - destLat, 2) + Math.pow(lng - destLng, 2));
-
-              if (dist < 3) {
-                fallbackPoints.push({
-                  label: place.label,
-                  slot: place.slot,
-                  lat,
-                  lng,
-                  dayNum: place.dayNum,
-                });
-              }
-            }
-
-            await new Promise((r) => setTimeout(r, 160));
-          } catch {
-            // ignore single geocode failure
-          }
-        }
-
-      setAllPoints(fallbackPoints);
-        setLoading(false);
-      } catch {
-        // Mostra comunque la mappa centrata sulla destinazione
-        setError(false);
-        setLoading(false);
-      }
-    };
-
-    if (directPoints.length > 0) {
-      const avgLat = directPoints.reduce((s, p) => s + p.lat, 0) / directPoints.length;
-      const avgLng = directPoints.reduce((s, p) => s + p.lng, 0) / directPoints.length;
-      initMap(avgLat, avgLng);
-      setAllPoints(directPoints);
-      setLoading(false);
-    } else {
-      hydrateFromFallback();
-    }
-
-    return () => {
-      clearMapLayers();
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [days, destinationName]);
-
-  useEffect(() => {
-    if (!mapInstanceRef.current || loading) return;
-
-    const map = mapInstanceRef.current;
-    clearMapLayers();
-
-    const pointsToRender = filteredPoints.length > 0 ? filteredPoints : allPoints;
-    const bounds: [number, number][] = [];
-
-    pointsToRender.forEach((point) => {
-      const color = slotColors[point.slot] ?? "#E94560";
-      bounds.push([point.lat, point.lng]);
-
-      const icon = L.divIcon({
-        className: "",
-        html: `<div style="background:${color};color:white;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:11px;font-weight:bold;display:block;text-align:center;line-height:28px;">${point.dayNum}</span></div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -34],
-      });
-
-      const marker = L.marker([point.lat, point.lng], { icon })
-        .addTo(map)
-        .bindPopup(buildPopup(point), { maxWidth: 240 });
-
-      markersRef.current.push(marker);
-    });
-
-    if (showRoute && pointsToRender.length > 1) {
-      const slotOrder: Record<string, number> = {
-        "Hotel": 0,
-        "Mattina": 1,
-        "Pranzo": 2,
-        "Pomeriggio": 3,
-        "Sera": 4,
-        "Traghetto": 5,
-        "Noleggio": 6,
-      };
-
-      const sortedPoints = [...pointsToRender].sort((a, b) => {
-        if (a.dayNum !== b.dayNum) return a.dayNum - b.dayNum;
-        return (slotOrder[a.slot] ?? 9) - (slotOrder[b.slot] ?? 9);
-      });
-
-      const latlngs = sortedPoints.map((p) => [p.lat, p.lng] as [number, number]);
-      routeLayerRef.current = L.polyline(latlngs, {
-        color: "#E94560",
-        weight: 2,
-        opacity: 0.5,
-        dashArray: "6, 8",
-      }).addTo(map);
-    }
-
-    if (bounds.length > 1) {
-      map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [40, 40] });
-    } else if (bounds.length === 1) {
-      map.setView(bounds[0], 14);
-    }
-
-    invalidateMapSoon();
-  }, [allPoints, filteredPoints, showRoute, loading]);
-
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-    invalidateMapSoon();
-  }, [expanded]);
-
-  const flyTo = (point: typeof allPoints[0], index?: number) => {
-    if (!mapInstanceRef.current) return;
-
-    mapInstanceRef.current.flyTo([point.lat, point.lng], 16, { duration: 0.8 });
-
-    const marker = markersRef.current.find((m) => {
-      const ll = m.getLatLng();
-      return Math.abs(ll.lat - point.lat) < 0.0001 && Math.abs(ll.lng - point.lng) < 0.0001;
-    });
-
-    if (marker) {
-      setTimeout(() => marker.openPopup(), 900);
-    }
-
-    if (index !== undefined) {
-      setActivePointIndex(index);
-      setTimeout(() => {
-        const listEl = listRef.current;
-        if (!listEl) return;
-        const item = listEl.querySelector(`[data-index="${index}"]`) as HTMLElement | null;
-        if (item) item.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 100);
-    }
-  };
-
- const handleSearch = async () => {
-    if (!searchQuery.trim() || !mapInstanceRef.current) return;
-    setSearchLoading(true);
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5&accept-language=it`
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery + " " + destinationName)}&format=json&limit=4`
       );
       const data = await res.json();
-      // Rimuovi pin di ricerca precedenti
-      searchMarkersRef.current.forEach(m => m.remove());
-      searchMarkersRef.current = [];
-      if (data && data.length > 0) {
-        const results = data.slice(0, 5);
-        results.forEach((r: any) => {
-          const lat = parseFloat(r.lat);
-          const lng = parseFloat(r.lon);
-          const icon = L.divIcon({
-            className: "",
-            html: `<div style="background:#6366f1;color:white;width:28px;height:28px;border-radius:50%;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:14px;">🔍</div>`,
-            iconSize: [28, 28],
-            iconAnchor: [14, 14],
-            popupAnchor: [0, -16],
-          });
-          const marker = L.marker([lat, lng], { icon })
-            .addTo(mapInstanceRef.current!)
-            .bindPopup(`<div style="font-family:sans-serif;font-size:12px;font-weight:bold;color:#1a1a2e;max-width:180px;">${r.display_name}</div>`, { maxWidth: 200 });
-          searchMarkersRef.current.push(marker);
-        });
-        mapInstanceRef.current.flyTo([parseFloat(results[0].lat), parseFloat(results[0].lon)], 14, { duration: 1 });
-        setTimeout(() => searchMarkersRef.current[0]?.openPopup(), 1100);
+      if (data?.length > 0) {
+        setSearchResults(data.map((r: any) => ({
+          label: r.display_name.split(",").slice(0, 2).join(","),
+          lat: parseFloat(r.lat),
+          lng: parseFloat(r.lon),
+        })));
+      } else {
+        setSearchResults([]);
       }
     } catch {}
-    setSearchLoading(false);
+    setSearching(false);
   };
 
-  if (error) {
-    return (
-      <div className="w-full h-[280px] rounded-[16px] flex items-center justify-center text-white/30 text-sm border border-white/8" style={{ background: "rgba(255,255,255,0.02)" }}>
-        Mappa non disponibile
-      </div>
-    );
-  }
+  const savePin = (pin: { label: string; lat: number; lng: number }) => {
+    setSavedPins(prev => {
+      if (prev.find(p => p.lat === pin.lat && p.lng === pin.lng)) return prev;
+      return [...prev, pin];
+    });
+    setMapCenter({ lat: pin.lat, lng: pin.lng });
+    setZoom(15);
+    setSearchResults([]);
+    setSearchQuery("");
+  };
 
-  const legendItems: [string, string][] = [
-    ["#E94560", "Mattina"],
-    ["#FF8C42", "Pranzo"],
-    ["#4ECDC4", "Pomeriggio"],
-    ["#9B59B6", "Sera"],
-    ["#1A1A2E", "Hotel"],
-    ["#0EA5E9", "Traghetto"],
-    ["#10B981", "Noleggio"],
-  ];
+  const removePin = (index: number) => {
+    setSavedPins(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Costruisce URL iframe con tutti i pin salvati
+  const buildMapUrl = () => {
+    if (!mapCenter) return null;
+    const base = `https://www.openstreetmap.org/export/embed.html?bbox=${mapCenter.lng - 0.05},${mapCenter.lat - 0.04},${mapCenter.lng + 0.05},${mapCenter.lat + 0.04}&layer=mapnik`;
+    const markers = savedPins.map(p => `&marker=${p.lat},${p.lng}`).join("");
+    return base + markers;
+  };
+
+  const mapUrl = buildMapUrl();
 
   return (
-    <>
-      {expanded && <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" onClick={() => setExpanded(false)} />}
-      <div
-        className="transition-all duration-300"
-        style={expanded ? {
-          position: "fixed",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "min(92vw, 1100px)",
-          height: "80vh",
-          zIndex: 9998,
-          borderRadius: "20px",
-          overflow: "hidden",
-          boxShadow: "0 25px 60px rgba(0,0,0,0.7)",
-          display: "flex",
-        } : {
-          position: "relative",
-          width: "100%",
-          height: "450px",
-          borderRadius: "16px",
-          overflow: "hidden",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        {expanded && (
-          <div style={{ width: "280px", flexShrink: 0, background: "#0d0820", overflowY: "auto", display: "flex", flexDirection: "column", zIndex: 10, borderRight: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ padding: "16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                <div style={{ fontFamily: "sans-serif", fontWeight: "bold", fontSize: "13px", color: "white" }}>{allPoints.length} luoghi</div>
-                <button
-                  onClick={() => setShowRoute((r) => !r)}
-                  style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "10px", fontWeight: "bold", border: `1px solid #E94560`, background: showRoute ? "#E94560" : "rgba(233,69,96,0.1)", color: showRoute ? "white" : "#E94560", cursor: "pointer" }}
-                >
-                  {showRoute ? "✕ Percorso" : "↗ Percorso"}
-                </button>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "8px" }}>
-                <button
-                  onClick={() => setActiveDay(null)}
-                  style={{ padding: "3px 8px", borderRadius: "20px", fontSize: "11px", fontWeight: "bold", border: "1px solid rgba(255,255,255,0.15)", background: activeDay === null ? "white" : "transparent", color: activeDay === null ? "#0a0814" : "rgba(255,255,255,0.5)", cursor: "pointer" }}
-                >
-                  Tutti
-                </button>
-                {uniqueDays.map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setActiveDay(activeDay === d ? null : d)}
-                    style={{ padding: "3px 8px", borderRadius: "20px", fontSize: "11px", fontWeight: "bold", border: "1px solid rgba(255,255,255,0.15)", background: activeDay === d ? "white" : "transparent", color: activeDay === d ? "#0a0814" : "rgba(255,255,255,0.5)", cursor: "pointer" }}
-                  >
-                    G{d}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                {uniqueSlots.map((slot) => {
-                  const color = slotColors[slot] ?? "#E94560";
-                  const active = activeSlot === slot;
-                  return (
-                    <button
-                      key={slot}
-                      onClick={() => setActiveSlot(activeSlot === slot ? null : slot)}
-                      style={{ padding: "3px 8px", borderRadius: "20px", fontSize: "10px", fontWeight: "bold", border: `1px solid ${color}`, background: active ? color : `${color}20`, color: active ? "white" : color, cursor: "pointer" }}
-                    >
-                      {slot}
-                    </button>
-                  );
-                })}
-              </div>
+    <div className="w-full h-full flex flex-col" style={{ background: "#0d0820" }}>
+
+      {/* Search bar */}
+      <div className="px-3 py-2.5 flex gap-2 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleSearch()}
+          placeholder={`Cerca un luogo a ${destinationName?.split(",")[0] ?? "destinazione"}...`}
+          className="flex-1 text-white text-sm outline-none"
+          style={{
+            background: "rgba(255,255,255,0.07)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: "8px",
+            padding: "7px 12px",
+          }}
+        />
+        <button
+          onClick={handleSearch}
+          disabled={searching}
+          className="px-3 py-1.5 rounded-lg text-white text-sm font-bold transition-all hover:brightness-110"
+          style={{ background: "#E94560", opacity: searching ? 0.6 : 1, minWidth: "40px" }}
+        >
+          {searching ? "..." : "🔍"}
+        </button>
+      </div>
+
+      {/* Search results dropdown */}
+      {searchResults.length > 0 && (
+        <div className="shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          {searchResults.map((r, i) => (
+            <div
+              key={i}
+              onClick={() => savePin(r)}
+              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-white/5 transition-all"
+            >
+              <MapPin className="w-3.5 h-3.5 text-[#E94560] shrink-0" />
+              <span className="text-xs text-white/70 truncate">{r.label}</span>
+              <span className="text-[10px] text-[#E94560] font-bold ml-auto shrink-0">+ Salva</span>
             </div>
+          ))}
+          <div
+            onClick={() => setSearchResults([])}
+            className="px-3 py-1.5 text-[10px] text-white/30 cursor-pointer hover:text-white/50 text-center"
+          >
+            Chiudi
+          </div>
+        </div>
+      )}
+
+      {/* Saved pins */}
+      {savedPins.length > 0 && (
+        <div className="flex gap-1.5 px-3 py-2 flex-wrap shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          {savedPins.map((pin, i) => (
+            <span
+              key={i}
+              onClick={() => { setMapCenter({ lat: pin.lat, lng: pin.lng }); setZoom(15); }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-all hover:brightness-110"
+              style={{ background: "rgba(233,69,96,0.15)", color: "#E94560", border: "1px solid rgba(233,69,96,0.3)" }}
+            >
+              📍 {pin.label}
+              <span
+                onClick={e => { e.stopPropagation(); removePin(i); }}
+                className="opacity-50 hover:opacity-100 ml-0.5"
+              >×</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Mappa iframe */}
+      <div className="flex-1 relative min-h-0">
+        {!mapCenter ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-7 h-7 border-2 border-[#E94560] border-t-transparent rounded-full animate-spin" />
+              <p className="text-white/30 text-xs">Caricamento mappa...</p>
+            </div>
+          </div>
+        ) : mapUrl ? (
+          <iframe
+            key={`${mapCenter.lat}-${mapCenter.lng}-${zoom}`}
+            src={mapUrl}
+            className="w-full h-full"
+            style={{ border: "none", minHeight: "300px" }}
+            title="Mappa destinazione"
+          />
+        ) : null}
+      </div>
+
+    </div>
+  );
+}
 
           {/* Search bar */}
             <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
