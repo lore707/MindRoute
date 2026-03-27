@@ -832,7 +832,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                         {/* Action buttons */}
                         <div className="flex flex-wrap gap-1.5">
                           {slot.link && (
-                            
+                            <a
                               href={slot.link}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -854,7 +854,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                             </a>
                           )}
                           {(slot as any).placeLink && (
-                            
+                             <a
                               href={(slot as any).placeLink}
                               target="_blank"
                               rel="noopener noreferrer"
@@ -890,7 +890,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                 return (
                   <div className="flex flex-wrap gap-1.5 mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                     {extras.map(([key, url]) => (
-                      
+                      <a
                         key={key}
                         href={url as string}
                         target="_blank"
