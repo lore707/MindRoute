@@ -322,7 +322,7 @@ export default function Itinerary() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
 
             {/* Budget totale — hero number */}
-            <div className="lg:col-span-2 rounded-[24px] p-6 relative overflow-hidden"style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.15), rgba(155,89,182,0.10))", border: "1px solid rgba(233,69,96,0.30)" }}
+         <div className="lg:col-span-2 rounded-[24px] p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.15), rgba(155,89,182,0.10))", border: "1px solid rgba(233,69,96,0.30)" }}>
               <div className="absolute top-0 right-0 w-40 h-40 opacity-[0.06]" style={{ background: "radial-gradient(circle, #E94560, transparent)" }} />
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-4">
