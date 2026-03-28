@@ -256,6 +256,7 @@ export async function registerRoutes(
         })
       );
 
+     const userId = (req as any).user?.id ?? null;
       const saved = await storage.createItinerary({
         destinationId,
         ...itinerary,
@@ -264,6 +265,8 @@ export async function registerRoutes(
         heroImageUrl: heroImage?.url ?? null,
         heroPhotographer: heroImage?.photographer ?? null,
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,
+        userId,
+        createdAt: new Date().toISOString(),
       });
       res.json(saved);
     } catch (err) {
@@ -390,6 +393,7 @@ export async function registerRoutes(
 
   send("progress", { step: 5, message: "Quasi pronto, ultime rifiniture..." });
 
+     const userId = (req as any).user?.id ?? null;
       const saved = await storage.createItinerary({
         destinationId,
         ...itinerary,
@@ -398,6 +402,8 @@ export async function registerRoutes(
         heroImageUrl: heroImage?.url ?? null,
         heroPhotographer: heroImage?.photographer ?? null,
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,
+        userId,
+        createdAt: new Date().toISOString(),
       });
 
       // Manda done SUBITO — utente vede l'itinerario
@@ -534,6 +540,17 @@ export async function registerRoutes(
         });
       }
       throw err;
+    }
+  });
+
+ app.get("/api/my-trips", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const trips = await storage.getUserItineraries(user.id);
+      res.json(trips);
+    } catch (err) {
+      res.status(500).json({ message: "Errore nel recupero dei viaggi" });
     }
   });
 
