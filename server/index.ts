@@ -8,7 +8,6 @@ import { setupAuth } from "./auth";
 import { createServer } from "http";
 const app = express();
 const httpServer = createServer(app);
-import connectPgSimple from "connect-pg-simple";
 const PgSession = connectPgSimple(session);
 app.use(session({
   store: new PgSession({
