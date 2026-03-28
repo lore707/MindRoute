@@ -71,4 +71,5 @@ export class MemoryStorage implements IStorage {
   }
 }
 
-export const storage = new MemoryStorage();
+import { DatabaseStorage } from "./storage-db";
+export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemoryStorage();
