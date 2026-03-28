@@ -49,8 +49,12 @@ export class DatabaseStorage implements IStorage {
     await db.insert(profilingInputs).values({ input });
   }
 
-  async getProfilingInput(): Promise<any | undefined> {
+async getProfilingInput(): Promise<any | undefined> {
     const result = await db.select().from(profilingInputs).orderBy(desc(profilingInputs.id)).limit(1);
     return result[0]?.input ?? undefined;
+  }
+
+  async getUserItineraries(userId: number): Promise<Itinerary[]> {
+    return await db.select().from(itineraries).where(eq(itineraries.userId, userId)).orderBy(desc(itineraries.id));
   }
 }
