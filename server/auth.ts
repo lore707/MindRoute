@@ -54,7 +54,7 @@ export function setupAuth(app: any) {
     "/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/" }),
     (_req: any, res: any) => {
-      res.redirect("/destinations");
+     res.redirect("/");
     }
   );
 
