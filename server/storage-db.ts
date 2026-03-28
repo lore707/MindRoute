@@ -54,28 +54,3 @@ export class DatabaseStorage implements IStorage {
     return result[0]?.input ?? undefined;
   }
 }
-```
-
----
-
-**MODIFICA 3 — Aggiorna `server/storage.ts`** (ultima riga)
-
-**Cerca:**
-```
-export const storage = new MemoryStorage();
-```
-
-**Sostituisci con:**
-```
-import { DatabaseStorage } from "./storage-db";
-export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemoryStorage();
-```
-
----
-
-**Dopo aver applicato le 3 modifiche:**
-
-1. Salva tutto
-2. Apri il terminale su Render o localmente con la `DATABASE_URL` settata ed esegui:
-```
-npm run db:push
