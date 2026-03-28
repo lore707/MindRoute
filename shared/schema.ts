@@ -19,6 +19,8 @@ export const profilingInputs = pgTable("profiling_inputs", {
 export const itineraries = pgTable("itineraries", {
   id: serial("id").primaryKey(),
   destinationId: integer("destination_id").references(() => destinations.id).notNull(),
+  userId: integer("user_id").references(() => users.id),
+  createdAt: text("created_at"),
   days: jsonb("days").$type<any[]>().notNull(),
   budgetSummary: text("budget_summary").notNull(),
   packingList: text("packing_list").notNull(),
