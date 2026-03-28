@@ -10,7 +10,8 @@ export interface IStorage {
   saveProfilingInput(input: any): Promise<void>;
   getProfilingInput(): Promise<any | undefined>;
   getItineraryById(id: number): Promise<Itinerary | undefined>;
-  updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
+ updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
+  getUserItineraries(userId: number): Promise<any[]>;
 }
 
 export class MemoryStorage implements IStorage {
@@ -63,13 +64,15 @@ export class MemoryStorage implements IStorage {
     return this.itineraries.find(i => i.id === id);
   }
 
-  async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
+async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     const idx = this.itineraries.findIndex(i => i.id === id);
     if (idx >= 0) {
       this.itineraries[idx] = { ...this.itineraries[idx], days: updatedDays };
     }
   }
-}
 
-import { DatabaseStorage } from "./storage-db";
+  async getUserItineraries(userId: number): Promise<any[]> {
+    return this.itineraries.filter(i => (i as any).userId === userId);
+  }
+}
 export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemoryStorage();
