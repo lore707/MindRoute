@@ -5,6 +5,41 @@ import LangDropdown from "@/components/LangDropdown";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/components/ThemeProvider";
 
+import { useEffect, useState } from "react";
+import { User } from "lucide-react";
+
+function AuthButton() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
+
+  if (user) {
+    return (
+      <div className="flex items-center gap-2">
+        {user.avatar && <img src={user.avatar} className="w-7 h-7 rounded-full" />}
+        <a href="/auth/logout" className="text-[12px] text-[var(--text-secondary)] hover:text-primary transition-colors">
+          Esci
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    
+      href="/auth/google"
+      className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-primary transition-colors"
+    >
+      <User className="w-4 h-4" />
+      <span className="hidden sm:inline">Accedi</span>
+    </a>
+  );
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { t } = useI18n();
@@ -45,6 +80,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {theme === "light" ? <Moon className="w-[15px] h-[15px]" /> : <Sun className="w-[15px] h-[15px]" />}
           </button>
           <LangDropdown />
+        <AuthButton />
           <Link href="/profiling" className="text-[13px] font-medium text-primary no-underline px-5 py-2 border-[1.5px] border-primary rounded-full hover:bg-primary hover:text-white transition-all flex items-center gap-1.5" data-testid="link-nav-start">
             <Compass className="w-4 h-4 sm:hidden" />
             <span className="hidden sm:inline">{t('nav.start')}</span>
