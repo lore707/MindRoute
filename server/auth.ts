@@ -43,7 +43,12 @@ export function setupAuth(app: any) {
     }
   });
 
-  app.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+ app.get("/auth/google", (req: any, res: any, next: any) => {
+  passport.authenticate("google", { 
+    scope: ["profile", "email"],
+    prompt: "select_account"
+  })(req, res, next);
+});
 
   app.get(
     "/auth/google/callback",
