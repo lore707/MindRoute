@@ -30,7 +30,7 @@ function AuthButton() {
   }
 
   return (
-    
+    <a
       href="/auth/google"
       className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-primary transition-colors"
     >
