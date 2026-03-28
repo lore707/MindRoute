@@ -7,7 +7,14 @@ import { setupAuth } from "./auth";
 import { createServer } from "http";
 const app = express();
 const httpServer = createServer(app);
+import connectPgSimple from "connect-pg-simple";
+const PgSession = connectPgSimple(session);
 app.use(session({
+  store: new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: "session",
+    createTableIfMissing: true,
+  }),
   secret: process.env.SESSION_SECRET || "fallback_secret",
   resave: false,
   saveUninitialized: false,
