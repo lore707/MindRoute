@@ -1,4 +1,5 @@
-﻿import { Link } from "wouter";
+import React from "react";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/components/ThemeProvider";
@@ -22,6 +23,16 @@ const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
 export default function Landing() {
   const { t, lang } = useI18n();
   const { theme } = useTheme();
+  const [user, setUser] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    fetch("/api/auth/me")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setUser(data))
+      .catch(() => setUser(null));
+  }, []);
+
+  const startHref = user ? "/profiling" : "/auth/google";
 
   const heroTitleHtml = t("landing.hero.title")
     .replace(/who you are/, '<em class="italic text-[#E94560] font-normal">$&</em>')
@@ -129,12 +140,12 @@ export default function Landing() {
               className="flex flex-col items-center justify-center gap-4 sm:flex-row"
             >
               <motion.div whileHover={{ y: -3, scale: 1.015 }} whileTap={{ scale: 0.985 }}>
-                <Link href="/profiling" className="inline-flex items-center gap-[10px] bg-[linear-gradient(135deg,#F2556E,#E94560)] text-white text-[16px] font-semibold px-8 py-4 md:px-11 md:py-[19px] rounded-full transition-all shadow-[0_14px_38px_rgba(233,69,96,0.28)] hover:shadow-[0_18px_46px_rgba(233,69,96,0.32)]" data-testid="link-begin">
+             <a href={startHref} className="inline-flex items-center gap-[10px] bg-[linear-gradient(135deg,#F2556E,#E94560)] text-white text-[16px] font-semibold px-8 py-4 md:px-11 md:py-[19px] rounded-full transition-all shadow-[0_14px_38px_rgba(233,69,96,0.28)] hover:shadow-[0_18px_46px_rgba(233,69,96,0.32)]" data-testid="link-begin">
                   {t("landing.hero.cta")}
                   <motion.svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}>
                     <path d="M5 12h14M12 5l7 7-7 7" />
                   </motion.svg>
-                </Link>
+              </a>
               </motion.div>
               <motion.div whileHover={{ y: -2 }} className={`inline-flex items-center gap-3 rounded-full px-4 py-3 text-left border-none ${heroReactionCard}`}>
                 <div className="flex -space-x-2">
@@ -606,12 +617,12 @@ export default function Landing() {
           <p className="text-[rgba(255,255,255,0.5)] text-[16px] font-light mb-10 max-w-[420px] mx-auto">
             {t("landing.cta.desc")}
           </p>
-          <Link href="/profiling" className="inline-flex items-center gap-[10px] bg-[#E94560] text-white text-[16px] font-semibold px-7 py-4 md:px-10 md:py-[18px] rounded-full transition-all hover:bg-[#D13A52] hover:translate-y-[-2px] shadow-[0_4px_24px_rgba(233,69,96,0.25)]" data-testid="link-start-profiling">
+         <a href={startHref} className="inline-flex items-center gap-[10px] bg-[#E94560] text-white text-[16px] font-semibold px-7 py-4 md:px-10 md:py-[18px] rounded-full transition-all hover:bg-[#D13A52] hover:translate-y-[-2px] shadow-[0_4px_24px_rgba(233,69,96,0.25)]" data-testid="link-start-profiling">
             {t("landing.cta.btn")}
             <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
-          </Link>
+          </a>
         </div>
       </section>
 
