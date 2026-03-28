@@ -43,6 +43,19 @@ export const insertItinerarySchema = createInsertSchema(itineraries).omit({ id: 
 export type InsertItinerary = z.infer<typeof insertItinerarySchema>;
 export type Itinerary = typeof itineraries.$inferSelect;
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  googleId: text("google_id").notNull().unique(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  avatar: text("avatar"),
+  createdAt: text("created_at").notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
 export const profilingRequestSchema = z.object({
   answers: z.array(z.string()),
   days: z.number(),
