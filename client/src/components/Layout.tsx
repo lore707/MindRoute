@@ -18,14 +18,17 @@ function AuthButton() {
       .catch(() => setUser(null));
   }, []);
 
-  if (user) {
+if (user) {
     return (
-      <div className="flex items-center gap-2">
-        {user.avatar && <img src={user.avatar} className="w-7 h-7 rounded-full" />}
-        <a href="/auth/logout" className="text-[12px] text-[var(--text-secondary)] hover:text-primary transition-colors">
-          Esci
-        </a>
-      </div>
+      <a href="/my-account" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+        {user.avatar
+          ? <img src={user.avatar} className="w-7 h-7 rounded-full border border-[#E94560]/30" />
+          : <div className="w-7 h-7 rounded-full bg-[#E94560] flex items-center justify-center text-white text-[11px] font-bold">{user.name?.[0]}</div>
+        }
+        <span className="hidden sm:inline text-[12px] font-medium text-[var(--text-secondary)] hover:text-primary transition-colors">
+          {user.name?.split(" ")[0]}
+        </span>
+      </a>
     );
   }
 
