@@ -48,7 +48,7 @@ export default function MyAccount() {
               <h1 className="text-xl font-serif font-bold text-white">{user.name}</h1>
               <p className="text-white/40 text-sm">{user.email}</p>
             </div>
-            
+            <a
               href="/auth/logout"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white border border-white/10 hover:border-white/20 transition-all"
             >
