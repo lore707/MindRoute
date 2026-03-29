@@ -817,6 +817,49 @@ REQUIRED JSON:
   return parsed.destinations;
 }
 
+export async function generateDayRegeneration(
+  profilingInput: any,
+  destinationName: string,
+  currentDay: any,
+  dayIndex: number,
+  feedback: string
+): Promise<any> {
+  const lang = profilingInput?.lang || "it";
+  const prompt = `Sei un travel planner esperto. Devi rigenerare SOLO il giorno ${dayIndex + 1} di un itinerario a ${destinationName}.
+
+Giorno attuale:
+- Titolo: ${currentDay.title}
+- Mattina: ${currentDay.morning}
+- Pranzo: ${currentDay.lunch}
+- Pomeriggio: ${currentDay.afternoon}
+- Sera: ${currentDay.evening}
+
+${feedback ? `Richiesta dell'utente: ${feedback}` : "Crea una variazione interessante mantenendo lo stesso tono."}
+
+Rispondi SOLO con un oggetto JSON valido con questa struttura:
+{
+  "dayNumber": ${dayIndex + 1},
+  "title": "titolo del giorno",
+  "morning": "descrizione mattina",
+  "lunch": "descrizione pranzo",
+  "afternoon": "descrizione pomeriggio",
+  "evening": "descrizione sera",
+  "imageQuery": "query per immagine"
+}
+
+Lingua: ${lang}. Nessun testo fuori dal JSON.`;
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1000,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const text = response.content[0].type === "text" ? response.content[0].text : "";
+  const clean = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(clean);
+}
+
 export async function generateItineraryForDestination(
   input: ProfilingInput,
   destinationName: string
