@@ -624,6 +624,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
     }
     setIsRegenerating(false);
   };
+
   const slots = [
     {
       key: "morning", icon: "🌅", label: t("itin.morning"), text: day.morning,
@@ -650,7 +651,6 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
   ];
 
   const hasAnyLink = slots.some(s => s.link || (s as any).placeLink);
-  const filledSlots = slots.filter(s => s.text && s.text.length > 3).length;
 
   return (
     <motion.div
@@ -662,35 +662,22 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
       <div
         className="rounded-[24px] overflow-hidden transition-all duration-300"
         style={{
-         background: isPeak
+          background: isPeak
             ? "linear-gradient(135deg, rgba(233,69,96,0.10), rgba(233,69,96,0.04), rgba(155,89,182,0.06))"
-            : isOpen
-              ? "rgba(255,255,255,0.06)"
-              : "rgba(255,255,255,0.05)",
+            : isOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.05)",
           border: isPeak
             ? isOpen ? "1.5px solid rgba(233,69,96,0.4)" : "1px solid rgba(233,69,96,0.3)"
-            : isOpen
-              ? "1px solid rgba(255,255,255,0.15)"
-              : "1px solid rgba(255,255,255,0.10)",
+            : isOpen ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(255,255,255,0.10)",
           boxShadow: isPeak && isOpen ? "0 0 40px rgba(233,69,96,0.08)" : "none",
         }}
       >
-        {/* ── HEADER ROW ── */}
-        <button
-          onClick={onToggle}
-          className="w-full text-left"
-          data-testid={`day-trigger-${index}`}
-        >
+        <button onClick={onToggle} className="w-full text-left" data-testid={`day-trigger-${index}`}>
           <div className="flex items-stretch gap-0">
-
-      {/* Day number column */}
             <div
               className="flex flex-col items-center justify-center px-5 py-5 shrink-0 relative overflow-hidden"
               style={{
                 width: "72px",
-                background: isPeak
-                  ? "linear-gradient(180deg, #E94560, #c73550)"
-                  : "rgba(255,255,255,0.04)",
+                background: isPeak ? "linear-gradient(180deg, #E94560, #c73550)" : "rgba(255,255,255,0.04)",
                 borderRight: "1px solid rgba(255,255,255,0.06)",
               }}
             >
@@ -699,39 +686,17 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                   <Flame className="w-3 h-3 text-yellow-300/80" />
                 </div>
               )}
-              <span
-                className="font-serif font-bold leading-none"
-                style={{
-                  fontSize: "28px",
-                  color: isPeak ? "white" : "rgba(255,255,255,0.5)",
-                }}
-              >
+              <span className="font-serif font-bold leading-none" style={{ fontSize: "28px", color: isPeak ? "white" : "rgba(255,255,255,0.5)" }}>
                 {day.dayNumber}
               </span>
-              <span
-                className="text-[9px] uppercase tracking-[1.5px] mt-1 font-bold"
-                style={{ color: isPeak ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.25)" }}
-              >
+              <span className="text-[9px] uppercase tracking-[1.5px] mt-1 font-bold" style={{ color: isPeak ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.25)" }}>
                 giorno
               </span>
-              {/* Progress indicator */}
-              <div
-                className="absolute bottom-0 left-0 right-0"
-                style={{ height: "3px", background: "rgba(255,255,255,0.06)" }}
-              >
-                <div
-                  style={{
-                    height: "100%",
-                    width: `${(index / 6) * 100}%`,
-                    background: isPeak ? "rgba(255,255,255,0.5)" : "#E94560",
-                    borderRadius: "0 2px 2px 0",
-                    transition: "width 0.3s ease",
-                  }}
-                />
+              <div className="absolute bottom-0 left-0 right-0" style={{ height: "3px", background: "rgba(255,255,255,0.06)" }}>
+                <div style={{ height: "100%", width: `${(index / 6) * 100}%`, background: isPeak ? "rgba(255,255,255,0.5)" : "#E94560", borderRadius: "0 2px 2px 0", transition: "width 0.3s ease" }} />
               </div>
             </div>
 
-            {/* Main content */}
             <div className="flex-1 px-5 py-4 min-w-0">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -740,49 +705,24 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                       <span className="text-[9px] font-bold text-[#E94560] uppercase tracking-[2.5px]">Momento clou</span>
                     </div>
                   )}
-                  <h4
-                    className="font-serif font-bold leading-tight transition-colors"
-                    style={{
-                      fontSize: "16px",
-                      color: isOpen || isPeak ? "white" : "rgba(255,255,255,0.65)",
-                    }}
-                  >
+                  <h4 className="font-serif font-bold leading-tight transition-colors" style={{ fontSize: "16px", color: isOpen || isPeak ? "white" : "rgba(255,255,255,0.65)" }}>
                     {day.title}
                   </h4>
-
-                {/* Slot preview — keyword estratta dal testo */}
                   {!isOpen && (
                     <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
                       {slots.map(slot => {
                         if (!slot.text || slot.text.length < 3) return null;
-                        // Estrai keyword: prima parte prima di — o , o .
-                        const keyword = slot.text
-                          .split(/[—–,.(]/)[0]
-                          .replace(/^(volo|transfer|taxi|pranzo a bordo|check.?in|partenza|arrivo)\s+/i, '')
-                          .trim()
-                          .split(' ')
-                          .slice(0, 4)
-                          .join(' ');
+                        const keyword = slot.text.split(/[—–,.(]/)[0].replace(/^(volo|transfer|taxi|pranzo a bordo|check.?in|partenza|arrivo)\s+/i, '').trim().split(' ').slice(0, 4).join(' ');
                         if (!keyword || keyword.length < 2) return null;
                         return (
                           <span
                             key={slot.key}
                             className="inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all"
-                            style={{
-                              background: `${slot.color}18`,
-                              color: slot.link ? slot.color : `${slot.color}99`,
-                              border: `1px solid ${slot.color}30`,
-                              cursor: slot.link ? 'pointer' : 'default',
-                            }}
-                            onClick={slot.link ? (e) => {
-                              e.stopPropagation();
-                              window.open(slot.link!, '_blank', 'noopener,noreferrer');
-                            } : undefined}
+                            style={{ background: `${slot.color}18`, color: slot.link ? slot.color : `${slot.color}99`, border: `1px solid ${slot.color}30`, cursor: slot.link ? 'pointer' : 'default' }}
+                            onClick={slot.link ? (e) => { e.stopPropagation(); window.open(slot.link!, '_blank', 'noopener,noreferrer'); } : undefined}
                           >
                             <span className="text-[11px]">{slot.icon}</span>
-                            <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {keyword}
-                            </span>
+                            <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{keyword}</span>
                             {slot.link && <ExternalLink className="w-2 h-2 opacity-50 shrink-0" />}
                           </span>
                         );
@@ -790,31 +730,14 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                     </div>
                   )}
                 </div>
-
-                {/* Right side: link count + chevron */}
                 <div className="flex items-center gap-2.5 shrink-0 pt-0.5">
                   {hasAnyLink && !isOpen && (
-                    <span
-                      className="text-[10px] font-bold px-2 py-1 rounded-full"
-                      style={{ background: "rgba(233,69,96,0.1)", color: "#E94560", border: "1px solid rgba(233,69,96,0.2)" }}
-                    >
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: "rgba(233,69,96,0.1)", color: "#E94560", border: "1px solid rgba(233,69,96,0.2)" }}>
                       {slots.filter(s => s.link).length} link
                     </span>
                   )}
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center transition-all"
-                    style={{
-                      background: isOpen ? "rgba(233,69,96,0.15)" : "rgba(255,255,255,0.05)",
-                      border: isOpen ? "1px solid rgba(233,69,96,0.3)" : "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <ChevronDown
-                      className="w-3.5 h-3.5 transition-transform duration-300"
-                      style={{
-                        color: isOpen ? "#E94560" : "rgba(255,255,255,0.3)",
-                        transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                      }}
-                    />
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center transition-all" style={{ background: isOpen ? "rgba(233,69,96,0.15)" : "rgba(255,255,255,0.05)", border: isOpen ? "1px solid rgba(233,69,96,0.3)" : "1px solid rgba(255,255,255,0.08)" }}>
+                    <ChevronDown className="w-3.5 h-3.5 transition-transform duration-300" style={{ color: isOpen ? "#E94560" : "rgba(255,255,255,0.3)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
                   </div>
                 </div>
               </div>
@@ -822,27 +745,18 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
           </div>
         </button>
 
-        {/* ── EXPANDED CONTENT ── */}
         {isOpen && (
           <div className="relative">
-            {/* Day image background */}
             {day.dayImage && (
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <img
-                  src={day.dayImage}
-                  alt=""
-                  className="w-full h-full object-cover opacity-[0.07]"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                />
+                <img src={day.dayImage} alt="" className="w-full h-full object-cover opacity-[0.07]" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(10,8,20,0.3), rgba(10,8,20,0.8))" }} />
               </div>
             )}
 
             <div className="relative z-10 px-5 pb-6 pt-1">
-              {/* Divider */}
               <div className="w-full h-px mb-5" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }} />
 
-              {/* Slots grid */}
               <div className="space-y-0 rounded-[16px] overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
                 {slots.map((slot, si) => {
                   if (!slot.text || slot.text.length < 3) return null;
@@ -853,114 +767,41 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                       : slot.key === "afternoon"
                         ? (day.affiliateLinks?.getyourguide_afternoon ? "getyourguide_afternoon" : day.affiliateLinks?.klook_afternoon ? "klook_afternoon" : day.affiliateLinks?.viator_afternoon ? "viator_afternoon" : "booking_hotel")
                         : (day.affiliateLinks?.thefork_evening ? "thefork_evening" : day.affiliateLinks?.tripadvisor_evening ? "tripadvisor_evening" : "tripadvisor_evening_fallback");
-
                   const placeKey = slot.key === "morning"
                     ? (day.affiliateLinks?.getyourguide_place_morning ? "getyourguide_place_morning" : day.affiliateLinks?.klook_place_morning ? "klook_place_morning" : "viator_place_morning")
                     : (day.affiliateLinks?.getyourguide_place_afternoon ? "getyourguide_place_afternoon" : day.affiliateLinks?.klook_place_afternoon ? "klook_place_afternoon" : "viator_place_afternoon");
-
                   const linkLabel = day.affiliateLabels?.[linkKey];
                   const placeLinkLabel = day.affiliateLabels?.[placeKey];
 
                   return (
-                    <div
-                      key={slot.key}
-                      className="flex gap-0"
-                      style={{
-                        borderTop: si > 0 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                        background: si % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent",
-                      }}
-                    >
-                    {/* Slot indicator — linea colorata + icona + label */}
-                      <div
-                        className="flex flex-col items-center pt-5 pb-4 shrink-0 relative"
-                        style={{
-                          width: "56px",
-                          borderRight: "1px solid rgba(255,255,255,0.05)",
-                          background: `${slot.color}06`,
-                        }}
-                      >
-                        {/* Linea colorata sinistra */}
-                        <div
-                          className="absolute left-0 top-0 bottom-0 w-[3px]"
-                          style={{ background: `linear-gradient(180deg, ${slot.color}, ${slot.color}40)` }}
-                        />
+                    <div key={slot.key} className="flex gap-0" style={{ borderTop: si > 0 ? "1px solid rgba(255,255,255,0.05)" : "none", background: si % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent" }}>
+                      <div className="flex flex-col items-center pt-5 pb-4 shrink-0 relative" style={{ width: "56px", borderRight: "1px solid rgba(255,255,255,0.05)", background: `${slot.color}06` }}>
+                        <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: `linear-gradient(180deg, ${slot.color}, ${slot.color}40)` }} />
                         <span className="text-xl leading-none mb-2">{slot.icon}</span>
-                        <span
-                          className="text-[8px] font-bold uppercase tracking-[1px] text-center leading-tight"
-                          style={{ color: `${slot.color}90` }}
-                        >
-                          {slot.label}
-                        </span>
+                        <span className="text-[8px] font-bold uppercase tracking-[1px] text-center leading-tight" style={{ color: `${slot.color}90` }}>{slot.label}</span>
                       </div>
-
-                      {/* Slot content */}
                       <div className="flex-1 px-5 py-4 min-w-0">
-                        {/* Testo principale */}
                         {(() => {
                           const sentences = slot.text.split(/(?<=[.!?—])\s+/);
                           const main = sentences[0] ?? slot.text;
                           const details = sentences.slice(1).join(' ');
                           return (
                             <>
-                              <p
-                                className="font-medium mb-1"
-                                style={{ fontSize: "15px", color: "rgba(255,255,255,0.88)", lineHeight: "1.65" }}
-                              >
-                                {main}
-                              </p>
-                              {details && (
-                                <p
-                                  className="mb-3"
-                                  style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", lineHeight: "1.6" }}
-                                >
-                                  {details}
-                                </p>
-                              )}
+                              <p className="font-medium mb-1" style={{ fontSize: "15px", color: "rgba(255,255,255,0.88)", lineHeight: "1.65" }}>{main}</p>
+                              {details && <p className="mb-3" style={{ fontSize: "13px", color: "rgba(255,255,255,0.45)", lineHeight: "1.6" }}>{details}</p>}
                             </>
                           );
                         })()}
-
-                        {/* Action buttons */}
                         <div className="flex flex-wrap gap-2 mt-3">
                           {slot.link && (
-                            <a
-                              href={slot.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 transition-all hover:scale-[1.02] hover:brightness-110"
-                              style={{
-                                padding: "8px 14px",
-                                borderRadius: "10px",
-                                fontSize: "12px",
-                                fontWeight: "700",
-                                background: `${slot.color}18`,
-                                color: slot.color,
-                                border: `1px solid ${slot.color}35`,
-                                textDecoration: "none",
-                              }}
-                            >
+                            <a href={slot.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 transition-all hover:scale-[1.02] hover:brightness-110" style={{ padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", background: `${slot.color}18`, color: slot.color, border: `1px solid ${slot.color}35`, textDecoration: "none" }}>
                               {slot.isActivity ? <Ticket className="w-3 h-3" /> : <Utensils className="w-3 h-3" />}
                               {linkLabel || (slot.isActivity ? "Prenota attività" : "Prenota tavolo")}
                               <ExternalLink className="w-2.5 h-2.5 opacity-50" />
                             </a>
                           )}
                           {(slot as any).placeLink && (
-                            <a
-                              href={(slot as any).placeLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 transition-all hover:scale-[1.02]"
-                              style={{
-                                padding: "8px 14px",
-                                borderRadius: "10px",
-                                fontSize: "12px",
-                                fontWeight: "700",
-                                background: "rgba(255,255,255,0.05)",
-                                color: "rgba(255,255,255,0.50)",
-                                border: "1px solid rgba(255,255,255,0.10)",
-                                textDecoration: "none",
-                              }}
-                            >
+                            <a href={(slot as any).placeLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 transition-all hover:scale-[1.02]" style={{ padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.10)", textDecoration: "none" }}>
                               <MapPin className="w-3 h-3" />
                               {placeLinkLabel || "Tour del luogo"}
                               <ExternalLink className="w-2.5 h-2.5 opacity-50" />
@@ -973,7 +814,6 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                 })}
               </div>
 
-            {/* Extra affiliate links */}
               {day.affiliateLinks && (() => {
                 const usedKeys = ["getyourguide_morning","getyourguide_afternoon","klook_morning","klook_afternoon","viator_morning","viator_afternoon","getyourguide_place_morning","getyourguide_place_afternoon","klook_place_morning","klook_place_afternoon","viator_place_morning","viator_place_afternoon","thefork_lunch","thefork_evening","tripadvisor_lunch","tripadvisor_evening","tripadvisor_evening_fallback","skyscanner","booking_hotel"];
                 const extras = Object.entries(day.affiliateLinks).filter(([k]) => !usedKeys.includes(k));
@@ -981,23 +821,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                 return (
                   <div className="flex flex-wrap gap-1.5 mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                     {extras.map(([key, url]) => (
-                      
-                        key={key}
-                        href={url as string}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 transition-all hover:scale-[1.02]"
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: "8px",
-                          fontSize: "10px",
-                          fontWeight: "700",
-                          background: "rgba(233,69,96,0.08)",
-                          color: "#E94560",
-                          border: "1px solid rgba(233,69,96,0.15)",
-                          textDecoration: "none",
-                        }}
-                      >
+                      <a key={key} href={url as string} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 transition-all hover:scale-[1.02]" style={{ padding: "4px 10px", borderRadius: "8px", fontSize: "10px", fontWeight: "700", background: "rgba(233,69,96,0.08)", color: "#E94560", border: "1px solid rgba(233,69,96,0.15)", textDecoration: "none" }}>
                         <ExternalLink className="w-2 h-2" />
                         {day.affiliateLabels?.[key] || key}
                       </a>
@@ -1006,11 +830,8 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                 );
               })()}
 
-              {/* Rigenera giorno */}
               <div className="mt-4 pt-3 flex items-center justify-between" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                <span className="text-[10px] text-white/20">
-                  {MAX_REGENS - getRegenCount()} rigenerazioni rimaste
-                </span>
+                <span className="text-[10px] text-white/20">{MAX_REGENS - getRegenCount()} rigenerazioni rimaste</span>
                 <button
                   onClick={() => setShowRegenModal(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all hover:brightness-110"
@@ -1020,7 +841,6 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                 </button>
               </div>
 
-              {/* Modal rigenerazione */}
               {showRegenModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
                   <div className="w-full max-w-md rounded-[24px] p-6 space-y-4" style={{ background: "#1a0a14", border: "1px solid rgba(233,69,96,0.3)" }}>
@@ -1035,19 +855,10 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                       style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}
                     />
                     <div className="flex gap-3">
-                      <button
-                        onClick={() => { setShowRegenModal(false); setRegenPrompt(""); }}
-                        className="flex-1 py-3 rounded-xl text-white/50 font-bold text-sm transition-all hover:text-white"
-                        style={{ border: "1px solid rgba(255,255,255,0.1)" }}
-                      >
+                      <button onClick={() => { setShowRegenModal(false); setRegenPrompt(""); }} className="flex-1 py-3 rounded-xl text-white/50 font-bold text-sm transition-all hover:text-white" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
                         Annulla
                       </button>
-                      <button
-                        onClick={handleRegen}
-                        disabled={isRegenerating}
-                        className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all hover:brightness-110"
-                        style={{ background: isRegenerating ? "rgba(233,69,96,0.4)" : "#E94560" }}
-                      >
+                      <button onClick={handleRegen} disabled={isRegenerating} className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all hover:brightness-110" style={{ background: isRegenerating ? "rgba(233,69,96,0.4)" : "#E94560" }}>
                         {isRegenerating ? "Rigenerando..." : "Rigenera"}
                       </button>
                     </div>
@@ -1057,6 +868,10 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
             </div>
           </div>
         )}
+      </div>
+    </motion.div>
+  );
+}
 
 function ItineraryMap({ days, destinationName }: { days: any[]; destinationName: string }) {
   const [searchQuery, setSearchQuery] = useState("");
