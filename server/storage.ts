@@ -75,4 +75,5 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     return this.itineraries.filter(i => (i as any).userId === userId);
   }
 }
+import { DatabaseStorage } from "./storage-db";
 export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemoryStorage();
