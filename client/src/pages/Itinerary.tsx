@@ -973,7 +973,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                 })}
               </div>
 
-              {/* Extra affiliate links */}
+            {/* Extra affiliate links */}
               {day.affiliateLinks && (() => {
                 const usedKeys = ["getyourguide_morning","getyourguide_afternoon","klook_morning","klook_afternoon","viator_morning","viator_afternoon","getyourguide_place_morning","getyourguide_place_afternoon","klook_place_morning","klook_place_afternoon","viator_place_morning","viator_place_afternoon","thefork_lunch","thefork_evening","tripadvisor_lunch","tripadvisor_evening","tripadvisor_evening_fallback","skyscanner","booking_hotel"];
                 const extras = Object.entries(day.affiliateLinks).filter(([k]) => !usedKeys.includes(k));
@@ -981,7 +981,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                 return (
                   <div className="flex flex-wrap gap-1.5 mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                     {extras.map(([key, url]) => (
-                      <a
+                      
                         key={key}
                         href={url as string}
                         target="_blank"
@@ -1005,7 +1005,6 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                   </div>
                 );
               })()}
-          </div>
 
               {/* Rigenera giorno */}
               <div className="mt-4 pt-3 flex items-center justify-between" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
@@ -1058,10 +1057,6 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
             </div>
           </div>
         )}
-      </div>
-    </motion.div>
-  );
-}
 
 function ItineraryMap({ days, destinationName }: { days: any[]; destinationName: string }) {
   const [searchQuery, setSearchQuery] = useState("");
