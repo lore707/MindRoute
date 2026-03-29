@@ -12,6 +12,7 @@ import Profiling from "@/pages/Profiling";
 import Destinations from "@/pages/Destinations";
 import Itinerary from "@/pages/Itinerary";
 import Privacy from "@/pages/Privacy";
+import MyAccount from "@/pages/MyAccount";
 import { CookieBanner } from "@/components/CookieBanner";
 
 function Router() {
@@ -22,7 +23,8 @@ function Router() {
         <Route path="/profiling" component={Profiling} />
         <Route path="/destinations" component={Destinations} />
       <Route path="/itinerary/:id" component={Itinerary} />
-        <Route path="/privacy" component={Privacy} />
+      <Route path="/privacy" component={Privacy} />
+        <Route path="/my-account" component={MyAccount} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
