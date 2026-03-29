@@ -543,7 +543,34 @@ export async function registerRoutes(
     }
   });
 
- app.get("/api/my-trips", async (req, res) => {
+app.post("/api/itinerary/:id/regenerate-day", async (req, res) => {
+    try {
+      const itinId = z.coerce.number().parse(req.params.id);
+      const { dayIndex, feedback } = req.body;
+      const itin = await storage.getItineraryById(itinId);
+      if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      const profilingInput = await storage.getProfilingInput();
+      const dayToRegen = (itin as any).days?.[dayIndex];
+      if (!dayToRegen) return res.status(400).json({ message: "Giorno non trovato" });
+      const { generateDayRegeneration } = await import("./matching-engine");
+      const newDay = await generateDayRegeneration(
+        profilingInput,
+        (itin as any).destinationName,
+        dayToRegen,
+        dayIndex,
+        feedback || ""
+      );
+      const updatedDays = [...(itin as any).days];
+      updatedDays[dayIndex] = { ...dayToRegen, ...newDay };
+      await storage.updateItineraryMapPoints(itinId, updatedDays);
+      res.json({ day: updatedDays[dayIndex] });
+    } catch (err) {
+      console.error("Errore rigenerazione giorno:", err);
+      res.status(500).json({ message: "Errore durante la rigenerazione" });
+    }
+  });
+
+  app.get("/api/my-trips", async (req, res) => {
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: "Non autenticato" });
     try {
