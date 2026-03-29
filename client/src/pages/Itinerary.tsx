@@ -528,7 +528,7 @@ export default function Itinerary() {
             <span className="text-white/30 text-sm">{itinerary.days?.length} giorni</span>
           </div>
 
-          {itinerary.days.map((day: any, index: number) => (
+      {itinerary.days.map((day: any, index: number) => (
             <DayCard
               key={index}
               day={day}
@@ -542,6 +542,11 @@ export default function Itinerary() {
               index={index}
               isPeak={index === peakDayIndex || index === peakDayIndex + 1}
               t={t}
+              itineraryId={id}
+              onDayRegenerated={(dayIndex, newDay) => {
+                itinerary.days[dayIndex] = newDay;
+                refetch();
+              }}
             />
           ))}
 
@@ -586,9 +591,39 @@ export default function Itinerary() {
   );
 }
 
-function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
-  day: any; isOpen: boolean; onToggle: () => void; index: number; isPeak: boolean; t: (key: string) => string
+function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRegenerated }: {
+  day: any; isOpen: boolean; onToggle: () => void; index: number; isPeak: boolean; t: (key: string) => string; itineraryId: number; onDayRegenerated: (dayIndex: number, newDay: any) => void;
 }) {
+  const [showRegenModal, setShowRegenModal] = useState(false);
+  const [regenPrompt, setRegenPrompt] = useState("");
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const storageKey = `regen_count_${itineraryId}`;
+  const getRegenCount = () => parseInt(localStorage.getItem(storageKey) || "0");
+  const MAX_REGENS = 3;
+
+  const handleRegen = async () => {
+    if (getRegenCount() >= MAX_REGENS) {
+      alert("Hai raggiunto il limite di 3 rigenerazioni per questo itinerario.");
+      return;
+    }
+    setIsRegenerating(true);
+    try {
+      const res = await fetch(`/api/itinerary/${itineraryId}/regenerate-day`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dayIndex: index, feedback: regenPrompt }),
+      });
+      if (!res.ok) throw new Error("Errore rigenerazione");
+      const data = await res.json();
+      localStorage.setItem(storageKey, String(getRegenCount() + 1));
+      onDayRegenerated(index, data.day);
+      setShowRegenModal(false);
+      setRegenPrompt("");
+    } catch (err) {
+      alert("Errore durante la rigenerazione. Riprova.");
+    }
+    setIsRegenerating(false);
+  };
   const slots = [
     {
       key: "morning", icon: "🌅", label: t("itin.morning"), text: day.morning,
@@ -970,6 +1005,56 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t }: {
                   </div>
                 );
               })()}
+          </div>
+
+              {/* Rigenera giorno */}
+              <div className="mt-4 pt-3 flex items-center justify-between" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                <span className="text-[10px] text-white/20">
+                  {MAX_REGENS - getRegenCount()} rigenerazioni rimaste
+                </span>
+                <button
+                  onClick={() => setShowRegenModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all hover:brightness-110"
+                  style={{ background: "rgba(233,69,96,0.08)", color: "#E94560", border: "1px solid rgba(233,69,96,0.2)" }}
+                >
+                  ↺ Rigenera questo giorno
+                </button>
+              </div>
+
+              {/* Modal rigenerazione */}
+              {showRegenModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+                  <div className="w-full max-w-md rounded-[24px] p-6 space-y-4" style={{ background: "#1a0a14", border: "1px solid rgba(233,69,96,0.3)" }}>
+                    <h3 className="font-serif text-lg text-white font-bold">Rigenera il Giorno {day.dayNumber}</h3>
+                    <p className="text-white/50 text-sm">Dicci come vuoi cambiarlo — o lascia vuoto per una variazione casuale.</p>
+                    <textarea
+                      value={regenPrompt}
+                      onChange={e => setRegenPrompt(e.target.value)}
+                      placeholder="Es: voglio qualcosa di più rilassato, togli le attività sportive..."
+                      rows={3}
+                      className="w-full text-white text-sm outline-none resize-none rounded-xl p-3"
+                      style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setShowRegenModal(false); setRegenPrompt(""); }}
+                        className="flex-1 py-3 rounded-xl text-white/50 font-bold text-sm transition-all hover:text-white"
+                        style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+                      >
+                        Annulla
+                      </button>
+                      <button
+                        onClick={handleRegen}
+                        disabled={isRegenerating}
+                        className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all hover:brightness-110"
+                        style={{ background: isRegenerating ? "rgba(233,69,96,0.4)" : "#E94560" }}
+                      >
+                        {isRegenerating ? "Rigenerando..." : "Rigenera"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
