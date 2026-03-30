@@ -55,10 +55,18 @@ app.get("/auth/google", (req: any, res: any, next: any) => {
   app.get(
     "/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/" }),
-   (req: any, res: any) => {
+  (req: any, res: any) => {
+      console.log("=== OAUTH CALLBACK ===");
+      console.log("User:", req.user);
+      console.log("Session ID:", req.sessionID);
+      console.log("Session:", JSON.stringify(req.session));
       const returnTo = req.session.returnTo || "/";
       delete req.session.returnTo;
-      res.redirect(returnTo);
+      req.session.save((err: any) => {
+        if (err) console.error("Session save error:", err);
+        console.log("Session saved, redirecting to:", returnTo);
+        res.redirect(returnTo);
+      });
     }
   );
 
