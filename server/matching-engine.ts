@@ -695,6 +695,89 @@ Generate exactly ${days} days in the itinerary.
 CRITICAL: Respond ONLY with the JSON object. No text before or after. No "I'll build", no explanations, no markdown. Start directly with { and end with }. Pure JSON only.`;
 }
 
+export async function generateItineraryStreaming(
+  input: ProfilingInput,
+  destinationName: string,
+  onChunk: (text: string) => void
+): Promise<void> {
+  const days = Math.min(input.days, 7);
+  const lang = input.lang === 'it' ? 'Italian' : 'English';
+  const { checkin, checkout } = buildCheckinCheckout(input.leaveDate, days);
+
+  const prompt = `You are MindRoute, a psychological travel platform. Generate a ${days}-day itinerary for ${destinationName}.
+
+PROFILE:
+Budget: ${input.budget}
+From: ${input.departure} | Days: ${days} | Period: ${input.leaveDate}
+Companions: ${input.companions || "not specified"}
+Style: ${input.travelStyle || "not specified"}
+Answers: ${input.answers.slice(1).join(" | ")}
+
+Write the itinerary in ${lang} using EXACTLY these markers — no other text outside them:
+
+[WHY_YOURS]
+2-3 sentences explaining psychologically why this destination fits this traveler. Be precise and personal, reference their answers.
+
+[TRIP_SUMMARY]
+One evocative line describing the arc of the trip (max 15 words).
+
+[HIGHLIGHTS]
+Exactly 4 chips with emoji, comma separated. Example: 🏛 Ano Poli, 🏖 Halkidiki, 🍽 Ergon House, 🌅 Tramonto
+
+[DAY_1]
+Title: evocative emotional title
+Morning: flight details from ${input.departure}, airline, duration ~Xh, ~€X/pp. One sentence on anticipation.
+Lunch: in-flight or first local spot if short flight.
+Afternoon: airport transfer to hotel, ~duration, ~€X/pp. First impression.
+Evening: first dinner, specific restaurant name, ~€X/pp.
+
+[DAY_2]
+Title: evocative emotional title
+Morning: specific place/activity, time hint, ~€X/pp.
+Lunch: specific named restaurant, neighborhood, ~€X/pp.
+Afternoon: specific activity or visit, ~€X/pp.
+Evening: specific restaurant, atmosphere, ~€X/pp.
+
+[Continue same structure for all ${days} days]
+
+[DAY_${days}]
+Title: closure and departure title
+Morning: last meaningful experience before departure.
+Lunch: last local coffee or meal.
+Afternoon: return journey details, flight home.
+Evening: arrival home with emotional note.
+
+[CLOSING]
+One poetic sentence that feels like a promise about this trip.
+
+[BUDGET]
+Flights: ~€X/pp | Hotel: ~€X/pp/night | Food: ~€X/day | Activities: ~€X total | TOTAL: ~€X/pp
+
+[PACKING]
+6-8 items with emoji, comma separated. Example: ☀️ Crema solare, 👟 Scarpe trekking, 🦟 Repellente
+
+[GETTING_THERE]
+Step 1: From [city] → [destination], [method], ~[duration], ~[cost]/pp
+Step 2: [connection if needed], ~[duration], ~[cost]/pp
+
+Write naturally and evocatively. Every day must feel personal to this specific traveler. Include real place names, real costs, real time hints.`;
+
+  const stream = client.messages.stream({
+    model: "claude-sonnet-4-6",
+    max_tokens: 8000,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  for await (const event of stream) {
+    if (
+      event.type === "content_block_delta" &&
+      event.delta.type === "text_delta"
+    ) {
+      onChunk(event.delta.text);
+    }
+  }
+}
+
 export async function generateDestinationsOnly(input: ProfilingInput): Promise<GeneratedDestination[]> {
   const rawAnswers = input.answers[0] === "path_a" || input.answers[0] === "path_b"
     ? input.answers.slice(1) : input.answers;
