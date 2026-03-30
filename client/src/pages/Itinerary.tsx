@@ -282,14 +282,12 @@ if (!isLoading && (error || !itinerary)) {
       )}
 
 {/* ── PANORAMICA — visibile solo dopo generazione completa ── */}
-   {itinerary && <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a1628 0%, #0d1e3a 30%, #0f2240 60%, #0a1628 100%)" }}>
+{itinerary && <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #c0112f 0%, #E94560 40%, #c0112f 100%)" }}>
         {/* Top border glow */}
-        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, #E94560, #9b59b6, #E94560, transparent)" }} />
-        {/* Subtle radial glow */}
-     <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[700px] h-[700px] opacity-[0.06]" style={{ background: "radial-gradient(circle, #4a9eff, transparent 65%)" }} />
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] opacity-[0.04]" style={{ background: "radial-gradient(circle, #2060b0, transparent 65%)" }} />
-          <div className="absolute inset-0 opacity-[0.015]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)", backgroundSize: "32px 32px" }} />
+        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)" }} />
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-[0.15]" style={{ background: "radial-gradient(circle, #ff6b8a, transparent 65%)" }} />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] opacity-[0.10]" style={{ background: "radial-gradient(circle, #8b0000, transparent 65%)" }} />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 md:px-12 py-14">
@@ -322,7 +320,7 @@ if (!isLoading && (error || !itinerary)) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
 
             {/* Budget totale — hero number */}
-         <div className="lg:col-span-2 rounded-[24px] p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.15), rgba(155,89,182,0.10))", border: "1px solid rgba(233,69,96,0.30)" }}>
+        <div className="lg:col-span-2 rounded-[24px] p-6 relative overflow-hidden" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
               <div className="absolute top-0 right-0 w-40 h-40 opacity-[0.06]" style={{ background: "radial-gradient(circle, #E94560, transparent)" }} />
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-4">
@@ -386,7 +384,7 @@ if (!isLoading && (error || !itinerary)) {
             </div>
 
             {/* CTA prenotazione */}
-            <div className="rounded-[24px] p-6 flex flex-col gap-3" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)" }}>
+          <div className="rounded-[24px] p-6 flex flex-col gap-3" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
               <div className="flex items-center gap-2 mb-1">
                 <Flame className="w-4 h-4 text-[#E94560]" />
                 <h3 className="font-serif font-bold text-white text-base">Pronto a partire?</h3>
@@ -421,9 +419,9 @@ if (!isLoading && (error || !itinerary)) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
             {/* Packing list — griglia con emoji */}
-            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)" }}>
+           <div className="rounded-[24px] p-5" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
               <div className="flex items-center gap-2 mb-3">
-                <Briefcase className="w-4 h-4 text-[#E94560]" />
+                <Briefcase className="w-4 h-4 text-white" />
                 <h3 className="font-bold text-sm text-white">{t('itin.packing')}</h3>
               </div>
               {(() => {
@@ -453,9 +451,9 @@ if (!isLoading && (error || !itinerary)) {
             </div>
 
             {/* Periodo migliore */}
-            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)" }}>
+        <div className="rounded-[24px] p-5" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
               <div className="flex items-center gap-2 mb-2">
-                <Sun className="w-4 h-4 text-[#E94560]" />
+                <Sun className="w-4 h-4 text-white" />
                 <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.besttime')}</h3>
               </div>
               <p className="text-white/60 text-[12px] leading-relaxed mb-5">{itinerary.bestTime}</p>
@@ -494,9 +492,9 @@ if (!isLoading && (error || !itinerary)) {
             </div>
 
             {/* Note di viaggio — slot libero per info extra */}
-            <div className="rounded-[24px] p-5" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)" }}>
+           <div className="rounded-[24px] p-5" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
               <div className="flex items-center gap-2 mb-3">
-                <Star className="w-4 h-4 text-[#E94560]" />
+                <Star className="w-4 h-4 text-white" />
                 <h3 className="font-bold text-xs text-white uppercase tracking-wider">Da sapere</h3>
               </div>
               <div className="space-y-2.5">
