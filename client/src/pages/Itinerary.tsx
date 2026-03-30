@@ -124,16 +124,81 @@ export default function Itinerary() {
   const [, params] = useRoute("/itinerary/:id");
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
- const { data: itinerary, isLoading, error, refetch } = useItinerary(id);
+  const { data: itinerary, isLoading, error, refetch } = useItinerary(id);
   const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
+  const [generating, setGenerating] = useState(false);
+  const [streamedDays, setStreamedDays] = useState<any[]>([]);
+  const [streamedHeroUrl, setStreamedHeroUrl] = useState<string>("");
+  const [streamedDestName, setStreamedDestName] = useState<string>("");
+
+  // Streaming strutturato — avvia generazione se presente in sessionStorage
+  useEffect(() => {
+    const raw = sessionStorage.getItem("mind_generating");
+    if (!raw) return;
+    sessionStorage.removeItem("mind_generating");
+    const payload = JSON.parse(raw);
+    if (String(payload.destinationId) !== String(id)) return;
+
+    setGenerating(true);
+    setStreamedHeroUrl(payload.heroImageUrl || "");
+    setStreamedDestName(payload.destinationName || "");
+    setStreamedDays([]);
+
+    fetch("/api/itinerary/stream-structured", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(async (res) => {
+      if (!res.ok) { setGenerating(false); refetch(); return; }
+      const reader = res.body?.getReader();
+      if (!reader) { setGenerating(false); refetch(); return; }
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let currentEvent = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (currentEvent === "day") {
+                setStreamedDays(prev => [...prev, data.day]);
+                setOpenDays(prev => {
+                  const next = new Set(prev);
+                  next.add((data.day.dayNumber ?? 1) - 1);
+                  return next;
+                });
+              } else if (currentEvent === "done") {
+                setGenerating(false);
+                refetch();
+                return;
+              } else if (currentEvent === "error") {
+                setGenerating(false);
+                refetch();
+                return;
+              }
+            } catch {}
+          }
+        }
+      }
+      setGenerating(false);
+      refetch();
+    }).catch(() => { setGenerating(false); refetch(); });
+  }, [id]);
 
   // Polling mapPoints finché non arrivano dal background geocoding
   const hasMapPoints = itinerary?.days?.some((d: any) => d.mapPoints?.length > 0);
-  const { data: mapData } = useMapPointsPolling(id, !hasMapPoints && !isLoading && !!itinerary);
+  const { data: mapData } = useMapPointsPolling(id, !hasMapPoints && !isLoading && !!itinerary && !generating);
 
   useEffect(() => {
     if (mapData?.ready) {
-      refetch(); // ricarica l'itinerario con i mapPoints aggiornati
+      refetch();
     }
   }, [mapData?.ready]);
 
@@ -147,7 +212,19 @@ export default function Itinerary() {
     setOpenDays(defaults);
   }, [itinerary]);
 
-  if (isLoading) {
+  // Durante streaming — mostra spinner solo se non ci sono ancora giorni
+  if (generating && streamedDays.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 border-[3px] border-[#E94560] border-t-transparent rounded-full animate-spin" />
+          <p className="text-white/50 font-serif italic text-xl animate-pulse">Costruisco il tuo viaggio...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading && !generating) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
         <div className="flex flex-col items-center gap-6">
@@ -191,10 +268,10 @@ export default function Itinerary() {
     <div className="min-h-screen" style={{ background: "#0a0814" }} id="itinerary-pdf-content">
       {/* ── HERO A TUTTO SCHERMO ─────────────────────────────── */}
       <div className="relative h-[70vh] min-h-[500px] overflow-hidden">
-        {(itinerary.heroImageUrl || itinerary.imageUrl) ? (
+     {(generating ? streamedHeroUrl : itinerary?.heroImageUrl || itinerary?.imageUrl) ? (
           <img
-            src={itinerary.heroImageUrl || itinerary.imageUrl}
-            alt={itinerary.destinationName}
+            src={generating ? streamedHeroUrl : (itinerary?.heroImageUrl || itinerary?.imageUrl || "")}
+            alt={generating ? streamedDestName : itinerary?.destinationName}
             className="absolute inset-0 w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
@@ -239,11 +316,11 @@ export default function Itinerary() {
             <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-4">
               {t('itin.label')}
             </span>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white tracking-tight leading-[1.05] mb-4 max-w-4xl" data-testid="text-itin-title">
-              {t('itin.trip')}<br />{itinerary.destinationName}
+           <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white tracking-tight leading-[1.05] mb-4 max-w-4xl" data-testid="text-itin-title">
+              {t('itin.trip')}<br />{generating ? streamedDestName : itinerary?.destinationName}
             </h1>
             <div className="flex items-center gap-4 text-white/50 text-sm mb-6">
-              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {itinerary.days?.length || 7} {t('itin.experienceDays')}</span>
+              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {generating ? streamedDays.length : (itinerary?.days?.length || 7)} {t('itin.experienceDays')}</span>
             </div>
             {itinerary.heroPhotographer && (
               <p className="text-white/30 text-[10px]">
@@ -261,7 +338,7 @@ export default function Itinerary() {
         </div>
       </div>
 
-      {itinerary.whyYours && (
+    {!generating && itinerary?.whyYours && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -281,8 +358,8 @@ export default function Itinerary() {
         </motion.div>
       )}
 
- {/* ── PANORAMICA REDESIGN ─────────────────────────────── */}
-    <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a1628 0%, #0d1e3a 30%, #0f2240 60%, #0a1628 100%)" }}>
+{/* ── PANORAMICA — visibile solo dopo generazione completa ── */}
+    {!generating && itinerary && <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a1628 0%, #0d1e3a 30%, #0f2240 60%, #0a1628 100%)" }}>
         {/* Top border glow */}
         <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, #E94560, #9b59b6, #E94560, transparent)" }} />
         {/* Subtle radial glow */}
@@ -518,37 +595,64 @@ export default function Itinerary() {
           </div>
 
         </div>
-        {/* Bottom border */}
+     {/* Bottom border */}
         <div className="absolute bottom-0 left-0 right-0 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.3), transparent)" }} />
-      </div>
-<div className="max-w-6xl mx-auto px-4 md:px-12 pb-24 pt-4" style={{ background: "linear-gradient(180deg, #0a0505 0%, #1a0a0a 8%, #1a0a0a 85%, #0a0505 100%)" }}>
+      </div>}
+<div className="max-w-6xlmx-auto px-4 md:px-12 pb-24 pt-4" style={{ background: "linear-gradient(180deg, #0a0505 0%, #1a0a0a 8%, #1a0a0a 85%, #0a0505 100%)" }}>
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">{t('itin.daybyday')}</h2>
-            <span className="text-white/30 text-sm">{itinerary.days?.length} giorni</span>
+         <span className="text-white/30 text-sm">{generating ? streamedDays.length : itinerary?.days?.length} giorni</span>
           </div>
 
-      {itinerary.days.map((day: any, index: number) => (
-            <DayCard
+   {(generating ? streamedDays : itinerary?.days ?? []).map((day: any, index: number) => (
+            <motion.div
               key={index}
-              day={day}
-              isOpen={openDays.has(index)}
-              onToggle={() => setOpenDays(prev => {
-                const next = new Set(prev);
-                if (next.has(index)) next.delete(index);
-                else next.add(index);
-                return next;
-              })}
-              index={index}
-              isPeak={index === peakDayIndex || index === peakDayIndex + 1}
-              t={t}
-            itineraryId={itinerary.id}
-              onDayRegenerated={(dayIndex, newDay) => {
-                itinerary.days[dayIndex] = newDay;
-                refetch();
-              }}
-            />
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <DayCard
+                day={day}
+                isOpen={openDays.has(index)}
+                onToggle={() => setOpenDays(prev => {
+                  const next = new Set(prev);
+                  if (next.has(index)) next.delete(index);
+                  else next.add(index);
+                  return next;
+                })}
+                index={index}
+                isPeak={index === peakDayIndex || index === peakDayIndex + 1}
+                t={t}
+                itineraryId={itinerary?.id ?? 0}
+                onDayRegenerated={(dayIndex, newDay) => {
+                  if (itinerary) {
+                    itinerary.days[dayIndex] = newDay;
+                    refetch();
+                  }
+                }}
+              />
+            </motion.div>
           ))}
+
+          {/* Skeleton prossimo giorno durante streaming */}
+          {generating && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="rounded-[24px] overflow-hidden"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              <div className="flex items-center gap-4 p-5">
+                <div className="w-[72px] h-16 rounded-xl" style={{ background: "rgba(233,69,96,0.1)" }} />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 rounded" style={{ background: "rgba(255,255,255,0.06)", width: "45%" }} />
+                  <div className="h-3 rounded" style={{ background: "rgba(255,255,255,0.04)", width: "65%" }} />
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           <motion.div
             initial={{ opacity: 0 }}
