@@ -884,181 +884,19 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
 }
 
 function ItineraryMap({ days, destinationName }: { days: any[]; destinationName: string }) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [savedPins, setSavedPins] = useState<{ label: string; lat: number; lng: number }[]>([]);
-  const [searchResults, setSearchResults] = useState<{ label: string; lat: number; lng: number }[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
- const [zoom, setZoom] = useState(12);
-  const totalDays = 7; // per progress indicator
-
- // Carica mappa subito con coordinate di default, poi aggiorna con geocoding
-  useEffect(() => {
-    // Mostra subito la mappa centrata genericamente
-    setMapCenter({ lat: 41.9028, lng: 12.4964 }); // Roma come fallback visivo
-
-  const cityName = destinationName?.trim() || "";
-    if (!cityName) return;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
-    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`, {
-      signal: controller.signal,
-      headers: { "Accept-Language": "en" }
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data?.[0]) {
-          setMapCenter({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
-        }
-      })
-      .catch(() => {})
-      .finally(() => clearTimeout(timeout));
-
-    return () => { controller.abort(); clearTimeout(timeout); };
-  }, [destinationName]);
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true);
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery + " " + destinationName)}&format=json&limit=4`
-      );
-      const data = await res.json();
-      if (data?.length > 0) {
-        setSearchResults(data.map((r: any) => ({
-          label: r.display_name.split(",").slice(0, 2).join(","),
-          lat: parseFloat(r.lat),
-          lng: parseFloat(r.lon),
-        })));
-      } else {
-        setSearchResults([]);
-      }
-    } catch {}
-    setSearching(false);
-  };
-
-  const savePin = (pin: { label: string; lat: number; lng: number }) => {
-    setSavedPins(prev => {
-      if (prev.find(p => p.lat === pin.lat && p.lng === pin.lng)) return prev;
-      return [...prev, pin];
-    });
-    setMapCenter({ lat: pin.lat, lng: pin.lng });
-    setZoom(15);
-    setSearchResults([]);
-    setSearchQuery("");
-  };
-
-  const removePin = (index: number) => {
-    setSavedPins(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Costruisce URL iframe con tutti i pin salvati
-  const buildMapUrl = () => {
-    if (!mapCenter) return null;
-    const base = `https://www.openstreetmap.org/export/embed.html?bbox=${mapCenter.lng - 0.05},${mapCenter.lat - 0.04},${mapCenter.lng + 0.05},${mapCenter.lat + 0.04}&layer=mapnik`;
-    const markers = savedPins.map(p => `&marker=${p.lat},${p.lng}`).join("");
-    return base + markers;
-  };
-
-  const mapUrl = buildMapUrl();
+  const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(destinationName)}&output=embed&hl=it&z=12`;
 
   return (
-    <div className="w-full h-full flex flex-col" style={{ background: "#0d0820" }}>
-
-      {/* Search bar */}
-      <div className="px-3 py-2.5 flex gap-2 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && handleSearch()}
-        placeholder={`Cerca un luogo a ${destinationName?.split(",")[0]?.trim() ?? "destinazione"}...`}
-          className="flex-1 text-white text-sm outline-none"
-          style={{
-            background: "rgba(255,255,255,0.07)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: "8px",
-            padding: "7px 12px",
-          }}
-        />
-        <button
-          onClick={handleSearch}
-          disabled={searching}
-          className="px-3 py-1.5 rounded-lg text-white text-sm font-bold transition-all hover:brightness-110"
-          style={{ background: "#E94560", opacity: searching ? 0.6 : 1, minWidth: "40px" }}
-        >
-          {searching ? "..." : "🔍"}
-        </button>
-      </div>
-
-      {/* Search results dropdown */}
-      {searchResults.length > 0 && (
-        <div className="shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          {searchResults.map((r, i) => (
-            <div
-              key={i}
-              onClick={() => savePin(r)}
-              className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-white/5 transition-all"
-            >
-              <MapPin className="w-3.5 h-3.5 text-[#E94560] shrink-0" />
-              <span className="text-xs text-white/70 truncate">{r.label}</span>
-              <span className="text-[10px] text-[#E94560] font-bold ml-auto shrink-0">+ Salva</span>
-            </div>
-          ))}
-          <div
-            onClick={() => setSearchResults([])}
-            className="px-3 py-1.5 text-[10px] text-white/30 cursor-pointer hover:text-white/50 text-center"
-          >
-            Chiudi
-          </div>
-        </div>
-      )}
-
-      {/* Saved pins */}
-      {savedPins.length > 0 && (
-        <div className="flex gap-1.5 px-3 py-2 flex-wrap shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          {savedPins.map((pin, i) => (
-            <span
-              key={i}
-              onClick={() => { setMapCenter({ lat: pin.lat, lng: pin.lng }); setZoom(15); }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-all hover:brightness-110"
-              style={{ background: "rgba(233,69,96,0.15)", color: "#E94560", border: "1px solid rgba(233,69,96,0.3)" }}
-            >
-              📍 {pin.label}
-              <span
-                onClick={e => { e.stopPropagation(); removePin(i); }}
-                className="opacity-50 hover:opacity-100 ml-0.5"
-              >×</span>
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Mappa iframe */}
-      <div className="flex-1 relative min-h-0">
-    {mapUrl && (
-          <iframe
-            key={`${mapCenter?.lat}-${mapCenter?.lng}-${zoom}`}
-            src={mapUrl}
-            className="w-full h-full"
-            style={{ border: "none", minHeight: "300px" }}
-            title="Mappa destinazione"
-          />
-        )}
-        {!mapUrl && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-7 h-7 border-2 border-[#E94560] border-t-transparent rounded-full animate-spin" />
-              <p className="text-white/30 text-xs">Caricamento mappa...</p>
-            </div>
-          </div>
-        )}
-      </div>
-
+    <div className="w-full h-full relative" style={{ background: "#0d0820" }}>
+      <iframe
+        src={mapUrl}
+        className="w-full h-full"
+        style={{ border: "none", minHeight: "300px" }}
+        title={`Mappa di ${destinationName}`}
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
     </div>
   );
 }
- 
