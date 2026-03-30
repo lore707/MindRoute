@@ -542,7 +542,7 @@ export default function Itinerary() {
               index={index}
               isPeak={index === peakDayIndex || index === peakDayIndex + 1}
               t={t}
-              itineraryId={id}
+            itineraryId={itinerary.id}
               onDayRegenerated={(dayIndex, newDay) => {
                 itinerary.days[dayIndex] = newDay;
                 refetch();
