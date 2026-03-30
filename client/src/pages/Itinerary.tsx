@@ -125,10 +125,11 @@ export default function Itinerary() {
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
 const { data: itinerary, isLoading, error, refetch } = useItinerary(id);
+  const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
 
   // Polling mapPoints finché non arrivano dal background geocoding
   const hasMapPoints = itinerary?.days?.some((d: any) => d.mapPoints?.length > 0);
-  const { data: mapData } = useMapPointsPolling(id, !hasMapPoints && !isLoading && !!itinerary && !generating);
+  const { data: mapData } = useMapPointsPolling(id, !hasMapPoints && !isLoading && !!itinerary);
 
   useEffect(() => {
     if (mapData?.ready) {
@@ -260,7 +261,7 @@ if (!isLoading && (error || !itinerary)) {
         </div>
       </div>
 
-    {!generating && itinerary?.whyYours && (
+  {itinerary?.whyYours && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -281,7 +282,7 @@ if (!isLoading && (error || !itinerary)) {
       )}
 
 {/* ── PANORAMICA — visibile solo dopo generazione completa ── */}
-    {!generating && itinerary && <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a1628 0%, #0d1e3a 30%, #0f2240 60%, #0a1628 100%)" }}>
+   {itinerary && <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a1628 0%, #0d1e3a 30%, #0f2240 60%, #0a1628 100%)" }}>
         {/* Top border glow */}
         <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, #E94560, #9b59b6, #E94560, transparent)" }} />
         {/* Subtle radial glow */}
