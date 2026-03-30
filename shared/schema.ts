@@ -34,7 +34,8 @@ export const itineraries = pgTable("itineraries", {
   heroImageUrl: text("hero_image_url"),
   heroPhotographer: text("hero_photographer"),
   heroPhotographerUrl: text("hero_photographer_url"),
-  topAffiliateLinks: jsonb("top_affiliate_links").$type<Record<string, string>>(),
+ topAffiliateLinks: jsonb("top_affiliate_links").$type<Record<string, string>>(),
+  rawNarrative: text("raw_narrative"),
 });
 
 export const insertDestinationSchema = createInsertSchema(destinations).omit({ id: true });
