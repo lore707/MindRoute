@@ -31,6 +31,7 @@ export function useItinerary(destinationId: number, disabled?: boolean) {
       return api.itinerary.get.responses[200].parse(await res.json());
     },
     enabled: !!destinationId && !isNaN(destinationId) && !disabled,
+    retry: false,
   });
 }
 
