@@ -18,7 +18,7 @@ export function useSubmitProfiling() {
   });
 }
 
-export function useItinerary(destinationId: number) {
+export function useItinerary(destinationId: number, disabled?: boolean) {
   return useQuery({
     queryKey: [api.itinerary.get.path, destinationId],
     queryFn: async () => {
@@ -30,7 +30,7 @@ export function useItinerary(destinationId: number) {
       }
       return api.itinerary.get.responses[200].parse(await res.json());
     },
-    enabled: !!destinationId && !isNaN(destinationId),
+    enabled: !!destinationId && !isNaN(destinationId) && !disabled,
   });
 }
 
