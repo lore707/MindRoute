@@ -41,7 +41,7 @@ const handleContinue = async () => {
       const currentLang = localStorage.getItem("mindroute-lang") || "en";
       const inputWithLang = { ...profilingInput, lang: currentLang };
 
-      sessionStorage.setItem("mind_streaming", JSON.stringify({
+      sessionStorage.setItem("mind_generating", JSON.stringify({
         input: inputWithLang,
         destinationName: selectedDest.name,
         destinationId: selectedId,
@@ -49,7 +49,7 @@ const handleContinue = async () => {
         heroImageUrl: selectedDest.imageUrl,
       }));
 
-      setLocation(`/itinerary/stream/${selectedId}`);
+      setLocation(`/itinerary/${selectedId}`);
     } catch (err) {
       console.error(err);
     }
