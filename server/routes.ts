@@ -779,11 +779,19 @@ export async function registerRoutes(
     }
   });
 
-  // STEP 4 — Recupera itinerario per destinazione (route generico — deve stare DOPO)
+ // STEP 4 — Recupera itinerario per destinazione o per id diretto
   app.get(api.itinerary.get.path, async (req, res) => {
     try {
       const destId = z.coerce.number().parse(req.params.destinationId);
-      const itinerary = await storage.getItinerary(destId);
+      
+      // Prima prova per itineraryId diretto
+      let itinerary = await storage.getItineraryById(destId);
+      
+      // Se non trovato, prova per destinationId
+      if (!itinerary) {
+        itinerary = await storage.getItinerary(destId);
+      }
+      
       if (!itinerary) {
         return res.status(404).json({ message: 'Itinerary not found' });
       }
