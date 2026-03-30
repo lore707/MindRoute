@@ -800,19 +800,71 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                             </>
                           );
                         })()}
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {slot.link && (
-                            <a href={slot.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 transition-all hover:scale-[1.02] hover:brightness-110" style={{ padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", background: `${slot.color}18`, color: slot.color, border: `1px solid ${slot.color}35`, textDecoration: "none" }}>
-                              {slot.isActivity ? <Ticket className="w-3 h-3" /> : <Utensils className="w-3 h-3" />}
-                              {linkLabel || (slot.isActivity ? "Prenota attività" : "Prenota tavolo")}
-                              <ExternalLink className="w-2.5 h-2.5 opacity-50" />
-                            </a>
-                          )}
+                      <div className="flex flex-wrap gap-3 mt-4">
+                          {slot.link && (() => {
+                            const isFlightSlot = slot.key === "morning" && /volo|flight|aereo/i.test(slot.text || "");
+                            const isHotelSlot = slot.key === "afternoon" && /hotel|check.?in|alloggio/i.test(slot.text || "");
+                            const isPrimary = isFlightSlot || isHotelSlot;
+                            const ctaText = isFlightSlot
+                              ? "✈️ Cerca voli"
+                              : isHotelSlot
+                              ? "🏨 Prenota hotel"
+                              : slot.isActivity
+                              ? `🎟 ${linkLabel || "Prenota esperienza"}`
+                              : `🍽 ${linkLabel || "Prenota tavolo"}`;
+                            return (
+                              
+                                href={slot.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  padding: isPrimary ? "12px 20px" : "10px 18px",
+                                  borderRadius: "12px",
+                                  fontSize: isPrimary ? "14px" : "13px",
+                                  fontWeight: "700",
+                                  background: isPrimary ? slot.color : `${slot.color}22`,
+                                  color: "white",
+                                  border: `1.5px solid ${isPrimary ? slot.color : `${slot.color}60`}`,
+                                  textDecoration: "none",
+                                  boxShadow: isPrimary ? `0 4px 16px ${slot.color}40` : "none",
+                                  transition: "all 0.2s ease",
+                                }}
+                                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "scale(1.03)"; (e.currentTarget as HTMLElement).style.filter = "brightness(1.1)"; }}
+                                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "scale(1)"; (e.currentTarget as HTMLElement).style.filter = "brightness(1)"; }}
+                              >
+                                {ctaText}
+                                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                              </a>
+                            );
+                          })()}
                           {(slot as any).placeLink && (
-                            <a href={(slot as any).placeLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 transition-all hover:scale-[1.02]" style={{ padding: "8px 14px", borderRadius: "10px", fontSize: "12px", fontWeight: "700", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "1px solid rgba(255,255,255,0.10)", textDecoration: "none" }}>
-                              <MapPin className="w-3 h-3" />
-                              {placeLinkLabel || "Tour del luogo"}
-                              <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+                            
+                              href={(slot as any).placeLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                padding: "10px 18px",
+                                borderRadius: "12px",
+                                fontSize: "13px",
+                                fontWeight: "700",
+                                background: "rgba(255,255,255,0.08)",
+                                color: "rgba(255,255,255,0.70)",
+                                border: "1.5px solid rgba(255,255,255,0.15)",
+                                textDecoration: "none",
+                                transition: "all 0.2s ease",
+                              }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.14)"; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)"; }}
+                            >
+                              <MapPin className="w-3.5 h-3.5" />
+                              {placeLinkLabel || "Esplora il luogo"}
+                              <ExternalLink className="w-3 h-3 opacity-50" />
                             </a>
                           )}
                         </div>
