@@ -695,6 +695,83 @@ Generate exactly ${days} days in the itinerary.
 CRITICAL: Respond ONLY with the JSON object. No text before or after. No "I'll build", no explanations, no markdown. Start directly with { and end with }. Pure JSON only.`;
 }
 
+export async function generateItineraryStreamingStructured(
+  input: ProfilingInput,
+  destinationName: string,
+  onDay: (day: any) => void,
+  onMeta: (meta: any) => void
+): Promise<void> {
+  const days = Math.min(input.days, 7);
+  const lang = input.lang === 'it' ? 'Italian' : 'English';
+  const { checkin, checkout, checkinCompact, checkoutCompact } = buildCheckinCheckout(input.leaveDate, days);
+
+  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any);
+
+  const stream = client.messages.stream({
+    model: "claude-sonnet-4-6",
+    max_tokens: 12000,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  let buffer = "";
+  let fullText = "";
+
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      buffer += event.delta.text;
+      fullText += event.delta.text;
+
+      // Prova a estrarre giorni completi dal buffer
+      while (true) {
+        // Cerca pattern di giorno completo nel JSON parziale
+        const dayMatch = buffer.match(/"dayNumber"\s*:\s*(\d+)[\s\S]*?"evening"\s*:\s*"[^"]*"[\s\S]*?"affiliateLinks"[\s\S]*?\}(?=\s*[,\]])/);
+        if (!dayMatch) break;
+
+        try {
+          // Trova inizio del giorno nel buffer
+          const startIdx = buffer.indexOf('{"dayNumber":', buffer.indexOf(dayMatch[0]));
+          const endIdx = buffer.indexOf(dayMatch[0]) + dayMatch[0].length;
+          const dayJson = buffer.substring(startIdx, endIdx);
+          
+          const day = JSON.parse(dayJson);
+          if (day.dayNumber) {
+            onDay(day);
+            buffer = buffer.substring(endIdx);
+          } else {
+            break;
+          }
+        } catch {
+          break;
+        }
+      }
+    }
+  }
+
+  // Parsa il JSON completo per estrarre i metadati
+  try {
+    const cleanJson = fullText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const parsed = JSON.parse(cleanJson);
+    const itin = parsed.itineraries?.[0];
+    if (itin) {
+      onMeta({
+        destinationName: itin.destinationName,
+        tripSummary: itin.tripSummary,
+        highlights: itin.highlights,
+        whyYours: itin.whyYours,
+        budgetSummary: itin.budgetSummary,
+        packingList: itin.packingList,
+        bestTime: itin.bestTime,
+        gettingThere: itin.gettingThere,
+        closingMessage: itin.closingMessage,
+        topAffiliateLinks: itin.topAffiliateLinks,
+        days: itin.days,
+      });
+    }
+  } catch (e) {
+    console.error("Meta parse error:", e);
+  }
+}
+
 export async function generateItineraryStreaming(
   input: ProfilingInput,
   destinationName: string,
