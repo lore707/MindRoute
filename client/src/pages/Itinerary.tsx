@@ -337,10 +337,10 @@ if (generating) {
     <div className="min-h-screen" style={{ background: "#0a0814" }} id="itinerary-pdf-content">
       {/* ── HERO A TUTTO SCHERMO ─────────────────────────────── */}
       <div className="relative h-[70vh] min-h-[500px] overflow-hidden">
-     {(generating ? streamedHeroUrl : itinerary?.heroImageUrl || itinerary?.imageUrl) ? (
+   {(itinerary?.heroImageUrl || itinerary?.imageUrl) ? (
           <img
-            src={generating ? streamedHeroUrl : (itinerary?.heroImageUrl || itinerary?.imageUrl || "")}
-            alt={generating ? streamedDestName : itinerary?.destinationName}
+            src={itinerary?.heroImageUrl || itinerary?.imageUrl || ""}
+            alt={itinerary?.destinationName}
             className="absolute inset-0 w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
@@ -385,11 +385,11 @@ if (generating) {
             <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-4">
               {t('itin.label')}
             </span>
-           <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white tracking-tight leading-[1.05] mb-4 max-w-4xl" data-testid="text-itin-title">
-              {t('itin.trip')}<br />{generating ? streamedDestName : itinerary?.destinationName}
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-white tracking-tight leading-[1.05] mb-4 max-w-4xl" data-testid="text-itin-title">
+              {t('itin.trip')}<br />{itinerary?.destinationName}
             </h1>
             <div className="flex items-center gap-4 text-white/50 text-sm mb-6">
-              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {generating ? streamedDays.length : (itinerary?.days?.length || 7)} {t('itin.experienceDays')}</span>
+              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {itinerary?.days?.length || 7} {t('itin.experienceDays')}</span>
             </div>
             {itinerary.heroPhotographer && (
               <p className="text-white/30 text-[10px]">
