@@ -32,9 +32,15 @@ if (user) {
     );
   }
 
+const [currentPath, setCurrentPath] = useState("/");
+
+  useEffect(() => {
+    setCurrentPath(window.location.pathname);
+  }, []);
+
   return (
-    <a
-      href="/auth/google"
+    
+      href={`/auth/google?returnTo=${encodeURIComponent(currentPath)}`}
       className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-primary transition-colors"
     >
       <User className="w-4 h-4" />
