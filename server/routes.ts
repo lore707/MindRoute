@@ -275,7 +275,68 @@ export async function registerRoutes(
     }
   });
 
- // STEP 3b — Genera itinerario con SSE streaming progress
+ // STEP 3c — Streaming narrativo in tempo reale (ChatGPT-style)
+  app.post("/api/itinerary/stream-narrative", async (req, res) => {
+    const { input, destinationName, destinationId, whyYours } = req.body;
+    if (!input || !destinationName || !destinationId) {
+      return res.status(400).json({ message: "Missing fields" });
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const send = (event: string, data: any) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    let fullText = "";
+
+    try {
+      const { generateItineraryStreaming } = await import("./matching-engine");
+
+      await generateItineraryStreaming(input, destinationName, (chunk: string) => {
+        fullText += chunk;
+        send("chunk", { text: chunk });
+      });
+
+      // Salva l'itinerario in background dopo lo streaming
+      const userId = (req as any).user?.id ?? null;
+      const savedId = await (async () => {
+        try {
+          const saved = await storage.createItinerary({
+            destinationId,
+            destinationName,
+            whyYours: whyYours ?? null,
+            days: [],
+            budgetSummary: "",
+            packingList: "",
+            bestTime: "",
+            gettingThere: "",
+            closingMessage: "",
+            userId,
+            createdAt: new Date().toISOString(),
+            rawNarrative: fullText,
+          } as any);
+          return saved.id;
+        } catch {
+          return null;
+        }
+      })();
+
+      send("done", { itineraryId: savedId ?? destinationId, rawNarrative: fullText });
+      res.end();
+    } catch (err) {
+      console.error("Narrative stream error:", err);
+      try {
+        send("error", { message: "Errore nella generazione." });
+        res.end();
+      } catch {}
+    }
+  });
+
+  // STEP 3b — Genera itinerario con SSE streaming progress
   app.post("/api/itinerary/generate-stream", async (req, res) => {
     const { input, destinationName, destinationId, whyYours } = req.body;
     if (!input || !destinationName || !destinationId) {
