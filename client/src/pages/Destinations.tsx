@@ -28,14 +28,10 @@ export default function Destinations() {
     setSelectedId(destId);
   };
 
-  const handleContinue = async () => {
+const handleContinue = async () => {
     if (!selectedId) return;
     const selectedDest = destinations.find((d) => d.id === selectedId);
     if (!selectedDest) return;
-
-    setIsGenerating(true);
-    setStreamStep(0);
-    setStreamMessage("Avvio la generazione...");
 
     try {
       const storedInput = sessionStorage.getItem("mind_profiling_input");
@@ -45,68 +41,19 @@ export default function Destinations() {
       const currentLang = localStorage.getItem("mindroute-lang") || "en";
       const inputWithLang = { ...profilingInput, lang: currentLang };
 
-      const res = await fetch("/api/itinerary/generate-stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input: inputWithLang,
-          destinationName: selectedDest.name,
-          destinationId: selectedId,
-          whyYours: selectedDest.whyYours,
-        }),
-      });
+      sessionStorage.setItem("mind_streaming", JSON.stringify({
+        input: inputWithLang,
+        destinationName: selectedDest.name,
+        destinationId: selectedId,
+        whyYours: selectedDest.whyYours,
+        heroImageUrl: selectedDest.imageUrl,
+      }));
 
-      if (!res.ok) throw new Error("Errore generazione itinerario");
-
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("Streaming non disponibile");
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        let currentEvent = "";
-
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            currentEvent = line.slice(7).trim();
-          } else if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-
-              if (currentEvent === "progress") {
-                setStreamStep(data.step);
-                setStreamMessage(data.message);
-              } else if (currentEvent === "done") {
-                setLocation(`/itinerary/${selectedId}`);
-                return;
-              } else if (currentEvent === "error") {
-                throw new Error(data.message);
-              }
-            } catch (e) {
-              if (e instanceof Error && e.message !== "Errore generazione itinerario") {
-                console.warn("Parse error", e);
-              }
-            }
-          }
-        }
-      }
-
-      setLocation(`/itinerary/${selectedId}`);
+      setLocation(`/itinerary/stream/${selectedId}`);
     } catch (err) {
       console.error(err);
-      setLocation(`/itinerary/${selectedId}`);
-    } finally {
-      setIsGenerating(false);
     }
   };
-
   const selectedName = destinations.find((d) => d.id === selectedId)?.name;
 
   if (destinations.length === 0) return null;
