@@ -282,12 +282,18 @@ if (!isLoading && (error || !itinerary)) {
       )}
 
 {/* ── PANORAMICA — visibile solo dopo generazione completa ── */}
-{itinerary && <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #c0112f 0%, #E94560 40%, #c0112f 100%)" }}>
-        {/* Top border glow */}
-        <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)" }} />
+{itinerary && <div className="relative overflow-hidden" style={{ background: "linear-gradient(180deg, #0a0814 0%, #1a0510 20%, #0f0310 80%, #0a0814 100%)" }}>
+        {/* Top border glow rosso */}
+        <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: "linear-gradient(90deg, transparent, #E94560, #ff6b8a, #E94560, transparent)" }} />
+        {/* Bottom border */}
+        <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: "linear-gradient(90deg, transparent, #E94560, #ff6b8a, #E94560, transparent)" }} />
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] opacity-[0.15]" style={{ background: "radial-gradient(circle, #ff6b8a, transparent 65%)" }} />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] opacity-[0.10]" style={{ background: "radial-gradient(circle, #8b0000, transparent 65%)" }} />
+          {/* Rosso sfumato in alto a sinistra */}
+          <div className="absolute top-0 left-0 w-[800px] h-[400px] opacity-[0.12]" style={{ background: "radial-gradient(ellipse at top left, #E94560, transparent 70%)" }} />
+          {/* Rosso sfumato in basso a destra */}
+          <div className="absolute bottom-0 right-0 w-[600px] h-[300px] opacity-[0.08]" style={{ background: "radial-gradient(ellipse at bottom right, #E94560, transparent 70%)" }} />
+          {/* Micro texture dots */}
+          <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(233,69,96,0.8) 1px, transparent 0)", backgroundSize: "28px 28px" }} />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 md:px-12 py-14">
@@ -320,7 +326,7 @@ if (!isLoading && (error || !itinerary)) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
 
             {/* Budget totale — hero number */}
-        <div className="lg:col-span-2 rounded-[24px] p-6 relative overflow-hidden" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
+  <div className="lg:col-span-2 rounded-[24px] p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.12), rgba(15,3,16,0.90))", border: "1px solid rgba(233,69,96,0.40)", boxShadow: "0 8px 32px rgba(233,69,96,0.15), inset 0 1px 0 rgba(255,255,255,0.05)" }}>
               <div className="absolute top-0 right-0 w-40 h-40 opacity-[0.06]" style={{ background: "radial-gradient(circle, #E94560, transparent)" }} />
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-4">
@@ -384,7 +390,7 @@ if (!isLoading && (error || !itinerary)) {
             </div>
 
             {/* CTA prenotazione */}
-          <div className="rounded-[24px] p-6 flex flex-col gap-3" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
+         <div className="rounded-[24px] p-6 flex flex-col gap-3" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.10), rgba(15,3,16,0.90))", border: "1px solid rgba(233,69,96,0.35)", boxShadow: "0 8px 32px rgba(233,69,96,0.12), inset 0 1px 0 rgba(255,255,255,0.05)" }}>
               <div className="flex items-center gap-2 mb-1">
                 <Flame className="w-4 h-4 text-[#E94560]" />
                 <h3 className="font-serif font-bold text-white text-base">Pronto a partire?</h3>
@@ -419,9 +425,9 @@ if (!isLoading && (error || !itinerary)) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
             {/* Packing list — griglia con emoji */}
-           <div className="rounded-[24px] p-5" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
+          <div className="rounded-[24px] p-5" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.08), rgba(15,3,16,0.92))", border: "1px solid rgba(233,69,96,0.30)", boxShadow: "0 4px 24px rgba(233,69,96,0.10), inset 0 1px 0 rgba(255,255,255,0.04)" }}>
               <div className="flex items-center gap-2 mb-3">
-                <Briefcase className="w-4 h-4 text-white" />
+                <Briefcase className="w-4 h-4 text-[#E94560]" />
                 <h3 className="font-bold text-sm text-white">{t('itin.packing')}</h3>
               </div>
               {(() => {
@@ -451,9 +457,9 @@ if (!isLoading && (error || !itinerary)) {
             </div>
 
             {/* Periodo migliore */}
-        <div className="rounded-[24px] p-5" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
+       <div className="rounded-[24px] p-5" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.08), rgba(15,3,16,0.92))", border: "1px solid rgba(233,69,96,0.30)", boxShadow: "0 4px 24px rgba(233,69,96,0.10), inset 0 1px 0 rgba(255,255,255,0.04)" }}>
               <div className="flex items-center gap-2 mb-2">
-                <Sun className="w-4 h-4 text-white" />
+                <Sun className="w-4 h-4 text-[#E94560]" />
                 <h3 className="font-bold text-xs text-white uppercase tracking-wider">{t('itin.besttime')}</h3>
               </div>
               <p className="text-white/60 text-[12px] leading-relaxed mb-5">{itinerary.bestTime}</p>
@@ -492,9 +498,9 @@ if (!isLoading && (error || !itinerary)) {
             </div>
 
             {/* Note di viaggio — slot libero per info extra */}
-           <div className="rounded-[24px] p-5" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.20)" }}>
+         <div className="rounded-[24px] p-5" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.08), rgba(15,3,16,0.92))", border: "1px solid rgba(233,69,96,0.30)", boxShadow: "0 4px 24px rgba(233,69,96,0.10), inset 0 1px 0 rgba(255,255,255,0.04)" }}>
               <div className="flex items-center gap-2 mb-3">
-                <Star className="w-4 h-4 text-white" />
+                <Star className="w-4 h-4 text-[#E94560]" />
                 <h3 className="font-bold text-xs text-white uppercase tracking-wider">Da sapere</h3>
               </div>
               <div className="space-y-2.5">
