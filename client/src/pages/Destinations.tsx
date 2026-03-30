@@ -28,7 +28,8 @@ export default function Destinations() {
     setSelectedId(destId);
   };
 
-const handleContinue = async () => {
+
+  const handleContinue = async () => {
     if (!selectedId) return;
     const selectedDest = destinations.find((d) => d.id === selectedId);
     if (!selectedDest) return;
