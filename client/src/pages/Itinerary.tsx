@@ -126,10 +126,16 @@ export default function Itinerary() {
   const id = params ? parseInt(params.id) : 0;
   const { data: itinerary, isLoading, error, refetch } = useItinerary(id);
   const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
-  const [generating, setGenerating] = useState(false);
+const hasGeneratingData = !!sessionStorage.getItem("mind_generating") && 
+    (() => { try { const p = JSON.parse(sessionStorage.getItem("mind_generating")!); return String(p.destinationId) === String(id); } catch { return false; } })();
+  const [generating, setGenerating] = useState(hasGeneratingData);
   const [streamedDays, setStreamedDays] = useState<any[]>([]);
-  const [streamedHeroUrl, setStreamedHeroUrl] = useState<string>("");
-  const [streamedDestName, setStreamedDestName] = useState<string>("");
+  const [streamedHeroUrl, setStreamedHeroUrl] = useState<string>(() => {
+    try { const p = JSON.parse(sessionStorage.getItem("mind_generating") || "{}"); return p.heroImageUrl || ""; } catch { return ""; }
+  });
+  const [streamedDestName, setStreamedDestName] = useState<string>(() => {
+    try { const p = JSON.parse(sessionStorage.getItem("mind_generating") || "{}"); return p.destinationName || ""; } catch { return ""; }
+  });
 
   // Streaming strutturato — avvia generazione se presente in sessionStorage
   useEffect(() => {
