@@ -301,37 +301,157 @@ export async function registerRoutes(
         send("chunk", { text: chunk });
       });
 
-      // Salva l'itinerario in background dopo lo streaming
+// Salva placeholder e avvia generazione strutturata in background
       const userId = (req as any).user?.id ?? null;
-      const savedId = await (async () => {
-        try {
-          const saved = await storage.createItinerary({
-            destinationId,
-            destinationName,
-            whyYours: whyYours ?? null,
-            days: [],
-            budgetSummary: "",
-            packingList: "",
-            bestTime: "",
-            gettingThere: "",
-            closingMessage: "",
-            userId,
-            createdAt: new Date().toISOString(),
-            rawNarrative: fullText,
-          } as any);
-          return saved.id;
-        } catch {
-          return null;
-        }
-      })();
+      let savedId: number | null = null;
+
+      try {
+        const placeholder = await storage.createItinerary({
+          destinationId,
+          destinationName,
+          whyYours: whyYours ?? null,
+          days: [],
+          budgetSummary: "",
+          packingList: "",
+          bestTime: "",
+          gettingThere: "",
+          closingMessage: "",
+          userId,
+          createdAt: new Date().toISOString(),
+          rawNarrative: fullText,
+        } as any);
+        savedId = placeholder.id;
+      } catch (e) {
+        console.error("Placeholder save error:", e);
+      }
 
       send("done", { itineraryId: savedId ?? destinationId, rawNarrative: fullText });
       res.end();
-    } catch (err) {
-      console.error("Narrative stream error:", err);
-      try {
-        send("error", { message: "Errore nella generazione." });
-        res.end();
+
+      // Generazione strutturata completa in background
+      if (savedId) {
+        const finalItinId = savedId;
+        (async () => {
+          try {
+            const structuredItinerary = await generateItineraryForDestination(input, destinationName);
+            const heroImage = await fetchUnsplashHero(destinationName);
+
+            const keyDayIndices = new Set([0, 3, 4, (structuredItinerary.days?.length ?? 7) - 1]);
+
+            async function fetchDayImageBg(query: string): Promise<string | null> {
+              const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
+              if (!unsplashKey || !query) return null;
+              try {
+                const r = await fetch(
+                  `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
+                  { headers: { Authorization: `Client-ID ${unsplashKey}` } }
+                );
+                if (!r.ok) return null;
+                const d = await r.json();
+                return d.results?.[0]?.urls?.regular ?? null;
+              } catch { return null; }
+            }
+
+            async function geocodeBg(query: string): Promise<{ lat: number; lng: number } | null> {
+              try {
+                const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=en`);
+                const d = await r.json();
+                if (d?.[0]) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+                return null;
+              } catch { return null; }
+            }
+
+            const destCenter = await geocodeBg(destinationName);
+            const destLat = destCenter?.lat ?? 0;
+            const destLng = destCenter?.lng ?? 0;
+            const city = destinationName.split(",")[0].trim();
+
+            async function tryGeocodeBg(name: string): Promise<{ lat: number; lng: number } | null> {
+              const coords = await geocodeBg(`${name} ${city}`);
+              if (coords) {
+                const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
+                if (dist < 3) return coords;
+              }
+              return null;
+            }
+
+            const slotMappingBg: Record<string, string> = {
+              getyourguide_morning: "Mattina", klook_morning: "Mattina", viator_morning: "Mattina",
+              getyourguide_place_morning: "Mattina", klook_place_morning: "Mattina", viator_place_morning: "Mattina",
+              getyourguide_afternoon: "Pomeriggio", klook_afternoon: "Pomeriggio", viator_afternoon: "Pomeriggio",
+              getyourguide_place_afternoon: "Pomeriggio", klook_place_afternoon: "Pomeriggio", viator_place_afternoon: "Pomeriggio",
+              thefork_lunch: "Pranzo", tripadvisor_lunch: "Pranzo",
+              thefork_evening: "Sera", tripadvisor_evening: "Sera",
+            };
+
+            const geocodeCandidates: { name: string; slot: string; dayNum: number }[] = [];
+            for (const day of (structuredItinerary.days || [])) {
+              if (day.affiliateLabels) {
+                for (const [key, label] of Object.entries(day.affiliateLabels)) {
+                  const l = label as string;
+                  if (!l || l.length < 3 || /ristoranti\s/i.test(l)) continue;
+                  if (!geocodeCandidates.find(c => c.name === l)) {
+                    geocodeCandidates.push({ name: l, slot: slotMappingBg[key] || "Mattina", dayNum: day.dayNumber });
+                  }
+                }
+              }
+            }
+
+            const top5 = geocodeCandidates.slice(0, 5);
+            const geocodeResults = await Promise.all(
+              top5.map(async (c) => {
+                const coords = await tryGeocodeBg(c.name);
+                return coords ? { label: c.name, slot: c.slot, dayNum: c.dayNum, lat: coords.lat, lng: coords.lng } : null;
+              })
+            );
+            const globalMapPoints = geocodeResults.filter(Boolean) as any[];
+
+            const daysWithExtras = await Promise.all(
+              (structuredItinerary.days || []).map(async (day: any, idx: number) => {
+                const extras: Record<string, any> = {};
+                if (keyDayIndices.has(idx) && day.imageQuery) {
+                  const img = await fetchDayImageBg(day.imageQuery);
+                  if (img) extras.dayImage = img;
+                }
+                const dayPoints = globalMapPoints.filter(p => p.dayNum === day.dayNumber);
+                if (dayPoints.length > 0) extras.mapPoints = dayPoints;
+                return { ...day, ...extras };
+              })
+            );
+
+            // Aggiorna il placeholder con l'itinerario completo
+            const updatedDays = daysWithExtras;
+            await storage.updateItineraryMapPoints(finalItinId, updatedDays);
+
+            // Aggiorna anche tutti gli altri campi
+            const { DatabaseStorage } = await import("./storage-db");
+            if (storage instanceof DatabaseStorage) {
+              const { db } = await import("./db");
+              const { itineraries } = await import("@shared/schema");
+              const { eq } = await import("drizzle-orm");
+              await db.update(itineraries).set({
+                days: updatedDays,
+                budgetSummary: structuredItinerary.budgetSummary,
+                packingList: structuredItinerary.packingList,
+                bestTime: structuredItinerary.bestTime,
+                gettingThere: structuredItinerary.gettingThere,
+                closingMessage: structuredItinerary.closingMessage,
+                tripSummary: structuredItinerary.tripSummary ?? null,
+                highlights: structuredItinerary.highlights ?? null,
+                whyYours: whyYours ?? structuredItinerary.whyYours ?? null,
+                heroImageUrl: heroImage?.url ?? null,
+                heroPhotographer: heroImage?.photographer ?? null,
+                heroPhotographerUrl: heroImage?.photographerUrl ?? null,
+                topAffiliateLinks: structuredItinerary.topAffiliateLinks ?? null,
+              }).where(eq(itineraries.id, finalItinId));
+            }
+
+            console.log(`Background structured itinerary completed for id ${finalItinId}`);
+          } catch (bgErr) {
+            console.error("Background structured generation error:", bgErr);
+          }
+        })();
+      }
       } catch {}
     }
   });
