@@ -446,12 +446,17 @@ export async function registerRoutes(
               }).where(eq(itineraries.id, finalItinId));
             }
 
-            console.log(`Background structured itinerary completed for id ${finalItinId}`);
+        console.log(`Background structured itinerary completed for id ${finalItinId}`);
           } catch (bgErr) {
             console.error("Background structured generation error:", bgErr);
           }
         })();
       }
+    } catch (err) {
+      console.error("Narrative stream error:", err);
+      try {
+        send("error", { message: "Errore nella generazione." });
+        res.end();
       } catch {}
     }
   });
