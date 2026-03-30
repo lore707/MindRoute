@@ -897,7 +897,7 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
     // Mostra subito la mappa centrata genericamente
     setMapCenter({ lat: 41.9028, lng: 12.4964 }); // Roma come fallback visivo
 
-    const cityName = destinationName?.split(",")[0]?.trim() || destinationName;
+  const cityName = destinationName?.trim() || "";
     if (!cityName) return;
 
     const controller = new AbortController();
@@ -975,7 +975,7 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleSearch()}
-          placeholder={`Cerca un luogo a ${destinationName?.split(",")[0] ?? "destinazione"}...`}
+        placeholder={`Cerca un luogo a ${destinationName?.split(",")[0]?.trim() ?? "destinazione"}...`}
           className="flex-1 text-white text-sm outline-none"
           style={{
             background: "rgba(255,255,255,0.07)",
