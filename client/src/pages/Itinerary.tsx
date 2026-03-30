@@ -813,7 +813,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                               ? `🎟 ${linkLabel || "Prenota esperienza"}`
                               : `🍽 ${linkLabel || "Prenota tavolo"}`;
                             return (
-                              
+                              <a
                                 href={slot.link}
                                 target="_blank"
                                 rel="noopener noreferrer"
