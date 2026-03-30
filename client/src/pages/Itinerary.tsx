@@ -235,7 +235,7 @@ export default function Itinerary() {
     );
   }
 
-  if (error || !itinerary) {
+ if (!generating && (error || !itinerary)) {
     return (
       <div className="container max-w-lg mx-auto py-32 text-center min-h-screen" style={{ background: "#0f0a10" }}>
         <h2 className="text-3xl font-serif font-bold text-white mb-6">{t('itin.notfound')}</h2>
