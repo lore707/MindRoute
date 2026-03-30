@@ -127,17 +127,16 @@ export default function Itinerary() {
 const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
     (() => { try { const p = JSON.parse(sessionStorage.getItem("mind_generating")!); return String(p.destinationId) === String(id); } catch { return false; } })();
   const [generating, setGenerating] = useState(hasGeneratingData);
-  const { data: itinerary, isLoading, error, refetch } = useItinerary(generating ? 0 : id);
+  const [genHeroUrl, setGenHeroUrl] = useState<string>(() => {
+    try { return JSON.parse(sessionStorage.getItem("mind_generating") || "{}").heroImageUrl || ""; } catch { return ""; }
+  });
+  const [genDestName, setGenDestName] = useState<string>(() => {
+    try { return JSON.parse(sessionStorage.getItem("mind_generating") || "{}").destinationName || ""; } catch { return ""; }
+  });
+  const [genMessage, setGenMessage] = useState("Analizzo il tuo profilo psicologico...");
+  const { data: itinerary, isLoading, error, refetch } = useItinerary(id, generating);
   const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
-  const [streamedDays, setStreamedDays] = useState<any[]>([]);
-  const [streamedHeroUrl, setStreamedHeroUrl] = useState<string>(() => {
-    try { const p = JSON.parse(sessionStorage.getItem("mind_generating") || "{}"); return p.heroImageUrl || ""; } catch { return ""; }
-  });
-  const [streamedDestName, setStreamedDestName] = useState<string>(() => {
-    try { const p = JSON.parse(sessionStorage.getItem("mind_generating") || "{}"); return p.destinationName || ""; } catch { return ""; }
-  });
 
-  // Streaming strutturato — avvia generazione se presente in sessionStorage
   useEffect(() => {
     const raw = sessionStorage.getItem("mind_generating");
     if (!raw) return;
@@ -146,15 +145,33 @@ const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
     if (String(payload.destinationId) !== String(id)) return;
 
     setGenerating(true);
-    setStreamedHeroUrl(payload.heroImageUrl || "");
-    setStreamedDestName(payload.destinationName || "");
-    setStreamedDays([]);
+    setGenHeroUrl(payload.heroImageUrl || "");
+    setGenDestName(payload.destinationName || "");
 
-    fetch("/api/itinerary/stream-structured", {
+    // Messaggi progressivi automatici
+    const messages = [
+      "Analizzo il tuo profilo psicologico...",
+      "Scelgo la destinazione perfetta per te...",
+      "Costruisco il Giorno 1 e 2...",
+      "Costruisco il Giorno 3 e 4...",
+      "Costruisco il Giorno 5 e 6...",
+      "Aggiungo il Giorno 7 e i dettagli pratici...",
+      "Aggiungo i link di prenotazione...",
+      "Cerco le immagini perfette...",
+      "Quasi pronto...",
+    ];
+    let msgIdx = 0;
+    const msgInterval = setInterval(() => {
+      msgIdx = Math.min(msgIdx + 1, messages.length - 1);
+      setGenMessage(messages[msgIdx]);
+    }, 12000);
+
+    fetch("/api/itinerary/generate-stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).then(async (res) => {
+      clearInterval(msgInterval);
       if (!res.ok) { setGenerating(false); refetch(); return; }
       const reader = res.body?.getReader();
       if (!reader) { setGenerating(false); refetch(); return; }
@@ -173,13 +190,8 @@ const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
           } else if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (currentEvent === "day") {
-                setStreamedDays(prev => [...prev, data.day]);
-                setOpenDays(prev => {
-                  const next = new Set(prev);
-                  next.add((data.day.dayNumber ?? 1) - 1);
-                  return next;
-                });
+              if (currentEvent === "progress") {
+                setGenMessage(data.message);
               } else if (currentEvent === "done") {
                 setGenerating(false);
                 refetch();
@@ -195,7 +207,7 @@ const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
       }
       setGenerating(false);
       refetch();
-    }).catch(() => { setGenerating(false); refetch(); });
+    }).catch(() => { clearInterval(msgInterval); setGenerating(false); refetch(); });
   }, [id]);
 
   // Polling mapPoints finché non arrivano dal background geocoding
@@ -218,19 +230,70 @@ const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
     setOpenDays(defaults);
   }, [itinerary]);
 
-  // Durante streaming — mostra spinner solo se non ci sono ancora giorni
-  if (generating && streamedDays.length === 0) {
+if (generating) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-16 h-16 border-[3px] border-[#E94560] border-t-transparent rounded-full animate-spin" />
-          <p className="text-white/50 font-serif italic text-xl animate-pulse">Costruisco il tuo viaggio...</p>
+      <div className="min-h-screen" style={{ background: "#0a0814" }}>
+        {/* Hero con foto destinazione già visibile */}
+        <div className="relative h-[60vh] min-h-[400px] overflow-hidden">
+          {genHeroUrl && (
+            <img src={genHeroUrl} alt={genDestName} className="absolute inset-0 w-full h-full object-cover" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/50 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 z-10">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-4">
+                ✦ Costruendo il tuo itinerario
+              </span>
+              <h1 className="text-4xl md:text-6xl font-serif font-bold text-white tracking-tight leading-[1.05] mb-4">
+                {t('itin.trip')}<br />{genDestName}
+              </h1>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Progress area */}
+        <div className="max-w-2xl mx-auto px-6 py-12 flex flex-col items-center gap-8">
+          <motion.div
+            key={genMessage}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3"
+          >
+            <div className="flex gap-1">
+              {[0,1,2].map(i => (
+                <motion.div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-[#E94560]"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                />
+              ))}
+            </div>
+            <p className="text-white/70 font-serif italic text-lg">{genMessage}</p>
+          </motion.div>
+
+          {/* Barra progresso animata */}
+          <div className="w-full max-w-md">
+            <div className="w-full h-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: "linear-gradient(90deg, #E94560, #9b59b6)" }}
+                initial={{ width: "5%" }}
+                animate={{ width: "92%" }}
+                transition={{ duration: 90, ease: "linear" }}
+              />
+            </div>
+          </div>
+
+          <p className="text-white/25 text-xs text-center">
+            Gli itinerari personalizzati richiedono circa 90 secondi per essere costruiti
+          </p>
         </div>
       </div>
     );
   }
 
-  if (isLoading && !generating) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
         <div className="flex flex-col items-center gap-6">
@@ -608,10 +671,10 @@ const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl md:text-3xl font-serif font-bold text-white">{t('itin.daybyday')}</h2>
-         <span className="text-white/30 text-sm">{generating ? streamedDays.length : itinerary?.days?.length} giorni</span>
+        <span className="text-white/30 text-sm">{itinerary?.days?.length} giorni</span>
           </div>
 
-   {(generating ? streamedDays : itinerary?.days ?? []).map((day: any, index: number) => (
+ {(itinerary?.days ?? []).map((day: any, index: number) => (
             <motion.div
               key={index}
               initial={{ opacity: 0, y: 20 }}
@@ -641,24 +704,7 @@ const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
             </motion.div>
           ))}
 
-          {/* Skeleton prossimo giorno durante streaming */}
-          {generating && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="rounded-[24px] overflow-hidden"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
-            >
-              <div className="flex items-center gap-4 p-5">
-                <div className="w-[72px] h-16 rounded-xl" style={{ background: "rgba(233,69,96,0.1)" }} />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 rounded" style={{ background: "rgba(255,255,255,0.06)", width: "45%" }} />
-                  <div className="h-3 rounded" style={{ background: "rgba(255,255,255,0.04)", width: "65%" }} />
-                </div>
-              </div>
-            </motion.div>
-          )}
+        
 
           <motion.div
             initial={{ opacity: 0 }}
