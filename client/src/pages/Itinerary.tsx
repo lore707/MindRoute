@@ -841,7 +841,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
                             );
                           })()}
                           {(slot as any).placeLink && (
-                            
+                            <a
                               href={(slot as any).placeLink}
                               target="_blank"
                               rel="noopener noreferrer"
