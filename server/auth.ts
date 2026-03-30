@@ -43,18 +43,22 @@ export function setupAuth(app: any) {
     }
   });
 
- app.get("/auth/google", (req: any, res: any, next: any) => {
-  passport.authenticate("google", { 
-    scope: ["profile", "email"],
-    prompt: "select_account"
-  })(req, res, next);
-});
+app.get("/auth/google", (req: any, res: any, next: any) => {
+    const returnTo = (req.query.returnTo as string) || "/";
+    req.session.returnTo = returnTo;
+    passport.authenticate("google", {
+      scope: ["profile", "email"],
+      prompt: "select_account"
+    })(req, res, next);
+  });
 
   app.get(
     "/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/" }),
-    (_req: any, res: any) => {
-    res.redirect("/profiling");
+   (req: any, res: any) => {
+      const returnTo = req.session.returnTo || "/";
+      delete req.session.returnTo;
+      res.redirect(returnTo);
     }
   );
 
