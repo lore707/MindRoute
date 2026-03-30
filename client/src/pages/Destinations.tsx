@@ -10,9 +10,10 @@ export default function Destinations() {
   const { t } = useI18n();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [streamMessage, setStreamMessage] = useState("");
-  const [streamStep, setStreamStep] = useState(0);
+const [isGenerating, setIsGenerating] = useState(false);
+  const [genMessage, setGenMessage] = useState("");
+  const [genHeroUrl, setGenHeroUrl] = useState("");
+  const [genDestName, setGenDestName] = useState("");
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function Destinations() {
   };
 
 
-  const handleContinue = async () => {
+const handleContinue = async () => {
     if (!selectedId) return;
     const selectedDest = destinations.find((d) => d.id === selectedId);
     if (!selectedDest) return;
@@ -42,22 +43,145 @@ export default function Destinations() {
       const currentLang = localStorage.getItem("mindroute-lang") || "en";
       const inputWithLang = { ...profilingInput, lang: currentLang };
 
-      sessionStorage.setItem("mind_generating", JSON.stringify({
-        input: inputWithLang,
-        destinationName: selectedDest.name,
-        destinationId: selectedId,
-        whyYours: selectedDest.whyYours,
-        heroImageUrl: selectedDest.imageUrl,
-      }));
+      setIsGenerating(true);
+      setGenMessage("Analizzo il tuo profilo psicologico...");
+      setGenHeroUrl(selectedDest.imageUrl || "");
+      setGenDestName(selectedDest.name || "");
 
+      const messages = [
+        "Analizzo il tuo profilo psicologico...",
+        "Scelgo la destinazione perfetta per te...",
+        "Costruisco il Giorno 1 e 2...",
+        "Costruisco il Giorno 3 e 4...",
+        "Costruisco il Giorno 5 e 6...",
+        "Aggiungo il Giorno 7 e i dettagli pratici...",
+        "Aggiungo i link di prenotazione...",
+        "Cerco le immagini perfette...",
+        "Quasi pronto...",
+      ];
+      let msgIdx = 0;
+      const msgInterval = setInterval(() => {
+        msgIdx = Math.min(msgIdx + 1, messages.length - 1);
+        setGenMessage(messages[msgIdx]);
+      }, 12000);
+
+      const res = await fetch("/api/itinerary/generate-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          input: inputWithLang,
+          destinationName: selectedDest.name,
+          destinationId: selectedId,
+          whyYours: selectedDest.whyYours,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Errore generazione");
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("Streaming non disponibile");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let currentEvent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (currentEvent === "progress") {
+                setGenMessage(data.message);
+              } else if (currentEvent === "done") {
+                clearInterval(msgInterval);
+                setLocation(`/itinerary/${data.itineraryId ?? selectedId}`);
+                return;
+              } else if (currentEvent === "error") {
+                throw new Error(data.message);
+              }
+            } catch (e) {
+              if (e instanceof Error && e.message !== "Errore generazione") {
+                console.warn("Parse error", e);
+              }
+            }
+          }
+        }
+      }
+
+      clearInterval(msgInterval);
       setLocation(`/itinerary/${selectedId}`);
     } catch (err) {
       console.error(err);
+      setIsGenerating(false);
     }
   };
   const selectedName = destinations.find((d) => d.id === selectedId)?.name;
 
-  if (destinations.length === 0) return null;
+if (destinations.length === 0) return null;
+
+  if (isGenerating) {
+    return (
+      <div className="min-h-screen" style={{ background: "#0a0814" }}>
+        <div className="relative h-[60vh] min-h-[400px] overflow-hidden">
+          {genHeroUrl && (
+            <img src={genHeroUrl} alt={genDestName} className="absolute inset-0 w-full h-full object-cover" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/50 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 z-10">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-4">
+                ✦ Costruendo il tuo itinerario
+              </span>
+              <h1 className="text-4xl md:text-6xl font-serif font-bold text-white tracking-tight leading-[1.05]">
+                {genDestName}
+              </h1>
+            </motion.div>
+          </div>
+        </div>
+        <div className="max-w-2xl mx-auto px-6 py-12 flex flex-col items-center gap-8">
+          <motion.div
+            key={genMessage}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3"
+          >
+            <div className="flex gap-1">
+              {[0,1,2].map(i => (
+                <motion.div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-[#E94560]"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
+                />
+              ))}
+            </div>
+            <p className="text-white/70 font-serif italic text-lg">{genMessage}</p>
+          </motion.div>
+          <div className="w-full max-w-md">
+            <div className="w-full h-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: "linear-gradient(90deg, #E94560, #9b59b6)" }}
+                initial={{ width: "5%" }}
+                animate={{ width: "92%" }}
+                transition={{ duration: 90, ease: "linear" }}
+              />
+            </div>
+          </div>
+          <p className="text-white/25 text-xs text-center">
+            Gli itinerari personalizzati richiedono circa 90 secondi
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-7xl mx-auto px-4 md:px-6 pt-24 pb-20">
