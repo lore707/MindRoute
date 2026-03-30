@@ -124,11 +124,11 @@ export default function Itinerary() {
   const [, params] = useRoute("/itinerary/:id");
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
-  const { data: itinerary, isLoading, error, refetch } = useItinerary(id);
-  const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
-const hasGeneratingData = !!sessionStorage.getItem("mind_generating") && 
+const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
     (() => { try { const p = JSON.parse(sessionStorage.getItem("mind_generating")!); return String(p.destinationId) === String(id); } catch { return false; } })();
   const [generating, setGenerating] = useState(hasGeneratingData);
+  const { data: itinerary, isLoading, error, refetch } = useItinerary(generating ? 0 : id);
+  const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
   const [streamedDays, setStreamedDays] = useState<any[]>([]);
   const [streamedHeroUrl, setStreamedHeroUrl] = useState<string>(() => {
     try { const p = JSON.parse(sessionStorage.getItem("mind_generating") || "{}"); return p.heroImageUrl || ""; } catch { return ""; }
