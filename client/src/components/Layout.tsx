@@ -8,8 +8,10 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
 
+
 function AuthButton() {
   const [user, setUser] = useState<any>(null);
+  const [currentPath, setCurrentPath] = useState("/");
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -18,7 +20,11 @@ function AuthButton() {
       .catch(() => setUser(null));
   }, []);
 
-if (user) {
+  useEffect(() => {
+    setCurrentPath(window.location.pathname);
+  }, []);
+
+  if (user) {
     return (
       <a href="/my-account" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
         {user.avatar
@@ -32,14 +38,8 @@ if (user) {
     );
   }
 
-const [currentPath, setCurrentPath] = useState("/");
-
-  useEffect(() => {
-    setCurrentPath(window.location.pathname);
-  }, []);
-
   return (
-    <a
+    
       href={`/auth/google?returnTo=${encodeURIComponent(currentPath)}`}
       className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-primary transition-colors"
     >
