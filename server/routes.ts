@@ -275,7 +275,76 @@ export async function registerRoutes(
     }
   });
 
- // STEP 3c — Streaming narrativo in tempo reale (ChatGPT-style)
+// STEP 3d — Streaming strutturato progressivo (giorni appaiono uno alla volta)
+  app.post("/api/itinerary/stream-structured", async (req, res) => {
+    const { input, destinationName, destinationId, whyYours } = req.body;
+    if (!input || !destinationName || !destinationId) {
+      return res.status(400).json({ message: "Missing fields" });
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const send = (event: string, data: any) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const { generateItineraryStreamingStructured } = await import("./matching-engine");
+      const userId = (req as any).user?.id ?? null;
+      const collectedDays: any[] = [];
+      let metaData: any = null;
+
+      await generateItineraryStreamingStructured(
+        input,
+        destinationName,
+        (day: any) => {
+          collectedDays.push(day);
+          send("day", { day });
+        },
+        (meta: any) => {
+          metaData = meta;
+        }
+      );
+
+      // Salva itinerario completo
+      const heroImage = await fetchUnsplashHero(destinationName);
+      const finalDays = metaData?.days ?? collectedDays;
+
+      const saved = await storage.createItinerary({
+        destinationId,
+        destinationName,
+        days: finalDays,
+        budgetSummary: metaData?.budgetSummary ?? "",
+        packingList: metaData?.packingList ?? "",
+        bestTime: metaData?.bestTime ?? "",
+        gettingThere: metaData?.gettingThere ?? "",
+        closingMessage: metaData?.closingMessage ?? "",
+        tripSummary: metaData?.tripSummary ?? null,
+        highlights: metaData?.highlights ?? null,
+        whyYours: whyYours ?? metaData?.whyYours ?? null,
+        heroImageUrl: heroImage?.url ?? null,
+        heroPhotographer: heroImage?.photographer ?? null,
+        heroPhotographerUrl: heroImage?.photographerUrl ?? null,
+        topAffiliateLinks: metaData?.topAffiliateLinks ?? null,
+        userId,
+        createdAt: new Date().toISOString(),
+      } as any);
+
+      send("done", { itineraryId: saved.id });
+      res.end();
+    } catch (err) {
+      console.error("Structured stream error:", err);
+      try {
+        send("error", { message: "Errore nella generazione." });
+        res.end();
+      } catch {}
+    }
+  });
+
+  // STEP 3c — Streaming narrativo in tempo reale (ChatGPT-style)
   app.post("/api/itinerary/stream-narrative", async (req, res) => {
     const { input, destinationName, destinationId, whyYours } = req.body;
     if (!input || !destinationName || !destinationId) {
