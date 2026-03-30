@@ -124,91 +124,7 @@ export default function Itinerary() {
   const [, params] = useRoute("/itinerary/:id");
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
-const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
-    (() => { try { const p = JSON.parse(sessionStorage.getItem("mind_generating")!); return String(p.destinationId) === String(id); } catch { return false; } })();
-  const [generating, setGenerating] = useState(hasGeneratingData);
-  const [genHeroUrl, setGenHeroUrl] = useState<string>(() => {
-    try { return JSON.parse(sessionStorage.getItem("mind_generating") || "{}").heroImageUrl || ""; } catch { return ""; }
-  });
-  const [genDestName, setGenDestName] = useState<string>(() => {
-    try { return JSON.parse(sessionStorage.getItem("mind_generating") || "{}").destinationName || ""; } catch { return ""; }
-  });
-  const [genMessage, setGenMessage] = useState("Analizzo il tuo profilo psicologico...");
-  const { data: itinerary, isLoading, error, refetch } = useItinerary(id, generating);
-  const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
-
-  useEffect(() => {
-    const raw = sessionStorage.getItem("mind_generating");
-    if (!raw) return;
-    sessionStorage.removeItem("mind_generating");
-    const payload = JSON.parse(raw);
-    if (String(payload.destinationId) !== String(id)) return;
-
-    setGenerating(true);
-    setGenHeroUrl(payload.heroImageUrl || "");
-    setGenDestName(payload.destinationName || "");
-
-    // Messaggi progressivi automatici
-    const messages = [
-      "Analizzo il tuo profilo psicologico...",
-      "Scelgo la destinazione perfetta per te...",
-      "Costruisco il Giorno 1 e 2...",
-      "Costruisco il Giorno 3 e 4...",
-      "Costruisco il Giorno 5 e 6...",
-      "Aggiungo il Giorno 7 e i dettagli pratici...",
-      "Aggiungo i link di prenotazione...",
-      "Cerco le immagini perfette...",
-      "Quasi pronto...",
-    ];
-    let msgIdx = 0;
-    const msgInterval = setInterval(() => {
-      msgIdx = Math.min(msgIdx + 1, messages.length - 1);
-      setGenMessage(messages[msgIdx]);
-    }, 12000);
-
-    fetch("/api/itinerary/generate-stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(async (res) => {
-      clearInterval(msgInterval);
-      if (!res.ok) { setGenerating(false); refetch(); return; }
-      const reader = res.body?.getReader();
-      if (!reader) { setGenerating(false); refetch(); return; }
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let currentEvent = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            currentEvent = line.slice(7).trim();
-          } else if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (currentEvent === "progress") {
-                setGenMessage(data.message);
-              } else if (currentEvent === "done") {
-                setGenerating(false);
-                refetch();
-                return;
-              } else if (currentEvent === "error") {
-                setGenerating(false);
-                refetch();
-                return;
-              }
-            } catch {}
-          }
-        }
-      }
-      setGenerating(false);
-      refetch();
-    }).catch(() => { clearInterval(msgInterval); setGenerating(false); refetch(); });
-  }, [id]);
+const { data: itinerary, isLoading, error, refetch } = useItinerary(id);
 
   // Polling mapPoints finché non arrivano dal background geocoding
   const hasMapPoints = itinerary?.days?.some((d: any) => d.mapPoints?.length > 0);
@@ -230,70 +146,7 @@ const hasGeneratingData = !!sessionStorage.getItem("mind_generating") &&
     setOpenDays(defaults);
   }, [itinerary]);
 
-if (generating) {
-    return (
-      <div className="min-h-screen" style={{ background: "#0a0814" }}>
-        {/* Hero con foto destinazione già visibile */}
-        <div className="relative h-[60vh] min-h-[400px] overflow-hidden">
-          {genHeroUrl && (
-            <img src={genHeroUrl} alt={genDestName} className="absolute inset-0 w-full h-full object-cover" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/50 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 z-10">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-4">
-                ✦ Costruendo il tuo itinerario
-              </span>
-              <h1 className="text-4xl md:text-6xl font-serif font-bold text-white tracking-tight leading-[1.05] mb-4">
-                {t('itin.trip')}<br />{genDestName}
-              </h1>
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Progress area */}
-        <div className="max-w-2xl mx-auto px-6 py-12 flex flex-col items-center gap-8">
-          <motion.div
-            key={genMessage}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3"
-          >
-            <div className="flex gap-1">
-              {[0,1,2].map(i => (
-                <motion.div
-                  key={i}
-                  className="w-2 h-2 rounded-full bg-[#E94560]"
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                />
-              ))}
-            </div>
-            <p className="text-white/70 font-serif italic text-lg">{genMessage}</p>
-          </motion.div>
-
-          {/* Barra progresso animata */}
-          <div className="w-full max-w-md">
-            <div className="w-full h-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: "linear-gradient(90deg, #E94560, #9b59b6)" }}
-                initial={{ width: "5%" }}
-                animate={{ width: "92%" }}
-                transition={{ duration: 90, ease: "linear" }}
-              />
-            </div>
-          </div>
-
-          <p className="text-white/25 text-xs text-center">
-            Gli itinerari personalizzati richiedono circa 90 secondi per essere costruiti
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isLoading) {
+if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
         <div className="flex flex-col items-center gap-6">
@@ -304,7 +157,7 @@ if (generating) {
     );
   }
 
- if (!generating && !isLoading && (error || !itinerary)) {
+if (!isLoading && (error || !itinerary)) {
     return (
       <div className="container max-w-lg mx-auto py-32 text-center min-h-screen" style={{ background: "#0f0a10" }}>
         <h2 className="text-3xl font-serif font-bold text-white mb-6">{t('itin.notfound')}</h2>
