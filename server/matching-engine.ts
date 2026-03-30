@@ -1008,9 +1008,8 @@ Rispondi SOLO con un oggetto JSON valido con questa struttura:
 }
 
 Lingua: ${lang}. Nessun testo fuori dal JSON.`;
-
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
+const response = await client.messages.create({
+    model: "claude-sonnet-4-6",
     max_tokens: 1000,
     messages: [{ role: "user", content: prompt }],
   });
