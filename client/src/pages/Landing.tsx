@@ -190,13 +190,9 @@ export default function Landing() {
               <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
             </div>
             <MatchingDemo />
-          </motion.div>
+        </motion.div>
         </div>
       </section>
-          </div>
-        </div>
-      </section>
-
      <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
       {/* ── DIFFERENZA ───────────────────────────────────── */}
