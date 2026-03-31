@@ -185,7 +185,7 @@ export function MatchingDemo() {
 
   return (
     <div style={{ background: "#080B12", borderRadius: 20, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden", fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1px 1fr", minHeight: 460 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1px 1fr", minHeight: 560 }}>
 
         {/* LEFT — chips */}
         <div style={{ padding: "28px 24px", display: "flex", flexDirection: "column", gap: 0 }}>
