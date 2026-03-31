@@ -150,48 +150,49 @@ export default function Landing() {
             </h2>
           </motion.div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, alignItems: "start" }}>
-            {/* Steps */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {(lang === "it" ? [
-                { n: "01", title: "Dicci chi sei", desc: "7 domande sul tuo modo di sentire, non sulle tue preferenze di viaggio.", icon: "💬" },
-                { n: "02", title: "Scopri il tuo posto", desc: "Tre destinazioni costruite sul tuo profilo emotivo — mainstream, smart, e una scoperta.", icon: "🗺" },
-                { n: "03", title: "Ottieni il tuo piano", desc: "Un itinerario completo, con ritmo, tono e logistica calibrati su di te.", icon: "📍" },
-              ] : [
-                { n: "01", title: "Tell us who you are", desc: "7 questions about how you feel right now, not your travel preferences.", icon: "💬" },
-                { n: "02", title: "Discover your place", desc: "Three destinations built on your emotional profile — mainstream, smart, and a discovery.", icon: "🗺" },
-                { n: "03", title: "Get your plan", desc: "A complete itinerary with rhythm, tone, and logistics calibrated to you.", icon: "📍" },
-              ]).map((step, i) => (
-                <motion.div key={step.n} initial={{ opacity: 0, x: -20 }} animate={howInView ? { opacity: 1, x: 0 } : {}} transition={{ delay: i * 0.12, duration: 0.6 }}
-                  className="step-card"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "20px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
-                  <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 10, background: "rgba(233,69,96,0.1)", border: "1px solid rgba(233,69,96,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{step.icon}</div>
-                  <div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily: "system-ui", letterSpacing: "1px", marginBottom: 4 }}>{step.n}</div>
-                    <div style={{ fontSize: 16, fontWeight: 400, marginBottom: 5, letterSpacing: -0.3 }}>{step.title}</div>
-                    <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, fontFamily: "system-ui, sans-serif", fontWeight: 300 }}>{step.desc}</div>
-                  </div>
-                </motion.div>
-              ))}
-
-              {/* Trust badges */}
-              <motion.div initial={{ opacity: 0 }} animate={howInView ? { opacity: 1 } : {}} transition={{ delay: 0.5 }} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 4 }}>
-                {(lang === "it" ? ["🔒 100% privato", "⚡ ~3 minuti", "✨ Gratis"] : ["🔒 100% private", "⚡ ~3 minutes", "✨ Free"]).map(b => (
-                  <span key={b} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)", fontFamily: "system-ui" }}>{b}</span>
-                ))}
+      {/* 3 step orizzontali */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 56 }}>
+            {(lang === "it" ? [
+              { n: "01", title: "Dicci chi sei", desc: "7 domande sul tuo modo di sentire, non sulle tue preferenze di viaggio.", icon: "💬" },
+              { n: "02", title: "Scopri il tuo posto", desc: "Tre destinazioni costruite sul tuo profilo emotivo — mainstream, smart, e una scoperta.", icon: "🗺" },
+              { n: "03", title: "Ottieni il tuo piano", desc: "Un itinerario completo, con ritmo, tono e logistica calibrati su di te.", icon: "📍" },
+            ] : [
+              { n: "01", title: "Tell us who you are", desc: "7 questions about how you feel right now, not your travel preferences.", icon: "💬" },
+              { n: "02", title: "Discover your place", desc: "Three destinations built on your emotional profile — mainstream, smart, and a discovery.", icon: "🗺" },
+              { n: "03", title: "Get your plan", desc: "A complete itinerary with rhythm, tone, and logistics calibrated to you.", icon: "📍" },
+            ]).map((step, i) => (
+              <motion.div key={step.n} initial={{ opacity: 0, y: 16 }} animate={howInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: i * 0.12, duration: 0.6 }}
+                className="step-card"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "24px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
+                <div style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 10, background: "rgba(233,69,96,0.1)", border: "1px solid rgba(233,69,96,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{step.icon}</div>
+                <div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", fontFamily: "system-ui", letterSpacing: "1px", marginBottom: 4 }}>{step.n}</div>
+                  <div style={{ fontSize: 15, fontWeight: 400, marginBottom: 5, letterSpacing: -0.3 }}>{step.title}</div>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, fontFamily: "system-ui, sans-serif", fontWeight: 300 }}>{step.desc}</div>
+                </div>
               </motion.div>
-            </div>
+            ))}
+          </div>
 
-            {/* Mock Itinerary */}
-            <motion.div initial={{ opacity: 0, y: 30 }} animate={howInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.2, duration: 0.8 }}>
-              <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", fontFamily: "system-ui" }}>
-                  {lang === "it" ? "Ecco cosa ricevi" : "This is what you get"}
-                </span>
-                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
-              </div>
-             <MatchingDemo />
-            </motion.div>
+          {/* Trust badges */}
+          <motion.div initial={{ opacity: 0 }} animate={howInView ? { opacity: 1 } : {}} transition={{ delay: 0.4 }} style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 48 }}>
+            {(lang === "it" ? ["🔒 100% privato", "⚡ ~3 minuti", "✨ Gratis"] : ["🔒 100% private", "⚡ ~3 minutes", "✨ Free"]).map(b => (
+              <span key={b} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)", fontFamily: "system-ui" }}>{b}</span>
+            ))}
+          </motion.div>
+
+          {/* Demo full-width */}
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={howInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.3, duration: 0.8 }}>
+            <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", fontFamily: "system-ui" }}>
+                {lang === "it" ? "Ecco cosa ricevi" : "This is what you get"}
+              </span>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+            </div>
+            <MatchingDemo />
+          </motion.div>
+        </div>
+      </section>
           </div>
         </div>
       </section>
