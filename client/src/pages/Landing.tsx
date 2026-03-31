@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { MatchingDemo } from "./MatchingDemo";
 import { Link } from "wouter";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
@@ -14,182 +15,6 @@ const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
     <circle cx="60" cy="48" r="3.5" fill="white"/>
   </svg>
 );
-
-const WHY_TEXT_IT = "Hai scelto 'silenzioso', 'autentico' e 'staccare davvero dalla routine' — segnali che non cerchi una vacanza ma un azzeramento. Ikaria è l'isola greca dove l'orologio non esiste: i bar aprono a mezzanotte, le taverne servono quello che hanno. Il momento che ricorderai: la mattina che ti svegli e realizzi di non aver guardato il telefono da 22 ore.";
-const WHY_TEXT_EN = "You chose 'quiet', 'authentic', and 'disconnect from routine' — signals that you're not looking for a vacation but a reset. Ikaria is the Greek island where time doesn't exist: bars open at midnight, tavernas serve whatever they have. The moment you'll remember: the morning you wake up and realise you haven't checked your phone in 22 hours.";
-
-const DAYS_IT = [
-  { num: 1, title: "Il mondo che rimpicciolisce dal finestrino", peak: false, pills: ["🌅 Volo Atene", "⛵ Ferry Evdilos", "🌙 Armenistis"], slots: [{ icon: "🌅", label: "Mattina", text: "Volo MXP → ATH, Aegean, ~2h30, ~€180/pp. Ikaria appare come un segreto verde.", cta: "✈️ Cerca voli" }, { icon: "⛵", label: "Pomeriggio", text: "Ferry da Pireo a Evdilos (7h, ~€35). Ponte aperto, salmastro nell'aria.", cta: null }, { icon: "🌙", label: "Sera", text: "Cena da Paskhalia — pesce fresco, vino locale, zero menù in inglese. ~€15/pp.", cta: "🍽 Prenota tavolo" }] },
-  { num: 2, title: "Quando il tempo smette di avere senso", peak: false, pills: ["🏖 Nas Beach", "🥗 Taverna locale", "🥾 Raches"], slots: [{ icon: "🌅", label: "Mattina", text: "Nas Beach — caletta selvaggia, fiume che sfocia nel mare. Arriva alle 8 prima di tutti.", cta: "🎟 Esplora Nas" }, { icon: "🍽", label: "Pranzo", text: "Taverna senza nome sopra la caletta. La padrona porta quello che ha cucinato. ~€10/pp.", cta: null }, { icon: "☀️", label: "Pomeriggio", text: "Sentiero verso Raches — il villaggio che dorme di giorno e vive di notte.", cta: null }] },
-  { num: 4, title: "La notte che non dimenticherai", peak: true, pills: ["♨️ Therma", "🚣 Kayak", "🎶 Panigyri"], slots: [{ icon: "♨️", label: "Mattina", text: "Terme di Therma — acque radioattive nel mare. Il corpo si dissolve, il rumore si spegne. ~€5/pp.", cta: "🎟 Prenota" }, { icon: "🚣", label: "Pomeriggio", text: "Kayak lungo la costa nord — scogliere, grotte, acqua verde-cobalto. ~€35/pp.", cta: "🎟 Kayak tour" }, { icon: "🌙", label: "Sera", text: "Panigyri notturno a Christos Raches — musica tradizionale, vino, balli fino all'alba.", cta: "⭐ TripAdvisor" }] },
-];
-
-const DAYS_EN = [
-  { num: 1, title: "The world shrinking from the window", peak: false, pills: ["✈️ Flight Athens", "⛵ Ferry Evdilos", "🌙 Armenistis"], slots: [{ icon: "🌅", label: "Morning", text: "Flight MXP → ATH, Aegean, ~2h30, ~€180/pp. Ikaria appears like a green secret.", cta: "✈️ Find flights" }, { icon: "⛵", label: "Afternoon", text: "Ferry from Piraeus to Evdilos (7h, ~€35). Open deck, salt air, no rush.", cta: null }, { icon: "🌙", label: "Evening", text: "Dinner at Paskhalia — fresh fish, local wine, zero English menus. ~€15/pp.", cta: "🍽 Book table" }] },
-  { num: 2, title: "When time stops making sense", peak: false, pills: ["🏖 Nas Beach", "🥗 Local taverna", "🥾 Raches"], slots: [{ icon: "🌅", label: "Morning", text: "Nas Beach — wild cove, river meeting the sea. Arrive at 8 before anyone else.", cta: "🎟 Explore Nas" }, { icon: "🍽", label: "Lunch", text: "Unnamed taverna above the cove. The owner brings whatever she cooked. ~€10/pp.", cta: null }, { icon: "☀️", label: "Afternoon", text: "Trail to Raches — the village that sleeps by day and lives by night.", cta: null }] },
-  { num: 4, title: "The night you will not forget", peak: true, pills: ["♨️ Therma", "🚣 Kayak", "🎶 Panigyri"], slots: [{ icon: "♨️", label: "Morning", text: "Therma springs — radioactive waters into the sea. Body dissolves, noise goes quiet. ~€5/pp.", cta: "🎟 Book" }, { icon: "🚣", label: "Afternoon", text: "Kayak along north coast — cliffs, sea caves, cobalt-green water. ~€35/pp.", cta: "🎟 Kayak tour" }, { icon: "🌙", label: "Evening", text: "Night Panigyri at Christos Raches — traditional music, wine, dancing until dawn.", cta: "⭐ TripAdvisor" }] },
-];
-
-function ItineraryMock({ lang }: { lang: string }) {
-  const [phase, setPhase] = useState<"loading" | "itinerary">("loading");
-  const [visibleTraits, setVisibleTraits] = useState<number[]>([]);
-  const [whyText, setWhyText] = useState("");
-  const [openDay, setOpenDay] = useState<number>(0);
-  const whyRef = useRef(0);
-  const whyFull = lang === "it" ? WHY_TEXT_IT : WHY_TEXT_EN;
-  const days = lang === "it" ? DAYS_IT : DAYS_EN;
-  const traits = lang === "it"
-    ? ["Esploratore autentico", "Silenzio come ricarica", "Anti-resort", "Ritmo lento", "Connessione profonda", "Cibo locale"]
-    : ["Authentic explorer", "Silence as recharge", "Anti-resort", "Slow rhythm", "Deep connection", "Local food"];
-
-  useEffect(() => {
-    let i = 0;
-    const t = setInterval(() => {
-      if (i < traits.length) { setVisibleTraits(prev => [...prev, i]); i++; }
-      else { clearInterval(t); setTimeout(() => setPhase("itinerary"), 600); }
-    }, 260);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    if (phase !== "itinerary") return;
-    whyRef.current = 0;
-    setWhyText("");
-    const interval = setInterval(() => {
-      if (whyRef.current < whyFull.length) {
-        whyRef.current++;
-        setWhyText(whyFull.slice(0, whyRef.current));
-      } else clearInterval(interval);
-    }, 16);
-    return () => clearInterval(interval);
-  }, [phase, whyFull]);
-
-  return (
-    <div style={{ background: "#080B12", borderRadius: 20, border: "1px solid rgba(255,255,255,0.08)", overflow: "hidden", fontFamily: "inherit" }}>
-      {/* Browser bar */}
-      <div style={{ background: "#0D1120", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ display: "flex", gap: 5 }}>
-          {["#ff5f57","#febc2e","#28c840"].map(c => <div key={c} style={{ width: 9, height: 9, borderRadius: "50%", background: c }} />)}
-        </div>
-        <div style={{ flex: 1, background: "rgba(255,255,255,0.05)", borderRadius: 5, padding: "4px 10px", fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: "0.3px" }}>
-          mindroute.app/itinerary/ikaria
-        </div>
-      </div>
-
-      <div style={{ padding: "20px 18px", minHeight: 420 }}>
-        <AnimatePresence mode="wait">
-          {phase === "loading" ? (
-            <motion.div key="loading" initial={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ textAlign: "center", padding: "32px 0" }}>
-              <div style={{ width: 32, height: 32, border: "2px solid rgba(233,69,96,0.2)", borderTopColor: "#E94560", borderRadius: "50%", margin: "0 auto 14px", animation: "spin 0.9s linear infinite" }} />
-              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontStyle: "italic", marginBottom: 16 }}>
-                {lang === "it" ? "Analizziamo la tua anima di viaggiatore..." : "Profiling your traveler identity..."}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
-                {traits.map((trait, i) => (
-                  <motion.span key={trait} initial={{ opacity: 0, scale: 0.8 }} animate={visibleTraits.includes(i) ? { opacity: 1, scale: 1 } : {}} transition={{ duration: 0.3 }}
-                    style={{ fontSize: 10, padding: "3px 9px", borderRadius: 20, background: "rgba(233,69,96,0.08)", color: "rgba(233,69,96,0.7)", border: "1px solid rgba(233,69,96,0.2)" }}>
-                    {trait}
-                  </motion.span>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div key="itin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-              {/* Hero */}
-              <div style={{ borderRadius: 12, overflow: "hidden", position: "relative", height: 140, marginBottom: 16, background: "linear-gradient(135deg,#1a0f2e,#0d1a3a)" }}>
-                <img src="https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=800&q=70" alt="Ikaria" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.65 }} onError={(e) => (e.currentTarget.style.display = "none")} />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,transparent 30%,rgba(8,11,18,0.88))", display: "flex", flexDirection: "column", justifyContent: "flex-end", padding: 14 }}>
-                  <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "#E94560", background: "rgba(233,69,96,0.18)", border: "1px solid rgba(233,69,96,0.35)", borderRadius: 4, padding: "2px 7px", display: "inline-block", marginBottom: 5, width: "fit-content" }}>
-                    {lang === "it" ? "Il tuo MindRoute" : "Your MindRoute"}
-                  </div>
-                  <div style={{ fontSize: 18, fontWeight: 600, color: "white", letterSpacing: -0.4, lineHeight: 1.15 }}>
-                    {lang === "it" ? "Il tuo viaggio a Ikaria, Grecia" : "Your trip to Ikaria, Greece"}
-                  </div>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
-                    {lang === "it" ? "7 giorni costruiti per te" : "7 days built for you"}
-                  </div>
-                </div>
-              </div>
-
-              {/* WhyYours */}
-              <div style={{ background: "rgba(233,69,96,0.06)", border: "1px solid rgba(233,69,96,0.18)", borderLeft: "3px solid #E94560", borderRadius: 10, padding: "11px 13px", marginBottom: 16 }}>
-                <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "#E94560", marginBottom: 5 }}>
-                  {lang === "it" ? "Perché questo posto ti somiglia" : "Why this place feels like yours"}
-                </div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.6, fontStyle: "italic", minHeight: 40 }}>
-                  {whyText}{whyText.length < whyFull.length && <span style={{ display: "inline-block", width: 2, height: 13, background: "#E94560", marginLeft: 2, animation: "blink 1s step-end infinite", verticalAlign: "middle" }} />}
-                </div>
-              </div>
-
-              {/* Highlights */}
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 14 }}>
-                {(lang === "it" ? ["🌊 Nas Beach", "🍷 Vino Ikarian", "🥾 Sentiero Raches", "🌅 Tramonto Armenistis"] : ["🌊 Nas Beach", "🍷 Ikarian wine", "🥾 Raches trail", "🌅 Sunset Armenistis"]).map(h => (
-                  <span key={h} style={{ fontSize: 10, padding: "3px 9px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.09)" }}>{h}</span>
-                ))}
-              </div>
-
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: 10 }}>
-                {lang === "it" ? "Giorno per giorno" : "Day by day"}
-              </div>
-
-              {/* Days */}
-              {days.map((day, idx) => (
-                <div key={day.num} onClick={() => setOpenDay(openDay === idx ? -1 : idx)}
-                  style={{ background: day.peak ? "rgba(233,69,96,0.07)" : "rgba(255,255,255,0.03)", border: `1px solid ${day.peak ? "rgba(233,69,96,0.28)" : "rgba(255,255,255,0.07)"}`, borderRadius: 10, marginBottom: 7, cursor: "pointer", overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "stretch" }}>
-                    <div style={{ width: 50, flexShrink: 0, background: day.peak ? "#E94560" : "rgba(255,255,255,0.03)", borderRight: `1px solid ${day.peak ? "transparent" : "rgba(255,255,255,0.06)"}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "12px 0" }}>
-                      <div style={{ fontSize: 18, fontWeight: 600, color: day.peak ? "white" : "rgba(255,255,255,0.4)", lineHeight: 1 }}>{day.num}</div>
-                      <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: day.peak ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.2)", marginTop: 2 }}>
-                        {lang === "it" ? "giorno" : "day"}
-                      </div>
-                    </div>
-                    <div style={{ flex: 1, padding: "11px 12px", minWidth: 0 }}>
-                      {day.peak && <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "#E94560", marginBottom: 2 }}>{lang === "it" ? "Momento clou" : "Peak moment"}</div>}
-                      <div style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.85)", lineHeight: 1.3, marginBottom: 6 }}>{day.title}</div>
-                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                        {day.pills.map(p => <span key={p} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 20, background: "rgba(233,69,96,0.1)", color: "#E94560", border: "1px solid rgba(233,69,96,0.2)" }}>{p}</span>)}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", paddingRight: 10 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" strokeLinecap="round" style={{ transform: openDay === idx ? "rotate(180deg)" : "none", transition: "transform 0.3s" }}>
-                        <path d="M6 9l6 6 6-6"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <AnimatePresence>
-                    {openDay === idx && (
-                      <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} style={{ overflow: "hidden" }}>
-                        <div style={{ padding: "0 12px 12px 12px" }}>
-                          {day.slots.map((slot, si) => (
-                            <div key={si} style={{ display: "flex", borderTop: "1px solid rgba(255,255,255,0.05)", marginTop: 8 }}>
-                              <div style={{ width: 42, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", padding: "9px 0", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
-                                <span style={{ fontSize: 14 }}>{slot.icon}</span>
-                                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "rgba(255,255,255,0.22)", marginTop: 2 }}>{slot.label}</span>
-                              </div>
-                              <div style={{ flex: 1, padding: "9px 10px", minWidth: 0 }}>
-                                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", lineHeight: 1.55 }}>{slot.text}</div>
-                                {slot.cta && <div style={{ display: "inline-block", marginTop: 6, fontSize: 10, fontWeight: 600, padding: "3px 9px", borderRadius: 6, background: "rgba(233,69,96,0.12)", color: "#E94560", border: "1px solid rgba(233,69,96,0.25)" }}>{slot.cta}</div>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
-      `}</style>
-    </div>
-  );
-}
 
 export default function Landing() {
   const { t, lang } = useI18n();
@@ -365,7 +190,7 @@ export default function Landing() {
                 </span>
                 <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
               </div>
-              <ItineraryMock lang={lang} />
+             <MatchingDemo />
             </motion.div>
           </div>
         </div>
