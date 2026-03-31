@@ -1248,9 +1248,10 @@ const profilingPayload = {
     if (o.includes("troppo a lungo") || o.includes("too long")) return icon(Timer);
     return null;
   };
-  const renderQuestionInput = () => {
+   const renderQuestionInput = () => {
     if (!currentQ) return null;
 
+    // ── TEXT ────────────────────────────────────────────────────────────────
     if (currentQ.type === 'text') {
       return (
         <div>
@@ -1269,29 +1270,434 @@ const profilingPayload = {
       );
     }
 
+    // ── CHIPS ────────────────────────────────────────────────────────────────
     if (currentQ.type === 'chips') {
       const q = currentQ as ChipsQuestion;
       const selected = chipSelections[step] || [];
-      const isPathBQ1 = selectedPath === 'b' && step === 0;
-      const isPathBType = selectedPath === 'b' && step === 1;
-      const isPathBMoment = selectedPath === 'b' && step === 2;
-      const isPathBFeeling = selectedPath === 'b' && step === 5;
-      const isPathBAvoid = selectedPath === 'b' && step === 6;
+      const isPathAStyle    = selectedPath === 'a' && step === 0;  // 14 chip stile → card grid
+      const isPathANeed     = selectedPath === 'a' && step === 1;  // 8 chip bisogno → lista verticale
+      const isPathADrains   = selectedPath === 'a' && step === 2;  // 15 chip drains → raggruppate
+      const isPathADistance = selectedPath === 'a' && step === 6;  // 4 chip distanza → card grandi
+      const isPathBQ1       = selectedPath === 'b' && step === 0;  // geo → card grandi
+      const isPathBType     = selectedPath === 'b' && step === 1;  // tipo → card grid
+      const isPathBMoment   = selectedPath === 'b' && step === 2;  // momenti → lista
+      const isPathBFeeling  = selectedPath === 'b' && step === 5;  // sensazione → lista
+      const isPathBAvoid    = selectedPath === 'b' && step === 6;  // avoid → raggruppate subset
 
-      let addendumPlaceholder = q.addendum;
-      if (q.addendum) {
-        if (selected[0]) {
-          if (isPathBType) {
-            addendumPlaceholder = getPlaceholderForTravelType(selected[0]);
-          } else if (isPathBMoment) {
-            addendumPlaceholder = getPlaceholderForMoment(selected[0]);
-          } else if (isPathBFeeling) {
-            addendumPlaceholder = getPlaceholderForEmotion(selected[0]);
-          } else if (isPathBAvoid) {
-            addendumPlaceholder = getPlaceholderForAvoid(selected[0]);
-          }
-        }
+      // ── CARD GRID 2 colonne (Path A Q1 stile, Path B Q2 tipo) ──────────────
+      if (isPathAStyle || isPathBType) {
+        const drainIcons: Record<string, string> = {
+          "selvaggio": "🌿", "wild": "🌿",
+          "silenzioso": "🤫", "quiet": "🤫",
+          "caotico": "⚡", "chaotic": "⚡",
+          "intimo": "🕯", "intimate": "🕯",
+          "solitario": "🧘", "solitary": "🧘",
+          "rigenerante": "🌱", "regenerating": "🌱",
+          "autentico": "🏺", "authentic": "🏺",
+          "lusso discreto": "✨", "quiet luxury": "✨",
+          "spirituale": "🪷", "spiritual": "🪷",
+          "festoso": "🎉", "festive": "🎉",
+          "avventuroso": "🧗", "adventure": "🧗",
+          "romantico": "💑", "romantic": "💑",
+          "culturale": "🏛", "cultural": "🏛",
+          "esplorativo": "🧭", "explorative": "🧭",
+          // path B tipo
+          "cultura e storia": "🏛", "culture & history": "🏛",
+          "natura e avventura": "🌿", "nature & adventure": "🌿",
+          "food e vino": "🍷", "food & wine": "🍷",
+          "mare e relax": "🏖", "beach & relax": "🏖",
+          "città e vita notturna": "🏙", "city & nightlife": "🏙",
+          "fuori dal mondo": "🏕", "off the grid": "🏕",
+          "road trip": "🚗",
+          "trekking e sport": "⛰", "trekking & sports": "⛰",
+          "wellness e spa": "🌸", "wellness & spa": "🌸",
+          "scoperta, sorprendimi": "🎲", "discovery, surprise me": "🎲",
+        };
+
+        return (
+          <>
+            <div className="grid grid-cols-2 gap-2.5 max-w-[640px] mx-auto">
+              {q.options.map(opt => {
+                const isSelected = selected.includes(opt);
+                const isDisabled = !isSelected && q.max && selected.length >= q.max;
+                const emoji = drainIcons[opt.toLowerCase()] || "✦";
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
+                    onClick={() => !isDisabled && toggleChip(opt)}
+                    className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-[18px] border-[1.5px] transition-all duration-250 select-none text-center min-h-[90px] ${
+                      isSelected
+                        ? 'border-[#E94560] bg-[rgba(233,69,96,0.12)]'
+                        : isDisabled
+                        ? 'border-white/8 bg-white/3 opacity-40 cursor-not-allowed'
+                        : 'border-white/12 bg-white/4 hover:border-[rgba(233,69,96,0.4)] hover:bg-[rgba(233,69,96,0.06)] cursor-pointer'
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-[#E94560] flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                      </div>
+                    )}
+                    <span className="text-[22px] leading-none">{emoji}</span>
+                    <span className={`text-[13px] font-semibold leading-tight ${isSelected ? 'text-[#E94560]' : 'text-white/75'}`}>{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {q.max && (
+              <div className="flex items-center justify-between max-w-[640px] mx-auto mt-4 px-1">
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-bold transition-all ${
+                  selected.length >= q.max
+                    ? 'bg-[#E94560] text-white shadow-[0_4px_16px_rgba(233,69,96,0.35)]'
+                    : 'bg-white/10 text-white border border-white/20'
+                }`}>
+                  <div className="flex gap-1">
+                    {Array.from({ length: q.max }).map((_, i) => (
+                      <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < selected.length ? 'bg-current scale-110' : 'bg-current opacity-25'}`} />
+                    ))}
+                  </div>
+                  <span>{selected.length}/{q.max} {t('q.selected')}</span>
+                </div>
+                {selected.length >= q.max && (
+                  <span className="text-[11px] text-[#E94560] font-semibold animate-pulse">Massimo raggiunto</span>
+                )}
+              </div>
+            )}
+            {/* addendum per Path B tipo */}
+            {isPathBType && q.addendum && (
+              <textarea
+                data-testid="input-addendum"
+                placeholder={selected[0] ? getPlaceholderForTravelType(selected[0]) : q.addendum}
+                value={answers[`${step}_addendum`] || ''}
+                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
+                className={`w-full max-w-[640px] mx-auto p-4 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[72px] transition-all duration-500 focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic ${selected.length > 0 ? 'opacity-100 max-h-[140px] mt-4' : 'opacity-0 max-h-0 overflow-hidden mt-0'}`}
+              />
+            )}
+          </>
+        );
       }
+
+      // ── LISTA VERTICALE con descrizione (Path A Q2 bisogno, Path B Q3 momenti, Path B Q5 feeling) ──
+      if (isPathANeed || isPathBMoment || isPathBFeeling) {
+        const needDescriptions: Record<string, string> = {
+          // Path A Q2
+          "staccare dalla routine": "zero notifiche, zero responsabilità",
+          "disconnect from routine": "zero notifications, zero responsibilities",
+          "sentirmi vivo di nuovo": "intensità, corpo presente",
+          "feel alive again": "intensity, body present",
+          "rallentare": "lunghi pranzi, nessun posto dove essere",
+          "slow down": "long lunches, nowhere to be",
+          "sorprendermi": "qualcosa che non avrei mai cercato",
+          "be surprised": "something you'd never have searched for",
+          "ricaricare le energie": "tornare più leggero di quando sei partito",
+          "recharge my energy": "come back lighter than you left",
+          "cambiare qualcosa": "un punto di svolta, non solo una pausa",
+          "change something": "a turning point, not just a break",
+          "festeggiare": "te lo sei guadagnato",
+          "celebrate": "you've earned it",
+          "ritrovarmi": "silenzio, spazio, pensieri chiari",
+          "find myself": "silence, space, clear thoughts",
+          // Path B Q3 momenti
+          "mangiare nei posti locali": "solo dove mangia la gente del posto",
+          "eating at local spots": "only where locals eat",
+          "perdermi nei quartieri autentici": "nessuna meta, solo camminare",
+          "getting lost in authentic neighborhoods": "no destination, just walking",
+          "vedere luoghi iconici": "il classico, vissuto in modo diverso",
+          "seeing iconic landmarks": "the classic, experienced differently",
+          "stare immerso nella natura": "una giornata senza asfalto",
+          "being immersed in nature": "a day without pavement",
+          "vivere qualcosa di completamente nuovo": "mai fatto prima, mai più dimenticherai",
+          "living something completely new": "never done before, never forgotten",
+          "fotografare qualcosa di straordinario": "luce perfetta, momento perfetto",
+          "photographing something extraordinary": "perfect light, perfect moment",
+          "trovare un posto che non sapevo esistesse": "la scoperta che vale il viaggio",
+          "finding a place i didn't know existed": "the discovery that makes the trip",
+          // Path B Q5 feeling
+          "staccare davvero dalla routine": "niente orari, niente notifiche",
+          "disconnect from routine": "no schedules, no notifications",
+          "ritrovare energia e leggerezza": "tornare a casa diverso",
+          "regain energy and lightness": "come back changed",
+          "sentirmi libero e spontaneo": "decidere al mattino cosa fare il giorno",
+          "feel free and spontaneous": "decide the morning what to do that day",
+          "meravigliarmi di nuovo": "stupore, quella sensazione che mancava",
+          "be amazed again": "wonder, that feeling you've been missing",
+          "sentire profondamente il luogo": "entrare davvero in contatto",
+          "feel the place deeply": "genuinely connect with it",
+          "uscire dalla mia zona di comfort": "il confine che si sposta",
+          "step outside my comfort zone": "push the boundary forward",
+        };
+
+        const needIcons: Record<string, string> = {
+          "staccare dalla routine": "🔌", "disconnect from routine": "🔌",
+          "staccare davvero dalla routine": "🔌",
+          "sentirmi vivo di nuovo": "⚡", "feel alive again": "⚡",
+          "rallentare": "🐢", "slow down": "🐢",
+          "sorprendermi": "🎲", "be surprised": "🎲",
+          "ricaricare le energie": "🔋", "recharge my energy": "🔋",
+          "cambiare qualcosa": "🔄", "change something": "🔄",
+          "festeggiare": "🥂", "celebrate": "🥂",
+          "ritrovarmi": "🪞", "find myself": "🪞",
+          "mangiare nei posti locali": "🍽", "eating at local spots": "🍽",
+          "perdermi nei quartieri autentici": "🏘", "getting lost in authentic neighborhoods": "🏘",
+          "vedere luoghi iconici": "📸", "seeing iconic landmarks": "📸",
+          "stare immerso nella natura": "🌿", "being immersed in nature": "🌿",
+          "vivere qualcosa di completamente nuovo": "✨", "living something completely new": "✨",
+          "fotografare qualcosa di straordinario": "🌅", "photographing something extraordinary": "🌅",
+          "trovare un posto che non sapevo esistesse": "🔭", "finding a place i didn't know existed": "🔭",
+          "ritrovare energia e leggerezza": "🔋", "regain energy and lightness": "🔋",
+          "sentirmi libero e spontaneo": "🐦", "feel free and spontaneous": "🐦",
+          "meravigliarmi di nuovo": "👁", "be amazed again": "👁",
+          "sentire profondamente il luogo": "❤️", "feel the place deeply": "❤️",
+          "uscire dalla mia zona di comfort": "🚀", "step outside my comfort zone": "🚀",
+        };
+
+        return (
+          <>
+            <div className="flex flex-col gap-2.5 max-w-[640px] mx-auto">
+              {q.options.map(opt => {
+                const isSelected = selected.includes(opt);
+                const isDisabled = !isSelected && q.max && selected.length >= q.max;
+                const icon = needIcons[opt.toLowerCase()] || "✦";
+                const desc = needDescriptions[opt.toLowerCase()] || "";
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
+                    onClick={() => !isDisabled && toggleChip(opt)}
+                    className={`flex items-center gap-4 p-4 rounded-[16px] border-[1.5px] text-left transition-all duration-200 select-none ${
+                      isSelected
+                        ? 'border-[#E94560] bg-[rgba(233,69,96,0.09)]'
+                        : isDisabled
+                        ? 'border-white/8 bg-white/3 opacity-40 cursor-not-allowed'
+                        : 'border-white/10 bg-white/3 hover:border-[rgba(233,69,96,0.35)] hover:bg-[rgba(233,69,96,0.05)] cursor-pointer'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-[11px] flex items-center justify-center text-[18px] flex-shrink-0 transition-colors ${isSelected ? 'bg-[rgba(233,69,96,0.18)]' : 'bg-white/6'}`}>
+                      {icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[14px] font-semibold leading-tight mb-0.5 ${isSelected ? 'text-[#E94560]' : 'text-white/85'}`}>{opt}</div>
+                      {desc && <div className="text-[11px] text-white/35 leading-tight">{desc}</div>}
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-[1.5px] flex-shrink-0 flex items-center justify-center transition-all ${isSelected ? 'border-[#E94560] bg-[#E94560]' : 'border-white/20'}`}>
+                      {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {/* addendum per Path B momenti/feeling */}
+            {(isPathBMoment || isPathBFeeling) && q.addendum && (
+              <textarea
+                data-testid="input-addendum"
+                placeholder={
+                  isPathBMoment ? getPlaceholderForMoment(selected[0]) :
+                  isPathBFeeling ? getPlaceholderForEmotion(selected[0]) :
+                  q.addendum
+                }
+                value={answers[`${step}_addendum`] || ''}
+                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
+                className={`w-full max-w-[640px] mx-auto p-4 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[72px] transition-all duration-500 focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic ${selected.length > 0 ? 'opacity-100 max-h-[140px] mt-4' : 'opacity-0 max-h-0 overflow-hidden mt-0'}`}
+              />
+            )}
+          </>
+        );
+      }
+
+      // ── CHIP RAGGRUPPATE per categoria (Path A Q3 drains, Path B Q7 avoid) ──
+      if (isPathADrains || isPathBAvoid) {
+        const groupsIT = isPathADrains ? [
+          { label: "Luoghi e folla", keys: ["luoghi affollati", "ristoranti turistici", "hotel resort"] },
+          { label: "Attività e cultura", keys: ["visite guidate", "stanchezza da musei", "vita notturna e club"] },
+          { label: "Ritmo e logistica", keys: ["programmi rigidi", "lunghi trasferimenti", "sveglie presto", "stare troppo a lungo nello stesso posto"] },
+          { label: "Persone e cibo", keys: ["chiacchiere con sconosciuti", "cibo sconosciuto", "troppo camminare", "troppo isolato", "spendere senza valore chiaro"] },
+        ] : [
+          { label: "Luoghi e folla", keys: ["luoghi affollati", "ristoranti turistici", "hotel resort"] },
+          { label: "Attività e cultura", keys: ["visite guidate", "stanchezza da musei", "vita notturna e club"] },
+          { label: "Ritmo e logistica", keys: ["programmi rigidi", "lunghi trasferimenti", "sveglie presto", "chiacchiere con sconosciuti"] },
+        ];
+        const groupsEN = isPathADrains ? [
+          { label: "Crowds & places", keys: ["crowded places", "touristy restaurants", "resort hotels"] },
+          { label: "Activities & culture", keys: ["guided tours", "museums fatigue", "nightlife & clubs"] },
+          { label: "Rhythm & logistics", keys: ["strict schedules", "long transits", "early mornings", "staying too long in one place"] },
+          { label: "People & food", keys: ["small talk with strangers", "unfamiliar food", "too much walking", "too isolated", "spending without clear value"] },
+        ] : [
+          { label: "Crowds & places", keys: ["crowded places", "touristy restaurants", "resort hotels"] },
+          { label: "Activities & culture", keys: ["guided tours", "museums fatigue", "nightlife & clubs"] },
+          { label: "Rhythm & logistics", keys: ["strict schedules", "long transits", "early mornings", "small talk with strangers"] },
+        ];
+
+        // Detect language from options
+        const firstOpt = (q.options[0] || "").toLowerCase();
+        const isIT = firstOpt.includes("affoll") || firstOpt.includes("guidat") || firstOpt.includes("program");
+        const groups = isIT ? groupsIT : groupsEN;
+
+        // Map option text to group
+        const optionToGroup: Record<string, number> = {};
+        q.options.forEach(opt => {
+          const o = opt.toLowerCase();
+          groups.forEach((g, gi) => {
+            if (g.keys.some(k => o.includes(k) || k.includes(o.split(" ").slice(0, 2).join(" ")))) {
+              optionToGroup[opt] = gi;
+            }
+          });
+        });
+
+        // Group options
+        const grouped: { label: string; opts: string[] }[] = groups.map(g => ({ label: g.label, opts: [] as string[] }));
+        const ungrouped: string[] = [];
+        q.options.forEach(opt => {
+          const gi = optionToGroup[opt];
+          if (gi !== undefined) grouped[gi].opts.push(opt);
+          else ungrouped.push(opt);
+        });
+        if (ungrouped.length > 0) grouped.push({ label: isIT ? "Altro" : "Other", opts: ungrouped });
+
+        return (
+          <>
+            <div className="flex flex-col gap-5 max-w-[640px] mx-auto">
+              {grouped.filter(g => g.opts.length > 0).map((group) => (
+                <div key={group.label}>
+                  <div className="text-[9px] font-bold tracking-[2.5px] uppercase text-white/25 mb-2.5 ml-1">{group.label}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {group.opts.map(opt => {
+                      const isSelected = selected.includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
+                          onClick={() => toggleChip(opt)}
+                          className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-full text-[12px] font-medium border transition-all duration-200 select-none cursor-pointer ${
+                            isSelected
+                              ? 'border-[#E94560] bg-[rgba(233,69,96,0.12)] text-[#E94560]'
+                              : 'border-white/12 bg-white/4 text-white/60 hover:border-[rgba(233,69,96,0.3)] hover:text-white/85'
+                          }`}
+                        >
+                          {isSelected && <Check className="w-3 h-3 flex-shrink-0" strokeWidth={3} />}
+                          <span>{opt}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {q.addendum && (
+              <textarea
+                data-testid="input-addendum"
+                placeholder={selected[0] ? getPlaceholderForAvoid(selected[0]) : q.addendum}
+                value={answers[`${step}_addendum`] || ''}
+                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
+                className={`w-full max-w-[640px] mx-auto p-4 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[72px] transition-all duration-500 focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic ${selected.length > 0 ? 'opacity-100 max-h-[140px] mt-4' : 'opacity-0 max-h-0 overflow-hidden mt-0'}`}
+              />
+            )}
+          </>
+        );
+      }
+
+      // ── CARD GRANDI verticali (Path A Q7 distanza, Path B Q1 geo) ──────────
+      if (isPathADistance || isPathBQ1) {
+        const distIcons: Record<string, string> = {
+          "vicino a casa": "🏠", "close to home": "🏠",
+          "stesso continente": "🌍", "same continent": "🌍",
+          "lontano": "✈️", "far away": "✈️",
+          "ovunque, sorprendimi davvero": "🎲", "anywhere, truly surprise me": "🎲",
+          "europa": "🏰", "europe": "🏰",
+          "asia": "🏯", 
+          "americhe": "🗽", "americas": "🗽",
+          "africa e medio oriente": "🌍", "africa & middle east": "🌍",
+          "oceania": "🦘",
+        };
+        const distSubs: Record<string, string> = {
+          "vicino a casa": "in macchina o treno, max 4h — nessun volo",
+          "close to home": "car or train, max 4h — no flights",
+          "stesso continente": "volo corto o medio raggio",
+          "same continent": "short or medium haul flight",
+          "lontano": "asia, americhe, africa — long haul",
+          "far away": "asia, americas, africa — long haul",
+          "ovunque, sorprendimi davvero": "massima apertura, zero vincoli",
+          "anywhere, truly surprise me": "maximum openness, zero constraints",
+          "europa": "volo corto, max 4h da qualsiasi città",
+          "europe": "short haul, max 4h from any city",
+          "asia": "long haul, 8-12h di volo",
+          "americhe": "transcontinentale, 10-14h",
+          "americas": "transcontinental, 10-14h",
+          "africa e medio oriente": "medio o lungo raggio, 4-10h",
+          "africa & middle east": "medium or long haul, 4-10h",
+          "oceania": "long haul, 20h+ con scali",
+        };
+
+        return (
+          <>
+            <div className="flex flex-col gap-2.5 max-w-[640px] mx-auto">
+              {q.options.map(opt => {
+                const isSelected = selected.includes(opt);
+                const icon = distIcons[opt.toLowerCase()] || "🌐";
+                const sub = distSubs[opt.toLowerCase()] || "";
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
+                    onClick={() => toggleChip(opt)}
+                    className={`flex items-center gap-4 p-4 rounded-[16px] border-[1.5px] text-left transition-all duration-200 select-none cursor-pointer ${
+                      isSelected
+                        ? 'border-[#E94560] bg-[rgba(233,69,96,0.09)]'
+                        : 'border-white/10 bg-white/3 hover:border-[rgba(233,69,96,0.35)] hover:bg-[rgba(233,69,96,0.05)]'
+                    }`}
+                  >
+                    <div className={`w-11 h-11 rounded-[13px] flex items-center justify-center text-[22px] flex-shrink-0 transition-colors ${isSelected ? 'bg-[rgba(233,69,96,0.18)]' : 'bg-white/6'}`}>
+                      {icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[15px] font-semibold leading-tight mb-1 ${isSelected ? 'text-[#E94560]' : 'text-white/90'}`}>{opt}</div>
+                      {sub && <div className="text-[11px] text-white/35 leading-tight">{sub}</div>}
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-[1.5px] flex-shrink-0 transition-all ${isSelected ? 'border-[#E94560] bg-[#E94560]' : 'border-white/20'}`}>
+                      {isSelected && (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {/* precise location per Path B Q1 */}
+            {isPathBQ1 && selected.length > 0 && (
+              <div className="mt-4 p-4 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[18px] transition-all duration-300 max-w-[640px] mx-auto">
+                <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
+                  {t('b.q1.precise')}
+                </p>
+                <input
+                  type="text"
+                  data-testid="input-precise-location"
+                  placeholder={getPlaceholderForRegion(selected[0])}
+                  value={answers[`${step}_precise`] || ''}
+                  onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_precise`]: e.target.value }))}
+                  className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all"
+                />
+              </div>
+            )}
+          </>
+        );
+      }
+
+      // ── FALLBACK: chip standard pill (tutte le altre domande) ───────────────
+      let addendumPlaceholder = q.addendum;
+      if (q.addendum && selected[0]) {
+        if (selectedPath === 'b' && step === 1) addendumPlaceholder = getPlaceholderForTravelType(selected[0]);
+        else if (selectedPath === 'b' && step === 2) addendumPlaceholder = getPlaceholderForMoment(selected[0]);
+        else if (selectedPath === 'b' && step === 5) addendumPlaceholder = getPlaceholderForEmotion(selected[0]);
+        else if (selectedPath === 'b' && step === 6) addendumPlaceholder = getPlaceholderForAvoid(selected[0]);
+      }
+
       return (
         <>
           <div className="flex flex-wrap gap-3 max-w-[640px] mx-auto">
@@ -1301,26 +1707,26 @@ const profilingPayload = {
                 type="button"
                 data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
                 onClick={() => toggleChip(opt)}
-             className={`px-5 md:px-6 py-3.5 rounded-full text-[14px] md:text-[15px] border-[1.5px] transition-all duration-300 select-none ${
+                className={`px-5 md:px-6 py-3.5 rounded-full text-[14px] md:text-[15px] border-[1.5px] transition-all duration-300 select-none ${
                   selected.includes(opt)
                     ? 'border-[#E94560] bg-[#E94560] text-white font-medium shadow-[0_4px_20px_rgba(233,69,96,0.15)] scale-[1.02] cursor-pointer'
                     : q.max && selected.length >= q.max
-                      ? 'border-white/10 text-white/30 bg-white/5 cursor-not-allowed opacity-50'
-                      : 'border-white/25 text-white bg-white/10 hover:border-[#E94560] hover:bg-white/15 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(233,69,96,0.15)] cursor-pointer backdrop-blur-sm'
-                  }`}
+                    ? 'border-white/10 text-white/30 bg-white/5 cursor-not-allowed opacity-50'
+                    : 'border-white/25 text-white bg-white/10 hover:border-[#E94560] hover:bg-white/15 hover:-translate-y-0.5 cursor-pointer backdrop-blur-sm'
+                }`}
               >
-         <span className="inline-flex items-center justify-center gap-1.5">
+                <span className="inline-flex items-center justify-center gap-1.5">
                   {getChipIcon(opt) ? <span className="opacity-80 flex items-center">{getChipIcon(opt)}</span> : null}
                   <span>{opt}</span>
                 </span>
               </button>
             ))}
           </div>
-       {q.max && (
+          {q.max && (
             <div className="flex items-center justify-between max-w-[640px] mx-auto mt-4 px-1">
               <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[12px] font-bold transition-all ${
-                selected.length >= q.max 
-                  ? 'bg-[#E94560] text-white shadow-[0_4px_16px_rgba(233,69,96,0.35)]' 
+                selected.length >= q.max
+                  ? 'bg-[#E94560] text-white shadow-[0_4px_16px_rgba(233,69,96,0.35)]'
                   : 'bg-white/10 text-white border border-white/20'
               }`}>
                 <div className="flex gap-1">
@@ -1331,26 +1737,8 @@ const profilingPayload = {
                 <span>{selected.length}/{q.max} {t('q.selected')}</span>
               </div>
               {selected.length >= q.max && (
-                <span className="text-[11px] text-[#E94560] font-semibold animate-pulse">
-                  Massimo raggiunto
-                </span>
+                <span className="text-[11px] text-[#E94560] font-semibold animate-pulse">Massimo raggiunto</span>
               )}
-            </div>
-          )}
-          {isPathBQ1 && selected.length > 0 && (
-            <div className="mt-5 p-4 md:p-5 bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[22px] transition-all duration-300 max-w-[640px] mx-auto">
-              <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2.5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
-                {t('b.q1.precise')}
-              </p>
-              <input
-                type="text"
-                data-testid="input-precise-location"
-                placeholder={getPlaceholderForRegion(selected[0])}
-                value={answers[`${step}_precise`] || ''}
-                onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_precise`]: e.target.value }))}
-                className="w-full px-4 py-3 bg-[var(--surface)] border border-[var(--border-input)] rounded-xl text-[14px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all"
-              />
             </div>
           )}
           {q.addendum && (
@@ -1366,11 +1754,12 @@ const profilingPayload = {
       );
     }
 
+    // ── IMAGES ───────────────────────────────────────────────────────────────
     if (currentQ.type === 'images') {
       const isPathBAtmosphere = selectedPath === 'b' && step === 3;
       return (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[720px] mx-auto">
+          <div className="grid grid-cols-2 gap-3 max-w-[640px] mx-auto">
             {currentQ.options.map(opt => {
               const isSelected = imageSelections.includes(opt.value);
               return (
@@ -1379,27 +1768,29 @@ const profilingPayload = {
                   type="button"
                   data-testid={`image-${opt.value}`}
                   onClick={() => selectImage(opt.value)}
-                  className={`relative rounded-[18px] overflow-hidden cursor-pointer border-[3px] transition-all duration-400 shadow-[0_4px_24px_rgba(26,26,46,0.07)] group text-left ${isSelected
-                    ? 'border-[#E94560] shadow-[0_8px_40px_rgba(233,69,96,0.15)]'
-                    : 'border-transparent hover:border-[rgba(233,69,96,0.35)] hover:shadow-[0_14px_48px_rgba(26,26,46,0.14)] hover:-translate-y-[5px]'
-                    }`}
+                  className={`relative rounded-[16px] overflow-hidden cursor-pointer border-[2.5px] transition-all duration-300 group text-left ${
+                    isSelected
+                      ? 'border-[#E94560] shadow-[0_6px_28px_rgba(233,69,96,0.18)]'
+                      : 'border-transparent hover:border-[rgba(233,69,96,0.35)] hover:-translate-y-[3px]'
+                  }`}
+                  style={{ aspectRatio: '4/3' }}
                 >
                   <img src={opt.src} alt={opt.label} loading="eager"
-                    className={`w-full h-[220px] md:h-[260px] object-cover block transition-all duration-700 ${isSelected ? 'scale-[1.03]' : 'group-hover:scale-[1.08] group-hover:brightness-[1.08] group-hover:saturate-[1.12]'}`}
+                    className={`w-full h-full object-cover block transition-all duration-700 ${isSelected ? 'scale-[1.03]' : 'group-hover:scale-[1.06]'}`}
                   />
-                  <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'bg-gradient-to-b from-[rgba(233,69,96,0.06)] to-[rgba(233,69,96,0.22)]' : 'bg-gradient-to-b from-transparent via-transparent to-[rgba(0,0,0,0.5)]'}`} />
-                  <div className="absolute bottom-0 left-0 right-0 p-5 text-white z-[2]">
-                    <span className="text-[18px] font-semibold tracking-[0.01em]">{opt.label}</span>
-                    <small className="block text-[12px] font-light opacity-85 mt-1 leading-[1.45] max-w-[26ch]">{opt.sub}</small>
+                  <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'bg-gradient-to-b from-[rgba(233,69,96,0.06)] to-[rgba(233,69,96,0.22)]' : 'bg-gradient-to-b from-transparent via-transparent to-[rgba(0,0,0,0.55)]'}`} />
+                  <div className="absolute bottom-0 left-0 right-0 p-3.5 text-white z-[2]">
+                    <span className="text-[14px] font-semibold leading-tight block">{opt.label}</span>
+                    <small className="text-[11px] font-light opacity-80 mt-0.5 leading-[1.4] block">{opt.sub}</small>
                   </div>
-                  <div className={`absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-[#E94560] flex items-center justify-center shadow-[0_4px_16px_rgba(233,69,96,0.35)] z-[3] transition-all duration-400 ${isSelected ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-[0.3] -rotate-45'}`} style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
-                    <Check className="w-[15px] h-[15px] text-white" strokeWidth={3} />
+                  <div className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-[#E94560] flex items-center justify-center z-[3] transition-all duration-350 ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.3]'}`} style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                   </div>
                 </button>
               );
             })}
           </div>
-          <div className="text-left mt-4 text-[13px] text-[#A09BA8] transition-all max-w-[720px] mx-auto" data-testid="text-img-counter">
+          <div className="text-left mt-3 text-[13px] text-white/45 max-w-[640px] mx-auto" data-testid="text-img-counter">
             {imageSelections.length > 0 ? (
               <><span className="text-[#E94560] font-semibold">{imageSelections.length}</span>/2 {t('q.selected')}</>
             ) : (
@@ -1407,7 +1798,7 @@ const profilingPayload = {
             )}
           </div>
           {isPathBAtmosphere && imageSelections.length > 0 && (
-            <div className="mt-5 max-w-[720px] mx-auto">
+            <div className="mt-4 max-w-[640px] mx-auto">
               <p className="text-[12px] font-medium text-[var(--text-secondary)] mb-2 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#E94560] inline-block" />
                 {t('b.q4.addendum') || "Cosa ti attira di questa atmosfera? (opzionale)"}
@@ -1417,7 +1808,7 @@ const profilingPayload = {
                 placeholder={getPlaceholderForAtmosphere(imageSelections[0])}
                 value={answers[`${step}_addendum`] || ''}
                 onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
-                className="w-full p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
+                className="w-full p-4 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[72px] focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
               />
             </div>
           )}
@@ -1425,6 +1816,7 @@ const profilingPayload = {
       );
     }
 
+    // ── SLIDER ───────────────────────────────────────────────────────────────
     if (currentQ.type === 'slider') {
       const labelIdx = Math.round(sliderValue / 100 * 6);
       return (
@@ -1449,7 +1841,7 @@ const profilingPayload = {
             placeholder={t('slider.addendum')}
             value={answers[`${step}_addendum`] || ''}
             onChange={(e) => setAnswers(prev => ({ ...prev, [`${step}_addendum`]: e.target.value }))}
-            className="w-full max-w-[640px] mx-auto mt-6 p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] focus:border-[#E94560] focus:shadow-[0_2px_12px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
+            className="w-full max-w-[640px] mx-auto mt-6 p-4 md:p-5 text-[14px] leading-[1.7] text-[var(--text-primary)] bg-[var(--surface)] border-[1.5px] border-[var(--border-input)] rounded-[18px] resize-none outline-none min-h-[84px] focus:border-[#E94560] placeholder:text-[var(--text-muted)] placeholder:font-light placeholder:italic"
           />
         </>
       );
@@ -1457,6 +1849,7 @@ const profilingPayload = {
 
     return null;
   };
+
 const buildDynamicProfileMessage = (): string | null => {
     const allAnswers = Object.entries(answers)
       .filter(([k]) => !k.includes('_'))
