@@ -184,11 +184,11 @@ export function MatchingDemo() {
   }, [lang]);
 
   return (
-    <div style={{ background: "#080B12", borderRadius: 20, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden", fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto" }}>
+<div style={{ background: "#111827", borderRadius: 20, border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden", fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1px 1fr", minHeight: 560 }}>
 
         {/* LEFT — chips */}
-        <div style={{ padding: "28px 24px", display: "flex", flexDirection: "column", gap: 0 }}>
+        <div style={{ padding: "28px 24px", display: "flex", flexDirection: "column", gap: 0, background: "#131B27" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.22)", marginBottom: 20 }}>
             {lang === "it" ? "Le tue risposte" : "Your answers"}
           </div>
@@ -200,7 +200,7 @@ export function MatchingDemo() {
                 {block.options.map((opt, oi) => {
                   const isActive = (activeChips[bi] || []).includes(oi);
                   return (
-                    <span key={oi} style={{ padding: "5px 10px", borderRadius: 20, fontSize: 11, fontWeight: 500, background: isActive ? "rgba(233,69,96,0.15)" : "rgba(255,255,255,0.04)", border: `1px solid ${isActive ? "rgba(233,69,96,0.45)" : "rgba(255,255,255,0.08)"}`, color: isActive ? "#E94560" : "rgba(255,255,255,0.35)", transition: "all 0.35s ease", whiteSpace: "nowrap" }}>
+                   <span key={oi} style={{ padding: "5px 10px", borderRadius: 20, fontSize: 11, fontWeight: 500, background: isActive ? "rgba(233,69,96,0.18)" : "rgba(255,255,255,0.08)", border: `1px solid ${isActive ? "rgba(233,69,96,0.5)" : "rgba(255,255,255,0.14)"}`, color: isActive ? "#E94560" : "rgba(255,255,255,0.6)", transition: "all 0.35s ease", whiteSpace: "nowrap" }}>
                       {opt}
                     </span>
                   );
@@ -222,11 +222,11 @@ export function MatchingDemo() {
           )}
         </div>
 
-        {/* DIVIDER */}
-        <div style={{ background: "rgba(255,255,255,0.06)" }} />
+      {/* DIVIDER */}
+        <div style={{ background: "rgba(255,255,255,0.08)" }} />
 
-        {/* RIGHT — result */}
-        <div style={{ padding: "28px 24px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+       {/* RIGHT — result */}
+        <div style={{ padding: "28px 24px", display: "flex", flexDirection: "column", justifyContent: "center", background: "#0E1520" }}>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.22)", marginBottom: 16, opacity: showResult ? 1 : 0, transition: "opacity 0.5s ease" }}>
             {lang === "it" ? "Il tuo match psicologico" : "Your psychological match"}
           </div>
