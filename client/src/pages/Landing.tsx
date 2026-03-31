@@ -308,6 +308,8 @@ export default function Landing() {
         </div>
       </section>
 
+   <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
+
       {/* ── COME FUNZIONA + MOCK ───────────────────────────── */}
       <section ref={howRef} style={{ padding: "100px 24px", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 10% 50%, rgba(233,69,96,0.05), transparent)" }} />
@@ -368,6 +370,8 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+     <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
       {/* ── DIFFERENZA ───────────────────────────────────── */}
       <section ref={diffRef} style={{ padding: "100px 24px", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
@@ -432,6 +436,8 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+     <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
       {/* ── CTA FINALE ───────────────────────────────────── */}
       <section ref={ctaRef} style={{ padding: "100px 24px 80px", textAlign: "center", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
