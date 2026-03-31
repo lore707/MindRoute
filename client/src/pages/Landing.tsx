@@ -136,8 +136,8 @@ export default function Landing() {
    <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
       {/* ── COME FUNZIONA + MOCK ───────────────────────────── */}
-      <section ref={howRef} style={{ padding: "100px 24px", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 10% 50%, rgba(233,69,96,0.05), transparent)" }} />
+    <section ref={howRef} style={{ padding: "100px 24px", position: "relative", background: "#0E1219", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,120,255,0.07), transparent)" }} />
 
         <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative" }}>
           {/* Section header */}
@@ -189,8 +189,10 @@ export default function Landing() {
               </span>
               <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
             </div>
-            <MatchingDemo />
-        </motion.div>
+          <div style={{ borderRadius: 24, padding: 3, background: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))", boxShadow: "0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)" }}>
+              <MatchingDemo />
+            </div>
+          </motion.div>
         </div>
       </section>
      <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
