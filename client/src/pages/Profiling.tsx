@@ -2031,7 +2031,7 @@ const buildDynamicProfileMessage = (): string | null => {
             </div>
           ))}
         </aside>
-     <main className="relative py-8 px-4 pb-[120px] w-full flex items-center justify-center">
+  <main className="relative py-8 px-4 pb-[120px] md:pb-[120px] pb-[100px] w-full flex items-center justify-center">
    
           <AnimatePresence mode="wait">
             <motion.div
@@ -2126,7 +2126,8 @@ border: theme === 'dark'
   {renderQuestionInput()}
 </div>
 
-              <div className="flex items-center justify-between mt-7 gap-4 flex-wrap max-w-[640px] mx-auto">
+          {/* Desktop: bottoni inline */}
+              <div className="hidden md:flex items-center justify-between mt-7 gap-4 flex-wrap max-w-[640px] mx-auto">
                 <button
                   onClick={goBack}
                   data-testid="button-back"
@@ -2138,7 +2139,7 @@ border: theme === 'dark'
                   onClick={handleNext}
                   disabled={!canContinue()}
                   data-testid="button-continue"
-             className="inline-flex items-center gap-2 px-[34px] py-[15px] rounded-full font-semibold text-[15px] border-none cursor-pointer transition-all group disabled:cursor-not-allowed disabled:transform-none disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-[34px] py-[15px] rounded-full font-semibold text-[15px] border-none cursor-pointer transition-all group disabled:cursor-not-allowed disabled:transform-none disabled:opacity-50"
                   style={{
                     background: canContinue() ? '#E94560' : 'rgba(233,69,96,0.3)',
                     color: 'white',
@@ -2151,6 +2152,33 @@ border: theme === 'dark'
                   {t('q.continue')}
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:enabled:translate-x-1" />
                 </button>
+              </div>
+
+              {/* Mobile: bottone sticky in basso */}
+              <div className="md:hidden fixed bottom-0 left-0 right-0 z-[50] px-4 pb-6 pt-3" style={{ background: "linear-gradient(to top, rgba(10,8,20,0.98) 70%, transparent)" }}>
+                <div className="flex items-center gap-3 max-w-[640px] mx-auto">
+                  <button
+                    onClick={goBack}
+                    data-testid="button-back-mobile"
+                    className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-white/50 bg-white/5 cursor-pointer transition-all hover:border-white/30 hover:text-white/80 flex-shrink-0"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleNext}
+                    disabled={!canContinue()}
+                    data-testid="button-continue-mobile"
+                    className="flex-1 flex items-center justify-center gap-2 py-4 rounded-full font-semibold text-[16px] border-none cursor-pointer transition-all disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{
+                      background: canContinue() ? '#E94560' : 'rgba(233,69,96,0.25)',
+                      color: 'white',
+                      boxShadow: canContinue() ? '0 8px 26px rgba(233,69,96,0.35)' : 'none',
+                    }}
+                  >
+                    {t('q.continue')}
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               <div className="lg:hidden mt-6">
