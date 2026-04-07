@@ -792,10 +792,11 @@ export async function registerRoutes(
         itinerary = await storage.getItinerary(destId);
       }
       
-      if (!itinerary) {
+    if (!itinerary) {
         return res.status(404).json({ message: 'Itinerary not found' });
       }
-      res.json(itinerary);
+      const profilingInput = await storage.getProfilingInput();
+      res.json({ ...itinerary, profilingInput: profilingInput ?? null });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({
