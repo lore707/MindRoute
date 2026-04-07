@@ -11,7 +11,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import html2pdf from "html2pdf.js";
 
-// ── URL BUILDER ──────────────────────────────────────────────────────────────
+// ── URL BUILDER — solo affiliate approvati ───────────────────────────────────
 function buildAffiliateUrls(
   destinationName: string,
   profilingInput: any,
@@ -20,35 +20,37 @@ function buildAffiliateUrls(
 ): Record<string, string> {
   const dest = destinationName.split(",")[0].trim();
   const destEncoded = encodeURIComponent(destinationName);
-  const destShort = encodeURIComponent(dest);
+  const destSlug = dest.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-  // Parse dates
   const leaveDate = profilingInput?.leaveDate ?? "";
   const days = profilingInput?.days ?? 7;
   const companions = profilingInput?.companions ?? "solo";
   const departure = profilingInput?.departure ?? "";
 
-  // Adults count
   const adults = companions === "couple" ? 2 : companions === "friends" ? 3 : companions === "family" ? 4 : 1;
 
-  // Date parsing — leaveDate può essere "Giugno, Luglio" o "2025-06-14" o "Spring"
-  let checkinParam = "";
-  let checkoutParam = "";
-  let skyscannerDate = "";
-
+  // Parse dates
+  let checkin = ""; let checkout = ""; let checkinCompact = ""; let checkoutCompact = "";
   const exactDateMatch = leaveDate.match(/(\d{4}-\d{2}-\d{2})/);
   if (exactDateMatch) {
-    const checkin = new Date(exactDateMatch[1]);
-    const checkout = new Date(checkin);
-    checkout.setDate(checkout.getDate() + days);
-    checkinParam = checkin.toISOString().split("T")[0];
-    checkoutParam = checkout.toISOString().split("T")[0];
-    skyscannerDate = checkin.toISOString().split("T")[0].replace(/-/g, "");
+    const d = new Date(exactDateMatch[1]);
+    const co = new Date(d); co.setDate(co.getDate() + days);
+    const fmt = (dt: Date) => dt.toISOString().split("T")[0];
+    checkin = fmt(d); checkout = fmt(co);
+    checkinCompact = checkin.replace(/-/g, ""); checkoutCompact = checkout.replace(/-/g, "");
+  } else {
+    // fallback: 3 months from now
+    const d = new Date(); d.setMonth(d.getMonth() + 3);
+    const co = new Date(d); co.setDate(co.getDate() + days);
+    const fmt = (dt: Date) => dt.toISOString().split("T")[0];
+    checkin = fmt(d); checkout = fmt(co);
+    checkinCompact = checkin.replace(/-/g, ""); checkoutCompact = checkout.replace(/-/g, "");
   }
 
+  // Departure IATA
   const departureIATA = (() => {
     const d = (departure || "").toLowerCase();
-    if (d.includes("milano") || d.includes("milan") || d.includes("mxp") || d.includes("linate")) return "MXP";
+    if (d.includes("milano") || d.includes("milan") || d.includes("mxp")) return "MXP";
     if (d.includes("roma") || d.includes("rome") || d.includes("fco")) return "FCO";
     if (d.includes("napoli") || d.includes("naples")) return "NAP";
     if (d.includes("torino") || d.includes("turin")) return "TRN";
@@ -62,43 +64,47 @@ function buildAffiliateUrls(
 
   const result: Record<string, string> = {};
 
-  // Skyscanner con date precompilate
-  const skyBase = skyscannerDate
-    ? `https://www.skyscanner.it/trasporto/voli/${departureIATA}/${destShort}/${skyscannerDate}/?adults=${adults}&currency=EUR`
-    : `https://www.skyscanner.it/trasporto/voli/${departureIATA}/${destShort}/?adults=${adults}&currency=EUR`;
-  result.skyscanner = topLinks.skyscanner ?? skyBase;
+  // ── Expedia voli (approvato) ──
+  result.expedia_flights = topLinks.expedia_flights
+    ?? `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3A${encodeURIComponent(departure)}%2Cto%3A${destEncoded}%2Cdeparture%3A${checkinCompact}%2F1&leg2=from%3A${destEncoded}%2Cto%3A${encodeURIComponent(departure)}%2Cdeparture%3A${checkoutCompact}%2F1&passengers=adults%3A${adults}&trip=roundtrip&mode=search`;
 
-  // Booking con date
-  const bookingBase = checkinParam
-    ? `https://www.booking.com/searchresults.it.html?ss=${destEncoded}&checkin=${checkinParam}&checkout=${checkoutParam}&no_rooms=1&group_adults=${adults}&aid=304142`
-    : `https://www.booking.com/searchresults.it.html?ss=${destEncoded}&no_rooms=1&group_adults=${adults}&aid=304142`;
-  result.booking = topLinks.booking_hotel ?? topLinks.booking_search ?? bookingBase;
+  // ── Hotels.com (approvato) ──
+  result.hotels = topLinks.hotels
+    ?? topLinks.hotels_hotel
+    ?? `https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=${destEncoded}&q-check-in=${checkin}&q-check-out=${checkout}&q-rooms=1&q-room-0-adults=${adults}`;
 
-  // GetYourGuide
-  result.getyourguide = topLinks.getyourguide_1
-    ?? `https://www.getyourguide.it/s/?q=${destEncoded}&partner_id=0BCSNBX8`;
+  // ── Expedia pacchetti (approvato) ──
+  result.expedia_packages = topLinks.expedia_packages
+    ?? `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/lp/b/package-savings`;
 
-  // TheFork
-  result.thefork = topLinks.thefork
-    ?? `https://www.thefork.it/cerca/?cityName=${destEncoded}`;
-
-  // TripAdvisor
-  result.tripadvisor = topLinks.tripadvisor
-    ?? `https://www.tripadvisor.it/Search?q=${destEncoded}`;
-
-  // Region-specific
-  if (region === "mediterranean") {
-    result.ferry = topLinks.ferryhopper
-      ?? `https://www.ferryhopper.com/it#/?departure=${departureIATA}&arrival=${destShort}`;
+  // ── Esperienze per regione (approvati: Civitatis, Musement, Klook, Viator) ──
+  if (["europe", "mediterranean", "latam"].includes(region)) {
+    result.civitatis = topLinks.civitatis_1
+      ?? `https://www.civitatis.com/it/${destSlug}/?aid=112605&cmp=mindroute`;
+    if (["europe", "mediterranean"].includes(region)) {
+      result.musement = topLinks.musement_1
+        ?? `https://www.musement.com/it/${destSlug}/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388`;
+    }
   }
   if (["asia", "india"].includes(region)) {
-    result.klook = topLinks.klook ?? `https://www.klook.com/activity/list/?destination=${destEncoded}`;
-    result.agoda = topLinks.agoda ?? `https://www.agoda.com/search?city=${destEncoded}&adults=${adults}`;
+    result.klook = topLinks.klook_1
+      ?? `https://www.klook.com/search/?q=${destEncoded}&aid=116532`;
   }
-  if (["latam", "africa", "northamerica", "oceania"].includes(region)) {
-    result.viator = topLinks.viator ?? `https://www.viator.com/search/${destEncoded}`;
-    result.rentalcars = topLinks.rentalcars ?? `https://www.rentalcars.com/?city=${destEncoded}`;
+  if (["africa", "northamerica", "oceania"].includes(region)) {
+    result.viator = topLinks.viator_1
+      ?? `https://www.viator.com/searchResults/all?text=${destEncoded}&pid=P00293604&mcid=42383&medium=link`;
   }
+
+  // ── Undercovertourist (solo Orlando/LA) ──
+  const destLower = destinationName.toLowerCase();
+  if (destLower.includes("orlando") || destLower.includes("los angeles")) {
+    result.undercovertourist = topLinks.undercovertourist
+      ?? `https://www.kqzyfj.com/click-101710513-15733832`;
+  }
+
+  // ── TripAdvisor ristoranti (sempre) ──
+  result.tripadvisor = topLinks.tripadvisor
+    ?? `https://www.tripadvisor.it/Search?q=ristoranti+${destEncoded}`;
 
   return result;
 }
@@ -172,46 +178,51 @@ function BookTab({
       label: "Voli",
       emoji: "✈️",
       links: [
-        { key: "skyscanner", label: `Cerca voli → ${dest}${hasDate ? " · date preimpostate" : ""}`, url: urls.skyscanner, color: "rgba(14,165,233,0.15)", border: "rgba(14,165,233,0.35)", text: "#38bdf8" },
+        { key: "expedia_flights", label: `Expedia Voli → ${dest}${hasDate ? " · date preimpostate" : ""}`, url: urls.expedia_flights, color: "rgba(14,165,233,0.15)", border: "rgba(14,165,233,0.35)", text: "#38bdf8" },
       ]
     },
     {
       label: "Hotel",
       emoji: "🏨",
       links: [
-        { key: "booking", label: `Booking.com · ${dest}${hasDate ? ` · ${days} notti` : ""}`, url: urls.booking, color: "rgba(233,69,96,0.12)", border: "rgba(233,69,96,0.35)", text: "#E94560" },
-        ...(urls.agoda ? [{ key: "agoda", label: `Agoda · ${dest}`, url: urls.agoda, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }] : []),
+        { key: "hotels", label: `Hotels.com · ${dest}${hasDate ? ` · ${days} notti` : ""}`, url: urls.hotels, color: "rgba(233,69,96,0.12)", border: "rgba(233,69,96,0.35)", text: "#E94560" },
+        { key: "expedia_packages", label: `Expedia Pacchetti · volo + hotel`, url: urls.expedia_packages, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" },
       ]
     },
-    {
+    ...(urls.civitatis ? [{
       label: "Esperienze",
       emoji: "🎟",
       links: [
-        { key: "gyg", label: `GetYourGuide · ${dest}`, url: urls.getyourguide, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" },
-        ...(urls.klook ? [{ key: "klook", label: `Klook · ${dest}`, url: urls.klook, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] : []),
-        ...(urls.viator ? [{ key: "viator", label: `Viator · ${dest}`, url: urls.viator, color: "rgba(99,102,241,0.12)", border: "rgba(99,102,241,0.3)", text: "#818cf8" }] : []),
-        { key: "tripadvisor", label: `TripAdvisor · ${dest}`, url: urls.tripadvisor, color: "rgba(74,222,128,0.1)", border: "rgba(74,222,128,0.25)", text: "#4ade80" },
+        { key: "civitatis", label: `Civitatis · tour e attività a ${dest}`, url: urls.civitatis, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" },
+        ...(urls.musement ? [{ key: "musement", label: `Musement · esperienze a ${dest}`, url: urls.musement, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] : []),
       ]
-    },
+    }] : []),
+    ...(urls.klook ? [{
+      label: "Esperienze",
+      emoji: "🎟",
+      links: [
+        { key: "klook", label: `Klook · attività a ${dest}`, url: urls.klook, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" },
+      ]
+    }] : []),
+    ...(urls.viator ? [{
+      label: "Tour e attrazioni",
+      emoji: "🗺",
+      links: [
+        { key: "viator", label: `Viator · tour a ${dest}`, url: urls.viator, color: "rgba(99,102,241,0.12)", border: "rgba(99,102,241,0.3)", text: "#818cf8" },
+      ]
+    }] : []),
     {
       label: "Ristoranti",
       emoji: "🍽",
       links: [
-        { key: "thefork", label: `TheFork · ristoranti a ${dest}`, url: urls.thefork, color: "rgba(74,222,128,0.1)", border: "rgba(74,222,128,0.25)", text: "#4ade80" },
+        { key: "tripadvisor", label: `TripAdvisor · ristoranti a ${dest}`, url: urls.tripadvisor, color: "rgba(74,222,128,0.1)", border: "rgba(74,222,128,0.25)", text: "#4ade80" },
       ]
     },
-    ...(urls.ferry ? [{
-      label: "Traghetti",
-      emoji: "⛴",
+    ...(urls.undercovertourist ? [{
+      label: "Attrazioni",
+      emoji: "🎡",
       links: [
-        { key: "ferry", label: `Ferryhopper · traghetti Egeo`, url: urls.ferry, color: "rgba(6,182,212,0.12)", border: "rgba(6,182,212,0.3)", text: "#22d3ee" },
-      ]
-    }] : []),
-    ...(urls.rentalcars ? [{
-      label: "Noleggio auto",
-      emoji: "🚗",
-      links: [
-        { key: "rentalcars", label: `Rentalcars · ${dest}`, url: urls.rentalcars, color: "rgba(255,255,255,0.06)", border: "rgba(255,255,255,0.12)", text: "rgba(255,255,255,0.6)" },
+        { key: "undercovertourist", label: `Undercover Tourist · biglietti`, url: urls.undercovertourist, color: "rgba(255,200,50,0.12)", border: "rgba(255,200,50,0.3)", text: "#fbbf24" },
       ]
     }] : []),
   ];
