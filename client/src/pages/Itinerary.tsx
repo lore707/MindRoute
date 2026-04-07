@@ -435,6 +435,16 @@ function OverviewTab({ itinerary }: { itinerary: any }) {
         </div>
       )}
 
+   {/* Mappa */}
+      {itinerary.days && (
+        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden", marginBottom: 10, height: 260 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", padding: "12px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            🗺 Mappa destinazione
+          </div>
+          <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName ?? ""} />
+        </div>
+      )}
+
       {/* Tips */}
       <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px" }}>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>
