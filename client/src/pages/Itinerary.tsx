@@ -172,8 +172,8 @@ function OverviewTab({ itinerary }: { itinerary: any }) {
     <div style={{ padding: "16px 14px 24px" }}>
       <div style={{ fontSize: 17, fontWeight: 700, color: "white", fontFamily: "Georgia, serif", marginBottom: 16 }}>Panoramica</div>
       {itinerary.budgetSummary && (
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>💰 Budget stimato</div>
+        <div style={{ background: "rgba(233,69,96,0.06)", border: "1px solid rgba(233,69,96,0.15)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginBottom: 10 }}>💰 Budget stimato</div>
           {(() => {
             try {
               const parsed = JSON.parse(itinerary.budgetSummary);
@@ -394,7 +394,7 @@ export default function Itinerary() {
   };
 
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
+<div className="min-h-screen flex items-center justify-center" style={{ background: "#120e1c" }}>
       <div className="flex flex-col items-center gap-6">
         <div className="w-16 h-16 border-[3px] border-[#E94560] border-t-transparent rounded-full animate-spin" />
         <p className="text-white/50 font-serif italic text-xl animate-pulse">{t('itin.loading')}</p>
@@ -632,7 +632,7 @@ export default function Itinerary() {
   const displayDays = editMode ? editedDays : (itinerary?.days ?? []);
 
   return (
-    <div className="min-h-screen" style={{ background: "#0a0814" }} id="itinerary-pdf-content">
+ <div className="min-h-screen" style={{ background: "#120e1c" }} id="itinerary-pdf-content">
       {/* HERO */}
       <div className="relative overflow-hidden" style={{ height: "65vh", minHeight: 420 }}>
         {(itinerary?.heroImageUrl || itinerary?.imageUrl) ? (
@@ -839,7 +839,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
 
   return (
     <div className="rounded-[20px] overflow-hidden transition-all duration-300"
-      style={{ background: editMode ? "rgba(255,255,255,0.05)" : (isPeak ? "rgba(233,69,96,0.06)" : isOpen ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.03)"), border: editMode ? "1px solid rgba(233,69,96,0.2)" : (isPeak ? (isOpen ? "1.5px solid rgba(233,69,96,0.4)" : "1px solid rgba(233,69,96,0.25)") : (isOpen ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.07)")) }}>
+  style={{ background: editMode ? "rgba(233,69,96,0.08)" : (isPeak ? "rgba(233,69,96,0.10)" : isOpen ? "rgba(233,69,96,0.06)" : "rgba(233,69,96,0.04)"), border: editMode ? "1px solid rgba(233,69,96,0.25)" : (isPeak ? (isOpen ? "1.5px solid rgba(233,69,96,0.45)" : "1px solid rgba(233,69,96,0.30)") : (isOpen ? "1px solid rgba(233,69,96,0.20)" : "1px solid rgba(233,69,96,0.12)")) }}>
       <div className="flex items-stretch gap-0">
         {/* Drag handle — solo in edit mode */}
         {editMode && (
