@@ -83,15 +83,15 @@ export default function Landing() {
 
           {/* H1 */}
           <h1 className="fadeup-2 hero-h1" style={{ fontSize: "clamp(38px, 7vw, 82px)", lineHeight: 1.05, letterSpacing: "-2.5px", fontWeight: 400, marginBottom: 28, maxWidth: 860, margin: "0 auto 28px" }}>
-            {lang === "it" ? (
+          {lang === "it" ? (
               <>
-                <em style={{ fontStyle: "italic", color: "white", display: "block" }}>Non è difficile trovare un posto dove andare.</em>
-                <em style={{ fontStyle: "italic", color: "#E94560", display: "block" }}>È difficile trovare quello giusto per te.</em>
+                <span style={{ fontStyle: "normal", color: "white", display: "block" }}>Il viaggio giusto non si cerca.</span>
+                <em style={{ fontStyle: "italic", color: "#E94560", display: "block" }}>Si scopre.</em>
               </>
             ) : (
               <>
-                <em style={{ fontStyle: "italic", color: "white", display: "block" }}>Finding a place to go isn't hard.</em>
-                <em style={{ fontStyle: "italic", color: "#E94560", display: "block" }}>Finding the right one for you is.</em>
+                <span style={{ fontStyle: "normal", color: "white", display: "block" }}>The right trip isn't searched for.</span>
+                <em style={{ fontStyle: "italic", color: "#E94560", display: "block" }}>It's discovered.</em>
               </>
             )}
           </h1>
@@ -165,7 +165,7 @@ export default function Landing() {
           <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 48 }}>
             {(lang === "it" ? [
               { n: "01", title: "Racconta chi sei", desc: "7 domande che uniscono come sei, come stai e le tue esigenze di viaggio, per costruire qualcosa che abbia davvero senso per te.", icon: "💬" },
-              { n: "02", title: "Scopri il tuo posto", desc: "Tre destinazioni costruite su di te: una sicura, una inaspettata, una nel mezzo. Ognuna spiegata — perché ti somiglia, non perché è popolare.", icon: "🗺" },
+            { n: "02", title: "Scopri il tuo posto", desc: "Tre destinazioni costruite su di te: una sicura, una inaspettata, una nel mezzo. Ognuna spiegata, perché ti somiglia, non perché è popolare.", icon: "🗺" },
               { n: "03", title: "Ottieni il tuo piano", desc: "Un itinerario già pronto, con tutto organizzato, prenotazioni a portata di click e la libertà di modificarlo quando vuoi.", icon: "📍" },
             ] : [
               { n: "01", title: "Tell us who you are", desc: "7 questions that combine who you are, how you feel and what you need from a trip — to build something that actually makes sense for you.", icon: "💬" },
@@ -204,8 +204,12 @@ export default function Landing() {
                 <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", fontFamily: "system-ui", marginBottom: 4 }}>
                   {lang === "it" ? "Anteprima del prodotto" : "Product preview"}
                 </p>
-                <p style={{ fontSize: 17, fontWeight: 400, color: "white", letterSpacing: -0.5 }}>
-                  {lang === "it" ? "Questo è quello che ricevi — non un suggerimento, un piano vero." : "This is what you get — not a suggestion, a real plan."}
+               <p style={{ fontSize: 17, fontWeight: 400, color: "white", letterSpacing: -0.5 }}>
+                  {lang === "it" ? (
+                    <>Questo è quello che ricevi, <em style={{ color: "#E94560", fontStyle: "italic" }}>non un suggerimento, un piano vero.</em></>
+                  ) : (
+                    <>This is what you get, <em style={{ color: "#E94560", fontStyle: "italic" }}>not a suggestion, a real plan.</em></>
+                  )}
                 </p>
               </div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(233,69,96,0.12)", border: "1px solid rgba(233,69,96,0.30)", borderRadius: 20, padding: "6px 14px" }}>
@@ -262,11 +266,11 @@ export default function Landing() {
               <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", color: "#E94560", marginBottom: 16, fontFamily: "system-ui" }}>
                 {lang === "it" ? "La differenza" : "Why it's different"}
               </p>
-              <h2 style={{ fontSize: "clamp(26px, 4vw, 42px)", fontWeight: 400, letterSpacing: -1.5, lineHeight: 1.08, marginBottom: 24, color: "white" }}>
+            <h2 style={{ fontSize: "clamp(26px, 4vw, 42px)", fontWeight: 400, letterSpacing: -1.5, lineHeight: 1.08, marginBottom: 24, color: "white" }}>
                 {lang === "it" ? (
-                  <>Gli altri ti fanno scegliere.<br />Noi ti togliamo il dubbio.</>
+                  <>Gli altri ti fanno scegliere.<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>Noi ti togliamo il dubbio.</em></>
                 ) : (
-                  <>Others make you choose.<br />We remove the doubt.</>
+                  <>Others make you choose.<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>We remove the doubt.</em></>
                 )}
               </h2>
               <p style={{ fontSize: 15, color: "rgba(255,255,255,0.70)", lineHeight: 1.85, fontFamily: "system-ui, sans-serif", fontWeight: 300, marginBottom: 18 }}>
@@ -333,7 +337,9 @@ export default function Landing() {
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(233,69,96,0.08), transparent)" }} />
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={ctaInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.8 }} style={{ maxWidth: 640, margin: "0 auto", position: "relative" }}>
-          <Logo className="w-12 h-12" />
+       <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
+            <Logo className="w-12 h-12" />
+          </div>
           <h2 style={{ fontSize: "clamp(26px, 4vw, 44px)", fontWeight: 400, letterSpacing: -1.5, lineHeight: 1.1, margin: "24px 0 16px", color: "white" }}>
             {lang === "it" ? (
               <>Smetti di forzare la meta.<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>Inizia ad ascoltarti davvero.</em></>
