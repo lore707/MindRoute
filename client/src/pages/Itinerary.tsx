@@ -1,115 +1,65 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 import { useItinerary, useMapPointsPolling } from "@/hooks/use-profiling";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  ArrowLeft, Wallet, Briefcase,
-  ChevronDown, Share2, Printer, Clock, Compass, Sun,
+  ArrowLeft, ChevronDown, Share2, Printer,
   ExternalLink, Plane, Hotel, Ticket, Utensils, Star, MapPin,
-  Flame, Calendar, Wind, CheckSquare, Square, Package
+  Flame, Calendar, Wind, Pencil, GripVertical, RotateCcw, Save, X
 } from "lucide-react";
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor,
+  useSensor, useSensors, DragEndEvent
+} from "@dnd-kit/core";
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates,
+  useSortable, verticalListSortingStrategy
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useI18n } from "@/lib/i18n";
 import html2pdf from "html2pdf.js";
 
-// ── URL BUILDER — solo affiliate approvati ───────────────────────────────────
-function buildAffiliateUrls(
-  destinationName: string,
-  profilingInput: any,
-  region: string,
-  topLinks: Record<string, string>
-): Record<string, string> {
+// ── URL BUILDER ───────────────────────────────────────────────────────────────
+function buildAffiliateUrls(destinationName: string, profilingInput: any, region: string, topLinks: Record<string, string>): Record<string, string> {
   const dest = destinationName.split(",")[0].trim();
   const destEncoded = encodeURIComponent(destinationName);
   const destSlug = dest.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-
   const leaveDate = profilingInput?.leaveDate ?? "";
   const days = profilingInput?.days ?? 7;
   const companions = profilingInput?.companions ?? "solo";
   const departure = profilingInput?.departure ?? "";
-
   const adults = companions === "couple" ? 2 : companions === "friends" ? 3 : companions === "family" ? 4 : 1;
-
-  // Parse dates
-  let checkin = ""; let checkout = ""; let checkinCompact = ""; let checkoutCompact = "";
+  let checkin = "", checkout = "", checkinCompact = "", checkoutCompact = "";
   const exactDateMatch = leaveDate.match(/(\d{4}-\d{2}-\d{2})/);
-  if (exactDateMatch) {
-    const d = new Date(exactDateMatch[1]);
-    const co = new Date(d); co.setDate(co.getDate() + days);
-    const fmt = (dt: Date) => dt.toISOString().split("T")[0];
-    checkin = fmt(d); checkout = fmt(co);
-    checkinCompact = checkin.replace(/-/g, ""); checkoutCompact = checkout.replace(/-/g, "");
-  } else {
-    // fallback: 3 months from now
-    const d = new Date(); d.setMonth(d.getMonth() + 3);
-    const co = new Date(d); co.setDate(co.getDate() + days);
-    const fmt = (dt: Date) => dt.toISOString().split("T")[0];
-    checkin = fmt(d); checkout = fmt(co);
-    checkinCompact = checkin.replace(/-/g, ""); checkoutCompact = checkout.replace(/-/g, "");
-  }
-
-  // Departure IATA
+  const baseDate = exactDateMatch ? new Date(exactDateMatch[1]) : (() => { const d = new Date(); d.setMonth(d.getMonth() + 3); return d; })();
+  const coDate = new Date(baseDate); coDate.setDate(coDate.getDate() + days);
+  const fmt = (dt: Date) => dt.toISOString().split("T")[0];
+  checkin = fmt(baseDate); checkout = fmt(coDate);
+  checkinCompact = checkin.replace(/-/g, ""); checkoutCompact = checkout.replace(/-/g, "");
   const departureIATA = (() => {
     const d = (departure || "").toLowerCase();
     if (d.includes("milano") || d.includes("milan") || d.includes("mxp")) return "MXP";
     if (d.includes("roma") || d.includes("rome") || d.includes("fco")) return "FCO";
-    if (d.includes("napoli") || d.includes("naples")) return "NAP";
-    if (d.includes("torino") || d.includes("turin")) return "TRN";
-    if (d.includes("venezia") || d.includes("venice")) return "VCE";
-    if (d.includes("bologna")) return "BLQ";
-    if (d.includes("firenze") || d.includes("florence")) return "FLR";
-    if (d.includes("palermo")) return "PMO";
-    if (d.includes("catania")) return "CTA";
+    if (d.includes("napoli")) return "NAP"; if (d.includes("torino")) return "TRN";
+    if (d.includes("venezia")) return "VCE"; if (d.includes("bologna")) return "BLQ";
+    if (d.includes("firenze")) return "FLR"; if (d.includes("palermo")) return "PMO";
     return "MXP";
   })();
-
   const result: Record<string, string> = {};
-
-  // ── Expedia voli (approvato) ──
-  result.expedia_flights = topLinks.expedia_flights
-    ?? `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3A${encodeURIComponent(departure)}%2Cto%3A${destEncoded}%2Cdeparture%3A${checkinCompact}%2F1&leg2=from%3A${destEncoded}%2Cto%3A${encodeURIComponent(departure)}%2Cdeparture%3A${checkoutCompact}%2F1&passengers=adults%3A${adults}&trip=roundtrip&mode=search`;
-
-  // ── Hotels.com (approvato) ──
-  result.hotels = topLinks.hotels
-    ?? topLinks.hotels_hotel
-    ?? `https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=${destEncoded}&q-check-in=${checkin}&q-check-out=${checkout}&q-rooms=1&q-room-0-adults=${adults}`;
-
-  // ── Expedia pacchetti (approvato) ──
-  result.expedia_packages = topLinks.expedia_packages
-    ?? `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/lp/b/package-savings`;
-
-  // ── Esperienze per regione (approvati: Civitatis, Musement, Klook, Viator) ──
+  result.expedia_flights = topLinks.expedia_flights ?? `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3A${encodeURIComponent(departure)}%2Cto%3A${destEncoded}%2Cdeparture%3A${checkinCompact}%2F1&leg2=from%3A${destEncoded}%2Cto%3A${encodeURIComponent(departure)}%2Cdeparture%3A${checkoutCompact}%2F1&passengers=adults%3A${adults}&trip=roundtrip&mode=search`;
+  result.hotels = topLinks.hotels ?? topLinks.hotels_hotel ?? `https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=${destEncoded}&q-check-in=${checkin}&q-check-out=${checkout}&q-rooms=1&q-room-0-adults=${adults}`;
+  result.expedia_packages = topLinks.expedia_packages ?? `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/lp/b/package-savings`;
   if (["europe", "mediterranean", "latam"].includes(region)) {
-    result.civitatis = topLinks.civitatis_1
-      ?? `https://www.civitatis.com/it/${destSlug}/?aid=112605&cmp=mindroute`;
-    if (["europe", "mediterranean"].includes(region)) {
-      result.musement = topLinks.musement_1
-        ?? `https://www.musement.com/it/${destSlug}/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388`;
-    }
+    result.civitatis = topLinks.civitatis_1 ?? `https://www.civitatis.com/it/${destSlug}/?aid=112605&cmp=mindroute`;
+    if (["europe", "mediterranean"].includes(region)) result.musement = topLinks.musement_1 ?? `https://www.musement.com/it/${destSlug}/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388`;
   }
-  if (["asia", "india"].includes(region)) {
-    result.klook = topLinks.klook_1
-      ?? `https://www.klook.com/search/?q=${destEncoded}&aid=116532`;
-  }
-  if (["africa", "northamerica", "oceania"].includes(region)) {
-    result.viator = topLinks.viator_1
-      ?? `https://www.viator.com/searchResults/all?text=${destEncoded}&pid=P00293604&mcid=42383&medium=link`;
-  }
-
-  // ── Undercovertourist (solo Orlando/LA) ──
-  const destLower = destinationName.toLowerCase();
-  if (destLower.includes("orlando") || destLower.includes("los angeles")) {
-    result.undercovertourist = topLinks.undercovertourist
-      ?? `https://www.kqzyfj.com/click-101710513-15733832`;
-  }
-
-  // ── TripAdvisor ristoranti (sempre) ──
-  result.tripadvisor = topLinks.tripadvisor
-    ?? `https://www.tripadvisor.it/Search?q=ristoranti+${destEncoded}`;
-
+  if (["asia", "india"].includes(region)) result.klook = topLinks.klook_1 ?? `https://www.klook.com/search/?q=${destEncoded}&aid=116532`;
+  if (["africa", "northamerica", "oceania"].includes(region)) result.viator = topLinks.viator_1 ?? `https://www.viator.com/searchResults/all?text=${destEncoded}&pid=P00293604&mcid=42383&medium=link`;
+  if (destinationName.toLowerCase().includes("orlando") || destinationName.toLowerCase().includes("los angeles")) result.undercovertourist = topLinks.undercovertourist ?? `https://www.kqzyfj.com/click-101710513-15733832`;
+  result.tripadvisor = topLinks.tripadvisor ?? `https://www.tripadvisor.it/Search?q=ristoranti+${destEncoded}`;
   return result;
 }
 
-// ── REGION DETECT ────────────────────────────────────────────────────────────
 function detectRegion(name: string): string {
   const n = name.toLowerCase();
   if (/grecia|greece|creta|crete|cipro|cyprus|malta|croazia|croatia|montenegro|albania|turchia|turkey/.test(n)) return "mediterranean";
@@ -122,18 +72,14 @@ function detectRegion(name: string): string {
   return "europe";
 }
 
-// ── CHECKLIST ────────────────────────────────────────────────────────────────
+// ── CHECKLIST ─────────────────────────────────────────────────────────────────
 type ChecklistItem = { id: string; label: string; checked: boolean };
-
 function useChecklist(itineraryId: number) {
   const storageKey = `mindroute_checklist_${itineraryId}`;
   const [items, setItems] = useState<ChecklistItem[]>([]);
-
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try { setItems(JSON.parse(saved)); return; } catch {}
-    }
+    if (saved) { try { setItems(JSON.parse(saved)); return; } catch {} }
     setItems([
       { id: "flight", label: "Volo prenotato", checked: false },
       { id: "hotel", label: "Hotel prenotato", checked: false },
@@ -142,112 +88,42 @@ function useChecklist(itineraryId: number) {
       { id: "transfer", label: "Transfer/traghetto prenotato", checked: false },
     ]);
   }, [itineraryId]);
-
-  const toggle = (id: string) => {
-    setItems(prev => {
-      const next = prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i);
-      localStorage.setItem(storageKey, JSON.stringify(next));
-      return next;
-    });
-  };
-
+  const toggle = (id: string) => setItems(prev => {
+    const next = prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i);
+    localStorage.setItem(storageKey, JSON.stringify(next)); return next;
+  });
   const checkedCount = items.filter(i => i.checked).length;
   return { items, toggle, checkedCount, total: items.length };
 }
 
-// ── BOOK TAB ─────────────────────────────────────────────────────────────────
-function BookTab({
-  urls, region, destinationName, profilingInput, itineraryId
-}: {
-  urls: Record<string, string>;
-  region: string;
-  destinationName: string;
-  profilingInput: any;
-  itineraryId: number;
-}) {
+// ── BOOK TAB ──────────────────────────────────────────────────────────────────
+function BookTab({ urls, region, destinationName, profilingInput, itineraryId }: { urls: Record<string, string>; region: string; destinationName: string; profilingInput: any; itineraryId: number }) {
   const { items, toggle, checkedCount, total } = useChecklist(itineraryId);
   const dest = destinationName.split(",")[0].trim();
   const companions = profilingInput?.companions ?? "solo";
   const leaveDate = profilingInput?.leaveDate ?? "";
   const days = profilingInput?.days ?? 7;
-
   const hasDate = !!(profilingInput?.leaveDate?.match(/\d{4}-\d{2}-\d{2}/));
-
   const sections = [
-    {
-      label: "Voli",
-      emoji: "✈️",
-      links: [
-        { key: "expedia_flights", label: `Expedia Voli → ${dest}${hasDate ? " · date preimpostate" : ""}`, url: urls.expedia_flights, color: "rgba(14,165,233,0.15)", border: "rgba(14,165,233,0.35)", text: "#38bdf8" },
-      ]
-    },
-    {
-      label: "Hotel",
-      emoji: "🏨",
-      links: [
-        { key: "hotels", label: `Hotels.com · ${dest}${hasDate ? ` · ${days} notti` : ""}`, url: urls.hotels, color: "rgba(233,69,96,0.12)", border: "rgba(233,69,96,0.35)", text: "#E94560" },
-        { key: "expedia_packages", label: `Expedia Pacchetti · volo + hotel`, url: urls.expedia_packages, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" },
-      ]
-    },
-    ...(urls.civitatis ? [{
-      label: "Esperienze",
-      emoji: "🎟",
-      links: [
-        { key: "civitatis", label: `Civitatis · tour e attività a ${dest}`, url: urls.civitatis, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" },
-        ...(urls.musement ? [{ key: "musement", label: `Musement · esperienze a ${dest}`, url: urls.musement, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] : []),
-      ]
-    }] : []),
-    ...(urls.klook ? [{
-      label: "Esperienze",
-      emoji: "🎟",
-      links: [
-        { key: "klook", label: `Klook · attività a ${dest}`, url: urls.klook, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" },
-      ]
-    }] : []),
-    ...(urls.viator ? [{
-      label: "Tour e attrazioni",
-      emoji: "🗺",
-      links: [
-        { key: "viator", label: `Viator · tour a ${dest}`, url: urls.viator, color: "rgba(99,102,241,0.12)", border: "rgba(99,102,241,0.3)", text: "#818cf8" },
-      ]
-    }] : []),
-    {
-      label: "Ristoranti",
-      emoji: "🍽",
-      links: [
-        { key: "tripadvisor", label: `TripAdvisor · ristoranti a ${dest}`, url: urls.tripadvisor, color: "rgba(74,222,128,0.1)", border: "rgba(74,222,128,0.25)", text: "#4ade80" },
-      ]
-    },
-    ...(urls.undercovertourist ? [{
-      label: "Attrazioni",
-      emoji: "🎡",
-      links: [
-        { key: "undercovertourist", label: `Undercover Tourist · biglietti`, url: urls.undercovertourist, color: "rgba(255,200,50,0.12)", border: "rgba(255,200,50,0.3)", text: "#fbbf24" },
-      ]
-    }] : []),
+    { label: "Voli", emoji: "✈️", links: [{ key: "expedia_flights", label: `Expedia Voli → ${dest}${hasDate ? " · date preimpostate" : ""}`, url: urls.expedia_flights, color: "rgba(14,165,233,0.15)", border: "rgba(14,165,233,0.35)", text: "#38bdf8" }] },
+    { label: "Hotel", emoji: "🏨", links: [{ key: "hotels", label: `Hotels.com · ${dest}${hasDate ? ` · ${days} notti` : ""}`, url: urls.hotels, color: "rgba(233,69,96,0.12)", border: "rgba(233,69,96,0.35)", text: "#E94560" }, { key: "expedia_packages", label: `Expedia Pacchetti · volo + hotel`, url: urls.expedia_packages, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }] },
+    ...(urls.civitatis ? [{ label: "Esperienze", emoji: "🎟", links: [{ key: "civitatis", label: `Civitatis · tour e attività a ${dest}`, url: urls.civitatis, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }, ...(urls.musement ? [{ key: "musement", label: `Musement · esperienze a ${dest}`, url: urls.musement, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] : [])] }] : []),
+    ...(urls.klook ? [{ label: "Esperienze", emoji: "🎟", links: [{ key: "klook", label: `Klook · attività a ${dest}`, url: urls.klook, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] }] : []),
+    ...(urls.viator ? [{ label: "Tour e attrazioni", emoji: "🗺", links: [{ key: "viator", label: `Viator · tour a ${dest}`, url: urls.viator, color: "rgba(99,102,241,0.12)", border: "rgba(99,102,241,0.3)", text: "#818cf8" }] }] : []),
+    { label: "Ristoranti", emoji: "🍽", links: [{ key: "tripadvisor", label: `TripAdvisor · ristoranti a ${dest}`, url: urls.tripadvisor, color: "rgba(74,222,128,0.1)", border: "rgba(74,222,128,0.25)", text: "#4ade80" }] },
+    ...(urls.undercovertourist ? [{ label: "Attrazioni", emoji: "🎡", links: [{ key: "undercovertourist", label: `Undercover Tourist · biglietti`, url: urls.undercovertourist, color: "rgba(255,200,50,0.12)", border: "rgba(255,200,50,0.3)", text: "#fbbf24" }] }] : []),
   ];
-
   return (
     <div style={{ padding: "16px 14px 24px" }}>
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: "white", fontFamily: "Georgia, serif", marginBottom: 4 }}>
-          Organizza il viaggio
-        </div>
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", lineHeight: 1.5 }}>
-          Tutti i link in un posto solo — già impostati per {dest}
-          {companions !== "solo" && `, ${companions === "couple" ? "2 persone" : companions === "friends" ? "3 persone" : "4 persone"}`}
-          {leaveDate && ` · ${leaveDate}`}.
-        </div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: "white", fontFamily: "Georgia, serif", marginBottom: 4 }}>Organizza il viaggio</div>
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", lineHeight: 1.5 }}>Tutti i link in un posto solo — già impostati per {dest}{companions !== "solo" && `, ${companions === "couple" ? "2 persone" : companions === "friends" ? "3 persone" : "4 persone"}`}{leaveDate && ` · ${leaveDate}`}.</div>
       </div>
-
-      {/* Link sections */}
       {sections.map(section => (
         <div key={section.label} style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: 8 }}>
-            {section.emoji} {section.label}
-          </div>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", marginBottom: 8 }}>{section.emoji} {section.label}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {section.links.map(link => (
+            {section.links.map((link: any) => (
               <a key={link.key} href={link.url} target="_blank" rel="noopener noreferrer"
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", borderRadius: 10, background: link.color, border: `1px solid ${link.border}`, color: link.text, fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "all 0.2s" }}
                 onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.15)")}
@@ -259,26 +135,15 @@ function BookTab({
           </div>
         </div>
       ))}
-
-      {/* Divider */}
       <div style={{ height: 1, background: "rgba(255,255,255,0.07)", margin: "20px 0" }} />
-
-      {/* Checklist */}
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "white" }}>
-            Cosa hai già prenotato?
-          </div>
-          <div style={{ fontSize: 11, color: checkedCount === total ? "#4ade80" : "rgba(255,255,255,0.3)", fontWeight: 700 }}>
-            {checkedCount}/{total}
-          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "white" }}>Cosa hai già prenotato?</div>
+          <div style={{ fontSize: 11, color: checkedCount === total ? "#4ade80" : "rgba(255,255,255,0.3)", fontWeight: 700 }}>{checkedCount}/{total}</div>
         </div>
-
-        {/* Progress bar */}
         <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, marginBottom: 14, overflow: "hidden" }}>
           <div style={{ height: "100%", background: checkedCount === total ? "#4ade80" : "#E94560", width: `${(checkedCount / total) * 100}%`, borderRadius: 2, transition: "width 0.4s ease" }} />
         </div>
-
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {items.map(item => (
             <button key={item.id} onClick={() => toggle(item.id)}
@@ -286,61 +151,45 @@ function BookTab({
               <div style={{ width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${item.checked ? "#4ade80" : "rgba(255,255,255,0.2)"}`, background: item.checked ? "#4ade80" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
                 {item.checked && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#0a0814" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </div>
-              <span style={{ fontSize: 13, color: item.checked ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.7)", textDecoration: item.checked ? "line-through" : "none", transition: "all 0.2s" }}>
-                {item.label}
-              </span>
+              <span style={{ fontSize: 13, color: item.checked ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.7)", textDecoration: item.checked ? "line-through" : "none", transition: "all 0.2s" }}>{item.label}</span>
             </button>
           ))}
         </div>
-
         {checkedCount === total && total > 0 && (
           <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 10, background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)", fontSize: 12, color: "#4ade80", fontWeight: 600, textAlign: "center" }}>
             🎉 Tutto prenotato! Buon viaggio a {dest}.
           </div>
         )}
       </div>
-
-      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.18)", textAlign: "center", marginTop: 20 }}>
-        I link potrebbero includere commissioni affiliate.
-      </div>
+      <div style={{ fontSize: 10, color: "rgba(255,255,255,0.18)", textAlign: "center", marginTop: 20 }}>I link potrebbero includere commissioni affiliate.</div>
     </div>
   );
 }
 
-// ── OVERVIEW TAB ─────────────────────────────────────────────────────────────
+// ── OVERVIEW TAB ──────────────────────────────────────────────────────────────
 function OverviewTab({ itinerary }: { itinerary: any }) {
-  const { t } = useI18n();
-
   return (
     <div style={{ padding: "16px 14px 24px" }}>
-      <div style={{ fontSize: 17, fontWeight: 700, color: "white", fontFamily: "Georgia, serif", marginBottom: 16 }}>
-        Panoramica
-      </div>
-
-      {/* Budget */}
+      <div style={{ fontSize: 17, fontWeight: 700, color: "white", fontFamily: "Georgia, serif", marginBottom: 16 }}>Panoramica</div>
       {itinerary.budgetSummary && (
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-            💰 Budget stimato
-          </div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>💰 Budget stimato</div>
           {(() => {
             try {
               const parsed = JSON.parse(itinerary.budgetSummary);
-              if (parsed?.items) {
-                return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                    {parsed.items.map((item: any, i: number) => {
-                      const isTotal = /totale/i.test(item.label);
-                      return (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: i < parsed.items.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                          <span style={{ fontSize: 12, color: isTotal ? "#E94560" : "rgba(255,255,255,0.4)", fontWeight: isTotal ? 700 : 400 }}>{item.label}</span>
-                          <span style={{ fontSize: isTotal ? 14 : 12, color: isTotal ? "#E94560" : "rgba(255,255,255,0.75)", fontWeight: 700 }}>{item.total}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              }
+              if (parsed?.items) return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                  {parsed.items.map((item: any, i: number) => {
+                    const isTotal = /totale/i.test(item.label);
+                    return (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: i < parsed.items.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                        <span style={{ fontSize: 12, color: isTotal ? "#E94560" : "rgba(255,255,255,0.4)", fontWeight: isTotal ? 700 : 400 }}>{item.label}</span>
+                        <span style={{ fontSize: isTotal ? 14 : 12, color: isTotal ? "#E94560" : "rgba(255,255,255,0.75)", fontWeight: 700 }}>{item.total}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
             } catch {}
             const lines = itinerary.budgetSummary?.split(/[|·\n]/).filter((s: string) => s.trim().length > 3) ?? [];
             return (
@@ -360,103 +209,70 @@ function OverviewTab({ itinerary }: { itinerary: any }) {
           })()}
         </div>
       )}
-
-      {/* Best time */}
       {itinerary.bestTime && (
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>
-            📅 Periodo migliore
-          </div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>📅 Periodo migliore</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>{itinerary.bestTime}</div>
         </div>
       )}
-
-      {/* Getting there */}
       {itinerary.gettingThere && (
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>
-            ✈️ Come arrivare
-          </div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>✈️ Come arrivare</div>
           {(() => {
             try {
               const parsed = JSON.parse(itinerary.gettingThere);
-              if (parsed?.steps) {
-                return (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {parsed.steps.map((step: any, i: number) => (
-                      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E94560", marginTop: 5, flexShrink: 0 }} />
-                        <div>
-                          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>{step.from} → {step.to}</div>
-                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{step.method} · {step.duration}{step.cost ? ` · ${step.cost}` : ""}</div>
-                        </div>
+              if (parsed?.steps) return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {parsed.steps.map((step: any, i: number) => (
+                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#E94560", marginTop: 5, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>{step.from} → {step.to}</div>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{step.method} · {step.duration}{step.cost ? ` · ${step.cost}` : ""}</div>
                       </div>
-                    ))}
-                  </div>
-                );
-              }
+                    </div>
+                  ))}
+                </div>
+              );
             } catch {}
             return <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.6 }}>{itinerary.gettingThere}</div>;
           })()}
         </div>
       )}
-
-      {/* Packing */}
       {itinerary.packingList && (
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>
-            🎒 Da portare
-          </div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>🎒 Da portare</div>
           {(() => {
             try {
               const parsed = JSON.parse(itinerary.packingList);
-              if (parsed?.items) {
-                return (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                    {parsed.items.map((item: any, i: number) => (
-                      <span key={i} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                        {item.emoji} {item.label}
-                      </span>
-                    ))}
-                  </div>
-                );
-              }
+              if (parsed?.items) return (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                  {parsed.items.map((item: any, i: number) => (
+                    <span key={i} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}>{item.emoji} {item.label}</span>
+                  ))}
+                </div>
+              );
             } catch {}
             return (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                 {itinerary.packingList?.split(/[,;]/).filter((s: string) => s.trim().length > 1).map((item: string, i: number) => (
-                  <span key={i} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                    {item.trim()}
-                  </span>
+                  <span key={i} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}>{item.trim()}</span>
                 ))}
               </div>
             );
           })()}
         </div>
       )}
-
-   {/* Mappa */}
       {itinerary.days && (
         <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden", marginBottom: 10, height: 260 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", padding: "12px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-            🗺 Mappa destinazione
-          </div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", padding: "12px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>🗺 Mappa destinazione</div>
           <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName ?? ""} />
         </div>
       )}
-
-      {/* Tips */}
       <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px" }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>
-          💡 Da sapere
-        </div>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>💡 Da sapere</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {[
-            { emoji: "💳", text: "Controlla se serve il visto" },
-            { emoji: "📱", text: "Attiva il roaming o compra una SIM locale" },
-            { emoji: "🏥", text: "Verifica la tua assicurazione viaggio" },
-            { emoji: "🔌", text: "Controlla il tipo di presa elettrica" },
-          ].map((tip, i) => (
+          {[{ emoji: "💳", text: "Controlla se serve il visto" }, { emoji: "📱", text: "Attiva il roaming o compra una SIM locale" }, { emoji: "🏥", text: "Verifica la tua assicurazione viaggio" }, { emoji: "🔌", text: "Controlla il tipo di presa elettrica" }].map((tip, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.02)" }}>
               <span style={{ fontSize: 13 }}>{tip.emoji}</span>
               <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>{tip.text}</span>
@@ -468,7 +284,27 @@ function OverviewTab({ itinerary }: { itinerary: any }) {
   );
 }
 
-// ── MAIN COMPONENT ───────────────────────────────────────────────────────────
+// ── SORTABLE DAY WRAPPER (drag and drop) ──────────────────────────────────────
+function SortableDayCard({ day, index, isOpen, onToggle, isPeak, t, itineraryId, onDayRegenerated, editMode, onDayChange }: {
+  day: any; index: number; isOpen: boolean; onToggle: () => void; isPeak: boolean;
+  t: (k: string) => string; itineraryId: number; onDayRegenerated: (i: number, d: any) => void;
+  editMode: boolean; onDayChange: (index: number, updated: any) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: day.dayNumber });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <DayCard
+        day={day} isOpen={isOpen} onToggle={onToggle} index={index} isPeak={isPeak}
+        t={t} itineraryId={itineraryId} onDayRegenerated={onDayRegenerated}
+        editMode={editMode} onDayChange={onDayChange}
+        dragHandleProps={editMode ? { ...attributes, ...listeners } : undefined}
+      />
+    </div>
+  );
+}
+
+// ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function Itinerary() {
   const { t } = useI18n();
   const [, params] = useRoute("/itinerary/:id");
@@ -478,15 +314,18 @@ export default function Itinerary() {
   const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
   const [activeTab, setActiveTab] = useState<"itin" | "book" | "overview">("itin");
 
+  // ── EDIT MODE STATE ──
+  const [editMode, setEditMode] = useState(false);
+  const [editedDays, setEditedDays] = useState<any[]>([]);
+  const [originalDays, setOriginalDays] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
   const hasMapPoints = itinerary?.days?.some((d: any) => d.mapPoints?.length > 0);
   const { data: mapData } = useMapPointsPolling(id, !hasMapPoints && !isLoading && !!itinerary);
-
-  useEffect(() => {
-    if (mapData?.ready) refetch();
-  }, [mapData?.ready]);
+  useEffect(() => { if (mapData?.ready) refetch(); }, [mapData?.ready]);
 
   const peakDayIndex = itinerary?.days?.findIndex((_: any, i: number) => i === 3 || i === 4) ?? 3;
-
   useEffect(() => {
     if (!itinerary?.days) return;
     const defaults = new Set([0]);
@@ -494,84 +333,115 @@ export default function Itinerary() {
     setOpenDays(defaults);
   }, [itinerary]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-16 h-16 border-[3px] border-[#E94560] border-t-transparent rounded-full animate-spin" />
-          <p className="text-white/50 font-serif italic text-xl animate-pulse">{t('itin.loading')}</p>
-        </div>
-      </div>
-    );
-  }
+  // Enter edit mode — snapshot original
+  const enterEditMode = () => {
+    const days = itinerary?.days ?? [];
+    setOriginalDays(JSON.parse(JSON.stringify(days)));
+    setEditedDays(JSON.parse(JSON.stringify(days)));
+    setEditMode(true);
+    // Open all days in edit mode
+    setOpenDays(new Set(days.map((_: any, i: number) => i)));
+  };
 
-  if (!isLoading && (error || !itinerary)) {
-    return (
-      <div className="container max-w-lg mx-auto py-32 text-center min-h-screen" style={{ background: "#0f0a10" }}>
-        <h2 className="text-3xl font-serif font-bold text-white mb-6">{t('itin.notfound')}</h2>
-        <Link href="/destinations" className="btn-primary">{t('itin.return')}</Link>
+  const cancelEdit = () => {
+    setEditedDays([]);
+    setEditMode(false);
+    setSaveError("");
+  };
+
+  const restoreOriginal = () => {
+    setEditedDays(JSON.parse(JSON.stringify(originalDays)));
+  };
+
+  const handleDayChange = useCallback((index: number, updated: any) => {
+    setEditedDays(prev => prev.map((d, i) => i === index ? { ...d, ...updated } : d));
+  }, []);
+
+  const handleSaveEdit = async () => {
+    setIsSaving(true); setSaveError("");
+    try {
+      const res = await fetch(`/api/itinerary/${id}/edit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days: editedDays }),
+      });
+      if (!res.ok) throw new Error();
+      await refetch();
+      setEditMode(false);
+      setEditedDays([]);
+    } catch {
+      setSaveError("Errore nel salvataggio. Riprova.");
+    }
+    setIsSaving(false);
+  };
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setEditedDays(days => {
+      const oldIndex = days.findIndex(d => d.dayNumber === active.id);
+      const newIndex = days.findIndex(d => d.dayNumber === over.id);
+      const reordered = arrayMove(days, oldIndex, newIndex);
+      // Update dayNumber to reflect new order
+      return reordered.map((d, i) => ({ ...d, dayNumber: i + 1 }));
+    });
+  };
+
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
+      <div className="flex flex-col items-center gap-6">
+        <div className="w-16 h-16 border-[3px] border-[#E94560] border-t-transparent rounded-full animate-spin" />
+        <p className="text-white/50 font-serif italic text-xl animate-pulse">{t('itin.loading')}</p>
       </div>
-    );
-  }
+    </div>
+  );
+
+  if (!isLoading && (error || !itinerary)) return (
+    <div className="container max-w-lg mx-auto py-32 text-center min-h-screen" style={{ background: "#0f0a10" }}>
+      <h2 className="text-3xl font-serif font-bold text-white mb-6">{t('itin.notfound')}</h2>
+      <Link href="/destinations" className="btn-primary">{t('itin.return')}</Link>
+    </div>
+  );
 
   const handleSavePdf = () => {
     const element = document.getElementById("itinerary-pdf-content");
     if (!element) return;
-    const opt = {
-      margin: [10, 10, 10, 10],
-      filename: `MindRoute-${itinerary.destinationName?.replace(/[^a-zA-Z0-9]/g, "-") ?? "itinerario"}.pdf`,
-      image: { type: "jpeg", quality: 0.92 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: "#0a0814" },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["avoid-all", "css"] },
-    };
-    html2pdf().set(opt).from(element).save();
+    html2pdf().set({ margin: [10,10,10,10], filename: `MindRoute-${itinerary.destinationName?.replace(/[^a-zA-Z0-9]/g,"-")??"itinerario"}.pdf`, image: { type:"jpeg", quality:0.92 }, html2canvas: { scale:2, useCORS:true, backgroundColor:"#0a0814" }, jsPDF: { unit:"mm", format:"a4", orientation:"portrait" }, pagebreak: { mode:["avoid-all","css"] } }).from(element).save();
   };
 
   const region = detectRegion(itinerary.destinationName ?? "");
   const topLinks = itinerary.topAffiliateLinks ?? {};
   const profilingInput = (itinerary as any).profilingInput ?? null;
   const affiliateUrls = buildAffiliateUrls(itinerary.destinationName ?? "", profilingInput, region, topLinks);
+  const displayDays = editMode ? editedDays : (itinerary?.days ?? []);
 
   return (
     <div className="min-h-screen" style={{ background: "#0a0814" }} id="itinerary-pdf-content">
-
-      {/* ── HERO ─────────────────────────────────────────────── */}
+      {/* HERO */}
       <div className="relative overflow-hidden" style={{ height: "65vh", minHeight: 420 }}>
         {(itinerary?.heroImageUrl || itinerary?.imageUrl) ? (
-          <img src={itinerary?.heroImageUrl || itinerary?.imageUrl} alt={itinerary?.destinationName}
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a14] to-[#0a0814]" />
-        )}
+          <img src={itinerary?.heroImageUrl || itinerary?.imageUrl} alt={itinerary?.destinationName} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        ) : <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a14] to-[#0a0814]" />}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/30 to-transparent" />
-
         <div className="absolute top-6 left-4 md:left-10 z-20">
-          <Link href="/destinations"
-            className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium transition-colors bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10">
+          <Link href="/destinations" className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium transition-colors bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10">
             <ArrowLeft className="w-4 h-4" /> {t('itin.back')}
           </Link>
         </div>
-
         <div className="absolute top-6 right-4 md:right-10 z-20 flex gap-2">
-          <button onClick={handleSavePdf}
-            className="p-2.5 text-white/60 hover:text-white transition-colors bg-black/30 backdrop-blur-sm rounded-full border border-white/10">
-            <Printer className="w-4 h-4" />
-          </button>
-          <button className="p-2.5 text-white/60 hover:text-white transition-colors bg-black/30 backdrop-blur-sm rounded-full border border-white/10">
-            <Share2 className="w-4 h-4" />
-          </button>
+          <button onClick={handleSavePdf} className="p-2.5 text-white/60 hover:text-white transition-colors bg-black/30 backdrop-blur-sm rounded-full border border-white/10"><Printer className="w-4 h-4" /></button>
+          <button className="p-2.5 text-white/60 hover:text-white transition-colors bg-black/30 backdrop-blur-sm rounded-full border border-white/10"><Share2 className="w-4 h-4" /></button>
         </div>
-
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
-            <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-3">
-              {t('itin.label')}
-            </span>
-            <h1 className="text-3xl md:text-5xl font-serif font-bold text-white tracking-tight leading-tight mb-3 max-w-3xl">
-              {itinerary?.destinationName}
-            </h1>
+            <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-3">{t('itin.label')}</span>
+            <h1 className="text-3xl md:text-5xl font-serif font-bold text-white tracking-tight leading-tight mb-3 max-w-3xl">{itinerary?.destinationName}</h1>
             <div className="flex items-center gap-4 text-white/45 text-sm">
               <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {itinerary?.days?.length || 7} {t('itin.experienceDays')}</span>
             </div>
@@ -579,39 +449,30 @@ export default function Itinerary() {
         </div>
       </div>
 
-      {/* ── WHYYOURS compatta ─────────────────────────────────── */}
+      {/* WHYYOURS */}
       {itinerary?.whyYours && (
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="mx-4 md:mx-10 -mt-1 mb-6 z-10 relative">
-          <div className="max-w-3xl mx-auto p-5 md:p-7 rounded-[20px] border border-[#E94560]/20 relative overflow-hidden"
-            style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.07), rgba(233,69,96,0.02))" }}>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mx-4 md:mx-10 -mt-1 mb-6 z-10 relative">
+          <div className="max-w-3xl mx-auto p-5 md:p-7 rounded-[20px] border border-[#E94560]/20 relative overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.07), rgba(233,69,96,0.02))" }}>
             <div className="absolute top-0 left-0 w-1 h-full bg-[#E94560] rounded-l-[20px]" />
             <p className="text-[10px] font-bold uppercase tracking-[3px] text-[#E94560] mb-2">{t('itin.whyYours')}</p>
-            <p className="font-serif italic text-lg md:text-xl text-white/85 leading-relaxed">
-              "{itinerary.whyYours}"
-            </p>
+            <p className="font-serif italic text-lg md:text-xl text-white/85 leading-relaxed">"{itinerary.whyYours}"</p>
           </div>
         </motion.div>
       )}
 
-      {/* ── HIGHLIGHTS ────────────────────────────────────────── */}
+      {/* HIGHLIGHTS */}
       {itinerary.highlights && itinerary.highlights.length > 0 && (
         <div className="flex flex-wrap gap-2 px-4 md:px-10 mb-5 max-w-3xl mx-auto">
           {itinerary.highlights.map((h: string, i: number) => (
-            <span key={i} className="px-3 py-1.5 rounded-full text-xs font-bold text-[#E94560]"
-              style={{ background: "rgba(233,69,96,0.08)", border: "1px solid rgba(233,69,96,0.2)" }}>{h}</span>
+            <span key={i} className="px-3 py-1.5 rounded-full text-xs font-bold text-[#E94560]" style={{ background: "rgba(233,69,96,0.08)", border: "1px solid rgba(233,69,96,0.2)" }}>{h}</span>
           ))}
         </div>
       )}
 
-      {/* ── TAB BAR ───────────────────────────────────────────── */}
+      {/* TAB BAR */}
       <div className="sticky top-0 z-40 px-4 md:px-10 mb-0" style={{ background: "rgba(10,8,20,0.96)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="max-w-3xl mx-auto flex gap-0">
-          {([
-            { id: "itin", label: "Itinerario", emoji: "📍" },
-            { id: "book", label: "Prenota", emoji: "🎟" },
-            { id: "overview", label: "Panoramica", emoji: "🗺" },
-          ] as const).map(tab => (
+          {([{ id: "itin", label: "Itinerario", emoji: "📍" }, { id: "book", label: "Prenota", emoji: "🎟" }, { id: "overview", label: "Panoramica", emoji: "🗺" }] as const).map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               style={{ flex: 1, padding: "14px 8px", fontSize: 12, fontWeight: 700, color: activeTab === tab.id ? "#E94560" : "rgba(255,255,255,0.35)", background: "transparent", border: "none", borderBottom: `2px solid ${activeTab === tab.id ? "#E94560" : "transparent"}`, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
               <span style={{ fontSize: 14 }}>{tab.emoji}</span>
@@ -621,86 +482,122 @@ export default function Itinerary() {
         </div>
       </div>
 
-      {/* ── TAB CONTENT ───────────────────────────────────────── */}
+      {/* TAB CONTENT */}
       <div className="max-w-3xl mx-auto">
 
         {/* ITINERARIO TAB */}
         {activeTab === "itin" && (
           <div className="px-4 md:px-10 pt-6 pb-24">
+            {/* Header con bottone modifica */}
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl md:text-2xl font-serif font-bold text-white">{t('itin.daybyday')}</h2>
-              <span className="text-white/25 text-sm">{itinerary?.days?.length} giorni</span>
+              <div>
+                <h2 className="text-xl md:text-2xl font-serif font-bold text-white">{t('itin.daybyday')}</h2>
+                {editMode && <p className="text-xs text-[#E94560] mt-1">Modalità modifica — trascina i giorni per riordinarli</p>}
+              </div>
+              <div className="flex items-center gap-2">
+                {!editMode ? (
+                  <button onClick={enterEditMode}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.12)", cursor: "pointer", transition: "all 0.2s" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
+                    <Pencil style={{ width: 13, height: 13 }} /> Modifica
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={restoreOriginal} title="Ripristina originale"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer" }}>
+                      <RotateCcw style={{ width: 12, height: 12 }} /> Ripristina
+                    </button>
+                    <button onClick={cancelEdit}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer" }}>
+                      <X style={{ width: 12, height: 12 }} /> Annulla
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {(itinerary?.days ?? []).map((day: any, index: number) => (
-                <motion.div key={index} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
-                  <DayCard
-                    day={day} isOpen={openDays.has(index)}
-                    onToggle={() => setOpenDays(prev => {
-                      const next = new Set(prev);
-                      if (next.has(index)) next.delete(index); else next.add(index);
-                      return next;
-                    })}
-                    index={index} isPeak={index === peakDayIndex || index === peakDayIndex + 1}
-                    t={t} itineraryId={itinerary?.id ?? 0}
-                    onDayRegenerated={(dayIndex, newDay) => {
-                      if (itinerary) { itinerary.days[dayIndex] = newDay; refetch(); }
-                    }}
-                  />
-                </motion.div>
-              ))}
-            </div>
+            {/* Days list — with or without DnD */}
+            {editMode ? (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={editedDays.map(d => d.dayNumber)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-4">
+                    {editedDays.map((day, index) => (
+                      <SortableDayCard
+                        key={day.dayNumber} day={day} index={index}
+                        isOpen={openDays.has(index)}
+                        onToggle={() => setOpenDays(prev => { const next = new Set(prev); if (next.has(index)) next.delete(index); else next.add(index); return next; })}
+                        isPeak={index === peakDayIndex || index === peakDayIndex + 1}
+                        t={t} itineraryId={itinerary?.id ?? 0}
+                        onDayRegenerated={(dayIndex, newDay) => { if (itinerary) { itinerary.days[dayIndex] = newDay; refetch(); } }}
+                        editMode={editMode} onDayChange={handleDayChange}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <div className="space-y-4">
+                {(itinerary?.days ?? []).map((day: any, index: number) => (
+                  <motion.div key={index} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+                    <DayCard
+                      day={day} isOpen={openDays.has(index)}
+                      onToggle={() => setOpenDays(prev => { const next = new Set(prev); if (next.has(index)) next.delete(index); else next.add(index); return next; })}
+                      index={index} isPeak={index === peakDayIndex || index === peakDayIndex + 1}
+                      t={t} itineraryId={itinerary?.id ?? 0}
+                      onDayRegenerated={(dayIndex, newDay) => { if (itinerary) { itinerary.days[dayIndex] = newDay; refetch(); } }}
+                      editMode={false} onDayChange={() => {}}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {/* Save bar — sticky bottom in edit mode */}
+            {editMode && (
+              <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-3 px-4 py-3"
+                style={{ background: "rgba(10,8,20,0.97)", borderTop: "1px solid rgba(233,69,96,0.25)", backdropFilter: "blur(20px)" }}>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
+                  {saveError ? <span style={{ color: "#E94560" }}>{saveError}</span> : "Le modifiche vengono salvate sul server"}
+                </div>
+                <button onClick={handleSaveEdit} disabled={isSaving}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700, background: isSaving ? "rgba(233,69,96,0.4)" : "#E94560", color: "white", border: "none", cursor: isSaving ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
+                  <Save style={{ width: 14, height: 14 }} />
+                  {isSaving ? "Salvataggio..." : "Salva modifiche"}
+                </button>
+              </div>
+            )}
 
             {/* Closing */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-              className="relative rounded-[28px] overflow-hidden mt-8"
-              style={{ background: "linear-gradient(135deg, #2a1018, #1a0d14)" }}>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(233,69,96,0.10),transparent_60%)]" />
-              <div className="relative z-10 p-8 md:p-12 text-center space-y-6">
-                <Wind className="w-7 h-7 text-[#E94560]/40 mx-auto" />
-                <p className="text-white/75 font-serif italic text-lg md:text-2xl max-w-xl mx-auto leading-relaxed">
-                  "{itinerary.closingMessage}"
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                  <button onClick={handleSavePdf}
-                    className="px-6 py-3 rounded-2xl border border-white/15 text-white font-bold text-sm hover:bg-white/5 transition-all">
-                    {t('itin.pdf')}
-                  </button>
-                  <button onClick={() => setLocation("/")}
-                    className="px-6 py-3 rounded-2xl bg-white text-[#0a0814] font-bold text-sm hover:bg-white/90 transition-all">
-                    {t('itin.startover')}
-                  </button>
+            {!editMode && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+                className="relative rounded-[28px] overflow-hidden mt-8" style={{ background: "linear-gradient(135deg, #2a1018, #1a0d14)" }}>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(233,69,96,0.10),transparent_60%)]" />
+                <div className="relative z-10 p-8 md:p-12 text-center space-y-6">
+                  <Wind className="w-7 h-7 text-[#E94560]/40 mx-auto" />
+                  <p className="text-white/75 font-serif italic text-lg md:text-2xl max-w-xl mx-auto leading-relaxed">"{itinerary.closingMessage}"</p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                    <button onClick={handleSavePdf} className="px-6 py-3 rounded-2xl border border-white/15 text-white font-bold text-sm hover:bg-white/5 transition-all">{t('itin.pdf')}</button>
+                    <button onClick={() => setLocation("/")} className="px-6 py-3 rounded-2xl bg-white text-[#0a0814] font-bold text-sm hover:bg-white/90 transition-all">{t('itin.startover')}</button>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
           </div>
         )}
 
-        {/* PRENOTA TAB */}
-        {activeTab === "book" && (
-          <BookTab
-            urls={affiliateUrls}
-            region={region}
-            destinationName={itinerary.destinationName ?? ""}
-            profilingInput={profilingInput}
-            itineraryId={itinerary.id}
-          />
-        )}
-
-        {/* PANORAMICA TAB */}
-        {activeTab === "overview" && (
-          <OverviewTab itinerary={itinerary} />
-        )}
+        {activeTab === "book" && <BookTab urls={affiliateUrls} region={region} destinationName={itinerary.destinationName ?? ""} profilingInput={profilingInput} itineraryId={itinerary.id} />}
+        {activeTab === "overview" && <OverviewTab itinerary={itinerary} />}
       </div>
     </div>
   );
 }
 
-// ── DAY CARD ─────────────────────────────────────────────────────────────────
-function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRegenerated }: {
+// ── DAY CARD ──────────────────────────────────────────────────────────────────
+function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRegenerated, editMode, onDayChange, dragHandleProps }: {
   day: any; isOpen: boolean; onToggle: () => void; index: number; isPeak: boolean;
   t: (key: string) => string; itineraryId: number; onDayRegenerated: (dayIndex: number, newDay: any) => void;
+  editMode: boolean; onDayChange: (index: number, updated: any) => void; dragHandleProps?: any;
 }) {
   const [showRegenModal, setShowRegenModal] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState("");
@@ -713,10 +610,7 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
     if (getRegenCount() >= MAX_REGENS) { alert("Hai raggiunto il limite di 3 rigenerazioni."); return; }
     setIsRegenerating(true);
     try {
-      const res = await fetch(`/api/itinerary/${itineraryId}/regenerate-day`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dayIndex: index, feedback: regenPrompt }),
-      });
+      const res = await fetch(`/api/itinerary/${itineraryId}/regenerate-day`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dayIndex: index, feedback: regenPrompt }) });
       if (!res.ok) throw new Error();
       const data = await res.json();
       localStorage.setItem(storageKey, String(getRegenCount() + 1));
@@ -727,67 +621,65 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
   };
 
   const slots = [
-    { key: "morning", icon: "🌅", label: t("itin.morning"), text: day.morning, color: "#E94560",
-      link: day.affiliateLinks?.getyourguide_morning ?? day.affiliateLinks?.klook_morning ?? day.affiliateLinks?.viator_morning ?? day.affiliateLinks?.skyscanner,
-      placeLink: day.affiliateLinks?.getyourguide_place_morning ?? day.affiliateLinks?.klook_place_morning ?? day.affiliateLinks?.viator_place_morning,
-      isActivity: true },
-    { key: "lunch", icon: "🍽️", label: t("itin.lunch"), text: day.lunch, color: "#FF8C42",
-      link: day.affiliateLinks?.thefork_lunch ?? day.affiliateLinks?.tripadvisor_lunch,
-      isActivity: false },
-    { key: "afternoon", icon: "☀️", label: t("itin.afternoon"), text: day.afternoon, color: "#4ECDC4",
-      link: day.affiliateLinks?.getyourguide_afternoon ?? day.affiliateLinks?.klook_afternoon ?? day.affiliateLinks?.viator_afternoon ?? day.affiliateLinks?.booking_hotel,
-      placeLink: day.affiliateLinks?.getyourguide_place_afternoon ?? day.affiliateLinks?.klook_place_afternoon ?? day.affiliateLinks?.viator_place_afternoon,
-      isActivity: true },
-    { key: "evening", icon: "🌙", label: t("itin.evening"), text: day.evening, color: "#9B59B6",
-      link: day.affiliateLinks?.thefork_evening ?? day.affiliateLinks?.tripadvisor_evening,
-      isActivity: false },
+    { key: "morning", icon: "🌅", label: t("itin.morning"), text: day.morning, color: "#E94560", link: day.affiliateLinks?.getyourguide_morning ?? day.affiliateLinks?.klook_morning ?? day.affiliateLinks?.viator_morning ?? day.affiliateLinks?.expedia_flights, placeLink: day.affiliateLinks?.getyourguide_place_morning ?? day.affiliateLinks?.klook_place_morning ?? day.affiliateLinks?.viator_place_morning, isActivity: true },
+    { key: "lunch", icon: "🍽️", label: t("itin.lunch"), text: day.lunch, color: "#FF8C42", link: day.affiliateLinks?.thefork_lunch ?? day.affiliateLinks?.tripadvisor_lunch, isActivity: false },
+    { key: "afternoon", icon: "☀️", label: t("itin.afternoon"), text: day.afternoon, color: "#4ECDC4", link: day.affiliateLinks?.getyourguide_afternoon ?? day.affiliateLinks?.klook_afternoon ?? day.affiliateLinks?.viator_afternoon ?? day.affiliateLinks?.hotels_hotel, placeLink: day.affiliateLinks?.getyourguide_place_afternoon ?? day.affiliateLinks?.klook_place_afternoon ?? day.affiliateLinks?.viator_place_afternoon, isActivity: true },
+    { key: "evening", icon: "🌙", label: t("itin.evening"), text: day.evening, color: "#9B59B6", link: day.affiliateLinks?.thefork_evening ?? day.affiliateLinks?.tripadvisor_evening, isActivity: false },
   ];
 
   return (
     <div className="rounded-[20px] overflow-hidden transition-all duration-300"
-      style={{
-        background: isPeak ? "rgba(233,69,96,0.06)" : isOpen ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.03)",
-        border: isPeak ? (isOpen ? "1.5px solid rgba(233,69,96,0.4)" : "1px solid rgba(233,69,96,0.25)") : (isOpen ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.07)"),
-      }}>
-      <button onClick={onToggle} className="w-full text-left">
-        <div className="flex items-stretch gap-0">
-          <div className="flex flex-col items-center justify-center shrink-0 relative overflow-hidden"
-            style={{ width: 60, background: isPeak ? "#E94560" : "rgba(255,255,255,0.03)", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
-            {isPeak && <div className="absolute top-1.5 left-1/2 -translate-x-1/2"><Flame className="w-3 h-3 text-yellow-300/80" /></div>}
-            <span className="font-serif font-bold" style={{ fontSize: 22, color: isPeak ? "white" : "rgba(255,255,255,0.45)", lineHeight: 1.2, paddingTop: isPeak ? 18 : 0 }}>
-              {day.dayNumber}
-            </span>
-            <span className="text-[8px] uppercase tracking-[1px] font-bold" style={{ color: isPeak ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.2)" }}>
-              giorno
-            </span>
+      style={{ background: editMode ? "rgba(255,255,255,0.05)" : (isPeak ? "rgba(233,69,96,0.06)" : isOpen ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.03)"), border: editMode ? "1px solid rgba(233,69,96,0.2)" : (isPeak ? (isOpen ? "1.5px solid rgba(233,69,96,0.4)" : "1px solid rgba(233,69,96,0.25)") : (isOpen ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.07)")) }}>
+      <div className="flex items-stretch gap-0">
+        {/* Drag handle — solo in edit mode */}
+        {editMode && (
+          <div {...dragHandleProps} style={{ width: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "grab", background: "rgba(255,255,255,0.02)", borderRight: "1px solid rgba(255,255,255,0.05)", flexShrink: 0, touchAction: "none" }}>
+            <GripVertical style={{ width: 16, height: 16, color: "rgba(255,255,255,0.2)" }} />
           </div>
-          <div className="flex-1 px-4 py-3.5 min-w-0">
-            {isPeak && <div className="text-[9px] font-bold text-[#E94560] uppercase tracking-[2px] mb-1">Momento clou</div>}
-            <h4 className="font-serif font-bold leading-snug mb-2" style={{ fontSize: 14, color: isOpen || isPeak ? "white" : "rgba(255,255,255,0.65)" }}>
-              {day.title}
-            </h4>
-            {!isOpen && (
-              <div className="flex flex-wrap gap-1.5">
-                {slots.map(slot => {
-                  if (!slot.text || slot.text.length < 3) return null;
-                  const keyword = slot.text.split(/[—–,.(]/)[0].trim().split(' ').slice(0, 3).join(' ');
-                  if (!keyword || keyword.length < 2) return null;
-                  return (
-                    <span key={slot.key} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: `${slot.color}15`, color: `${slot.color}99`, border: `1px solid ${slot.color}25` }}>
-                      {slot.icon} <span style={{ maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{keyword}</span>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
+        )}
+
+        <button onClick={onToggle} className="flex-1 text-left min-w-0">
+          <div className="flex items-stretch gap-0">
+            <div className="flex flex-col items-center justify-center shrink-0 relative overflow-hidden"
+              style={{ width: 56, background: isPeak && !editMode ? "#E94560" : "rgba(255,255,255,0.03)", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
+              {isPeak && !editMode && <div className="absolute top-1.5 left-1/2 -translate-x-1/2"><Flame className="w-3 h-3 text-yellow-300/80" /></div>}
+              <span className="font-serif font-bold" style={{ fontSize: 20, color: isPeak && !editMode ? "white" : "rgba(255,255,255,0.45)", lineHeight: 1.2, paddingTop: isPeak && !editMode ? 16 : 0 }}>{day.dayNumber}</span>
+              <span className="text-[8px] uppercase tracking-[1px] font-bold" style={{ color: isPeak && !editMode ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.2)" }}>giorno</span>
+            </div>
+            <div className="flex-1 px-4 py-3.5 min-w-0">
+              {isPeak && !editMode && <div className="text-[9px] font-bold text-[#E94560] uppercase tracking-[2px] mb-1">Momento clou</div>}
+              {editMode ? (
+                <input
+                  value={day.title}
+                  onChange={e => onDayChange(index, { title: e.target.value })}
+                  onClick={e => e.stopPropagation()}
+                  style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "6px 10px", fontSize: 13, fontWeight: 600, color: "white", outline: "none", fontFamily: "Georgia, serif" }}
+                  placeholder="Titolo del giorno..."
+                />
+              ) : (
+                <h4 className="font-serif font-bold leading-snug mb-2" style={{ fontSize: 14, color: isOpen || isPeak ? "white" : "rgba(255,255,255,0.65)" }}>{day.title}</h4>
+              )}
+              {!isOpen && !editMode && (
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {slots.map(slot => {
+                    if (!slot.text || slot.text.length < 3) return null;
+                    const keyword = slot.text.split(/[—–,.(]/)[0].trim().split(' ').slice(0, 3).join(' ');
+                    if (!keyword || keyword.length < 2) return null;
+                    return (
+                      <span key={slot.key} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${slot.color}15`, color: `${slot.color}99`, border: `1px solid ${slot.color}25` }}>
+                        {slot.icon} <span style={{ maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{keyword}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center pr-3">
+              <ChevronDown className="w-4 h-4 transition-transform duration-300" style={{ color: isOpen ? "#E94560" : "rgba(255,255,255,0.25)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+            </div>
           </div>
-          <div className="flex items-center pr-3">
-            <ChevronDown className="w-4 h-4 transition-transform duration-300"
-              style={{ color: isOpen ? "#E94560" : "rgba(255,255,255,0.25)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-          </div>
-        </div>
-      </button>
+        </button>
+      </div>
 
       {isOpen && (
         <div>
@@ -798,81 +690,97 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
               const sentences = slot.text.split(/(?<=[.!?—])\s+/);
               const main = sentences[0] ?? slot.text;
               const details = sentences.slice(1).join(' ');
-
               const isFlightSlot = slot.key === "morning" && /volo|flight|aereo/i.test(slot.text);
               const isHotelSlot = slot.key === "afternoon" && /hotel|check.?in/i.test(slot.text);
               const ctaText = isFlightSlot ? "✈️ Cerca voli" : isHotelSlot ? "🏨 Prenota hotel" : slot.isActivity ? `🎟 Prenota` : `🍽 Prenota`;
-              const linkKey = slot.key === "morning"
-                ? (day.affiliateLinks?.getyourguide_morning ? "getyourguide_morning" : "klook_morning")
-                : slot.key === "lunch" ? "thefork_lunch"
-                : slot.key === "afternoon" ? (day.affiliateLinks?.getyourguide_afternoon ? "getyourguide_afternoon" : "booking_hotel")
-                : "thefork_evening";
+              const linkKey = slot.key === "morning" ? (day.affiliateLinks?.getyourguide_morning ? "getyourguide_morning" : "klook_morning") : slot.key === "lunch" ? "thefork_lunch" : slot.key === "afternoon" ? (day.affiliateLinks?.getyourguide_afternoon ? "getyourguide_afternoon" : "hotels_hotel") : "thefork_evening";
               const linkLabel = day.affiliateLabels?.[linkKey];
-
               return (
                 <div key={slot.key} style={{ display: "flex", borderTop: si > 0 ? "1px solid rgba(255,255,255,0.04)" : "none", background: si % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent" }}>
-                  <div className="flex flex-col items-center pt-4 pb-3 shrink-0 relative"
-                    style={{ width: 50, borderRight: "1px solid rgba(255,255,255,0.04)", background: `${slot.color}05` }}>
+                  <div className="flex flex-col items-center pt-4 pb-3 shrink-0 relative" style={{ width: 50, borderRight: "1px solid rgba(255,255,255,0.04)", background: `${slot.color}05` }}>
                     <div className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: `linear-gradient(180deg, ${slot.color}, ${slot.color}30)` }} />
                     <span className="text-lg leading-none mb-1.5">{slot.icon}</span>
-                    <span className="text-[8px] font-bold uppercase tracking-[1px] text-center"
-                      style={{ color: `${slot.color}80` }}>{slot.label}</span>
+                    <span className="text-[8px] font-bold uppercase tracking-[1px] text-center" style={{ color: `${slot.color}80` }}>{slot.label}</span>
                   </div>
                   <div className="flex-1 px-4 py-3.5 min-w-0">
-                    <p className="font-medium mb-1" style={{ fontSize: 14, color: "rgba(255,255,255,0.85)", lineHeight: 1.6 }}>{main}</p>
-                    {details && <p className="mb-3 text-[12px] text-white/40 leading-relaxed">{details}</p>}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {slot.link && (
-                        <a href={slot.link} target="_blank" rel="noopener noreferrer"
-                          style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: isFlightSlot || isHotelSlot ? slot.color : `${slot.color}20`, color: "white", border: `1px solid ${isFlightSlot || isHotelSlot ? slot.color : `${slot.color}50`}`, textDecoration: "none", boxShadow: isFlightSlot || isHotelSlot ? `0 3px 12px ${slot.color}35` : "none", transition: "all 0.2s" }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.filter = "brightness(1.1)"; (e.currentTarget as HTMLElement).style.transform = "scale(1.02)"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.filter = "brightness(1)"; (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}>
-                          {linkLabel ? `🎯 ${linkLabel}` : ctaText}
-                          <ExternalLink className="w-3 h-3 opacity-60" />
-                        </a>
-                      )}
-                      {(slot as any).placeLink && (
-                        <a href={(slot as any).placeLink} target="_blank" rel="noopener noreferrer"
-                          style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.12)", textDecoration: "none", transition: "all 0.2s" }}>
-                          <MapPin className="w-3 h-3" />
-                          {day.affiliateLabels?.[(slot.key === "morning" ? "getyourguide_place_morning" : "getyourguide_place_afternoon")] || "Esplora"}
-                          <ExternalLink className="w-2.5 h-2.5 opacity-50" />
-                        </a>
-                      )}
-                    </div>
+                    {editMode ? (
+                      <textarea
+                        value={slot.text}
+                        onChange={e => onDayChange(index, { [slot.key]: e.target.value })}
+                        rows={3}
+                        style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "rgba(255,255,255,0.85)", outline: "none", resize: "vertical", lineHeight: 1.6, fontFamily: "inherit" }}
+                      />
+                    ) : (
+                      <>
+                        <p className="font-medium mb-1" style={{ fontSize: 14, color: "rgba(255,255,255,0.85)", lineHeight: 1.6 }}>{main}</p>
+                        {details && <p className="mb-3 text-[12px] text-white/40 leading-relaxed">{details}</p>}
+                      </>
+                    )}
+                    {!editMode && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {slot.link && (
+                          <a href={slot.link} target="_blank" rel="noopener noreferrer"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: isFlightSlot || isHotelSlot ? slot.color : `${slot.color}20`, color: "white", border: `1px solid ${isFlightSlot || isHotelSlot ? slot.color : `${slot.color}50`}`, textDecoration: "none", boxShadow: isFlightSlot || isHotelSlot ? `0 3px 12px ${slot.color}35` : "none", transition: "all 0.2s" }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.filter = "brightness(1.1)"; (e.currentTarget as HTMLElement).style.transform = "scale(1.02)"; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.filter = "brightness(1)"; (e.currentTarget as HTMLElement).style.transform = "scale(1)"; }}>
+                            {linkLabel ? `🎯 ${linkLabel}` : ctaText}
+                            <ExternalLink className="w-3 h-3 opacity-60" />
+                          </a>
+                        )}
+                        {(slot as any).placeLink && (
+                          <a href={(slot as any).placeLink} target="_blank" rel="noopener noreferrer"
+                            style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "8px 12px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.12)", textDecoration: "none", transition: "all 0.2s" }}>
+                            <MapPin className="w-3 h-3" />
+                            {day.affiliateLabels?.[(slot.key === "morning" ? "getyourguide_place_morning" : "getyourguide_place_afternoon")] || "Esplora"}
+                            <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="mx-3 mb-3 flex items-center justify-between">
-            <span className="text-[10px] text-white/20">{MAX_REGENS - getRegenCount()} rigenerazioni rimaste</span>
-            <button onClick={() => setShowRegenModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all hover:brightness-110"
-              style={{ background: "rgba(233,69,96,0.07)", color: "#E94560", border: "1px solid rgba(233,69,96,0.18)" }}>
-              ↺ Rigenera
-            </button>
-          </div>
+          {/* Nota libera */}
+          {editMode && (
+            <div className="mx-3 mb-3">
+              <textarea
+                value={day._note ?? ""}
+                onChange={e => onDayChange(index, { _note: e.target.value })}
+                placeholder="📝 Nota personale per questo giorno..."
+                rows={2}
+                style={{ width: "100%", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: "8px 12px", fontSize: 12, color: "rgba(255,255,255,0.6)", outline: "none", resize: "none", fontFamily: "inherit" }}
+              />
+            </div>
+          )}
+
+          {/* Nota esistente in view mode */}
+          {!editMode && day._note && (
+            <div className="mx-3 mb-3 px-3 py-2 rounded-[10px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>📝 {day._note}</span>
+            </div>
+          )}
+
+          {!editMode && (
+            <div className="mx-3 mb-3 flex items-center justify-between">
+              <span className="text-[10px] text-white/20">{MAX_REGENS - getRegenCount()} rigenerazioni rimaste</span>
+              <button onClick={() => setShowRegenModal(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all hover:brightness-110" style={{ background: "rgba(233,69,96,0.07)", color: "#E94560", border: "1px solid rgba(233,69,96,0.18)" }}>
+                ↺ Rigenera
+              </button>
+            </div>
+          )}
 
           {showRegenModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }}>
               <div className="w-full max-w-md rounded-[24px] p-6 space-y-4" style={{ background: "#1a0a14", border: "1px solid rgba(233,69,96,0.3)" }}>
                 <h3 className="font-serif text-lg text-white font-bold">Rigenera il Giorno {day.dayNumber}</h3>
                 <p className="text-white/50 text-sm">Dicci come vuoi cambiarlo — o lascia vuoto per una variazione casuale.</p>
-                <textarea value={regenPrompt} onChange={e => setRegenPrompt(e.target.value)}
-                  placeholder="Es: voglio qualcosa di più rilassato..."
-                  rows={3} className="w-full text-white text-sm outline-none resize-none rounded-xl p-3"
-                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }} />
+                <textarea value={regenPrompt} onChange={e => setRegenPrompt(e.target.value)} placeholder="Es: voglio qualcosa di più rilassato..." rows={3} className="w-full text-white text-sm outline-none resize-none rounded-xl p-3" style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }} />
                 <div className="flex gap-3">
-                  <button onClick={() => { setShowRegenModal(false); setRegenPrompt(""); }}
-                    className="flex-1 py-3 rounded-xl text-white/50 font-bold text-sm hover:text-white transition-all"
-                    style={{ border: "1px solid rgba(255,255,255,0.1)" }}>Annulla</button>
-                  <button onClick={handleRegen} disabled={isRegenerating}
-                    className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all hover:brightness-110"
-                    style={{ background: isRegenerating ? "rgba(233,69,96,0.4)" : "#E94560" }}>
-                    {isRegenerating ? "Rigenerando..." : "Rigenera"}
-                  </button>
+                  <button onClick={() => { setShowRegenModal(false); setRegenPrompt(""); }} className="flex-1 py-3 rounded-xl text-white/50 font-bold text-sm hover:text-white transition-all" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>Annulla</button>
+                  <button onClick={handleRegen} disabled={isRegenerating} className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all hover:brightness-110" style={{ background: isRegenerating ? "rgba(233,69,96,0.4)" : "#E94560" }}>{isRegenerating ? "Rigenerando..." : "Rigenera"}</button>
                 </div>
               </div>
             </div>
@@ -887,8 +795,7 @@ function ItineraryMap({ days, destinationName }: { days: any[]; destinationName:
   const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(destinationName)}&output=embed&hl=it&z=12`;
   return (
     <div className="w-full h-full relative" style={{ background: "#0d0820" }}>
-      <iframe src={mapUrl} className="w-full h-full" style={{ border: "none", minHeight: "300px" }}
-        title={`Mappa di ${destinationName}`} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+      <iframe src={mapUrl} className="w-full h-full" style={{ border: "none", minHeight: "300px" }} title={`Mappa di ${destinationName}`} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
     </div>
   );
 }
