@@ -606,23 +606,33 @@ export default function Itinerary() {
 
       </div>`;
 
-    const container = document.createElement("div");
-    container.style.cssText = "position:fixed;left:-9999px;top:0;width:794px;background:white;z-index:-1";
+  const container = document.createElement("div");
+    container.style.cssText = "position:absolute;left:0;top:0;width:794px;background:white;z-index:9999;visibility:hidden;pointer-events:none";
     container.innerHTML = html;
     document.body.appendChild(container);
 
     setTimeout(() => {
-      html2pdf().set({
-        margin: 0,
-        filename: `MindRoute-${dest.replace(/[^a-zA-Z0-9]/g, "-")}.pdf`,
-        image: { type: "jpeg", quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"] }
-      }).from(container).save().then(() => {
-        document.body.removeChild(container);
-      });
-    }, 800);
+      container.style.visibility = "visible";
+      setTimeout(() => {
+        html2pdf().set({
+          margin: 0,
+          filename: `MindRoute-${dest.replace(/[^a-zA-Z0-9]/g, "-")}.pdf`,
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true, 
+            backgroundColor: "#ffffff", 
+            logging: false,
+            allowTaint: true,
+            foreignObjectRendering: false
+          },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+          pagebreak: { mode: ["css", "legacy"] }
+        }).from(container).save().then(() => {
+          document.body.removeChild(container);
+        });
+      }, 500);
+    }, 1200);
   };
 
   const region = detectRegion(itinerary.destinationName ?? "");
