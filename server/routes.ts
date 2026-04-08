@@ -833,7 +833,17 @@ app.post("/api/itinerary/:id/regenerate-day", async (req, res) => {
       res.status(500).json({ message: "Errore durante la rigenerazione" });
     }
   });
-
+app.patch("/api/itinerary/:id/edit", async (req, res) => {
+  try {
+    const itinId = z.coerce.number().parse(req.params.id);
+    const { days } = req.body;
+    if (!Array.isArray(days)) return res.status(400).json({ message: "days required" });
+    await storage.updateItineraryMapPoints(itinId, days);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: "Errore salvataggio modifiche" });
+  }
+});
   app.get("/api/my-trips", async (req, res) => {
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: "Non autenticato" });
