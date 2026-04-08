@@ -264,10 +264,11 @@ export function MatchingDemo() {
           </div>
 
           {/* Replay */}
-          {showReplay && (
-            <button onClick={handleReplay} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.3)", background: "transparent", border: "none", cursor: "pointer", padding: 0, transition: "color 0.2s" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "#E94560")}
-              onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}>
+       {showReplay && (
+            <button onClick={handleReplay}
+              style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, fontWeight: 700, color: "#E94560", background: "rgba(233,69,96,0.08)", border: "1px solid rgba(233,69,96,0.30)", borderRadius: 20, cursor: "pointer", padding: "8px 14px", transition: "all 0.2s", marginTop: 4 }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(233,69,96,0.15)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(233,69,96,0.5)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(233,69,96,0.08)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(233,69,96,0.30)"; }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
               {lang === "it" ? `Prossimo profilo (${((scenarioIdx + 1) % scenarios.length) + 1}/${scenarios.length})` : `Next profile (${((scenarioIdx + 1) % scenarios.length) + 1}/${scenarios.length})`}
             </button>
