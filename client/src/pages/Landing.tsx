@@ -85,13 +85,11 @@ export default function Landing() {
           <h1 className="fadeup-2 hero-h1" style={{ fontSize: "clamp(38px, 7vw, 82px)", lineHeight: 1.05, letterSpacing: "-2.5px", fontWeight: 400, marginBottom: 28, maxWidth: 860, margin: "0 auto 28px" }}>
           {lang === "it" ? (
               <>
-                <span style={{ fontStyle: "normal", color: "white", display: "block" }}>Il viaggio giusto non si cerca.</span>
-                <em style={{ fontStyle: "italic", color: "#E94560", display: "block" }}>Si scopre.</em>
+               <span style={{ fontStyle: "normal", color: "white" }}>Il viaggio giusto non si cerca. </span><em style={{ fontStyle: "italic", color: "#E94560" }}>Si scopre.</em>
               </>
             ) : (
               <>
-                <span style={{ fontStyle: "normal", color: "white", display: "block" }}>The right trip isn't searched for.</span>
-                <em style={{ fontStyle: "italic", color: "#E94560", display: "block" }}>It's discovered.</em>
+             <span style={{ fontStyle: "normal", color: "white" }}>The right trip isn't searched for. </span><em style={{ fontStyle: "italic", color: "#E94560" }}>It's discovered.</em>
               </>
             )}
           </h1>
@@ -205,10 +203,10 @@ export default function Landing() {
                   {lang === "it" ? "Anteprima del prodotto" : "Product preview"}
                 </p>
                <p style={{ fontSize: 17, fontWeight: 400, color: "white", letterSpacing: -0.5 }}>
-                  {lang === "it" ? (
-                    <>Questo è quello che ricevi, <em style={{ color: "#E94560", fontStyle: "italic" }}>non un suggerimento, un piano vero.</em></>
+                 {lang === "it" ? (
+                    <>Questo è quello che ricevi. Non un suggerimento, <em style={{ color: "#E94560", fontStyle: "italic" }}>un piano vero.</em></>
                   ) : (
-                    <>This is what you get, <em style={{ color: "#E94560", fontStyle: "italic" }}>not a suggestion, a real plan.</em></>
+                    <>This is what you get. Not a suggestion, <em style={{ color: "#E94560", fontStyle: "italic" }}>a real plan.</em></>
                   )}
                 </p>
               </div>
@@ -219,30 +217,8 @@ export default function Landing() {
             </div>
 
             {/* Demo component */}
-            <div style={{ borderRadius: 24, padding: 3, background: "linear-gradient(135deg, rgba(233,69,96,0.15), rgba(255,255,255,0.04))", boxShadow: "0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)" }}>
-              <MatchingDemo />
-            </div>
+         <MatchingDemo />
 
-            {/* Output strip */}
-            <div className="output-strip" style={{ display: "flex", gap: 0, marginTop: 24, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden" }}>
-              {(lang === "it" ? [
-                { icon: "✦", label: "Destinazione su misura", desc: "Costruita sul tuo profilo psicologico, non su cosa è di tendenza" },
-                { icon: "📍", label: "Itinerario completo", desc: "Ogni giorno organizzato, con ritmo e tono calibrati su di te" },
-                { icon: "🔗", label: "Tutto organizzato", desc: "Voli, hotel ed esperienze a portata di click, in un unico posto" },
-              ] : [
-                { icon: "✦", label: "Matched destination", desc: "Built on your psychological profile, not on what's trending" },
-                { icon: "📍", label: "Complete itinerary", desc: "Every day organized, with rhythm and tone calibrated to you" },
-                { icon: "🔗", label: "Everything organized", desc: "Flights, hotels and experiences one click away, all in one place" },
-              ]).map((item, i) => (
-                <div key={i} style={{ flex: 1, padding: "20px 22px", borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
-                  <div style={{ fontSize: 18, marginBottom: 8 }}>{item.icon}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "white", marginBottom: 5, fontFamily: "system-ui" }}>{item.label}</div>
-                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.6, fontFamily: "system-ui", fontWeight: 300 }}>{item.desc}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Frase sotto */}
             <p style={{ textAlign: "center", marginTop: 20, fontSize: 14, color: "rgba(255,255,255,0.55)", fontFamily: "system-ui, sans-serif", fontStyle: "italic" }}>
               {lang === "it"
                 ? "Apri, scegli e prenoti. Senza saltare tra 10 siti diversi."
