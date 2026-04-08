@@ -1415,8 +1415,8 @@ const profilingPayload = {
           "trovare un posto che non sapevo esistesse": "la scoperta che vale il viaggio",
           "finding a place i didn't know existed": "the discovery that makes the trip",
           // Path B Q5 feeling
-          "staccare davvero dalla routine": "niente orari, niente notifiche",
-          "disconnect from routine": "no schedules, no notifications",
+       "staccare davvero dalla routine": "niente orari, niente notifiche",
+          "disconnect from routine (b5)": "no schedules, no notifications",
           "ritrovare energia e leggerezza": "tornare a casa diverso",
           "regain energy and lightness": "come back changed",
           "sentirmi libero e spontaneo": "decidere al mattino cosa fare il giorno",
