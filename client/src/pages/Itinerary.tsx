@@ -28,7 +28,9 @@ function buildAffiliateUrls(destinationName: string, profilingInput: any, region
   const days = profilingInput?.days ?? 7;
   const companions = profilingInput?.companions ?? "solo";
   const departure = profilingInput?.departure ?? "";
-  const adults = companions === "couple" ? 2 : companions === "friends" ? 3 : companions === "family" ? 4 : 1;
+ const companionsLower = (companions ?? "").toLowerCase();
+const adults = companionsLower.includes("couple") || companionsLower.includes("partner") || companionsLower.includes("coppia") ? 2 : companionsLower.includes("friend") || companionsLower.includes("amici") ? 3 : companionsLower.includes("famil") ? 2 : 1;
+const children = companionsLower.includes("famil") ? 2 : 0;
   let checkin = "", checkout = "", checkinCompact = "", checkoutCompact = "";
   const exactDateMatch = leaveDate.match(/(\d{4}-\d{2}-\d{2})/);
   const baseDate = exactDateMatch ? new Date(exactDateMatch[1]) : (() => { const d = new Date(); d.setMonth(d.getMonth() + 3); return d; })();
@@ -47,17 +49,17 @@ function buildAffiliateUrls(destinationName: string, profilingInput: any, region
   })();
   const result: Record<string, string> = {};
   result.expedia_flights = topLinks.expedia_flights ?? `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3A${encodeURIComponent(departure)}%2Cto%3A${destEncoded}%2Cdeparture%3A${checkinCompact}%2F1&leg2=from%3A${destEncoded}%2Cto%3A${encodeURIComponent(departure)}%2Cdeparture%3A${checkoutCompact}%2F1&passengers=adults%3A${adults}&trip=roundtrip&mode=search`;
-  result.hotels = topLinks.hotels ?? topLinks.hotels_hotel ?? `https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=${destEncoded}&q-check-in=${checkin}&q-check-out=${checkout}&q-rooms=1&q-room-0-adults=${adults}`;
-  result.expedia_packages = topLinks.expedia_packages ?? `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/lp/b/package-savings`;
+const childrenParam = children > 0 ? `&q-room-0-children=${children}` : "";
+result.hotels = topLinks.hotels ?? topLinks.hotels_hotel ?? `https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=${destEncoded}&q-check-in=${checkin}&q-check-out=${checkout}&q-rooms=1&q-room-0-adults=${adults}${childrenParam}`;
   if (["europe", "mediterranean", "latam"].includes(region)) {
     result.civitatis = topLinks.civitatis_1 ?? `https://www.civitatis.com/it/${destSlug}/?aid=112605&cmp=mindroute`;
     if (["europe", "mediterranean"].includes(region)) result.musement = topLinks.musement_1 ?? `https://www.musement.com/it/${destSlug}/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388`;
   }
-  if (["asia", "india"].includes(region)) result.klook = topLinks.klook_1 ?? `https://www.klook.com/search/?q=${destEncoded}&aid=116532`;
-  if (["africa", "northamerica", "oceania"].includes(region)) result.viator = topLinks.viator_1 ?? `https://www.viator.com/searchResults/all?text=${destEncoded}&pid=P00293604&mcid=42383&medium=link`;
+ if (["asia", "india"].includes(region)) result.klook = topLinks.klook_1 ?? `https://www.klook.com/search/?q=${destEncoded}&aid=116532${checkin ? `&startDate=${checkin}` : ""}`;
+if (["africa", "northamerica", "oceania"].includes(region)) result.viator = topLinks.viator_1 ?? `https://www.viator.com/searchResults/all?text=${destEncoded}&pid=P00293604&mcid=42383&medium=link${checkin ? `&startDate=${checkin}&endDate=${checkout}` : ""}`;
   if (destinationName.toLowerCase().includes("orlando") || destinationName.toLowerCase().includes("los angeles")) result.undercovertourist = topLinks.undercovertourist ?? `https://www.kqzyfj.com/click-101710513-15733832`;
  result.tripadvisor = topLinks.tripadvisor ?? `https://www.tripadvisor.it/Search?q=ristoranti+${destEncoded}`;
-  result.tablet_hotels = topLinks.tablet_hotels ?? `https://www.kqzyfj.com/click-101710513-15686837`;
+ result.tablet_hotels = topLinks.tablet_hotels ?? `https://www.kqzyfj.com/click-101710513-15686837?url=https://www.tablethotels.com/find/results?destination=${destEncoded}`;
   return result;
 }
 
@@ -118,7 +120,11 @@ function BookTab({ urls, region, destinationName, profilingInput, itineraryId }:
     <div style={{ padding: "16px 14px 24px" }}>
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 17, fontWeight: 700, color: "white", fontFamily: "Georgia, serif", marginBottom: 4 }}>Organizza il viaggio</div>
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", lineHeight: 1.5 }}>Tutti i link in un posto solo — già impostati per {dest}{companions !== "solo" && `, ${companions === "couple" ? "2 persone" : companions === "friends" ? "3 persone" : "4 persone"}`}{leaveDate && ` · ${leaveDate}`}.</div>
+  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", lineHeight: 1.5 }}>
+  Già impostati per <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{dest}</span>
+  {companions && companions !== "solo" && <span> · <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{companionsLower.includes("couple") || companionsLower.includes("coppia") || companionsLower.includes("partner") ? "2 persone" : companionsLower.includes("friend") || companionsLower.includes("amici") ? "3 persone" : "famiglia"}</span></span>}
+  {hasDate && <span> · <span style={{ color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>{checkin} → {checkout}</span></span>}
+</div>
       </div>
       {sections.map(section => (
         <div key={section.label} style={{ marginBottom: 14 }}>
@@ -842,7 +848,9 @@ function DayCard({ day, isOpen, onToggle, index, isPeak, t, itineraryId, onDayRe
   };
 
   const slots = [
-    { key: "morning", icon: "🌅", label: t("itin.morning"), text: day.morning, color: "#E94560", link: day.affiliateLinks?.getyourguide_morning ?? day.affiliateLinks?.klook_morning ?? day.affiliateLinks?.viator_morning ?? day.affiliateLinks?.expedia_flights, placeLink: day.affiliateLinks?.getyourguide_place_morning ?? day.affiliateLinks?.klook_place_morning ?? day.affiliateLinks?.viator_place_morning, isActivity: true },
+  { key: "morning", icon: "🌅", label: t("itin.morning"), text: day.morning, color: "#E94560", link: day.affiliateLinks?.civitatis_morning ?? day.affiliateLinks?.musement_morning ?? day.affiliateLinks?.klook_morning ?? day.affiliateLinks?.viator_morning ?? day.affiliateLinks?.expedia_flights, placeLink: day.affiliateLinks?.civitatis_place_morning ?? day.affiliateLinks?.musement_place_morning ?? day.affiliateLinks?.klook_place_morning ?? day.affiliateLinks?.viator_place_morning, isActivity: true },
+    { key: "lunch", icon: "🍽️", label: t("itin.lunch"), text: day.lunch, color: "#FF8C42", link: day.affiliateLinks?.thefork_lunch ?? day.affiliateLinks?.tripadvisor_lunch, isActivity: false },
+    { key: "afternoon", icon: "☀️", label: t("itin.afternoon"), text: day.afternoon, color: "#4ECDC4", link: day.affiliateLinks?.civitatis_afternoon ?? day.affiliateLinks?.musement_afternoon ?? day.affiliateLinks?.klook_afternoon ?? day.affiliateLinks?.viator_afternoon ?? day.affiliateLinks?.hotels_hotel, placeLink: day.affiliateLinks?.civitatis_place_afternoon ?? day.affiliateLinks?.musement_place_afternoon ?? day.affiliateLinks?.klook_place_afternoon ?? day.affiliateLinks?.viator_place_afternoon, isActivity: true },
     { key: "lunch", icon: "🍽️", label: t("itin.lunch"), text: day.lunch, color: "#FF8C42", link: day.affiliateLinks?.thefork_lunch ?? day.affiliateLinks?.tripadvisor_lunch, isActivity: false },
     { key: "afternoon", icon: "☀️", label: t("itin.afternoon"), text: day.afternoon, color: "#4ECDC4", link: day.affiliateLinks?.getyourguide_afternoon ?? day.affiliateLinks?.klook_afternoon ?? day.affiliateLinks?.viator_afternoon ?? day.affiliateLinks?.hotels_hotel, placeLink: day.affiliateLinks?.getyourguide_place_afternoon ?? day.affiliateLinks?.klook_place_afternoon ?? day.affiliateLinks?.viator_place_afternoon, isActivity: true },
     { key: "evening", icon: "🌙", label: t("itin.evening"), text: day.evening, color: "#9B59B6", link: day.affiliateLinks?.thefork_evening ?? day.affiliateLinks?.tripadvisor_evening, isActivity: false },
