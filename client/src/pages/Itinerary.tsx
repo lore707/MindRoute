@@ -56,7 +56,8 @@ function buildAffiliateUrls(destinationName: string, profilingInput: any, region
   if (["asia", "india"].includes(region)) result.klook = topLinks.klook_1 ?? `https://www.klook.com/search/?q=${destEncoded}&aid=116532`;
   if (["africa", "northamerica", "oceania"].includes(region)) result.viator = topLinks.viator_1 ?? `https://www.viator.com/searchResults/all?text=${destEncoded}&pid=P00293604&mcid=42383&medium=link`;
   if (destinationName.toLowerCase().includes("orlando") || destinationName.toLowerCase().includes("los angeles")) result.undercovertourist = topLinks.undercovertourist ?? `https://www.kqzyfj.com/click-101710513-15733832`;
-  result.tripadvisor = topLinks.tripadvisor ?? `https://www.tripadvisor.it/Search?q=ristoranti+${destEncoded}`;
+ result.tripadvisor = topLinks.tripadvisor ?? `https://www.tripadvisor.it/Search?q=ristoranti+${destEncoded}`;
+  result.tablet_hotels = topLinks.tablet_hotels ?? `https://www.kqzyfj.com/click-101710513-15686837`;
   return result;
 }
 
@@ -106,7 +107,7 @@ function BookTab({ urls, region, destinationName, profilingInput, itineraryId }:
   const hasDate = !!(profilingInput?.leaveDate?.match(/\d{4}-\d{2}-\d{2}/));
   const sections = [
     { label: "Voli", emoji: "✈️", links: [{ key: "expedia_flights", label: `Expedia Voli → ${dest}${hasDate ? " · date preimpostate" : ""}`, url: urls.expedia_flights, color: "rgba(14,165,233,0.15)", border: "rgba(14,165,233,0.35)", text: "#38bdf8" }] },
-    { label: "Hotel", emoji: "🏨", links: [{ key: "hotels", label: `Hotels.com · ${dest}${hasDate ? ` · ${days} notti` : ""}`, url: urls.hotels, color: "rgba(233,69,96,0.12)", border: "rgba(233,69,96,0.35)", text: "#E94560" }, { key: "expedia_packages", label: `Expedia Pacchetti · volo + hotel`, url: urls.expedia_packages, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }] },
+ { label: "Hotel", emoji: "🏨", links: [{ key: "hotels", label: `Hotels.com · ${dest}${hasDate ? ` · ${days} notti` : ""}`, url: urls.hotels, color: "rgba(233,69,96,0.12)", border: "rgba(233,69,96,0.35)", text: "#E94560" }, { key: "tablet_hotels", label: `Tablet Hotels · boutique a ${dest}`, url: urls.tablet_hotels, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }, { key: "expedia_packages", label: `Expedia Pacchetti · volo + hotel`, url: urls.expedia_packages, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }] },
     ...(urls.civitatis ? [{ label: "Esperienze", emoji: "🎟", links: [{ key: "civitatis", label: `Civitatis · tour e attività a ${dest}`, url: urls.civitatis, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }, ...(urls.musement ? [{ key: "musement", label: `Musement · esperienze a ${dest}`, url: urls.musement, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] : [])] }] : []),
     ...(urls.klook ? [{ label: "Esperienze", emoji: "🎟", links: [{ key: "klook", label: `Klook · attività a ${dest}`, url: urls.klook, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] }] : []),
     ...(urls.viator ? [{ label: "Tour e attrazioni", emoji: "🗺", links: [{ key: "viator", label: `Viator · tour a ${dest}`, url: urls.viator, color: "rgba(99,102,241,0.12)", border: "rgba(99,102,241,0.3)", text: "#818cf8" }] }] : []),
