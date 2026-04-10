@@ -542,6 +542,7 @@ Pre-built link templates (replace CITY_NAME, CITY_SLUG, ARRIVAL_IATA):
 - Musement: https://www.musement.com/it/CITY_SLUG/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388
 - TripAdvisor: https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME
 - Undercovertourist: https://www.kqzyfj.com/click-101710513-15733832
+- Tablet Hotels: https://www.kqzyfj.com/click-101710513-15686837
 
 DETECT DESTINATION REGION:
 - Europe: Italy, France, Spain, Portugal, Germany, Austria, UK, Netherlands, Belgium, Poland, Czech Republic, Hungary, Romania, Sweden, Norway, Denmark, Finland, Ireland, Switzerland
@@ -563,6 +564,7 @@ AFFILIATE LINKS — topAffiliateLinks (all relevant by region):
 - "viator_1" + "viator_2": Africa + NorthAmerica + Oceania
 - "undercovertourist": NorthAmerica ONLY if Orlando or Los Angeles
 - "tripadvisor": always
+- "tablet_hotels": always — boutique and design hotels alternative to Hotels.com
 
 affiliateLinks inside each day:
 - "expedia_flights": Day 1 morning + last day afternoon
