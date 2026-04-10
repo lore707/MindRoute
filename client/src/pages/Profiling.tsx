@@ -1938,40 +1938,7 @@ const buildDynamicProfileMessage = (): string | null => {
 
   return (
     <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
-   {(() => {
-        const isMultiStep = currentQ?.type === 'chips' && (
-          (selectedPath === 'b' && (step === 1 || step === 2)) ||
-          (selectedPath === 'a' && (step === 0 || step === 1))
-        );
-        const selected = chipSelections[step] || [];
-        const hasSelection = selected.length > 0;
-
-        if (!currentQ || currentQ.type !== 'chips' || !hasSelection) return null;
-
-        if (isMultiStep && selected.length > 1) {
-          const themes = getMultipleThemes(selected);
-          return (
-            <div className="fixed inset-0 z-0 pointer-events-none transition-all duration-1000" style={{ opacity: 0.90 }}>
-              <div className="w-full h-full flex">
-                {themes.slice(0, 3).map((t, i) => (
-                  <div key={i} className="flex-1 relative overflow-hidden" style={{ transition: 'flex 0.8s ease' }}>
-                    <img src={t.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'blur(18px)', transform: 'scale(1.1)' }} />
-                  </div>
-                ))}
-              </div>
-              <div className="absolute inset-0" style={{ background: theme === 'dark' ? 'rgba(10,8,20,0.45)' : 'rgba(255,255,255,0.30)' }} />
-            </div>
-          );
-        }
-
-        const bgTheme = getQuestionTheme(selected);
-        return (
-          <div className="fixed inset-0 z-0 pointer-events-none transition-all duration-1000" style={{ opacity: 0.90 }}>
-            <img src={bgTheme.imageUrl} alt="" className="w-full h-full object-cover" style={{ filter: 'blur(18px)', transform: 'scale(1.1)' }} />
-            <div className="absolute inset-0" style={{ background: theme === 'dark' ? 'rgba(10,8,20,0.40)' : 'rgba(255,255,255,0.30)' }} />
-          </div>
-        );
-      })()}
+  {null}
       <div className="fixed inset-x-0 top-[84px] h-[340px] pointer-events-none z-0 opacity-90" style={{ background: profilingStageGlow }} />
       <svg className="fixed inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none" viewBox="0 0 1440 900">
         <path d="M-20 180 C 200 120, 400 280, 620 200 S 900 80, 1100 220 S 1350 340, 1460 180" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.04" />
@@ -2081,47 +2048,7 @@ border: theme === 'dark'
                 </div>
               </div>
 
-              {/* Background contestuale sfocato */}
-{currentQ.type === 'chips' && (() => {
-  const selected = chipSelections[step] || [];
-  const hasSelection = selected.length > 0;
-  const isMultiStep = (
-    (selectedPath === 'b' && (step === 1 || step === 2)) ||
-    (selectedPath === 'a' && (step === 0 || step === 1))
-  );
-
-  if (!hasSelection) return null;
-
-  if (isMultiStep && selected.length > 1) {
-    const themes = getMultipleThemes(selected);
-    return (
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[30px] transition-all duration-700">
-        <div className="absolute inset-0 flex">
-          {themes.slice(0, 3).map((t, i) => (
-            <div key={i} className="flex-1 relative overflow-hidden" style={{ transition: 'flex 0.8s ease' }}>
-              <img src={t.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'blur(2px)' }} />
-              {i < themes.slice(0, 3).length - 1 && (
-                <div className="absolute right-0 top-0 bottom-0 w-[1px] bg-white/10 z-10" />
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="absolute inset-0" style={{ background: theme === 'dark' ? 'rgba(10,8,20,0.55)' : 'rgba(255,255,255,0.40)' }} />
-      </div>
-    );
-  }
-
-  const qTheme = getQuestionTheme(selected);
-  const overlay = theme === 'dark' ? qTheme.overlayDark : qTheme.overlayLight;
-  return (
-    <div
-      className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[30px] transition-all duration-700"
-    >
-      <img src={qTheme.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
-      <div className="absolute inset-0" style={{ background: overlay }} />
-    </div>
-  );
-})()}
+       {null}
 <div className="relative z-10 rounded-[24px] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.35)' }}>
   {renderQuestionInput()}
 </div>
