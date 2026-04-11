@@ -31,7 +31,9 @@ function AuthButton() {
           ? <img src={user.avatar} className="w-7 h-7 rounded-full border border-[#E94560]/30" />
           : <div className="w-7 h-7 rounded-full bg-[#E94560] flex items-center justify-center text-white text-[11px] font-bold">{user.name?.[0]}</div>
         }
-        <span className="hidden sm:inline text-[12px] font-medium text-[var(--text-secondary)] hover:text-primary transition-colors">
+        <span className="hidden sm:inline text-[12px] font-medium transition-colors" style={{ color: "#E94560" }}>
+          {user.name?.split(" ")[0]}
+        </span>
           {user.name?.split(" ")[0]}
         </span>
       </a>
@@ -41,7 +43,8 @@ function AuthButton() {
   return (
     <a
       href={`/auth/google?returnTo=${encodeURIComponent(currentPath)}`}
-      className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-primary transition-colors"
+      className="flex items-center gap-1.5 text-[12px] font-medium transition-colors"
+      style={{ color: "#E94560" }}
     >
       <User className="w-4 h-4" />
       <span className="hidden sm:inline">Accedi</span>
@@ -55,7 +58,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 const { theme } = useTheme();
   return (
     <div className="min-h-screen bg-[var(--surface)] text-[var(--text-primary)] overflow-x-hidden selection:bg-primary/20 selection:text-primary-foreground font-sans transition-colors duration-300">
-      <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-10 md:py-5 flex items-center justify-between gap-2 bg-[var(--nav-bg)] backdrop-blur-xl border-b border-[var(--nav-border)] transition-all duration-300">
+      <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.92)", borderColor: "rgba(255,255,255,0.06)" }}>
         <Link href="/" className="flex items-center gap-2.5 text-[var(--text-primary)] no-underline">
        <svg className="w-9 h-9" viewBox="0 0 120 120" fill="none">
             <defs>
@@ -111,7 +114,7 @@ const { theme } = useTheme();
         
           <LangDropdown />
         <AuthButton />
-          <Link href="/profiling" className="text-[13px] font-medium text-primary no-underline px-5 py-2 border-[1.5px] border-primary rounded-full hover:bg-primary hover:text-white transition-all flex items-center gap-1.5" data-testid="link-nav-start">
+         <Link href="/profiling" className="text-[13px] font-medium no-underline px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center gap-1.5" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">
             <Compass className="w-4 h-4 sm:hidden" />
             <span className="hidden sm:inline">{t('nav.start')}</span>
           </Link>
