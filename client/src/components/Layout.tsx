@@ -31,9 +31,7 @@ function AuthButton() {
           ? <img src={user.avatar} className="w-7 h-7 rounded-full border border-[#E94560]/30" />
           : <div className="w-7 h-7 rounded-full bg-[#E94560] flex items-center justify-center text-white text-[11px] font-bold">{user.name?.[0]}</div>
         }
-        <span className="hidden sm:inline text-[12px] font-medium transition-colors" style={{ color: "#E94560" }}>
-          {user.name?.split(" ")[0]}
-        </span>
+      <span className="hidden sm:inline text-[12px] font-medium transition-colors" style={{ color: "#E94560" }}>
           {user.name?.split(" ")[0]}
         </span>
       </a>
