@@ -36,6 +36,7 @@ export default function Landing() {
   return (
     <div style={{ background: "#080B12", color: "white", fontFamily: "'Georgia', serif", overflowX: "hidden", minHeight: "100vh" }}>
       <style>{`
+      @keyframes heroMesh { 0%,100%{opacity:0.015} 50%{opacity:0.03} }
         @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
         @keyframes pulse { 0%,100% { opacity:0.15; } 50% { opacity:0.28; } }
@@ -61,15 +62,124 @@ export default function Landing() {
 
       {/* ── HERO ──────────────────────────────────────────── */}
       <section ref={heroRef} style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "120px 24px 80px", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(233,69,96,0.12), transparent)" }} />
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.015) 1px, transparent 0)", backgroundSize: "40px 40px" }} />
-
+      <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 90% 70% at 50% -5%, rgba(233,69,96,0.20) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 15% 100%, rgba(100,50,180,0.08) 0%, transparent 55%), linear-gradient(180deg,#0e1018 0%,#080B12 60%)" }} />
+        <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(233,69,96,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(233,69,96,0.04) 1px,transparent 1px)", backgroundSize:"60px 60px", WebkitMaskImage:"radial-gradient(ellipse 80% 60% at 50% 0%,black 0%,transparent 70%)", maskImage:"radial-gradient(ellipse 80% 60% at 50% 0%,black 0%,transparent 70%)" }} />
         <div style={{ maxWidth: 960, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
-          {/* Logo */}
-          <div className="fadeup-1" style={{ marginBottom: 28 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-              <Logo className="w-10 h-10" />
-              <span style={{ fontSize: 20, fontWeight: 400, letterSpacing: -0.3, color: "rgba(255,255,255,0.9)" }}>MindRoute</span>
+       {/* Logo premium 3D */}
+          <div className="fadeup-1" style={{ marginBottom: 32 }}>
+            <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+              <div
+                id="hero-logo-wrap"
+                style={{ position: "relative", width: 110, height: 110, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", perspective: "600px" }}
+                onMouseMove={(e) => {
+                  const el = e.currentTarget;
+                  const svg = el.querySelector('#hero-logo-svg') as HTMLElement;
+                  if (!svg || (svg as any)._spinning) return;
+                  const r = el.getBoundingClientRect();
+                  const dx = (e.clientX - r.left - r.width/2) / (r.width/2);
+                  const dy = (e.clientY - r.top - r.height/2) / (r.height/2);
+                  svg.style.transform = `rotateX(${-dy*14}deg) rotateY(${dx*14}deg) scale(1.06)`;
+                  svg.style.animation = 'none';
+                }}
+                onMouseLeave={(e) => {
+                  const svg = e.currentTarget.querySelector('#hero-logo-svg') as HTMLElement;
+                  if (!svg || (svg as any)._spinning) return;
+                  svg.style.transform = '';
+                  svg.style.animation = '';
+                }}
+                onClick={(e) => {
+                  const svg = e.currentTarget.querySelector('#hero-logo-svg') as HTMLElement;
+                  const particles = e.currentTarget.querySelector('#hero-particles') as HTMLElement;
+                  if (!svg || (svg as any)._spinning) return;
+                  (svg as any)._spinning = true;
+                  svg.style.animation = 'none';
+                  svg.style.transform = '';
+                  svg.style.transition = 'none';
+                  setTimeout(() => {
+                    svg.style.transition = '';
+                    svg.style.animation = 'heroSpin 0.78s cubic-bezier(0.34,1.56,0.64,1) forwards';
+                    if (particles) {
+                      for (let i = 0; i < 12; i++) {
+                        const p = document.createElement('div');
+                        const angle = (i/12)*Math.PI*2;
+                        const dist = 50 + Math.random()*25;
+                        const size = 2 + Math.random()*3;
+                        p.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:#E94560;top:50%;left:50%;margin:${-size/2}px 0 0 ${-size/2}px;box-shadow:0 0 6px rgba(233,69,96,0.9);opacity:1;transition:transform 0.55s cubic-bezier(0.2,1,0.4,1),opacity 0.3s ease 0.25s;`;
+                        particles.appendChild(p);
+                        requestAnimationFrame(() => requestAnimationFrame(() => {
+                          p.style.transform = `translate(${Math.cos(angle)*dist}px,${Math.sin(angle)*dist}px) scale(0.2)`;
+                          p.style.opacity = '0';
+                          setTimeout(() => p.remove(), 700);
+                        }));
+                      }
+                    }
+                  }, 10);
+                  setTimeout(() => {
+                    svg.style.animation = '';
+                    (svg as any)._spinning = false;
+                  }, 850);
+                }}
+              >
+                <style>{`
+                  @keyframes heroGlow { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.1);opacity:1} }
+                  @keyframes heroOrbit { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+                  @keyframes heroFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+                  @keyframes heroSpin { 0%{transform:translateY(0) rotate(0deg) scale(1)} 25%{transform:translateY(-4px) rotate(180deg) scale(0.88)} 60%{transform:translateY(0) rotate(370deg) scale(1.06)} 80%{transform:translateY(0) rotate(355deg) scale(1.02)} 100%{transform:translateY(0) rotate(360deg) scale(1)} }
+                  @keyframes heroBeam { 0%{left:-100%;opacity:0} 10%{opacity:1} 40%{left:160%;opacity:0} 100%{left:160%;opacity:0} }
+                `}</style>
+
+                {/* Glow anelli */}
+                <div style={{ position:"absolute", inset:-30, borderRadius:"50%", background:"radial-gradient(circle,rgba(233,69,96,0.28) 0%,transparent 70%)", animation:"heroGlow 3.5s ease-in-out infinite", pointerEvents:"none" }} />
+                <div style={{ position:"absolute", inset:-55, borderRadius:"50%", background:"radial-gradient(circle,rgba(233,69,96,0.10) 0%,transparent 60%)", animation:"heroGlow 3.5s ease-in-out infinite 0.7s", pointerEvents:"none" }} />
+
+                {/* Orbit */}
+                <div style={{ position:"absolute", width:118, height:118, top:"50%", left:"50%", margin:"-59px 0 0 -59px", borderRadius:"50%", border:"1px dashed rgba(233,69,96,0.22)", animation:"heroOrbit 14s linear infinite", pointerEvents:"none" }}>
+                  <div style={{ position:"absolute", width:6, height:6, borderRadius:"50%", background:"radial-gradient(circle,#FFB0C0,#E94560)", boxShadow:"0 0 10px rgba(233,69,96,0.9)", top:-3, left:"50%", marginLeft:-3 }} />
+                </div>
+                <div style={{ position:"absolute", width:150, height:150, top:"50%", left:"50%", margin:"-75px 0 0 -75px", borderRadius:"50%", border:"0.5px solid rgba(233,69,96,0.09)", animation:"heroOrbit 22s linear infinite reverse", pointerEvents:"none" }}>
+                  <div style={{ position:"absolute", width:3, height:3, borderRadius:"50%", background:"rgba(233,69,96,0.55)", boxShadow:"0 0 5px rgba(233,69,96,0.5)", top:-1.5, left:"50%", marginLeft:-1.5 }} />
+                </div>
+
+                {/* Logo SVG 3D */}
+                <svg
+                  id="hero-logo-svg"
+                  width="90" height="90" viewBox="0 0 120 120" fill="none"
+                  style={{ position:"relative", zIndex:3, animation:"heroFloat 4.5s ease-in-out infinite", transformStyle:"preserve-3d", filter:"drop-shadow(0 4px 6px rgba(0,0,0,0.9)) drop-shadow(0 6px 24px rgba(233,69,96,0.65)) drop-shadow(0 0 70px rgba(233,69,96,0.25))", transition:"transform 0.3s ease, filter 0.3s ease" }}
+                >
+                  <defs>
+                    <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FFADC0"/><stop offset="35%" stopColor="#F06080"/><stop offset="70%" stopColor="#D63055"/><stop offset="100%" stopColor="#7A1020"/></linearGradient>
+                    <linearGradient id="lg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#D03050" stopOpacity="0.85"/><stop offset="100%" stopColor="#3A0510" stopOpacity="0.6"/></linearGradient>
+                    <linearGradient id="ls1" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0%" stopColor="rgba(255,255,255,0.4)"/><stop offset="100%" stopColor="rgba(255,255,255,0)"/></linearGradient>
+                    <radialGradient id="lc" cx="40%" cy="35%" r="65%"><stop offset="0%" stopColor="#fff"/><stop offset="60%" stopColor="#FFE0E8"/><stop offset="100%" stopColor="#FFB0C0"/></radialGradient>
+                    <filter id="lf1"><feDropShadow dx="1" dy="3" stdDeviation="2" floodColor="#000" floodOpacity="0.6"/></filter>
+                    <filter id="lf2"><feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="#000" floodOpacity="0.4"/></filter>
+                  </defs>
+                  <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="url(#lg1)" filter="url(#lf1)"/>
+                  <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="url(#ls1)" opacity="0.7"/>
+                  <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="url(#lg1)" filter="url(#lf1)"/>
+                  <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="url(#ls1)" opacity="0.6"/>
+                  <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="url(#lg2)" opacity="0.82"/>
+                  <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="url(#lg2)" opacity="0.82"/>
+                  <ellipse cx="60" cy="59.5" rx="6" ry="7" fill="url(#lc)" filter="url(#lf2)"/>
+                  <ellipse cx="58.2" cy="57.2" rx="2.2" ry="2.8" fill="rgba(255,255,255,0.65)"/>
+                  <ellipse cx="58.5" cy="57.5" rx="0.8" ry="1" fill="rgba(255,255,255,0.95)"/>
+                  <path d="M58.5 66.5L60 109L61.5 66.5" fill="url(#lg1)" opacity="0.85"/>
+                  <circle cx="60" cy="47" r="4.2" fill="url(#lc)" filter="url(#lf2)"/>
+                  <ellipse cx="58.6" cy="45.8" rx="1.6" ry="1.8" fill="rgba(255,255,255,0.7)"/>
+                  <ellipse cx="58.8" cy="46" rx="0.6" ry="0.7" fill="rgba(255,255,255,0.95)"/>
+                </svg>
+
+                {/* Shimmer */}
+                <div style={{ position:"absolute", inset:0, borderRadius:"50%", overflow:"hidden", zIndex:4, pointerEvents:"none" }}>
+                  <div style={{ position:"absolute", top:"-40%", left:"-100%", width:"45%", height:"180%", background:"linear-gradient(110deg,transparent 0%,rgba(255,255,255,0.18) 50%,transparent 100%)", transform:"skewX(-20deg)", animation:"heroBeam 5s ease-in-out infinite 1s" }} />
+                </div>
+
+                {/* Particles container */}
+                <div id="hero-particles" style={{ position:"absolute", inset:0, pointerEvents:"none", zIndex:5 }} />
+              </div>
+
+              {/* Wordmark */}
+              <span style={{ fontSize: 20, fontWeight: 400, letterSpacing: 1, background: "linear-gradient(135deg,rgba(255,255,255,1) 0%,rgba(255,200,210,0.9) 50%,rgba(255,255,255,0.85) 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", filter:"drop-shadow(0 0 16px rgba(255,180,190,0.2))" }}>MindRoute</span>
             </div>
           </div>
 
@@ -81,24 +191,24 @@ export default function Landing() {
             </span>
           </div>
 
-          {/* H1 */}
-          <h1 className="fadeup-2 hero-h1" style={{ fontSize: "clamp(38px, 7vw, 82px)", lineHeight: 1.05, letterSpacing: "-2.5px", fontWeight: 400, marginBottom: 28, maxWidth: 860, margin: "0 auto 28px" }}>
-          {lang === "it" ? (
+     {/* H1 */}
+          <h1 className="fadeup-2 hero-h1" style={{ fontSize: "clamp(36px, 7vw, 80px)", lineHeight: 1.05, letterSpacing: "-2.5px", fontWeight: 400, marginBottom: 28, maxWidth: 860, margin: "0 auto 28px" }}>
+            {lang === "it" ? (
               <>
-               <span style={{ fontStyle: "normal", color: "white" }}>Il viaggio giusto non si cerca. </span><em style={{ fontStyle: "italic", color: "#E94560" }}>Si scopre.</em>
+                <span style={{ fontStyle: "normal", color: "white" }}>Il viaggio parte da </span><em style={{ fontStyle: "italic", color: "#E94560" }}>chi sei.</em>
               </>
             ) : (
               <>
-             <span style={{ fontStyle: "normal", color: "white" }}>The right trip isn't searched for. </span><em style={{ fontStyle: "italic", color: "#E94560" }}>It's discovered.</em>
+                <span style={{ fontStyle: "normal", color: "white" }}>Travel starts with </span><em style={{ fontStyle: "italic", color: "#E94560" }}>who you are.</em>
               </>
             )}
           </h1>
 
           {/* Subtitle */}
           <p className="fadeup-3" style={{ fontSize: "clamp(16px, 2.2vw, 19px)", color: "rgba(255,255,255,0.75)", maxWidth: 580, margin: "0 auto 40px", lineHeight: 1.75, fontFamily: "system-ui, sans-serif", fontWeight: 300 }}>
-            {lang === "it"
-              ? "MindRoute trasforma come stai in un viaggio concreto: destinazione, itinerario e prenotazioni pronte. In meno di 3 minuti."
-              : "MindRoute turns how you feel into a real trip: destination, itinerary and bookings ready. In under 3 minutes."}
+          {lang === "it"
+              ? "Ogni viaggio inizia da un'emozione. MindRoute la trasforma in un posto reale — destinazione, itinerario e prenotazioni pronte in meno di 3 minuti."
+              : "Every trip starts from an emotion. MindRoute turns it into a real place — destination, itinerary and bookings ready in under 3 minutes."}
           </p>
 
           {/* CTA Row */}
