@@ -723,7 +723,6 @@ export async function generateDestinationsOnly(input: ProfilingInput): Promise<G
 
   const prompt = `You are the engine of MindRoute, a psychological travel profiling platform. Your task is to generate exactly 3 destinations that are deeply, precisely matched to this specific human being.
 
-═══════════════════════════════════════
 USER PROFILE — READ EVERY LINE
 ═══════════════════════════════════════
 Path: ${path}
@@ -776,9 +775,21 @@ If user specified a precise place in addendum → ALL 3 must be within or variat
 
 GEOGRAPHIC CONSTRAINT OVERRIDE RULE: If geographic constraint is active, it supersedes EVERYTHING else — including the desire for diversity. Three destinations in Italy is correct if geo constraint is "Europe" and user specified "Italy". Three destinations within 4h of Milan is correct if geo constraint is "Vicino a casa" from Milan.
 
+PRECISE DESTINATION OVERRIDE RULE — HIGHEST PRIORITY:
+If the user specified a precise destination in the addendum field (a specific country, region, or city), ALL 3 slots MUST be variations of that destination. Do not propose alternatives outside it.
+
+- Specific country (e.g. "Giappone", "Spagna") → 3 different cities or regions within that country
+- Specific region (e.g. "Toscana", "Andalusia") → 3 different towns or areas within that region  
+- Specific city (e.g. "Tokyo", "Barcellona") → 3 different neighborhoods, nearby areas, or day-trip extensions of that city
+- Specific island (e.g. "Sardegna", "Bali") → 3 different areas or coasts of that island
+
+In all cases: slot 1 = most famous/obvious area, slot 2 = same destination different character, slot 3 = hidden gem within the same destination.
+Never propose a different country or region when the user has already decided where to go.
+In all cases: slot 1 = most famous/obvious area, slot 2 = same destination different character, slot 3 = hidden gem within the same destination.
+Never propose a different country or region when the user has already decided where to go.
 ── ANTI-PATTERN VETOES (each one ELIMINATES destination types) ──
-- "Vita notturna e club" in anti-patterns → ELIMINATE any destination CHOSEN for its nightlife. Beach+friends destination: choose beach WITHOUT club scene (Djerba, Hvar quiet areas, Lefkada vs Mykonos).
-- "Luoghi affollati" → ELIMINATE: Santorini July-August, Venice summer, Barcelona peak season, Dubrovnik, Bali Kuta, Mykonos peak. Choose SAME TYPE but less crowded alternative.
+- "Vita notturna e club" in anti-patterns → ELIMINATE any destination CHOSEN for its nightlife. Beach+friends destination: choose beach WITHOUT club scene.
+- "Luoghi affollati" → ELIMINATE destinations at peak overcrowding season. Choose same destination TYPE but less crowded version or off-peak timing.
 - "Hotel resort" → ELIMINATE any destination where independent accommodation is scarce.
 - "Ristoranti turistici" → ELIMINATE destinations known primarily for tourist-trap food scenes.
 - "Stanchezza da musei" → ELIMINATE destinations where the main draw IS museums/cultural visits. Favor destinations with lived culture (food, neighborhoods, people).
@@ -793,10 +804,10 @@ GEOGRAPHIC CONSTRAINT OVERRIDE RULE: If geographic constraint is active, it supe
 - "Famiglia": Destination MUST have child-safe infrastructure, easy beaches or nature, family restaurants, no extreme logistics.
 
 ── TRIP TYPE → DESTINATION MANDATORY FEATURES ──
-- "Mare e relax" → Destination MUST have quality beach/sea. Calm water, clean, accessible. Rate: not just "near coast" but BEACH quality.
+- "Mare e relax" → Destination MUST have quality beach/sea. Calm water, clean, accessible.
 - "Città e vita notturna" → Destination MUST be city with genuine nightlife scene. UNLESS "vita notturna" anti-pattern.
 - "Cultura e storia" → Destination MUST have rich cultural/historical heritage liveable beyond museums.
-- "Food e vino" → Destination MUST have extraordinary local food scene. Think: Bologna, Lyon, San Sebastián, Oaxaca, Chiang Mai, Tbilisi, Thessaloniki.
+- "Food e vino" → Destination MUST have extraordinary local food scene. Think across all continents — every region has food destinations. Do not default to the same list every time.
 - "Natura e avventura" → Destination MUST have strong outdoor/nature as primary draw.
 - "Trekking e sport" → Destination MUST have serious outdoor challenges.
 - "Wellness e spa" → Destination MUST have quality spa/thermal/wellness infrastructure.
@@ -822,10 +833,10 @@ GEOGRAPHIC CONSTRAINT OVERRIDE RULE: If geographic constraint is active, it supe
 
 ── ATMOSPHERE CHIPS → DESTINATION TEXTURE ──
 - "seaside" → destination with waterfront dining culture, sunset terraces.
-- "market" → destination with vibrant market life (Marrakech, Istanbul, Bangkok, Tbilisi).
+- "market" → destination with vibrant market life — can be anywhere with strong street market culture.
 - "trail" → destination with accessible mountain/nature trails.
-- "cafe" → destination with strong café culture (European cities, Buenos Aires, Tbilisi).
-- "medina" → destination with labyrinthine old town.
+- "cafe" → destination with strong café culture.
+- "medina" → destination with labyrinthine old town character — not necessarily Arabic/North African.
 - "nordic" → dramatic, edge-of-world quality (Norway, Iceland, Faroe Islands, Scottish Highlands).
 - "temple" → spiritual/ancient atmosphere (Southeast Asia, India, Japan, Middle East).
 - "desert" → vast, open, freedom quality (Morocco, Oman, Jordan, Atacama).
@@ -857,41 +868,67 @@ If math fails → REJECT the destination.
 - "Vicino a casa": ground only, NO flights.
 
 ═══════════════════════════════════════
-STEP 2 — THREE-SLOT DESTINATION LOGIC (MANDATORY STRUCTURE — do not change order)
+STEP 2 — DESTINATION SELECTION ENGINE
 ═══════════════════════════════════════
-Generate EXACTLY 3 destinations in this EXACT order:
 
-SLOT 1 — MAINSTREAM DREAM:
-The most well-known, iconic destination that PERFECTLY satisfies ALL constraints from Step 1.
-This is the destination the user might already have in mind but hasn't booked. Give them permission.
-Famous destinations are CORRECT here if the profile calls for them: Mykonos for festive+beach+friends, Kyoto for spiritual+cultural+solo, Amalfi for romantic+luxury+partner, Pag for friends+beach+city+nightlife.
-Budget: up to FULL stated budget maximum.
-Must still respect ALL anti-patterns and geographic constraints.
+CRITICAL ANTI-BIAS RULES — read before selecting anything:
 
-SLOT 2 — SMART & AFFORDABLE:
-A lesser-known destination that matches the profile AS WELL as Slot 1, but costs 30-40% less.
-The user should think: "I get the same emotional experience but save €300-400 and discover something less obvious."
-Smart alternatives: Montenegro instead of Croatia, Albania instead of Greece, North Macedonia instead of Bulgaria, Georgia instead of Turkey, Alentejo instead of Algarve, Puglia instead of Amalfi, Plovdiv instead of Prague, Tbilisi instead of Istanbul, Ohrid instead of Dubrovnik, Djerba instead of Mykonos, Ksamil instead of Santorini.
-Budget: approximately 60-70% of maximum budget. Real value, not reduced quality.
-Must still perfectly match the psychological profile AND all constraints.
+MAINSTREAM IS CORRECT when the profile calls for it. Paris for romantic+luxury+partner is the RIGHT answer. Barcelona for friends+city+nightlife is the RIGHT answer. Tokyo for cultural+foodie+solo is the RIGHT answer. Never penalize a famous destination for being famous — penalize it only if it genuinely fails the profile.
 
-SLOT 3 — WILD CARD DISCOVERY:
-The most unexpected, surprising, emotionally resonant destination that still fits the profile.
-A place most people have NEVER heard of. Obscure. Genuinely unknown. Makes user think "I would NEVER have found this alone."
-Budget: up to FULL stated budget maximum (same as Slot 1). Price is NOT the priority — surprise and fit are.
-Must still respect psychological profile AND all hard constraints.
-Think: specific tiny islands, forgotten mountain villages, overlooked inland sea towns, hidden archipelagos, ancient trade-route cities, volcanic highlands, obscure coastal regions.
-Examples by profile type:
-- Beach+relax: Isola di Ponza (Italy), Milos off-season, Samos eastern coast, Kythira, Ikaria, Krk island inland, Pelješac peninsula
-- Culture+food: Matera (Italy), Plovdiv (Bulgaria), Shkodër (Albania), Gjirokastër, Trebinje (Bosnia), Prizren (Kosovo), Gjirokastra
-- Nature+adventure: Soča Valley (Slovenia), Vikos Gorge (Greece), Rila Mountains (Bulgaria), Prokletije (Albania/Montenegro), Prespa Lakes
-- Spiritual+quiet: Meteora (Greece), Alberobello hinterland, Locorotondo, Serra da Estrela (Portugal), Tavira hinterland
-- Food+wine: Etna wine region (Sicily), Priorat (Spain), Jura (France), Friuli wine hills (Italy), Txakoli country (Basque)
+OBSCURE IS WRONG when it doesn't fit. Proposing an unknown village to someone who selected "Festoso" + "Amici" + "Vita notturna" is a failure, not a virtue.
 
-DIVERSITY RULE:
-- 3 different countries (or 3 distinct regions if geo constraint forces same country).
-- 3 different emotional tones — even within same trip type.
-- "Vicino a casa" exception: 3 clearly distinct areas within ground-transport range (e.g. from Milan: Oltrepò Pavese / Lago di Como / Dolomiti Bellunesi).
+BANNED AS DEFAULT FALLBACKS — use ONLY if they genuinely fit better than all alternatives:
+Georgia/Tbilisi, Morocco/Marrakech, Albania, Montenegro, North Macedonia, Ohrid, Ksamil, Plovdiv.
+These appear too frequently. Before selecting any of these, ask: "Is there a destination that fits this profile BETTER?" If yes, use that instead.
+
+DESTINATION UNIVERSE — think across ALL of these before deciding:
+CITIES: Paris, London, Amsterdam, Rome, Florence, Naples, Barcelona, Madrid, Lisbon, Porto, Berlin, Vienna, Prague, Budapest, Krakow, Warsaw, Athens, Istanbul, Dubai, Tokyo, Kyoto, Osaka, Seoul, Bangkok, Singapore, Hong Kong, Bali, Ho Chi Minh City, Hanoi, Marrakech, Cape Town, Nairobi, Cairo, New York, Los Angeles, Miami, Mexico City, Buenos Aires, Rio, Medellin, Lima, Sydney, Melbourne
+BEACH: Amalfi, Cinque Terre, Sardinia, Sicily, Ibiza, Mallorca, Mykonos, Santorini, Rhodes, Crete, Cyprus, Malta, Algarve, Costa Brava, Corsica, Hvar, Dubrovnik, Montenegro coast, Turkish Riviera, Zanzibar, Maldives, Phuket, Koh Samui, Bali Seminyak, Tulum, Cancun, Caribbean islands
+NATURE: Dolomites, Swiss Alps, Norwegian Fjords, Iceland, Scottish Highlands, Azores, Madeira, Canary Islands, Faroe Islands, Lapland, Patagonia, Amazon, Galápagos, New Zealand, Costa Rica, Rwanda, Kenya, Tanzania, Nepal, Bhutan, Ladakh, Yunnan
+HIDDEN GEMS: Puglia, Matera, Procida, Alberobello, Favignana, Pantelleria, Aeolian Islands, Gozo, Vis, Korčula, Brač, Paxos, Ikaria, Naxos, Milos, Samos, Lesbos, Chania, Rethymno, Plovdiv, Tbilisi (only if genuinely best fit), Kotor, Prizren, Gjirokastër, Ohrid (only if genuinely best fit), Tavira, Évora, Sintra, Peneda-Gerês, Serra da Estrela, Alentejo, Friuli, Val d'Orcia, Cilento, Basilicata, Aspromonte
+
+CHIP WEIGHTING RULE — before selecting, identify dominant signals:
+1. List all chips selected by the user
+2. Identify the 2-3 DOMINANT chips — those that appear in multiple categories or are emotionally strongest
+3. These OVERRIDE secondary chips in destination selection
+4. Secondary chips refine the choice WITHIN the dominant category
+
+Example: User selects "Mare e relax" (trip type) + "Partner" (companions) + "Romantico" (style) + "Autentico" (secondary style) → DOMINANT = beach+romantic+partner. Choose a romantic beach destination. "Autentico" means: choose the authentic version of that beach destination (local restaurants, boutique hotels) — NOT abandon the beach for an inland village.
+
+Example: User selects "Città e vita notturna" + "Amici" + "Festoso" + "Caotico" → DOMINANT = city+nightlife+friends. Choose a great party/nightlife city. Do not propose a quiet village because "Autentico" was also selected.
+
+GENERATE EXACTLY 3 DESTINATIONS:
+
+SLOT 1 — PERFECT FIT (mainstream, famous, or niche — whatever fits BEST):
+The destination that most precisely matches ALL dominant chips and constraints.
+If Paris fits → choose Paris. If Mykonos fits → choose Mykonos. If a small Sicilian village fits → choose that.
+No bias toward famous OR obscure. Pure profile matching.
+Budget: full stated budget.
+
+SLOT 2 — SAME EMOTION, DIFFERENT ANGLE:
+A destination that delivers the SAME core emotional experience as Slot 1 but from an unexpected direction.
+Not necessarily cheaper — different in CHARACTER, not just price.
+The user should think: "I would never have thought of this, but it gives me exactly what I wanted."
+This can be mainstream or obscure — what matters is that it offers the same dominant emotional experience through a different lens.
+Do NOT default to: Georgia, Albania, Montenegro, North Macedonia unless they genuinely are the best match.
+Think: same vibe, different geography, different culture, different season optimization.
+
+SLOT 3 — GENUINE SURPRISE:
+The most unexpected destination that still perfectly satisfies the dominant chips.
+This should make the user think "I never would have found this alone — and it's exactly right."
+Can be obscure OR a famous destination used in a completely unexpected way (e.g. proposing Palermo's street food scene for a foodie who expected Bangkok, or proposing a specific neighborhood of Tokyo rather than generic Tokyo).
+Must still respect ALL hard constraints (geographic, budget, anti-patterns, companions).
+
+DIVERSITY REQUIREMENT:
+- 3 different countries if possible (or 3 clearly distinct regions)
+- 3 different emotional tones or geographic contexts
+- Never repeat the same destination type across all 3 slots
+
+ANTI-REPETITION CHECK — before finalizing:
+- Are any of the 3 destinations Georgia/Tbilisi, Morocco/Marrakech, Albania, Montenegro? If yes: is this genuinely the BEST fit for this specific profile, better than all alternatives? If not → replace.
+- Are all 3 destinations in the same geographic region without a geographic constraint forcing it? If yes → diversify.
+- Are all 3 destinations nature/wilderness focused when the profile has strong urban/social signals? If yes → fix at least 2 slots.
+- Are all 3 destinations obscure/unknown when the dominant chips clearly call for mainstream quality? If yes → fix at least Slot 1.
 
 SEASONALITY CHECK — for ALL 3 slots:
 Verify each destination is genuinely good during stated travel period.
@@ -907,7 +944,7 @@ Sentence 2: Explain why THIS specific destination is the answer to that need —
 Sentence 3 (optional): Name the one moment that will make the user feel "this trip understood me."
 
 BAD whyYours: "Questo posto è perfetto per chi ama la natura e vuole rilassarsi."
-GOOD whyYours: "Hai scelto 'staccare davvero dalla routine' e 'silenzioso' — segnali che cerchi non solo una pausa ma un azzeramento. Ikaria è l'isola greca dove il tempo non esiste: niente ufficio del turismo, niente orari, solo case bianche, sentieri di fichi selvatici e vino servito in brocche di terracotta. Il momento che ricorderai: la mattina in cui ti svegli e realizzi di non aver guardato il telefono da 18 ore."
+GOOD whyYours: "Hai scelto [CHIP VERBATIM] — segnale che cerchi [EMOTIONAL NEED]. [DESTINATION] offre esattamente questo: [specific quality unique to that destination, not generic]. Il momento che ricorderai: [one precise emotional scene specific to that place and this user]."
 
 PRACTICALINFO FORMAT — use this exact format for all 3:
 "✈️ [flight duration and approx cost] · 🏨 [hotel type matching accommodation pref + price range] · 📅 [best months to visit]"
@@ -928,16 +965,16 @@ REQUIRED JSON — respond ONLY with this, no text outside:
       "practicalInfo": "✈️ [duration + cost] · 🏨 [hotel type + price] · 📅 [best period]"
     },
     {
-      "name": "Smart Alternative, Country",
+      "name": "Same Emotion Different Angle, Country",
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
-      "whyYours": "2-3 sentences — explain WHY this less-known place matches the profile as well as Slot 1",
+      "whyYours": "2-3 sentences — explain WHY this place delivers the same emotional experience from a different angle",
       "experiencePreview": "1 short evocative sentence in first person",
-      "practicalInfo": "✈️ [duration + cost — should be lower than Slot 1] · 🏨 [type + price] · 📅 [best period]"
+      "practicalInfo": "✈️ [duration + cost] · 🏨 [type + price] · 📅 [best period]"
     },
     {
-      "name": "Obscure Discovery, Country",
+      "name": "Genuine Surprise, Country",
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
-      "whyYours": "2-3 sentences — explain what makes this unknown place the most surprising RIGHT answer",
+      "whyYours": "2-3 sentences — explain what makes this the most surprising RIGHT answer for this specific profile",
       "experiencePreview": "1 short evocative sentence in first person",
       "practicalInfo": "✈️ [duration + cost] · 🏨 [type + price] · 📅 [best period]"
     }
