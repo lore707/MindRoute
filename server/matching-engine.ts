@@ -562,11 +562,15 @@ AFFILIATE LINKS — topAffiliateLinks (all relevant by region):
 - "expedia_cars": when destination requires driving
 - "civitatis_1" + "civitatis_2": Europe + Mediterranean + LatAm
 - "musement_1": Europe + Mediterranean
+- "flixbus": Europe only — when destination involves intercity ground travel
+- "samboat": Mediterranean + Europe coastal destinations (Croatia, Greece, Italian coasts, Sardinia, Sicily, Montenegro, Albania)
 - "klook_1" + "klook_2": Asia + India
 - "viator_1" + "viator_2": Africa + NorthAmerica + Oceania
 - "undercovertourist": NorthAmerica ONLY if Orlando or Los Angeles
 - "tripadvisor": always
-- "tablet_hotels": always — boutique and design hotels alternative to Hotels.com
+"tablet_hotels": always — boutique and design hotels alternative to Hotels.com
+        "flixbus": Europe only — intercity bus between destinations
+        "samboat": Mediterranean + coastal Europe — boat/yacht rental
 
 affiliateLinks inside each day:
 - "expedia_flights": Day 1 morning + last day afternoon
