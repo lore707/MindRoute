@@ -123,7 +123,7 @@ function buildPrompt(input: ProfilingInput): string {
     input.answers[0] === "path_b"
       ? "Path B (user already has a destination area in mind)"
       : "Path A (open to surprises)";
-  const days = Math.min(input.days, 7);
+  const days = Math.min(input.days, 14);
   const travelStyle = input.travelStyle || "not specified";
 
   const budgetMap: Record<string, string> = {
@@ -983,7 +983,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 3000,
+    max_tokens: 4000,
     messages: [{ role: "user", content: prompt }],
   });
 
@@ -1006,14 +1006,14 @@ export async function generateItineraryStreamingStructured(
   onDay: (day: any) => void,
   onMeta: (meta: any) => void
 ): Promise<void> {
-  const days = Math.min(input.days, 7);
+  const days = Math.min(input.days, 14);
   const { checkin, checkout, checkinCompact, checkoutCompact } = buildCheckinCheckout(input.leaveDate, days);
 
   const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any);
 
   const stream = client.messages.stream({
     model: "claude-sonnet-4-6",
-    max_tokens: 12000,
+    max_tokens: 20000,
     messages: [{ role: "user", content: prompt }],
   });
 
@@ -1077,7 +1077,7 @@ export async function generateItineraryStreaming(
   destinationName: string,
   onChunk: (text: string) => void
 ): Promise<void> {
-  const days = Math.min(input.days, 7);
+  const days = Math.min(input.days, 14);
   const lang = input.lang === 'it' ? 'Italian' : 'English';
   const { checkin, checkout } = buildCheckinCheckout(input.leaveDate, days);
 
@@ -1200,7 +1200,7 @@ export async function generateItineraryForDestination(
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 12000,
+    max_tokens: 20000,
     messages: [{ role: "user", content: prompt }],
   });
 
