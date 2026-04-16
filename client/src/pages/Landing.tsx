@@ -266,83 +266,36 @@ export default function Landing() {
         </div>
 {/* ── MOSAICO ANGOLI ── */}
         <style>{`
-          @keyframes mosaicFade { 0%,100%{opacity:0} 10%,90%{opacity:1} }
           @media (max-width: 1200px) { .mosaic-col { display: none !important; } }
         `}</style>
-<div className="mosaic-col" style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 220, pointerEvents: "none", zIndex: 0 }}>
+
+        <div className="mosaic-col" style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 220, pointerEvents: "none", zIndex: 0 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 0 8px 8px", position: "absolute", top: 0, left: 0, right: 0 }}>
-            {[
-              "1476514525535-07fb3b4ae5f1",
-              "1507525428034-b723cf961d3e",
-              "1552465011-b4e21bf6e79a",
-              "1469854523086-cc02fe5d8800",
-              "1530521954074-e64f6810b32d",
-              "1476900966873-ab290e38e3f7",
-            ].map((id, i) => (
+            {["1476514525535-07fb3b4ae5f1","1507525428034-b723cf961d3e","1552465011-b4e21bf6e79a","1469854523086-cc02fe5d8800","1530521954074-e64f6810b32d","1476900966873-ab290e38e3f7"].map((id, i) => (
               <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
                 <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
               </div>
             ))}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 0 8px 8px", position: "absolute", bottom: 0, left: 0, right: 0 }}>
-            {[
-              "1523906834658-6e24ef2386f9",
-              "1516483638261-f4dbaf036963",
-              "1533105079780-92b9be482077",
-              "1501854140801-50d01698950b",
-              "1503220317375-aaad61436b1b",
-              "1520250497591-112f2f40a3f4",
-            ].map((id, i) => (
+            {["1523906834658-6e24ef2386f9","1516483638261-f4dbaf036963","1533105079780-92b9be482077","1501854140801-50d01698950b","1503220317375-aaad61436b1b","1520250497591-112f2f40a3f4"].map((id, i) => (
               <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
                 <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
               </div>
             ))}
           </div>
         </div>
-            ))}
-            {[
-              "photo-1506905925346-21bda4d32df4",
-              "photo-1539367628448-4bc5c9d171c8",
-              "photo-1520250497591-112f2f40a3f4",
-              "photo-1476514525535-07fb3b4ae5f1",
-              "photo-1503220317375-aaad61436b1b",
-              "photo-1507525428034-b723cf961d3e",
-              "photo-1530521954074-e64f6810b32d",
-              "photo-1552465011-b4e21bf6e79a",
-              "photo-1469854523086-cc02fe5d8800",
-              "photo-1501854140801-50d01698950b",
-            ].map((id, i) => (
-              <div key={`b${i}`} style={{ borderRadius: 12, overflow: "hidden", height: i % 3 === 0 ? 140 : i % 3 === 1 ? 110 : 125, flexShrink: 0 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=300&h=200&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              </div>
-            ))}
-          </div>
-        </div>
 
-   <div className="mosaic-col" style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 220, pointerEvents: "none", zIndex: 0 }}>
+        <div className="mosaic-col" style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 220, pointerEvents: "none", zIndex: 0 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 8px 8px 0", position: "absolute", top: 0, left: 0, right: 0 }}>
-            {[
-              "1488085061387-422e29b40080",
-              "1528360983277-13d401cdc186",
-              "1537996194471-e657df975ab4",
-              "1549144511-f099e773c147",
-              "1542051841857-5f90071e7989",
-              "1518684079-3c830dcef090",
-            ].map((id, i) => (
+            {["1488085061387-422e29b40080","1528360983277-13d401cdc186","1537996194471-e657df975ab4","1549144511-f099e773c147","1542051841857-5f90071e7989","1518684079-3c830dcef090"].map((id, i) => (
               <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
                 <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
               </div>
             ))}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 8px 8px 0", position: "absolute", bottom: 0, left: 0, right: 0 }}>
-            {[
-              "1506905925346-21bda4d32df4",
-              "1539367628448-4bc5c9d171c8",
-              "1476514525535-07fb3b4ae5f1",
-              "1507525428034-b723cf961d3e",
-              "1469854523086-cc02fe5d8800",
-              "1503220317375-aaad61436b1b",
-            ].map((id, i) => (
+            {["1506905925346-21bda4d32df4","1539367628448-4bc5c9d171c8","1476514525535-07fb3b4ae5f1","1507525428034-b723cf961d3e","1469854523086-cc02fe5d8800","1503220317375-aaad61436b1b"].map((id, i) => (
               <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
                 <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
               </div>
@@ -350,7 +303,7 @@ export default function Landing() {
           </div>
         </div>
 
-        <div style={{ position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, opacity: 0.3 }}>
+        <div style={{ position: "absolute", bottom: 32, left: "50%",transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, opacity: 0.3 }}>
           <span style={{ fontSize: 9, letterSpacing: "3px", textTransform: "uppercase", fontFamily: "system-ui" }}>
             {lang === "it" ? "scopri" : "scroll"}
           </span>
