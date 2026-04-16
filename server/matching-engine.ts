@@ -543,6 +543,8 @@ Pre-built link templates (replace CITY_NAME, CITY_SLUG, ARRIVAL_IATA):
 - TripAdvisor: https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME
 - Undercovertourist: https://www.kqzyfj.com/click-101710513-15733832
 - Tablet Hotels: https://www.kqzyfj.com/click-101710513-15686837
+- FlixBus IT: https://www.awin1.com/cread.php?awinmid=110876&awinaffid=2830626&ued=https%3A%2F%2Fwww.flixbus.it (use for European ground transport between cities)
+- SamBoat IT: https://www.awin1.com/cread.php?awinmid=32681&awinaffid=2830626&ued=https%3A%2F%2Fwww.samboat.it (use for coastal/island destinations: Croatia, Greece, Italy coasts, Mediterranean)
 
 DETECT DESTINATION REGION:
 - Europe: Italy, France, Spain, Portugal, Germany, Austria, UK, Netherlands, Belgium, Poland, Czech Republic, Hungary, Romania, Sweden, Norway, Denmark, Finland, Ireland, Switzerland
