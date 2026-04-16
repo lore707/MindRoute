@@ -264,30 +264,41 @@ export default function Landing() {
             ))}
           </div>
         </div>
-{/* ── MOSAICO SINISTRO ── */}
+{/* ── MOSAICO ANGOLI ── */}
         <style>{`
-          @keyframes scrollDown { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-          @keyframes scrollUp { 0% { transform: translateY(-50%); } 100% { transform: translateY(0); } }
-          @media (max-width: 1100px) { .mosaic-col { display: none !important; } }
+          @keyframes mosaicFade { 0%,100%{opacity:0} 10%,90%{opacity:1} }
+          @media (max-width: 1200px) { .mosaic-col { display: none !important; } }
         `}</style>
-
-       <div className="mosaic-col" style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 130, overflow: "hidden", maskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)", WebkitMaskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)", zIndex: 0, opacity: 0.55 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "0 4px 0 8px", animation: "scrollDown 35s linear infinite" }}>
+<div className="mosaic-col" style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 220, pointerEvents: "none", zIndex: 0 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 0 8px 8px", position: "absolute", top: 0, left: 0, right: 0 }}>
             {[
-              "photo-1506905925346-21bda4d32df4",
-              "photo-1539367628448-4bc5c9d171c8",
-              "photo-1520250497591-112f2f40a3f4",
-              "photo-1476514525535-07fb3b4ae5f1",
-              "photo-1503220317375-aaad61436b1b",
-              "photo-1507525428034-b723cf961d3e",
-              "photo-1530521954074-e64f6810b32d",
-              "photo-1552465011-b4e21bf6e79a",
-              "photo-1469854523086-cc02fe5d8800",
-              "photo-1501854140801-50d01698950b",
+              "1476514525535-07fb3b4ae5f1",
+              "1507525428034-b723cf961d3e",
+              "1552465011-b4e21bf6e79a",
+              "1469854523086-cc02fe5d8800",
+              "1530521954074-e64f6810b32d",
+              "1476900966873-ab290e38e3f7",
             ].map((id, i) => (
-              <div key={i} style={{ borderRadius: 12, overflow: "hidden", height: i % 3 === 0 ? 140 : i % 3 === 1 ? 110 : 125, flexShrink: 0 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=300&h=200&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
+                <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
               </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 0 8px 8px", position: "absolute", bottom: 0, left: 0, right: 0 }}>
+            {[
+              "1523906834658-6e24ef2386f9",
+              "1516483638261-f4dbaf036963",
+              "1533105079780-92b9be482077",
+              "1501854140801-50d01698950b",
+              "1503220317375-aaad61436b1b",
+              "1520250497591-112f2f40a3f4",
+            ].map((id, i) => (
+              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
+                <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+              </div>
+            ))}
+          </div>
+        </div>
             ))}
             {[
               "photo-1506905925346-21bda4d32df4",
@@ -308,120 +319,32 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* ── MOSAICO DESTRO ── */}
-        <div className="mosaic-col" style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 130, overflow: "hidden", maskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)", WebkitMaskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)", zIndex: 0, opacity: 0.55 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "0 8px 0 4px", animation: "scrollUp 40s linear infinite" }}>
+   <div className="mosaic-col" style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 220, pointerEvents: "none", zIndex: 0 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 8px 8px 0", position: "absolute", top: 0, left: 0, right: 0 }}>
             {[
-              "photo-1488085061387-422e29b40080",
-              "photo-1528360983277-13d401cdc186",
-              "photo-1537996194471-e657df975ab4",
-              "photo-1549144511-f099e773c147",
-              "photo-1476900966873-ab290e38e3f7",
-              "photo-1523906834658-6e24ef2386f9",
-              "photo-1542051841857-5f90071e7989",
-              "photo-1518684079-3c830dcef090",
-              "photo-1516483638261-f4dbaf036963",
-              "photo-1533105079780-92b9be482077",
-            ].map((id, i) => (
-              <div key={i} style={{ borderRadius: 12, overflow: "hidden", height: i % 3 === 0 ? 120 : i % 3 === 1 ? 145 : 110, flexShrink: 0 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=300&h=200&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              </div>
-            ))}
-            {[
-              "photo-1488085061387-422e29b40080",
-              "photo-1528360983277-13d401cdc186",
-              "photo-1537996194471-e657df975ab4",
-              "photo-1549144511-f099e773c147",
-              "photo-1476900966873-ab290e38e3f7",
-              "photo-1523906834658-6e24ef2386f9",
-              "photo-1542051841857-5f90071e7989",
-              "photo-1518684079-3c830dcef090",
-              "photo-1516483638261-f4dbaf036963",
-              "photo-1533105079780-92b9be482077",
-            ].map((id, i) => (
-              <div key={`b${i}`} style={{ borderRadius: 12, overflow: "hidden", height: i % 3 === 0 ? 120 : i % 3 === 1 ? 145 : 110, flexShrink: 0 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=300&h=200&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              </div>
-            ))}
-          </div>
-        </div>
-{/* ── MOSAICO SINISTRO ── */}
-        <style>{`
-          @keyframes scrollDown { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-          @keyframes scrollUp { 0% { transform: translateY(-50%); } 100% { transform: translateY(0); } }
-          @media (max-width: 1100px) { .mosaic-col { display: none !important; } }
-        `}</style>
-
-        <div className="mosaic-col" style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 200, overflow: "hidden", maskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)", WebkitMaskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)", zIndex: 0, opacity: 0.55 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "0 4px 0 8px", animation: "scrollDown 35s linear infinite" }}>
-            {[
-            "1476514525535-07fb3b4ae5f1",
-              "1507525428034-b723cf961d3e",
-              "1552465011-b4e21bf6e79a",
-              "1469854523086-cc02fe5d8800",
-              "1501854140801-50d01698950b",
-              "1530521954074-e64f6810b32d",
-              "1476900966873-ab290e38e3f7",
-              "1523906834658-6e24ef2386f9",
-              "1516483638261-f4dbaf036963",
-              "1533105079780-92b9be482077",
-            ].map((id, i) => (
-              <div key={i} style={{ borderRadius: 12, overflow: "hidden", height: i % 3 === 0 ? 140 : i % 3 === 1 ? 110 : 125, flexShrink: 0 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=300&h=200&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              </div>
-            ))}
-            {[
-             "1488085061387-422e29b40080",
+              "1488085061387-422e29b40080",
               "1528360983277-13d401cdc186",
               "1537996194471-e657df975ab4",
               "1549144511-f099e773c147",
               "1542051841857-5f90071e7989",
               "1518684079-3c830dcef090",
-              "1506905925346-21bda4d32df4",
-              "1539367628448-4bc5c9d171c8",
-              "1520250497591-112f2f40a3f4",
-              "1503220317375-aaad61436b1b",
             ].map((id, i) => (
-              <div key={`b${i}`} style={{ borderRadius: 12, overflow: "hidden", height: i % 3 === 0 ? 140 : i % 3 === 1 ? 110 : 125, flexShrink: 0 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=300&h=200&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
+                <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
               </div>
             ))}
           </div>
-        </div>
-
-        {/* ── MOSAICO DESTRO ── */}
-        <div className="mosaic-col" style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 200, overflow: "hidden", maskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)", WebkitMaskImage: "linear-gradient(180deg, transparent 0%, black 15%, black 85%, transparent 100%)", zIndex: 0, opacity: 0.55 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "0 8px 0 4px", animation: "scrollUp 40s linear infinite" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 8px 8px 0", position: "absolute", bottom: 0, left: 0, right: 0 }}>
             {[
-              "photo-1488085061387-422e29b40080",
-              "photo-1528360983277-13d401cdc186",
-              "photo-1537996194471-e657df975ab4",
-              "photo-1549144511-f099e773c147",
-              "photo-1476900966873-ab290e38e3f7",
-              "photo-1523906834658-6e24ef2386f9",
-              "photo-1542051841857-5f90071e7989",
-              "photo-1518684079-3c830dcef090",
-              "photo-1516483638261-f4dbaf036963",
-              "photo-1533105079780-92b9be482077",
+              "1506905925346-21bda4d32df4",
+              "1539367628448-4bc5c9d171c8",
+              "1476514525535-07fb3b4ae5f1",
+              "1507525428034-b723cf961d3e",
+              "1469854523086-cc02fe5d8800",
+              "1503220317375-aaad61436b1b",
             ].map((id, i) => (
-              <div key={i} style={{ borderRadius: 12, overflow: "hidden", height: i % 3 === 0 ? 120 : i % 3 === 1 ? 145 : 110, flexShrink: 0 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=300&h=200&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              </div>
-            ))}
-            {[
-              "photo-1488085061387-422e29b40080",
-              "photo-1528360983277-13d401cdc186",
-              "photo-1537996194471-e657df975ab4",
-              "photo-1549144511-f099e773c147",
-              "photo-1476900966873-ab290e38e3f7",
-              "photo-1523906834658-6e24ef2386f9",
-              "photo-1542051841857-5f90071e7989",
-              "photo-1518684079-3c830dcef090",
-              "photo-1516483638261-f4dbaf036963",
-              "photo-1533105079780-92b9be482077",
-            ].map((id, i) => (
-              <div key={`b${i}`} style={{ borderRadius: 12, overflow: "hidden", height: i % 3 === 0 ? 120 : i % 3 === 1 ? 145 : 110, flexShrink: 0 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=300&h=200&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
+              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
+                <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
               </div>
             ))}
           </div>
