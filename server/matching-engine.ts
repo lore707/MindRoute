@@ -568,18 +568,29 @@ AFFILIATE LINKS — topAffiliateLinks (all relevant by region):
 - "viator_1" + "viator_2": Africa + NorthAmerica + Oceania
 - "undercovertourist": NorthAmerica ONLY if Orlando or Los Angeles
 - "tripadvisor": always
-"tablet_hotels": always — boutique and design hotels alternative to Hotels.com
-        "flixbus": Europe only — intercity bus between destinations
-        "samboat": Mediterranean + coastal Europe — boat/yacht rental
+- "tablet_hotels": always — boutique and design hotels alternative to Hotels.com
+- "flixbus": Europe only — when destination involves intercity ground travel
+- "samboat": Mediterranean + coastal Europe — coastal/island destinations only
 
 affiliateLinks inside each day:
 - "expedia_flights": Day 1 morning + last day afternoon
 - "hotels_hotel": Day 1 afternoon (check-in)
+- "expedia_cars": any day that involves car rental pickup — use for road trips and destinations requiring driving
+- "flixbus": any day involving intercity bus travel within Europe — e.g. day trip by bus, transfer between cities
+- "samboat": any day involving ferry, boat rental, or island hopping — Mediterranean and coastal Europe only
 - Activities morning/afternoon by region: civitatis_morning, civitatis_afternoon, musement_morning, musement_afternoon (Europe/Med), klook_morning, klook_afternoon (Asia/India), viator_morning, viator_afternoon (Africa/NorthAmerica/Oceania)
 - Places morning/afternoon: civitatis_place_morning, civitatis_place_afternoon (Europe/Med/LatAm), klook_place_morning, klook_place_afternoon (Asia/India), viator_place_morning, viator_place_afternoon (Africa/NorthAmerica/Oceania)
 - "tripadvisor_lunch": all regions, all lunch slots
 - "tripadvisor_evening": all regions, all evening slots
 - "tripadvisor_evening_fallback": all regions, fallback
+
+CONTEXTUAL LINK RULES — apply these based on what actually happens that day:
+- Day with ferry/boat crossing → add "samboat" in that slot (morning or afternoon)
+- Day with intercity bus in Europe → add "flixbus" in that slot
+- Day with car rental pickup → add "expedia_cars" in afternoon slot of pickup day
+- Day in theme park area (Orlando, LA) → add "undercovertourist" in morning slot
+- Never add flixbus for air travel or long-haul destinations
+- Never add samboat for landlocked destinations
 
 Do NOT use Google Maps links. Only monetizable affiliate links.
 
