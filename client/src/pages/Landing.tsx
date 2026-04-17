@@ -36,11 +36,12 @@ export default function Landing() {
   // Scroll effects stile Cartier
   const heroSectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroSectionRef, offset: ["start start", "end start"] });
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, -80]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
-  const mapScale = useTransform(scrollYProgress, [0, 1], [1, 1.18]);
-  const mapOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0.3]);
-  const heroYSpring = useSpring(heroY, { stiffness: 80, damping: 20 });
+const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
+  const heroBorderRadius = useTransform(scrollYProgress, [0, 0.5], [0, 24]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+  const heroScaleSpring = useSpring(heroScale, { stiffness: 60, damping: 18 });
+  const mapScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
+  const mapOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0.2]);
   const mapScaleSpring = useSpring(mapScale, { stiffness: 60, damping: 18 });
   return (
     <div style={{ background: "#080B12", color: "white", fontFamily: "'Georgia', serif", overflowX: "hidden", minHeight: "100vh" }}>
@@ -76,8 +77,9 @@ export default function Landing() {
 
       `}</style>
 
-      {/* ── HERO ──────────────────────────────────────────── */}
-<section ref={heroSectionRef} style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "clamp(80px, 10vh, 120px) 24px 60px", overflow: "hidden" }}>      <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 90% 70% at 50% -5%, rgba(233,69,96,0.20) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 15% 100%, rgba(100,50,180,0.08) 0%, transparent 55%), linear-gradient(180deg,#0e1018 0%,#080B12 60%)" }} />
+     {/* ── HERO ──────────────────────────────────────────── */}
+      <div ref={heroSectionRef} style={{ height: "200vh", position: "relative" }}>
+<motion.section style={{ position: "sticky", top: 0, minHeight: "100vh", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "clamp(80px, 10vh, 120px) 24px 60px", overflow: "hidden", scale: heroScaleSpring, borderRadius: heroBorderRadius, transformOrigin: "top center" }}>     <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 90% 70% at 50% -5%, rgba(233,69,96,0.20) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 15% 100%, rgba(100,50,180,0.08) 0%, transparent 55%), linear-gradient(180deg,#0e1018 0%,#080B12 60%)" }} />
 <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(233,69,96,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(233,69,96,0.04) 1px,transparent 1px)", backgroundSize:"60px 60px", WebkitMaskImage:"radial-gradient(ellipse 80% 60% at 50% 0%,black 0%,transparent 70%)", maskImage:"radial-gradient(ellipse 80% 60% at 50% 0%,black 0%,transparent 70%)" }} />
 <div style={{ position:"absolute", top:"18%", left:"50%", transform:"translateX(-50%)", width:340, height:340, borderRadius:"50%", background:"radial-gradient(circle, rgba(180,30,60,0.55) 0%, rgba(140,20,45,0.30) 30%, rgba(80,10,25,0.12) 60%, transparent 75%)", pointerEvents:"none", filter:"blur(18px)" }} />
         <div style={{ position:"absolute", top:"24%", left:"50%", transform:"translateX(-50%)", width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle, rgba(233,69,96,0.45) 0%, transparent 70%)", pointerEvents:"none", filter:"blur(8px)" }} />
@@ -94,7 +96,7 @@ export default function Landing() {
           <rect x="600" y="120" width="12" height="12" rx="1.5" stroke="rgba(233,69,96,0.12)" strokeWidth="1" fill="none"/>
           <rect x="380" y="540" width="8" height="8" rx="1" stroke="rgba(233,69,96,0.10)" strokeWidth="1" fill="none"/>
           <rect x="820" y="150" width="10" height="10" rx="1.5" stroke="rgba(233,69,96,0.10)" strokeWidth="1" fill="none"/>
-        </svg>        <div style={{ position:"absolute", top:"24%", left:"50%", transform:"translateX(-50%)", width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle, rgba(233,69,96,0.45) 0%, transparent 70%)", pointerEvents:"none", filter:"blur(8px)" }} />               <motion.div className="hero-section-inner" style={{ maxWidth: 960, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1, paddingTop: 20, y: heroYSpring, opacity: heroOpacity }}>
+        </svg>        <div style={{ position:"absolute", top:"24%", left:"50%", transform:"translateX(-50%)", width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle, rgba(233,69,96,0.45) 0%, transparent 70%)", pointerEvents:"none", filter:"blur(8px)" }} />             <motion.div className="hero-section-inner" style={{ maxWidth: 960, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1, paddingTop: 20, opacity: heroOpacity }}>
 
        {/* Logo premium 3D */}
           <div className="fadeup-1" style={{ marginBottom: 32 }}>
@@ -375,10 +377,10 @@ export default function Landing() {
             <path d="M12 5v14M5 12l7 7 7-7"/>
           </svg>
         </div>
-      </section>
+     </section>
+      </div>
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
-
       {/* ── COME FUNZIONA ───────────────────────────────── */}
 <motion.section ref={howRef} initial={{ scale: 0.96, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} viewport={{ once: true, margin: "-80px" }} style={{ padding: "100px 24px", position: "relative", background: "#0E1219", borderTop: "1px solid rgba(255,255,255,0.06)" }}>        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,120,255,0.05), transparent)" }} />
 
