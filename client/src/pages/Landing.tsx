@@ -16,6 +16,50 @@ const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
   </svg>
 );
 
+const MOSAIC_PHOTOS = [
+  "1476514525535-07fb3b4ae5f1","1507525428034-b723cf961d3e",
+  "1552465011-b4e21bf6e79a","1469854523086-cc02fe5d8800",
+  "1530521954074-e64f6810b32d","1476900966873-ab290e38e3f7",
+  "1523906834658-6e24ef2386f9","1516483638261-f4dbaf036963",
+  "1488085061387-422e29b40080","1528360983277-13d401cdc186",
+  "1537996194471-e657df975ab4","1549144511-f099e773c147",
+  "1542051841857-5f90071e7989","1518684079-3c830dcef090",
+  "1506905925346-21bda4d32df4","1539367628448-4bc5c9d171c8",
+  "1501854140801-50d01698950b","1503220317375-aaad61436b1b",
+  "1520250497591-112f2f40a3f4","1533105079780-92b9be482077",
+  "1476900966873-ab290e38e3f7","1508739773316-c4f8a61d7e8d",
+  "1530789253388-582c481ef5ca","1502602914056-a1a2b4c7e9df",
+];
+
+function MosaicCell({ delay }: { delay: number }) {
+  const [idx, setIdx] = useState(() => Math.floor(Math.random() * MOSAIC_PHOTOS.length));
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIdx(prev => {
+          let next = Math.floor(Math.random() * MOSAIC_PHOTOS.length);
+          while (next === prev) next = Math.floor(Math.random() * MOSAIC_PHOTOS.length);
+          return next;
+        });
+        setVisible(true);
+      }, 400);
+    }, 2500 + delay * 300);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <div style={{ flex: "1 1 0", minWidth: 60, maxWidth: 90, height: "100%", borderRadius: 8, overflow: "hidden", opacity: visible ? 0.6 : 0, transition: "opacity 0.4s ease", flexShrink: 0 }}>
+      <img
+        src={`https://images.unsplash.com/photo-${MOSAIC_PHOTOS[idx]}?w=120&h=160&fit=crop&auto=format`}
+        alt=""
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        loading="lazy"
+      />
+    </div>
+  );
+}
+
 export default function Landing() {
   const { t, lang } = useI18n();
   const [user, setUser] = React.useState<any>(null);
@@ -285,22 +329,15 @@ export default function Landing() {
             ))}
           </div>
         </div>
+<style>{`
+          @keyframes imgFadeIn { 0%{opacity:0;transform:scale(1.04)} 100%{opacity:1;transform:scale(1)} }
+          @media (max-width: 1200px) { .mosaic-bottom { display: none !important; } }
+        `}</style>
 
-        <div className="mosaic-col" style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 220, pointerEvents: "none", zIndex: 0 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 8px 8px 0", position: "absolute", top: 0, left: 0, right: 0 }}>
-            {["1488085061387-422e29b40080","1528360983277-13d401cdc186","1537996194471-e657df975ab4","1549144511-f099e773c147","1542051841857-5f90071e7989","1518684079-3c830dcef090"].map((id, i) => (
-              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 8px 8px 0", position: "absolute", bottom: 0, left: 0, right: 0 }}>
-            {["1506905925346-21bda4d32df4","1539367628448-4bc5c9d171c8","1476514525535-07fb3b4ae5f1","1507525428034-b723cf961d3e","1469854523086-cc02fe5d8800","1503220317375-aaad61436b1b"].map((id, i) => (
-              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              </div>
-            ))}
-          </div>
+        <div className="mosaic-bottom" style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 160, pointerEvents: "none", zIndex: 0, display: "flex", alignItems: "flex-end", gap: 4, padding: "0 8px 0 8px", overflow: "hidden" }}>
+          {Array.from({length: 18}).map((_, i) => (
+            <MosaicCell key={i} delay={i * 0.4} />
+          ))}
         </div>
 
         <div style={{ position: "absolute", bottom: 32, left: "50%",transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, opacity: 0.3 }}>
