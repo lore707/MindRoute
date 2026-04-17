@@ -377,8 +377,8 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
             <path d="M12 5v14M5 12l7 7 7-7"/>
           </svg>
         </div>
-     </section>
-      </div>
+     </motion.section>
+        </div>
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
       {/* ── COME FUNZIONA ───────────────────────────────── */}
