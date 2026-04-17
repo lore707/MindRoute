@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { MatchingDemo } from "./MatchingDemo";
 import { Link } from "wouter";
-import { motion, useInView, AnimatePresence } from "framer-motion";
+import { motion, useInView, AnimatePresence, useScroll, useTransform, useSpring } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
 
 const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
@@ -31,8 +31,17 @@ export default function Landing() {
     fetch("/api/auth/me").then(r => r.ok ? r.json() : null).then(setUser).catch(() => setUser(null));
   }, []);
 
-  const startHref = user ? "/profiling" : "/auth/google";
+ const startHref = user ? "/profiling" : "/auth/google";
 
+  // Scroll effects stile Cartier
+  const heroSectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: heroSectionRef, offset: ["start start", "end start"] });
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, -80]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+  const mapScale = useTransform(scrollYProgress, [0, 1], [1, 1.18]);
+  const mapOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0.3]);
+  const heroYSpring = useSpring(heroY, { stiffness: 80, damping: 20 });
+  const mapScaleSpring = useSpring(mapScale, { stiffness: 60, damping: 18 });
   return (
     <div style={{ background: "#080B12", color: "white", fontFamily: "'Georgia', serif", overflowX: "hidden", minHeight: "100vh" }}>
       <style>{`
@@ -68,8 +77,7 @@ export default function Landing() {
       `}</style>
 
       {/* ── HERO ──────────────────────────────────────────── */}
-            <section ref={heroRef} style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "clamp(80px, 10vh, 120px) 24px 60px", overflow: "hidden" }}>
-      <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 90% 70% at 50% -5%, rgba(233,69,96,0.20) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 15% 100%, rgba(100,50,180,0.08) 0%, transparent 55%), linear-gradient(180deg,#0e1018 0%,#080B12 60%)" }} />
+<section ref={heroSectionRef} style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "clamp(80px, 10vh, 120px) 24px 60px", overflow: "hidden" }}>      <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 90% 70% at 50% -5%, rgba(233,69,96,0.20) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 15% 100%, rgba(100,50,180,0.08) 0%, transparent 55%), linear-gradient(180deg,#0e1018 0%,#080B12 60%)" }} />
 <div style={{ position:"absolute", inset:0, backgroundImage:"linear-gradient(rgba(233,69,96,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(233,69,96,0.04) 1px,transparent 1px)", backgroundSize:"60px 60px", WebkitMaskImage:"radial-gradient(ellipse 80% 60% at 50% 0%,black 0%,transparent 70%)", maskImage:"radial-gradient(ellipse 80% 60% at 50% 0%,black 0%,transparent 70%)" }} />
 <div style={{ position:"absolute", top:"18%", left:"50%", transform:"translateX(-50%)", width:340, height:340, borderRadius:"50%", background:"radial-gradient(circle, rgba(180,30,60,0.55) 0%, rgba(140,20,45,0.30) 30%, rgba(80,10,25,0.12) 60%, transparent 75%)", pointerEvents:"none", filter:"blur(18px)" }} />
         <div style={{ position:"absolute", top:"24%", left:"50%", transform:"translateX(-50%)", width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle, rgba(233,69,96,0.45) 0%, transparent 70%)", pointerEvents:"none", filter:"blur(8px)" }} />
@@ -86,7 +94,7 @@ export default function Landing() {
           <rect x="600" y="120" width="12" height="12" rx="1.5" stroke="rgba(233,69,96,0.12)" strokeWidth="1" fill="none"/>
           <rect x="380" y="540" width="8" height="8" rx="1" stroke="rgba(233,69,96,0.10)" strokeWidth="1" fill="none"/>
           <rect x="820" y="150" width="10" height="10" rx="1.5" stroke="rgba(233,69,96,0.10)" strokeWidth="1" fill="none"/>
-        </svg>        <div style={{ position:"absolute", top:"24%", left:"50%", transform:"translateX(-50%)", width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle, rgba(233,69,96,0.45) 0%, transparent 70%)", pointerEvents:"none", filter:"blur(8px)" }} />                <div className="hero-section-inner" style={{ maxWidth: 960, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1, paddingTop: 20 }}>
+        </svg>        <div style={{ position:"absolute", top:"24%", left:"50%", transform:"translateX(-50%)", width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle, rgba(233,69,96,0.45) 0%, transparent 70%)", pointerEvents:"none", filter:"blur(8px)" }} />               <motion.div className="hero-section-inner" style={{ maxWidth: 960, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1, paddingTop: 20, y: heroYSpring, opacity: heroOpacity }}>
 
        {/* Logo premium 3D */}
           <div className="fadeup-1" style={{ marginBottom: 32 }}>
@@ -218,7 +226,7 @@ export default function Landing() {
           <h1 className="fadeup-2 hero-h1" style={{ fontSize: "clamp(36px, 7vw, 80px)", lineHeight: 1.05, letterSpacing: "-2.5px", fontWeight: 400, marginBottom: 28, maxWidth: 860, margin: "0 auto 28px" }}>
             {lang === "it" ? (
               <>
-                <span style={{ fontStyle: "normal", color: "white" }}>Il viaggio parte da </span><em style={{ fontStyle: "italic", color: "#E94560" }}>chi sei.</em>
+                <span style={{ fontStyle: "normal", color: "white" }}>Il viaggio inizia da </span><em style={{ fontStyle: "italic", color: "#E94560" }}>chi sei.</em>
               </>
             ) : (
               <>
@@ -263,25 +271,98 @@ export default function Landing() {
               </div>
             ))}
           </div>
-        </div>
-{/* ── MOSAICO ANGOLI ── */}
+       </motion.div>
+{/* ── MAPPA MONDO + TICKER ── */}
         <style>{`
-          @media (max-width: 1200px) { .mosaic-col { display: none !important; } }
+          @keyframes tickerScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+          @keyframes ringOut { 0% { opacity: 0.7; } 100% { opacity: 0; } }
         `}</style>
 
-        <div className="mosaic-col" style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 220, pointerEvents: "none", zIndex: 0 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 0 8px 8px", position: "absolute", top: 0, left: 0, right: 0 }}>
-            {["1476514525535-07fb3b4ae5f1","1507525428034-b723cf961d3e","1552465011-b4e21bf6e79a","1469854523086-cc02fe5d8800","1530521954074-e64f6810b32d","1476900966873-ab290e38e3f7"].map((id, i) => (
-              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, padding: "8px 0 8px 8px", position: "absolute", bottom: 0, left: 0, right: 0 }}>
-            {["1523906834658-6e24ef2386f9","1516483638261-f4dbaf036963","1533105079780-92b9be482077","1501854140801-50d01698950b","1503220317375-aaad61436b1b","1520250497591-112f2f40a3f4"].map((id, i) => (
-              <div key={i} style={{ borderRadius: 10, overflow: "hidden", height: i === 0 || i === 5 ? 130 : 100, opacity: 0.55 }}>
-                <img src={`https://images.unsplash.com/photo-${id}?w=200&h=160&fit=crop&auto=format`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} loading="lazy" />
-              </div>
+        {/* Mappa SVG inline */}
+     <motion.div style={{ position: "absolute", bottom: "-8%", left: "50%", x: "-50%", width: "105%", pointerEvents: "none", zIndex: 1, scale: mapScaleSpring, opacity: mapOpacity }}>
+          <svg viewBox="0 0 2000 1000" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", display: "block" }}>
+            <defs>
+              <radialGradient id="ocean" cx="50%" cy="50%" r="70%">
+                <stop offset="0%" stopColor="rgba(20,40,120,0.18)"/>
+                <stop offset="100%" stopColor="rgba(10,20,60,0.05)"/>
+              </radialGradient>
+            </defs>
+            <rect width="2000" height="1000" fill="url(#ocean)"/>
+            <g stroke="rgba(255,255,255,0.04)" strokeWidth="0.5">
+              <line x1="0" y1="250" x2="2000" y2="250"/><line x1="0" y1="500" x2="2000" y2="500"/>
+              <line x1="0" y1="750" x2="2000" y2="750"/><line x1="500" y1="0" x2="500" y2="1000"/>
+              <line x1="1000" y1="0" x2="1000" y2="1000"/><line x1="1500" y1="0" x2="1500" y2="1000"/>
+            </g>
+            {/* Nord America */}
+            <path d="M155,140 L225,110 L310,108 L385,118 L430,138 L450,168 L448,205 L420,238 L390,262 L355,275 L318,270 L280,255 L248,232 L218,205 L192,175 L162,155 Z" fill="rgba(233,69,96,0.13)" stroke="rgba(233,69,96,0.42)" strokeWidth="1.2"/>
+            <path d="M310,270 L318,292 L312,315 L302,308 L298,285 Z" fill="rgba(233,69,96,0.10)" stroke="rgba(233,69,96,0.35)" strokeWidth="0.8"/>
+            <path d="M248,275 L285,270 L308,285 L318,310 L308,335 L288,348 L265,342 L248,322 L238,300 Z" fill="rgba(233,69,96,0.12)" stroke="rgba(233,69,96,0.38)" strokeWidth="1"/>
+            {/* Sud America */}
+            <path d="M275,360 L328,348 L368,360 L392,392 L400,440 L395,495 L378,545 L348,585 L318,605 L288,598 L262,572 L248,535 L242,488 L245,438 L255,395 Z" fill="rgba(233,69,96,0.13)" stroke="rgba(233,69,96,0.42)" strokeWidth="1.2"/>
+            {/* Groenlandia */}
+            <path d="M488,52 L535,38 L575,42 L598,62 L592,88 L562,105 L528,108 L498,95 L485,72 Z" fill="rgba(233,69,96,0.09)" stroke="rgba(233,69,96,0.28)" strokeWidth="0.8"/>
+            {/* Islanda */}
+            <path d="M618,118 L648,108 L672,115 L675,135 L655,148 L628,142 Z" fill="rgba(233,69,96,0.11)" stroke="rgba(233,69,96,0.35)" strokeWidth="0.9"/>
+            {/* UK */}
+            <path d="M658,178 L672,165 L688,170 L690,192 L675,205 L658,198 Z" fill="rgba(233,69,96,0.12)" stroke="rgba(233,69,96,0.38)" strokeWidth="1"/>
+            {/* Scandinavia */}
+            <path d="M712,108 L728,88 L748,82 L765,92 L768,118 L752,138 L732,142 L715,130 Z" fill="rgba(233,69,96,0.12)" stroke="rgba(233,69,96,0.38)" strokeWidth="1"/>
+            {/* Europa Occidentale */}
+            <path d="M688,180 L738,168 L778,172 L802,188 L808,212 L795,235 L768,248 L738,245 L712,230 L692,210 Z" fill="rgba(233,69,96,0.14)" stroke="rgba(233,69,96,0.45)" strokeWidth="1.2"/>
+            <path d="M672,225 L712,218 L738,225 L742,250 L728,268 L698,272 L672,260 L660,242 Z" fill="rgba(233,69,96,0.13)" stroke="rgba(233,69,96,0.42)" strokeWidth="1.1"/>
+            <path d="M762,238 L778,228 L792,235 L795,252 L788,275 L778,295 L762,310 L750,298 L748,275 L752,252 Z" fill="rgba(233,69,96,0.12)" stroke="rgba(233,69,96,0.38)" strokeWidth="1"/>
+            {/* Europa Orientale */}
+            <path d="M808,178 L862,168 L908,175 L928,198 L922,225 L900,242 L868,248 L838,240 L812,222 Z" fill="rgba(233,69,96,0.12)" stroke="rgba(233,69,96,0.38)" strokeWidth="1"/>
+            {/* Russia */}
+            <path d="M812,95 L945,72 L1115,68 L1268,75 L1362,88 L1378,112 L1345,132 L1268,142 L1178,145 L1088,142 L988,138 L898,135 L832,128 Z" fill="rgba(233,69,96,0.10)" stroke="rgba(233,69,96,0.32)" strokeWidth="1"/>
+            {/* Turchia */}
+            <path d="M908,248 L968,238 L1018,242 L1042,258 L1038,278 L1015,288 L968,288 L935,278 L912,265 Z" fill="rgba(233,69,96,0.12)" stroke="rgba(233,69,96,0.38)" strokeWidth="1"/>
+            {/* Medio Oriente */}
+            <path d="M942,288 L988,278 L1025,285 L1048,308 L1052,338 L1035,358 L1005,365 L975,355 L952,332 L942,308 Z" fill="rgba(233,69,96,0.12)" stroke="rgba(233,69,96,0.38)" strokeWidth="1"/>
+            {/* Africa */}
+            <path d="M718,308 L778,295 L838,302 L882,325 L908,368 L918,425 L915,488 L898,548 L868,598 L828,635 L788,648 L748,638 L712,608 L688,565 L675,515 L672,458 L678,402 L692,355 Z" fill="rgba(233,69,96,0.14)" stroke="rgba(233,69,96,0.45)" strokeWidth="1.3"/>
+            {/* India */}
+            <path d="M1052,305 L1098,295 L1138,302 L1158,328 L1162,368 L1148,412 L1122,448 L1092,462 L1062,452 L1042,418 L1038,375 L1042,335 Z" fill="rgba(233,69,96,0.13)" stroke="rgba(233,69,96,0.42)" strokeWidth="1.2"/>
+            {/* Cina */}
+            <path d="M1148,168 L1238,158 L1308,162 L1355,182 L1368,215 L1358,252 L1328,275 L1285,285 L1238,282 L1195,268 L1162,245 L1148,215 Z" fill="rgba(233,69,96,0.13)" stroke="rgba(233,69,96,0.42)" strokeWidth="1.2"/>
+            {/* Giappone */}
+            <path d="M1375,188 L1392,172 L1408,180 L1412,208 L1398,228 L1378,225 Z" fill="rgba(233,69,96,0.12)" stroke="rgba(233,69,96,0.38)" strokeWidth="1"/>
+            {/* Sud-est Asia */}
+            <path d="M1245,295 L1288,285 L1318,298 L1322,325 L1305,342 L1272,348 L1248,335 Z" fill="rgba(233,69,96,0.12)" stroke="rgba(233,69,96,0.38)" strokeWidth="1"/>
+            <path d="M1252,368 L1295,358 L1335,362 L1345,378 L1322,392 L1285,395 L1252,382 Z" fill="rgba(233,69,96,0.11)" stroke="rgba(233,69,96,0.35)" strokeWidth="0.9"/>
+            {/* Australia */}
+            <path d="M1378,468 L1465,448 L1548,455 L1598,482 L1615,528 L1612,582 L1588,628 L1548,655 L1498,668 L1445,658 L1398,628 L1368,585 L1355,532 L1358,482 Z" fill="rgba(233,69,96,0.13)" stroke="rgba(233,69,96,0.42)" strokeWidth="1.2"/>
+
+            {/* PIN — Parigi */}
+            <g><circle cx="748" cy="218" r="5" fill="#E94560" opacity="0.95"/><circle cx="748" cy="218" r="5" fill="none" stroke="#E94560" strokeWidth="1.2" opacity="0.7"><animate attributeName="r" values="5;22" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.7;0" dur="2.2s" repeatCount="indefinite"/></circle><text x="756" y="212" fontSize="14" fill="rgba(255,255,255,0.75)" fontFamily="system-ui" fontWeight="500">Parigi</text></g>
+            {/* PIN — Tokyo */}
+            <g><circle cx="1392" cy="205" r="5" fill="#E94560" opacity="0.95"/><circle cx="1392" cy="205" r="5" fill="none" stroke="#E94560" strokeWidth="1.2" opacity="0.7"><animate attributeName="r" values="5;22" dur="2.5s" repeatCount="indefinite" begin="0.4s"/><animate attributeName="opacity" values="0.7;0" dur="2.5s" repeatCount="indefinite" begin="0.4s"/></circle><text x="1400" y="199" fontSize="14" fill="rgba(255,255,255,0.75)" fontFamily="system-ui" fontWeight="500">Tokyo</text></g>
+            {/* PIN — New York */}
+            <g><circle cx="322" cy="228" r="5" fill="#E94560" opacity="0.95"/><circle cx="322" cy="228" r="5" fill="none" stroke="#E94560" strokeWidth="1.2" opacity="0.7"><animate attributeName="r" values="5;22" dur="2.3s" repeatCount="indefinite" begin="0.8s"/><animate attributeName="opacity" values="0.7;0" dur="2.3s" repeatCount="indefinite" begin="0.8s"/></circle><text x="330" y="222" fontSize="14" fill="rgba(255,255,255,0.75)" fontFamily="system-ui" fontWeight="500">New York</text></g>
+            {/* PIN — Bali */}
+            <g><circle cx="1305" cy="375" r="5" fill="#E94560" opacity="0.95"/><circle cx="1305" cy="375" r="5" fill="none" stroke="#E94560" strokeWidth="1.2" opacity="0.7"><animate attributeName="r" values="5;22" dur="2.4s" repeatCount="indefinite" begin="1.2s"/><animate attributeName="opacity" values="0.7;0" dur="2.4s" repeatCount="indefinite" begin="1.2s"/></circle><text x="1313" y="369" fontSize="14" fill="rgba(255,255,255,0.75)" fontFamily="system-ui" fontWeight="500">Bali</text></g>
+            {/* PIN — Marrakech */}
+            <g><circle cx="692" cy="355" r="5" fill="#E94560" opacity="0.95"/><circle cx="692" cy="355" r="5" fill="none" stroke="#E94560" strokeWidth="1.2" opacity="0.7"><animate attributeName="r" values="5;22" dur="2.6s" repeatCount="indefinite" begin="1.6s"/><animate attributeName="opacity" values="0.7;0" dur="2.6s" repeatCount="indefinite" begin="1.6s"/></circle><text x="700" y="349" fontSize="14" fill="rgba(255,255,255,0.75)" fontFamily="system-ui" fontWeight="500">Marrakech</text></g>
+            {/* PIN — Sydney */}
+            <g><circle cx="1502" cy="548" r="5" fill="#E94560" opacity="0.95"/><circle cx="1502" cy="548" r="5" fill="none" stroke="#E94560" strokeWidth="1.2" opacity="0.7"><animate attributeName="r" values="5;22" dur="2.4s" repeatCount="indefinite" begin="0.6s"/><animate attributeName="opacity" values="0.7;0" dur="2.4s" repeatCount="indefinite" begin="0.6s"/></circle><text x="1510" y="542" fontSize="14" fill="rgba(255,255,255,0.75)" fontFamily="system-ui" fontWeight="500">Sydney</text></g>
+            {/* PIN — Buenos Aires */}
+            <g><circle cx="310" cy="498" r="5" fill="#E94560" opacity="0.95"/><circle cx="310" cy="498" r="5" fill="none" stroke="#E94560" strokeWidth="1.2" opacity="0.7"><animate attributeName="r" values="5;22" dur="2.2s" repeatCount="indefinite" begin="2.0s"/><animate attributeName="opacity" values="0.7;0" dur="2.2s" repeatCount="indefinite" begin="2.0s"/></circle><text x="318" y="492" fontSize="14" fill="rgba(255,255,255,0.75)" fontFamily="system-ui" fontWeight="500">Buenos Aires</text></g>
+            {/* PIN — Nairobi */}
+            <g><circle cx="858" cy="422" r="5" fill="#E94560" opacity="0.95"/><circle cx="858" cy="422" r="5" fill="none" stroke="#E94560" strokeWidth="1.2" opacity="0.7"><animate attributeName="r" values="5;22" dur="2.7s" repeatCount="indefinite" begin="1.4s"/><animate attributeName="opacity" values="0.7;0" dur="2.7s" repeatCount="indefinite" begin="1.4s"/></circle><text x="866" y="416" fontSize="14" fill="rgba(255,255,255,0.75)" fontFamily="system-ui" fontWeight="500">Nairobi</text></g>
+          </svg>
+          {/* Gradiente che fonde la mappa nello sfondo */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "55%", background: "linear-gradient(to top, #080B12 0%, transparent 100%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(to bottom, #080B12 0%, transparent 100%)", pointerEvents: "none" }} />
+        </motion.div>
+
+        {/* Ticker città */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 32, overflow: "hidden", zIndex: 4, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <div style={{ display: "flex", whiteSpace: "nowrap", animation: "tickerScroll 32s linear infinite", height: "100%", alignItems: "center" }}>
+            {["Kyoto","Santorini","Marrakech","Patagonia","Lisbona","Bali","Reykjavik","Tokyo","Amalfi","Oaxaca","Dubrovnik","Zanzibar","Barcellona","Petra","Kyoto","Santorini","Marrakech","Patagonia","Lisbona","Bali","Reykjavik","Tokyo","Amalfi","Oaxaca","Dubrovnik","Zanzibar","Barcellona","Petra"].map((city, i) => (
+              <React.Fragment key={i}>
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.18)", letterSpacing: "3px", textTransform: "uppercase", padding: "0 16px", flexShrink: 0, fontFamily: "system-ui" }}>{city}</span>
+                <span style={{ color: "rgba(233,69,96,0.3)", fontSize: 9 }}>·</span>
+              </React.Fragment>
             ))}
           </div>
         </div>
@@ -299,8 +380,7 @@ export default function Landing() {
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
       {/* ── COME FUNZIONA ───────────────────────────────── */}
-      <section ref={howRef} style={{ padding: "100px 24px", position: "relative", background: "#0E1219", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,120,255,0.05), transparent)" }} />
+<motion.section ref={howRef} initial={{ scale: 0.96, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} viewport={{ once: true, margin: "-80px" }} style={{ padding: "100px 24px", position: "relative", background: "#0E1219", borderTop: "1px solid rgba(255,255,255,0.06)" }}>        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,120,255,0.05), transparent)" }} />
 
         <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative" }}>
           {/* Header */}
@@ -380,12 +460,12 @@ export default function Landing() {
             </p>
           </motion.div>
         </div>
-      </section>
+      </motion.section>
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
-      {/* ── DIFFERENZA ───────────────────────────────────── */}
-      <section ref={diffRef} style={{ padding: "100px 24px", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+      {/* ── DIFFERENZA
+      <section ref={diffRef<motion.section ref={diffRef} initial={{ scale: 0.96, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} viewport={{ once: true, margin: "-80px" }} style={{ padding: "100px 24px", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}> style={{ padding: "100px 24px", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 90% 50%, rgba(233,69,96,0.05), transparent)" }} />
 
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative" }}>
