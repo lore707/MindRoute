@@ -336,8 +336,14 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
-      {/* ── COME FUNZIONA
-<motion.section ref={howRef} initial={{ scale: 0.96, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} viewport={{ once: true, margin: "-80px" }} style={{ padding: "100px 24px", position: "relative", background: "#0E1219", borderTop: "1px solid rgba(255,255,255,0.06)" }}>        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,120,255,0.05), transparent)" }} />
+   {/* ── COME FUNZIONA ───────────────────────────────── */}
+      <div style={{ height: "150vh", position: "relative" }}>
+      <motion.section ref={howRef} style={{ position: "sticky", top: 0, minHeight: "100vh", padding: "100px 24px", background: "#0E1219", borderTop: "1px solid rgba(255,255,255,0.06)", overflow: "hidden" }}
+        initial={{ scale: 0.88, borderRadius: 24, opacity: 0 }}
+        whileInView={{ scale: 1, borderRadius: 0, opacity: 1 }}
+        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        viewport={{ once: false, margin: "-10%" }}
+      >
 
         <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative" }}>
           {/* Header */}
@@ -417,12 +423,18 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
             </p>
           </motion.div>
         </div>
-      </motion.section>
+     </motion.section>
+      </div>
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
-{/* ── DIFFERENZA ───────────────────────────────────── */}
-      <motion.section ref={diffRef} initial={{ scale: 0.96, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }} viewport={{ once: true, margin: "-80px" }} style={{ padding: "100px 24px", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 90% 50%, rgba(233,69,96,0.05), transparent)" }} />
+      {/* ── DIFFERENZA ───────────────────────────────────── */}
+<div style={{ height: "150vh", position: "relative" }}>
+      <motion.section ref={diffRef} style={{ position: "sticky", top: 0, minHeight: "100vh", padding: "100px 24px", background: "#080B12", borderTop: "1px solid rgba(255,255,255,0.05)", overflow: "hidden" }}
+        initial={{ scale: 0.88, borderRadius: 24, opacity: 0 }}
+        whileInView={{ scale: 1, borderRadius: 0, opacity: 1 }}
+        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        viewport={{ once: false, margin: "-10%" }}
+      >        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 90% 50%, rgba(233,69,96,0.05), transparent)" }} />
 
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative" }}>
           <div className="diff-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px,1fr))", gap: 64, alignItems: "start" }}>
@@ -494,11 +506,12 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
             </motion.div>
           </div>
         </div>
-    </motion.section>
+  </motion.section>
+    </div>
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
-      {/* ── CTA FINALE───────────────────────────────────── */}
+      {/* ── CTA FINALE ───────────────────────────────────── */}
       <section ref={ctaRef} style={{ padding: "100px 24px 80px", textAlign: "center", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(233,69,96,0.08), transparent)" }} />
 
