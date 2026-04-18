@@ -1,8 +1,17 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import rateLimit from "express-rate-limit";
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+
+const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minuti
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Troppi tentativi, riprova tra 15 minuti." },
+});
 
 export function setupAuth(app: any) {
   passport.use(
@@ -43,7 +52,7 @@ export function setupAuth(app: any) {
     }
   });
 
-app.get("/auth/google", (req: any, res: any, next: any) => {
+app.get("/auth/google", authRateLimit, (req: any, res: any, next: any) => {
     const returnTo = (req.query.returnTo as string) || "/";
     req.session.returnTo = returnTo;
     passport.authenticate("google", {
@@ -70,7 +79,7 @@ app.get("/auth/google", (req: any, res: any, next: any) => {
     }
   );
 
-  app.get("/auth/logout", (req: any, res: any) => {
+  app.get("/auth/logout", authRateLimit, (req: any, res: any) => {
     req.logout(() => {
       res.redirect("/");
     });
