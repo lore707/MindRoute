@@ -107,6 +107,11 @@ export default function Landing() {
         .step-card:hover { border-color: rgba(233,69,96,0.35) !important; transform: translateY(-2px); }
         .live-dot { animation: livePulse 1.5s ease-in-out infinite; }
         @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes heroGlow { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.1);opacity:1} }
+        @keyframes heroOrbit { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        @keyframes heroFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        @keyframes heroSpin { 0%{transform:translateY(0) rotate(0deg) scale(1)} 25%{transform:translateY(-4px) rotate(180deg) scale(0.88)} 60%{transform:translateY(0) rotate(370deg) scale(1.06)} 80%{transform:translateY(0) rotate(355deg) scale(1.02)} 100%{transform:translateY(0) rotate(360deg) scale(1)} }
+        @keyframes heroBeam { 0%{left:-100%;opacity:0} 10%{opacity:1} 40%{left:160%;opacity:0} 100%{left:160%;opacity:0} }
         @media (max-width: 768px) {
           .steps-grid { grid-template-columns: 1fr !important; }
           .diff-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
@@ -198,14 +203,6 @@ export default function Landing() {
                   }, 850);
                 }}
               >
-                <style>{`
-                  @keyframes heroGlow { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.1);opacity:1} }
-                  @keyframes heroOrbit { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-                  @keyframes heroFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-                  @keyframes heroSpin { 0%{transform:translateY(0) rotate(0deg) scale(1)} 25%{transform:translateY(-4px) rotate(180deg) scale(0.88)} 60%{transform:translateY(0) rotate(370deg) scale(1.06)} 80%{transform:translateY(0) rotate(355deg) scale(1.02)} 100%{transform:translateY(0) rotate(360deg) scale(1)} }
-                  @keyframes heroBeam { 0%{left:-100%;opacity:0} 10%{opacity:1} 40%{left:160%;opacity:0} 100%{left:160%;opacity:0} }
-                `}</style>
-
                 {/* Glow anelli */}
                 <div style={{ position:"absolute", inset:-30, borderRadius:"50%", background:"radial-gradient(circle,rgba(233,69,96,0.28) 0%,transparent 70%)", animation:"heroGlow 3.5s ease-in-out infinite", pointerEvents:"none" }} />
                 <div style={{ position:"absolute", inset:-55, borderRadius:"50%", background:"radial-gradient(circle,rgba(233,69,96,0.10) 0%,transparent 60%)", animation:"heroGlow 3.5s ease-in-out infinite 0.7s", pointerEvents:"none" }} />
@@ -296,12 +293,12 @@ export default function Landing() {
               {lang === "it" ? "Scopri il tuo viaggio" : "Discover your trip"}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </a>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 50, padding: "10px 18px 10px 10px" }}>
-              <div style={{ display: "flex" }}>
-                {["S","M","A"].map(l => <div key={l} style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg,#F48B9A,#E94560)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "white", marginLeft: l === "S" ? 0 : -8, border: "2px solid #080B12", fontFamily: "system-ui" }}>{l}</div>)}
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 50, padding: "10px 20px" }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(233,69,96,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               <span style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", fontFamily: "system-ui, sans-serif" }}>
-                {lang === "it" ? "\"Sembra scritto per me.\"" : "\"It feels written for me.\""}
+                {displayCount > 0
+                  ? (lang === "it" ? `${displayCount.toLocaleString("it-IT")} itinerari generati` : `${displayCount.toLocaleString("en-US")} itineraries generated`)
+                  : (lang === "it" ? "Migliaia di itinerari generati" : "Thousands of itineraries generated")}
               </span>
             </div>
           </div>
@@ -409,13 +406,13 @@ export default function Landing() {
           {/* 3 step — verticali su mobile */}
           <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 48 }}>
             {(lang === "it" ? [
-              { n: "01", title: "Racconta chi sei", desc: "7 domande che uniscono come sei, come stai e le tue esigenze di viaggio, per costruire qualcosa che abbia davvero senso per te.", icon: "💬" },
-            { n: "02", title: "Scopri il tuo posto", desc: "Tre destinazioni costruite su di te: una sicura, una inaspettata, una nel mezzo. Ognuna spiegata, perché ti somiglia, non perché è popolare.", icon: "🗺" },
-              { n: "03", title: "Ottieni il tuo piano", desc: "Un itinerario già pronto, con tutto organizzato, prenotazioni a portata di click e la libertà di modificarlo quando vuoi.", icon: "📍" },
+              { n: "01", title: "Racconta chi sei", desc: "7 domande che uniscono come sei, come stai e le tue esigenze di viaggio, per costruire qualcosa che abbia davvero senso per te.", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
+              { n: "02", title: "Scopri il tuo posto", desc: "Tre destinazioni costruite su di te: una sicura, una inaspettata, una nel mezzo. Ognuna spiegata, perché ti somiglia, non perché è popolare.", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
+              { n: "03", title: "Ottieni il tuo piano", desc: "Un itinerario già pronto, con tutto organizzato, prenotazioni a portata di click e la libertà di modificarlo quando vuoi.", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> },
             ] : [
-              { n: "01", title: "Tell us who you are", desc: "7 questions that combine who you are, how you feel and what you need from a trip — to build something that actually makes sense for you.", icon: "💬" },
-              { n: "02", title: "Discover your place", desc: "Three destinations built around you: one safe, one unexpected, one in between. Each explained — because it fits you, not because it's trending.", icon: "🗺" },
-              { n: "03", title: "Get your plan", desc: "A ready-made itinerary with everything organized, bookings one click away and the freedom to change it whenever you want.", icon: "📍" },
+              { n: "01", title: "Tell us who you are", desc: "7 questions that combine who you are, how you feel and what you need from a trip — to build something that actually makes sense for you.", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
+              { n: "02", title: "Discover your place", desc: "Three destinations built around you: one safe, one unexpected, one in between. Each explained — because it fits you, not because it's trending.", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
+              { n: "03", title: "Get your plan", desc: "A ready-made itinerary with everything organized, bookings one click away and the freedom to change it whenever you want.", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> },
             ]).map((step, i) => (
               <motion.div key={step.n}
                 initial={{ opacity: 0, y: 16 }}
@@ -423,7 +420,7 @@ export default function Landing() {
                 transition={{ delay: i * 0.12, duration: 0.6 }}
                 className="step-card"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 16, padding: "24px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
-                <div style={{ flexShrink: 0, width: 42, height: 42, borderRadius: 10, background: "rgba(233,69,96,0.12)", border: "1px solid rgba(233,69,96,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{step.icon}</div>
+                <div style={{ flexShrink: 0, width: 42, height: 42, borderRadius: 10, background: "rgba(233,69,96,0.12)", border: "1px solid rgba(233,69,96,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>{step.icon}</div>
                 <div>
                   <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "system-ui", letterSpacing: "1px", marginBottom: 5 }}>{step.n}</div>
                   <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 7, letterSpacing: -0.3, color: "white" }}>{step.title}</div>
@@ -435,8 +432,14 @@ export default function Landing() {
 
           {/* Trust badges */}
           <motion.div initial={{ opacity: 0 }} animate={howInView ? { opacity: 1 } : {}} transition={{ delay: 0.4 }} style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 56 }}>
-            {(lang === "it" ? ["🔒 100% privato", "⚡ ~3 minuti", "✨ Gratis"] : ["🔒 100% private", "⚡ ~3 minutes", "✨ Free"]).map(b => (
-              <span key={b} style={{ fontSize: 12, padding: "5px 12px", borderRadius: 20, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.65)", fontFamily: "system-ui" }}>{b}</span>
+            {[
+              { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>, label: lang === "it" ? "100% privato" : "100% private" },
+              { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>, label: lang === "it" ? "~3 minuti" : "~3 minutes" },
+              { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>, label: lang === "it" ? "Gratis" : "Free" },
+            ].map(b => (
+              <span key={b.label} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "5px 12px", borderRadius: 20, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.65)", fontFamily: "system-ui" }}>
+                {b.icon}{b.label}
+              </span>
             ))}
           </motion.div>
 
@@ -475,6 +478,59 @@ export default function Landing() {
         </div>
      </motion.section>
       </div>
+
+      <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
+
+      {/* ── SOCIAL PROOF ─────────────────────────────────── */}
+      <section style={{ padding: "100px 24px", background: "#080B12", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 100%, rgba(233,69,96,0.05), transparent)", pointerEvents: "none" }} />
+        <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative" }}>
+          <div style={{ textAlign: "center", marginBottom: 64 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", color: "#E94560", marginBottom: 14, fontFamily: "system-ui" }}>
+              {lang === "it" ? "Chi lo usa" : "Who uses it"}
+            </p>
+            <h2 style={{ fontSize: "clamp(26px, 4vw, 42px)", fontWeight: 400, letterSpacing: -1.5, lineHeight: 1.08, color: "white", maxWidth: 500, margin: "0 auto" }}>
+              {lang === "it" ? <>Persone reali,<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>viaggi che ricordano.</em></> : <>Real people,<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>trips they remember.</em></>}
+            </h2>
+          </div>
+
+          {/* Quote cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 72 }}>
+            {(lang === "it" ? [
+              { quote: "Ho risposto a 7 domande e mi ha dato una destinazione che non avevo mai considerato. Era esattamente quello di cui avevo bisogno.", author: "Sara T.", tag: "Viaggiatrice solitaria" },
+              { quote: "Finalmente un tool che non mi chiede dove voglio andare, ma capisce come mi sento. L'itinerario era pronto in meno di 3 minuti.", author: "Marco R.", tag: "Coppia in viaggio" },
+              { quote: "Non mi aspettavo un piano così dettagliato. Prenotazioni già integrate, tutto in un posto solo.", author: "Alessia V.", tag: "Famiglia con figli" },
+            ] : [
+              { quote: "I answered 7 questions and it gave me a destination I'd never considered. It was exactly what I needed.", author: "Sara T.", tag: "Solo traveler" },
+              { quote: "Finally a tool that doesn't ask where I want to go, but understands how I feel. The itinerary was ready in under 3 minutes.", author: "Marco R.", tag: "Couple" },
+              { quote: "I didn't expect such a detailed plan. Bookings already integrated, everything in one place.", author: "Alessia V.", tag: "Family" },
+            ]).map((item, i) => (
+              <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "28px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+                <svg width="20" height="14" viewBox="0 0 20 14" fill="none"><path d="M0 14V8.4C0 3.733 2.533 1.067 7.6 0l1 1.6C5.467 2.4 4 4.133 3.8 6.8H7V14H0zm11 0V8.4C11 3.733 13.533 1.067 18.6 0l1 1.6c-3.133.8-4.6 2.533-4.8 5.2H18V14h-7z" fill="rgba(233,69,96,0.4)"/></svg>
+                <p style={{ fontSize: 14, color: "rgba(255,255,255,0.80)", lineHeight: 1.75, fontFamily: "system-ui", fontWeight: 300, flex: 1 }}>{item.quote}</p>
+                <div>
+                  <div style={{ fontSize: 13, color: "white", fontFamily: "system-ui", fontWeight: 500 }}>{item.author}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: "system-ui", marginTop: 2, letterSpacing: "0.3px" }}>{item.tag}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Stat bar */}
+          <div style={{ display: "flex", justifyContent: "center", gap: "clamp(32px, 6vw, 80px)", flexWrap: "wrap", borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 48 }}>
+            {[
+              { val: displayCount > 0 ? displayCount.toLocaleString("it-IT") : "—", label: lang === "it" ? "Itinerari generati" : "Itineraries generated" },
+              { val: "9", label: lang === "it" ? "Destinazioni sul globo" : "Destinations on the globe" },
+              { val: "~3'", label: lang === "it" ? "Tempo medio" : "Average time" },
+            ].map(s => (
+              <div key={s.label} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 300, letterSpacing: -1.5, color: "white", fontFamily: "Georgia, serif", lineHeight: 1 }}>{s.val}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.40)", marginTop: 6, fontFamily: "system-ui", letterSpacing: "0.5px" }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
       {/* ── DIFFERENZA ───────────────────────────────────── */}
@@ -537,7 +593,7 @@ export default function Landing() {
                   ["Hours across different sites", "Everything in one place"],
                 ]).map(([left, right], i) => (
                   <div key={i} className="diff-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid rgba(255,255,255,0.06)", transition: "background 0.2s" }}>
-                    <div style={{ padding: "13px 18px", fontSize: 13, color: "rgba(255,255,255,0.35)", lineHeight: 1.5, fontFamily: "system-ui", borderRight: "1px solid rgba(255,255,255,0.05)" }}>{left}</div>
+                    <div style={{ padding: "13px 18px", fontSize: 13, color: "rgba(255,255,255,0.62)", lineHeight: 1.5, fontFamily: "system-ui", borderRight: "1px solid rgba(255,255,255,0.05)", textDecoration: "line-through", textDecorationColor: "rgba(255,255,255,0.18)" }}>{left}</div>
                     <div style={{ padding: "13px 18px", fontSize: 13, color: "white", lineHeight: 1.5, fontFamily: "system-ui", fontWeight: 500, background: "rgba(233,69,96,0.05)" }}>{right}</div>
                   </div>
                 ))}
@@ -572,14 +628,17 @@ export default function Landing() {
               <>Stop forcing the destination.<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>Start listening to yourself.</em></>
             )}
           </h2>
-          <p style={{ fontSize: 16, color: "rgba(255,255,255,0.65)", marginBottom: 36, fontFamily: "system-ui, sans-serif", fontWeight: 300, lineHeight: 1.7 }}>
+          <p style={{ fontSize: 16, color: "rgba(255,255,255,0.65)", marginBottom: 12, fontFamily: "system-ui, sans-serif", fontWeight: 300, lineHeight: 1.7 }}>
             {lang === "it"
-              ? "Rispondi a poche domande e lascia che il posto giusto venga verso di te."
-              : "Answer a few questions and let the right place come to you."}
+              ? "Rispondi a 7 domande. Ricevi destinazione, itinerario e prenotazioni — in meno di 3 minuti."
+              : "Answer 7 questions. Get your destination, itinerary and bookings — in under 3 minutes."}
+          </p>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.35)", marginBottom: 36, fontFamily: "system-ui", letterSpacing: "0.3px" }}>
+            {lang === "it" ? "Gratuito. Nessun account richiesto per iniziare." : "Free. No account required to start."}
           </p>
           <a href={startHref} className="cta-btn" data-testid="link-start-profiling"
-            style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "#E94560", color: "white", fontSize: 15, fontWeight: 600, padding: "16px 36px", borderRadius: 50, boxShadow: "0 12px 36px rgba(233,69,96,0.25)", textDecoration: "none", fontFamily: "system-ui, sans-serif" }}>
-            {lang === "it" ? "Scopri il tuo viaggio" : "Discover your trip"}
+            style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "white", color: "#080B12", fontSize: 15, fontWeight: 700, padding: "16px 36px", borderRadius: 50, boxShadow: "0 12px 40px rgba(255,255,255,0.12)", textDecoration: "none", fontFamily: "system-ui, sans-serif", letterSpacing: "-0.2px" }}>
+            {lang === "it" ? "Inizia ora — è gratis" : "Start now — it's free"}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
         </motion.div>
@@ -612,10 +671,13 @@ export default function Landing() {
             </div>
             <div>
               <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", fontFamily: "system-ui", marginBottom: 12 }}>Social</p>
-              {[{ label: "Instagram", icon: "◎" }, { label: "TikTok", icon: "◈" }].map(s => (
+              {[
+                { label: "Instagram", href: "https://instagram.com/mindroute.travel", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg> },
+                { label: "TikTok", href: "https://tiktok.com/@mindroute.travel", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg> },
+              ].map(s => (
                 <div key={s.label} style={{ marginBottom: 8 }}>
-                  <a href="#" style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", textDecoration: "none", fontFamily: "system-ui", display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ fontSize: 11 }}>{s.icon}</span>{s.label}
+                  <a href={s.href} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", textDecoration: "none", fontFamily: "system-ui", display: "flex", alignItems: "center", gap: 7 }}>
+                    {s.icon}{s.label}
                   </a>
                 </div>
               ))}
