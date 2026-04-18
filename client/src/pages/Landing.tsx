@@ -20,6 +20,8 @@ const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
 export default function Landing() {
   const { t, lang } = useI18n();
   const [user, setUser] = React.useState<any>(null);
+  const [itineraryCount, setItineraryCount] = useState(0);
+  const [displayCount, setDisplayCount] = useState(0);
   const heroRef = useRef(null);
   const howRef = useRef(null);
   const diffRef = useRef(null);
@@ -32,18 +34,59 @@ export default function Landing() {
     fetch("/api/auth/me").then(r => r.ok ? r.json() : null).then(setUser).catch(() => setUser(null));
   }, []);
 
- const startHref = user ? "/profiling" : "/auth/google";
+  // Stats counter
+  useEffect(() => {
+    const fetchStats = () => {
+      fetch("/api/stats")
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.itineraryCount != null) setItineraryCount(data.itineraryCount); })
+        .catch(() => {});
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Scroll effects stile Cartier
+  useEffect(() => {
+    if (itineraryCount === 0) return;
+    const end = itineraryCount;
+    const duration = 2200;
+    const startTime = performance.now();
+    const startVal = displayCount;
+    const tick = (now: number) => {
+      const p = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplayCount(Math.floor(startVal + (end - startVal) * eased));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [itineraryCount]);
+
+  const startHref = user ? "/profiling" : "/auth/google";
+
+  // Hero scroll (Cartier)
   const heroSectionRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroSectionRef, offset: ["start start", "end start"] });
-const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
+  const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
   const heroBorderRadius = useTransform(scrollYProgress, [0, 0.5], [0, 24]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
   const heroScaleSpring = useSpring(heroScale, { stiffness: 60, damping: 18 });
-  const mapScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
-  const mapOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0.2]);
-  const mapScaleSpring = useSpring(mapScale, { stiffness: 60, damping: 18 });
+
+  // Sezioni successive — scroll-linked (Cartier entry)
+  const mapContainerRef = useRef(null);
+  const howContainerRef = useRef(null);
+  const diffContainerRef = useRef(null);
+
+  const { scrollYProgress: mapProgress } = useScroll({ target: mapContainerRef, offset: ["start end", "start start"] });
+  const { scrollYProgress: howProgress } = useScroll({ target: howContainerRef, offset: ["start end", "start start"] });
+  const { scrollYProgress: diffProgress } = useScroll({ target: diffContainerRef, offset: ["start end", "start start"] });
+
+  const mapSectionScale = useSpring(useTransform(mapProgress, [0, 1], [0.88, 1]), { stiffness: 60, damping: 18 });
+  const mapSectionRadius = useTransform(mapProgress, [0, 0.85], [24, 0]);
+  const howSectionScale = useSpring(useTransform(howProgress, [0, 1], [0.88, 1]), { stiffness: 60, damping: 18 });
+  const howSectionRadius = useTransform(howProgress, [0, 0.85], [24, 0]);
+  const diffSectionScale = useSpring(useTransform(diffProgress, [0, 1], [0.88, 1]), { stiffness: 60, damping: 18 });
+  const diffSectionRadius = useTransform(diffProgress, [0, 0.85], [24, 0]);
   return (
     <div style={{ background: "#080B12", color: "white", fontFamily: "'Georgia', serif", overflowX: "hidden", minHeight: "100vh" }}>
       <style>{`
@@ -63,6 +106,7 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
         .step-card { transition: all 0.25s ease; }
         .step-card:hover { border-color: rgba(233,69,96,0.35) !important; transform: translateY(-2px); }
         .live-dot { animation: livePulse 1.5s ease-in-out infinite; }
+        @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
         @media (max-width: 768px) {
           .steps-grid { grid-template-columns: 1fr !important; }
           .diff-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
@@ -279,7 +323,7 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
       </div>
 
    {/* ── SEZIONE MAPPA ── */}
-      <div style={{ height: "150vh", position: "relative" }}>
+      <div ref={mapContainerRef} style={{ height: "150vh", position: "relative", background: "#080B12" }}>
         <motion.section
           style={{
             position: "sticky", top: 0,
@@ -288,11 +332,10 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
             display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             overflow: "hidden",
+            scale: mapSectionScale,
+            borderRadius: mapSectionRadius,
+            transformOrigin: "center",
           }}
-          initial={{ scale: 0.88, borderRadius: 24, opacity: 0 }}
-          whileInView={{ scale: 1, borderRadius: 0, opacity: 1 }}
-          transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
-          viewport={{ once: false, margin: "-10%" }}
         >
           {/* Oceano */}
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(15,30,80,0.4) 0%, transparent 70%)" }} />
@@ -311,13 +354,24 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "4px", textTransform: "uppercase", color: "rgba(233,69,96,0.6)", fontFamily: "system-ui", marginBottom: 12 }}>
               {lang === "it" ? "Ovunque nel mondo" : "Anywhere in the world"}
             </p>
-            <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(28px, 4vw, 52px)", fontWeight: 400, color: "white", letterSpacing: -1.5, lineHeight: 1.1 }}>
+            <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(28px, 4vw, 52px)", fontWeight: 400, color: "white", letterSpacing: -1.5, lineHeight: 1.1, marginBottom: 28 }}>
               {lang === "it" ? (
                 <>Il tuo prossimo viaggio<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>ti sta aspettando.</em></>
               ) : (
                 <>Your next trip<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>is waiting for you.</em></>
               )}
             </h2>
+
+            {/* Live counter */}
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(6,8,16,0.60)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(233,69,96,0.22)", borderRadius: 50, padding: "12px 24px" }}>
+              <span className="live-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "#E94560", display: "inline-block", flexShrink: 0 }} />
+              <span style={{ fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 300, color: "white", fontFamily: "Georgia, serif", letterSpacing: -1, lineHeight: 1 }}>
+                {displayCount > 0 ? displayCount.toLocaleString("it-IT") : "···"}
+              </span>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.50)", fontFamily: "system-ui", letterSpacing: "0.3px" }}>
+                {lang === "it" ? "itinerari generati" : "itineraries generated"}
+              </span>
+            </div>
           </div>
 
           {/* Ticker partner */}
@@ -337,12 +391,8 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
    {/* ── COME FUNZIONA ───────────────────────────────── */}
-      <div style={{ height: "150vh", position: "relative" }}>
-      <motion.section ref={howRef} style={{ position: "sticky", top: 0, minHeight: "100vh", padding: "100px 24px", background: "#0E1219", borderTop: "1px solid rgba(255,255,255,0.06)", overflow: "hidden" }}
-        initial={{ scale: 0.88, borderRadius: 24, opacity: 0 }}
-        whileInView={{ scale: 1, borderRadius: 0, opacity: 1 }}
-        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
-        viewport={{ once: false, margin: "-10%" }}
+      <div ref={howContainerRef} style={{ height: "150vh", position: "relative", background: "#060810" }}>
+      <motion.section ref={howRef} style={{ position: "sticky", top: 0, minHeight: "100vh", padding: "100px 24px", background: "#0E1219", borderTop: "1px solid rgba(255,255,255,0.06)", overflow: "hidden", scale: howSectionScale, borderRadius: howSectionRadius, transformOrigin: "center" }}
       >
 
         <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative" }}>
@@ -428,12 +478,8 @@ const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
 
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
       {/* ── DIFFERENZA ───────────────────────────────────── */}
-<div style={{ height: "150vh", position: "relative" }}>
-      <motion.section ref={diffRef} style={{ position: "sticky", top: 0, minHeight: "100vh", padding: "100px 24px", background: "#080B12", borderTop: "1px solid rgba(255,255,255,0.05)", overflow: "hidden" }}
-        initial={{ scale: 0.88, borderRadius: 24, opacity: 0 }}
-        whileInView={{ scale: 1, borderRadius: 0, opacity: 1 }}
-        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
-        viewport={{ once: false, margin: "-10%" }}
+<div ref={diffContainerRef} style={{ height: "150vh", position: "relative", background: "#0E1219" }}>
+      <motion.section ref={diffRef} style={{ position: "sticky", top: 0, minHeight: "100vh", padding: "100px 24px", background: "#080B12", borderTop: "1px solid rgba(255,255,255,0.05)", overflow: "hidden", scale: diffSectionScale, borderRadius: diffSectionRadius, transformOrigin: "center" }}
       >        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 90% 50%, rgba(233,69,96,0.05), transparent)" }} />
 
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative" }}>

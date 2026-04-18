@@ -842,5 +842,17 @@ app.patch("/api/itinerary/:id/edit", async (req, res) => {
     }
   });
 
+  app.get("/api/stats", async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { itineraries } = await import("@shared/schema");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.select({ count: sql<number>`count(*)::int` }).from(itineraries);
+      res.json({ itineraryCount: result[0]?.count ?? 0 });
+    } catch {
+      res.json({ itineraryCount: 0 });
+    }
+  });
+
   return httpServer;
 }
