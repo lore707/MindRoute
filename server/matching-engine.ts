@@ -1,6 +1,20 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
+export const BUDGET_MAP: Record<string, string> = {
+  "low":                        "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
+  "medium":                     "between €500 and €1,500 per person all included — budget hotels or riads €40-80/night per person, mix of local restaurants €10-25/meal, some paid experiences",
+  "high":                       "between €1,500 and €3,000 per person all included — boutique hotels €100-150/night, good restaurants €30-60/meal, premium experiences",
+  "unlimited":                  "unlimited budget, aim for luxury and quality in every choice",
+  "Meno di €500":               "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
+  "€500 – €1.500":              "between €500 and €1,500 per person all included — budget hotels or riads €40-80/night per person, mix of local restaurants €10-25/meal, some paid experiences",
+  "€500 – €1.500 ":             "between €500 and €1,500 per person all included — budget hotels or riads €40-80/night per person, mix of local restaurants €10-25/meal, some paid experiences",
+  "€1.500 – €3.000":            "between €1,500 and €3,000 per person all included — boutique hotels €100-150/night, good restaurants €30-60/meal, premium experiences",
+  "I soldi non sono un problema": "unlimited budget, aim for luxury and quality in every choice",
+  "Under €500":                 "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
+  "Money's not an issue":       "unlimited budget, aim for luxury and quality in every choice",
+};
+
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
@@ -66,7 +80,13 @@ function parseModelResponse(responseText: string) {
     .replace(/```json\n?/g, "")
     .replace(/```\n?/g, "")
     .trim();
-  return generatedResponseSchema.parse(JSON.parse(cleanJson));
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleanJson);
+  } catch {
+    throw new Error(`Model returned invalid JSON: ${cleanJson.slice(0, 200)}`);
+  }
+  return generatedResponseSchema.parse(parsed);
 }
 
 function buildCheckinCheckout(leaveDate: string, days: number): {
@@ -126,20 +146,7 @@ function buildPrompt(input: ProfilingInput): string {
   const days = Math.min(input.days, 14);
   const travelStyle = input.travelStyle || "not specified";
 
-  const budgetMap: Record<string, string> = {
-    "low": "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
-    "medium": "between €500 and €1,500 per person all included — budget hotels or riads €40-80/night per person, mix of local restaurants €10-25/meal, some paid experiences",
-    "high": "between €1,500 and €3,000 per person all included — boutique hotels €100-150/night, good restaurants €30-60/meal, premium experiences",
-    "unlimited": "unlimited budget, aim for luxury and quality in every choice",
-    "Meno di €500": "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
-    "€500 – €1.500": "between €500 and €1,500 per person all included — budget hotels or riads €40-80/night per person, mix of local restaurants €10-25/meal, some paid experiences",
-    "€1.500 – €3.000": "between €1,500 and €3,000 per person all included — boutique hotels €100-150/night, good restaurants €30-60/meal, premium experiences",
-    "I soldi non sono un problema": "unlimited budget, aim for luxury and quality in every choice",
-    "Under €500": "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
-    "€500 – €1.500 ": "between €500 and €1,500 per person all included — budget hotels or riads €40-80/night per person, mix of local restaurants €10-25/meal, some paid experiences",
-    "Money's not an issue": "unlimited budget, aim for luxury and quality in every choice",
-  };
-  const budgetText = budgetMap[input.budget] || `budget: ${input.budget}`;
+  const budgetText = BUDGET_MAP[input.budget] || `budget: ${input.budget}`;
 
   const period = input.leaveDate || "2025-06-15";
   const { checkin, checkout, checkinCompact, checkoutCompact } =
@@ -718,19 +725,7 @@ export async function generateDestinationsOnly(input: ProfilingInput): Promise<G
     ? "Path B (user already has a destination area in mind)"
     : "Path A (open to surprises)";
 
-  const budgetMap: Record<string, string> = {
-    "low": "maximum €500 per person all included",
-    "medium": "between €500 and €1,500 per person all included",
-    "high": "between €1,500 and €3,000 per person all included",
-    "unlimited": "unlimited budget",
-    "Meno di €500": "maximum €500 per person all included",
-    "€500 – €1.500": "between €500 and €1,500 per person all included",
-    "€1.500 – €3.000": "between €1,500 and €3,000 per person all included",
-    "I soldi non sono un problema": "unlimited budget",
-    "Under €500": "maximum €500 per person all included",
-    "Money's not an issue": "unlimited budget",
-  };
-  const budgetText = budgetMap[input.budget] || `budget: ${input.budget}`;
+  const budgetText = BUDGET_MAP[input.budget] || `budget: ${input.budget}`;
 
   const prompt = `You are the engine of MindRoute, a psychological travel profiling platform. Your task is to generate exactly 3 destinations that are deeply, precisely matched to this specific human being.
 
