@@ -10,13 +10,18 @@ const app = express();
 app.set("trust proxy", 1);
 const httpServer = createServer(app);
 const PgSession = connectPgSimple(session);
+
+if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET environment variable is required in production");
+}
+
 app.use(session({
   store: new PgSession({
     conString: process.env.DATABASE_URL,
     tableName: "session",
     createTableIfMissing: true,
   }),
-  secret: process.env.SESSION_SECRET || "fallback_secret",
+  secret: process.env.SESSION_SECRET || "dev_only_secret_not_for_production",
   resave: false,
   saveUninitialized: false,
  cookie: { 
