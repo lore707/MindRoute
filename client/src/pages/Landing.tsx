@@ -3,7 +3,7 @@ import { MatchingDemo } from "./MatchingDemo";
 import { Link } from "wouter";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
-import WorldMap from "@/components/WorldMap";
+import WorldMap, { DESTINATIONS } from "@/components/WorldMap";
 
 const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -22,6 +22,7 @@ export default function Landing() {
   const [user, setUser] = React.useState<any>(null);
   const [itineraryCount, setItineraryCount] = useState(0);
   const [displayCount, setDisplayCount] = useState(0);
+  const [liveNote, setLiveNote] = useState<{ flag: string; city: string } | null>(null);
   const heroRef = useRef(null);
   const howRef = useRef(null);
   const diffRef = useRef(null);
@@ -61,6 +62,21 @@ export default function Landing() {
     };
     requestAnimationFrame(tick);
   }, [itineraryCount]);
+
+  // Live notification per sezione mappa
+  useEffect(() => {
+    const shuffled = [...DESTINATIONS].sort(() => Math.random() - 0.5);
+    let idx = 0;
+    const show = () => {
+      const dest = shuffled[idx % shuffled.length];
+      idx++;
+      setLiveNote({ flag: dest.flag, city: lang === "it" ? dest.name : dest.nameEn });
+      setTimeout(() => setLiveNote(null), 2800);
+    };
+    const first = setTimeout(show, 2200);
+    const interval = setInterval(show, 5000);
+    return () => { clearTimeout(first); clearInterval(interval); };
+  }, [lang]);
 
   const startHref = user ? "/profiling" : "/auth/google";
 
@@ -326,19 +342,11 @@ export default function Landing() {
 
           {/* Label centrale */}
           <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "4px", textTransform: "uppercase", color: "rgba(233,69,96,0.6)", fontFamily: "system-ui", marginBottom: 12 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "4px", textTransform: "uppercase", color: "rgba(233,69,96,0.6)", fontFamily: "system-ui", marginBottom: 20 }}>
               {lang === "it" ? "Ovunque nel mondo" : "Anywhere in the world"}
             </p>
-            <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(28px, 4vw, 52px)", fontWeight: 400, color: "white", letterSpacing: -1.5, lineHeight: 1.1, marginBottom: 28 }}>
-              {lang === "it" ? (
-                <>Il tuo prossimo viaggio<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>ti sta aspettando.</em></>
-              ) : (
-                <>Your next trip<br /><em style={{ color: "#E94560", fontStyle: "italic" }}>is waiting for you.</em></>
-              )}
-            </h2>
-
             {/* Live counter */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(6,8,16,0.60)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", border: "1px solid rgba(233,69,96,0.22)", borderRadius: 50, padding: "12px 24px" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 12, background: "rgba(6,8,16,0.65)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(233,69,96,0.22)", borderRadius: 50, padding: "12px 28px" }}>
               <span className="live-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "#E94560", display: "inline-block", flexShrink: 0 }} />
               <span style={{ fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 300, color: "white", fontFamily: "Georgia, serif", letterSpacing: -1, lineHeight: 1 }}>
                 {displayCount > 0 ? displayCount.toLocaleString("it-IT") : "···"}
@@ -349,14 +357,79 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Ticker partner */}
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 36, overflow: "hidden", borderTop: "1px solid rgba(255,255,255,0.05)", zIndex: 3 }}>
-            <div style={{ display: "flex", whiteSpace: "nowrap", animation: "tickerScroll 28s linear infinite", height: "100%", alignItems: "center" }}>
-              {["Booking.com","Expedia","GetYourGuide","Klook","Viator","Civitatis","TripAdvisor","FlixBus","SamBoat","Musement","Booking.com","Expedia","GetYourGuide","Klook","Viator","Civitatis","TripAdvisor","FlixBus","SamBoat","Musement"].map((p, i) => (
-                <React.Fragment key={i}>
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: "2px", textTransform: "uppercase", padding: "0 20px", flexShrink: 0, fontFamily: "system-ui" }}>{p}</span>
-                  <span style={{ color: "rgba(233,69,96,0.3)", fontSize: 10 }}>·</span>
-                </React.Fragment>
+          {/* Live notification toast */}
+          <AnimatePresence mode="wait">
+            {liveNote && (
+              <motion.div
+                key={liveNote.city}
+                initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                style={{
+                  position: "absolute",
+                  bottom: 52, right: 28,
+                  background: "rgba(6,8,16,0.82)",
+                  backdropFilter: "blur(18px)",
+                  WebkitBackdropFilter: "blur(18px)",
+                  border: "1px solid rgba(233,69,96,0.22)",
+                  borderRadius: 14,
+                  padding: "11px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  zIndex: 10,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(233,69,96,0.1) inset",
+                  pointerEvents: "none",
+                }}
+              >
+                <span style={{ fontSize: 22, lineHeight: 1 }}>{liveNote.flag}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "white", fontFamily: "system-ui", letterSpacing: "-0.2px", lineHeight: 1.2 }}>
+                    {liveNote.city}
+                  </div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontFamily: "system-ui", marginTop: 2, letterSpacing: "0.1px" }}>
+                    {lang === "it" ? "itinerario generato ora" : "itinerary just generated"}
+                  </div>
+                </div>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", boxShadow: "0 0 6px rgba(74,222,128,0.7)", flexShrink: 0 }} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Ticker partner con loghi Clearbit */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 44, overflow: "hidden", borderTop: "1px solid rgba(255,255,255,0.05)", zIndex: 3, background: "rgba(6,8,16,0.4)" }}>
+            <div style={{ display: "flex", whiteSpace: "nowrap", animation: "tickerScroll 32s linear infinite", height: "100%", alignItems: "center" }}>
+              {[
+                { name: "Booking.com",    domain: "booking.com" },
+                { name: "Expedia",        domain: "expedia.com" },
+                { name: "GetYourGuide",   domain: "getyourguide.com" },
+                { name: "Klook",          domain: "klook.com" },
+                { name: "Viator",         domain: "viator.com" },
+                { name: "TripAdvisor",    domain: "tripadvisor.com" },
+                { name: "FlixBus",        domain: "flixbus.com" },
+                { name: "Civitatis",      domain: "civitatis.com" },
+                { name: "Musement",       domain: "musement.com" },
+                // duplicated for seamless loop
+                { name: "Booking.com",    domain: "booking.com" },
+                { name: "Expedia",        domain: "expedia.com" },
+                { name: "GetYourGuide",   domain: "getyourguide.com" },
+                { name: "Klook",          domain: "klook.com" },
+                { name: "Viator",         domain: "viator.com" },
+                { name: "TripAdvisor",    domain: "tripadvisor.com" },
+                { name: "FlixBus",        domain: "flixbus.com" },
+                { name: "Civitatis",      domain: "civitatis.com" },
+                { name: "Musement",       domain: "musement.com" },
+              ].map((p, i) => (
+                <div key={i} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "0 24px", flexShrink: 0 }}>
+                  <img
+                    src={`https://logo.clearbit.com/${p.domain}`}
+                    alt={p.name}
+                    style={{ width: 16, height: 16, borderRadius: 3, objectFit: "contain", opacity: 0.45, filter: "grayscale(1) brightness(2)" }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.28)", letterSpacing: "1.5px", textTransform: "uppercase", fontFamily: "system-ui", fontWeight: 500 }}>{p.name}</span>
+                </div>
               ))}
             </div>
           </div>
