@@ -85,8 +85,7 @@ export default function Landing() {
   const howContainerRef = useRef(null);
   const diffContainerRef = useRef(null);
   return (
-    <div style={{ background: "#080B12", color: "white", fontFamily: "'Georgia', serif", overflowX: "hidden", minHeight: "100vh" }}>
-      <style>{`
+<div style={{ color: "white", fontFamily: "'Georgia', serif", overflowX: "hidden", minHeight: "100vh" }}>      <style>{`
       @keyframes heroMesh { 0%,100%{opacity:0.015} 50%{opacity:0.03} }
         @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
