@@ -92,7 +92,9 @@ export function BackgroundLayers() {
   const starsRef = useRef<HTMLDivElement>(null);
 
   const isLanding = location === "/";
-  const density = isLanding ? SECTION_DENSITY[variant] : STAR_DENSITY[mode];
+  const isTouchDevice = typeof window !== "undefined" && window.matchMedia("(hover: none)").matches;
+  const rawDensity = isLanding ? SECTION_DENSITY[variant] : STAR_DENSITY[mode];
+  const density = isTouchDevice ? rawDensity * 0.6 : rawDensity; // -40% stelle su mobile
   const showAurora = isLanding ? SECTION_AURORA[variant] : SHOW_AURORA[mode];
 
   // rigenera stelle quando cambia il mode (densità diversa)
@@ -120,10 +122,11 @@ export function BackgroundLayers() {
     return all;
   }, [density]);
 
-  // parallax al mouse
+  // parallax al mouse — solo su device con hover (no touch/mobile)
   useEffect(() => {
     if (density === 0 || !starsRef.current) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(hover: none)").matches) return; // skip touch devices
 
     let raf = 0;
     let mx = 0, my = 0, tx = 0, ty = 0;

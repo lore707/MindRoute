@@ -142,8 +142,8 @@ export default function Landing() {
           .diff-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
           .output-strip { flex-direction: column !important; gap: 16px !important; }
           .hero-h1 { font-size: clamp(36px, 9vw, 72px) !important; }
-          .diff-table { font-size: 11px !important; }
-          .diff-table-cell { padding: 10px 10px !important; }
+          .diff-table { font-size: 13px !important; }
+          .diff-table-cell { padding: 12px 12px !important; }
         }
         @media (max-width: 480px) {
           .hero-stats { flex-direction: column !important; gap: 16px !important; align-items: center !important; }

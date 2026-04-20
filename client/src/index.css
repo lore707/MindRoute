@@ -290,8 +290,8 @@
 }
 .mr-aurora-blob {
   position: absolute;
-  width: 45vmax;
-  height: 45vmax;
+  width: min(45vmax, 700px);
+  height: min(45vmax, 700px);
   border-radius: 50%;
   mix-blend-mode: screen;
   will-change: transform;
