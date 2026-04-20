@@ -326,9 +326,6 @@ export default function Landing() {
             <WorldMap />
           </div>
 
-          {/* Gradiente fade bordi */}
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, #060810 0%, transparent 15%, transparent 85%, #060810 100%)", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, #060810 0%, transparent 8%, transparent 92%, #060810 100%)", pointerEvents: "none" }} />
 
           {/* Label centrale */}
           <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
