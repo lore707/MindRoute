@@ -85,7 +85,7 @@ export default function Landing() {
   const howContainerRef = useRef(null);
   const diffContainerRef = useRef(null);
   return (
-<div style={{ color: "white", fontFamily: "'Georgia', serif", overflowX: "hidden", minHeight: "100vh" }}>      <style>{`
+<div className="landing-transparent-bg" style={{ color: "white", fontFamily: "'Georgia', serif", overflowX: "hidden", minHeight: "100vh" }}>     <style>{`
       @keyframes heroMesh { 0%,100%{opacity:0.015} 50%{opacity:0.03} }
         @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
@@ -444,8 +444,7 @@ export default function Landing() {
 
    {/* ── COME FUNZIONA ───────────────────────────────── */}
       <div ref={howContainerRef}>
-      <motion.section ref={howRef} style={{ padding: "100px 24px", background: "#0E1219", borderTop: "1px solid rgba(255,255,255,0.06)", overflow: "hidden" }}
-      >
+<motion.section ref={howRef} style={{ padding: "100px 24px", background: "transparent", borderTop: "1px solid rgba(255,255,255,0.06)", overflow: "hidden" }}      >
 
         <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative" }}>
           {/* Header */}
@@ -537,8 +536,7 @@ export default function Landing() {
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
       {/* ── SOCIAL PROOF ─────────────────────────────────── */}
-      <section style={{ padding: "100px 24px", background: "#080B12", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 100%, rgba(233,69,96,0.05), transparent)", pointerEvents: "none" }} />
+<section style={{ padding: "100px 24px", background: "transparent", position: "relative", overflow: "hidden" }}>        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 100%, rgba(233,69,96,0.05), transparent)", pointerEvents: "none" }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative" }}>
           <div style={{ textAlign: "center", marginBottom: 64 }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", color: "#E94560", marginBottom: 14, fontFamily: "system-ui" }}>
@@ -590,8 +588,7 @@ export default function Landing() {
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
       {/* ── DIFFERENZA ───────────────────────────────────── */}
 <div ref={diffContainerRef}>
-      <motion.section ref={diffRef} style={{ padding: "100px 24px", background: "#080B12", borderTop: "1px solid rgba(255,255,255,0.05)", overflow: "hidden" }}
-      >        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 90% 50%, rgba(233,69,96,0.05), transparent)" }} />
+<motion.section ref={diffRef} style={{ padding: "100px 24px", background: "transparent", borderTop: "1px solid rgba(255,255,255,0.05)", overflow: "hidden" }}      >        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 90% 50%, rgba(233,69,96,0.05), transparent)" }} />
 
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative" }}>
           <div className="diff-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px,1fr))", gap: 64, alignItems: "start" }}>
@@ -700,8 +697,7 @@ export default function Landing() {
       </section>
 
       {/* ── FOOTER ───────────────────────────────────────── */}
-      <footer style={{ background: "#050709", borderTop: "1px solid rgba(255,255,255,0.05)", padding: "48px 24px 32px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+<footer style={{ background: "rgba(5,7,9,0.85)", borderTop: "1px solid rgba(255,255,255,0.05)", padding: "48px 24px 32px" }}>        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 32, marginBottom: 40 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
