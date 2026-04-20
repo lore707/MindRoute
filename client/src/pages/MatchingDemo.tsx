@@ -186,10 +186,8 @@ export function MatchingDemo() {
   return (
 <div style={{ background: "#111827", borderRadius: 20, border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden", fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "0 auto" }}>
      <div style={{ display: "grid", gridTemplateColumns: "1fr 1px 1fr", minHeight: 560 }} className="matching-demo-grid">
-
     {/* LEFT — chips */}
-        <div style={{ padding: "24px 20px", display: "flex", flexDirection: "column", gap: 0, background: "#131B27" }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.22)", marginBottom: 20 }}>
+<div style={{ padding: "clamp(14px, 3vw, 24px) clamp(12px, 3vw, 20px)", display: "flex", flexDirection: "column", gap: 0, background: "#131B27" }}>          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.22)", marginBottom: 20 }}>
             {lang === "it" ? "Le tue risposte" : "Your answers"}
           </div>
 
@@ -226,8 +224,7 @@ export function MatchingDemo() {
         <div className="matching-demo-divider" style={{ background: "rgba(255,255,255,0.08)" }} />
 
    {/* RIGHT — result */}
-        <div style={{ padding: "24px 20px", display: "flex", flexDirection: "column", justifyContent: "center", background: "#0E1520" }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.22)", marginBottom: 16, opacity: showResult ? 1 : 0, transition: "opacity 0.5s ease" }}>
+<div style={{ padding: "clamp(14px, 3vw, 24px) clamp(12px, 3vw, 20px)", display: "flex", flexDirection: "column", justifyContent: "center", background: "#0E1520" }}>          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", color: "rgba(255,255,255,0.22)", marginBottom: 16, opacity: showResult ? 1 : 0, transition: "opacity 0.5s ease" }}>
             {lang === "it" ? "Il tuo match psicologico" : "Your psychological match"}
           </div>
 
@@ -278,6 +275,7 @@ export function MatchingDemo() {
 
  <style>{`
         @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+     @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
         @media (max-width: 640px) {
           .matching-demo-grid {
             grid-template-columns: 1fr !important;
@@ -285,6 +283,12 @@ export function MatchingDemo() {
           .matching-demo-divider {
             display: none !important;
           }
+          .matching-demo-grid > div:first-child {
+            max-height: 280px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+        }
         }
       `}</style>
     </div>
