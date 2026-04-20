@@ -38,7 +38,7 @@ function AuthButton() {
   }
 
   return (
-    
+    <a
       href={`/auth/google?returnTo=${encodeURIComponent(currentPath)}`}
       className="flex items-center gap-1.5 text-[12px] font-medium transition-colors"
       style={{ color: "#E94560" }}
