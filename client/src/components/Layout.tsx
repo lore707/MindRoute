@@ -4,7 +4,7 @@ import { Compass } from "lucide-react";
 import LangDropdown from "@/components/LangDropdown";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/components/ThemeProvider";
-
+import { BackgroundLayers } from "@/components/BackgroundLayers";
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
 
@@ -126,7 +126,7 @@ const { theme } = useTheme();
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="min-h-screen"
+          className="min-h-screen"relative z-10
         >
           {children}
         </motion.main>
