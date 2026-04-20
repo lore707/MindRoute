@@ -109,11 +109,16 @@ export default function Landing() {
         @keyframes heroFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
         @keyframes heroSpin { 0%{transform:translateY(0) rotate(0deg) scale(1)} 25%{transform:translateY(-4px) rotate(180deg) scale(0.88)} 60%{transform:translateY(0) rotate(370deg) scale(1.06)} 80%{transform:translateY(0) rotate(355deg) scale(1.02)} 100%{transform:translateY(0) rotate(360deg) scale(1)} }
         @keyframes heroBeam { 0%{left:-100%;opacity:0} 10%{opacity:1} 40%{left:160%;opacity:0} 100%{left:160%;opacity:0} }
-        @media (max-width: 768px) {
+      @media (max-width: 768px) {
           .steps-grid { grid-template-columns: 1fr !important; }
           .diff-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
           .output-strip { flex-direction: column !important; gap: 16px !important; }
           .hero-h1 { font-size: clamp(36px, 9vw, 72px) !important; }
+          .diff-table { font-size: 11px !important; }
+          .diff-table-cell { padding: 10px 10px !important; }
+        }
+        @media (max-width: 480px) {
+          .hero-stats { flex-direction: column !important; gap: 16px !important; align-items: center !important; }
         }
                 @media (max-width: 1024px) {
           .hero-section-inner { padding-top: 20px !important; }
@@ -644,9 +649,9 @@ export default function Landing() {
                   ["Manual organization", "Trip already ready"],
                   ["Hours across different sites", "Everything in one place"],
                 ]).map(([left, right], i) => (
-                  <div key={i} className="diff-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid rgba(255,255,255,0.06)", transition: "background 0.2s" }}>
-                    <div style={{ padding: "13px 18px", fontSize: 13, color: "rgba(255,255,255,0.62)", lineHeight: 1.5, fontFamily: "system-ui", borderRight: "1px solid rgba(255,255,255,0.05)", textDecoration: "line-through", textDecorationColor: "rgba(255,255,255,0.18)" }}>{left}</div>
-                    <div style={{ padding: "13px 18px", fontSize: 13, color: "white", lineHeight: 1.5, fontFamily: "system-ui", fontWeight: 500, background: "rgba(233,69,96,0.05)" }}>{right}</div>
+                <div key={i} className="diff-row diff-table" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid rgba(255,255,255,0.06)", transition: "background 0.2s" }}>
+                    <div className="diff-table-cell" style={{ padding: "13px 18px", fontSize: 13, color: "rgba(255,255,255,0.62)", lineHeight: 1.5, fontFamily: "system-ui", borderRight: "1px solid rgba(255,255,255,0.05)", textDecoration: "line-through", textDecorationColor: "rgba(255,255,255,0.18)" }}>{left}</div>
+                    <div className="diff-table-cell" style={{ padding: "13px 18px", fontSize: 13, color: "white", lineHeight: 1.5, fontFamily: "system-ui", fontWeight: 500, background: "rgba(233,69,96,0.05)" }}>{right}</div>
                   </div>
                 ))}
               </div>
