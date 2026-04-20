@@ -55,8 +55,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
 
   return (
-    <div className="min-h-screen bg-[var(--surface)] text-[var(--text-primary)] overflow-x-hidden selection:bg-primary/20 selection:text-primary-foreground font-sans transition-colors duration-300">
-      
+<div className="min-h-screen text-[var(--text-primary)] overflow-x-hidden selection:bg-primary/20 selection:text-primary-foreground font-sans transition-colors duration-300">      
       <BackgroundLayers />
 
       <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.75)", borderColor: "rgba(255,255,255,0.06)" }}>
