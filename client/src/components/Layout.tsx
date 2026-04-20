@@ -5,6 +5,7 @@ import LangDropdown from "@/components/LangDropdown";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/components/ThemeProvider";
 import { BackgroundLayers } from "@/components/BackgroundLayers";
+import { SectionProvider } from "@/lib/sectionContext";
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
 
@@ -55,7 +56,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
 
   return (
-<div className="min-h-screen text-[var(--text-primary)] overflow-x-hidden selection:bg-primary/20 selection:text-primary-foreground font-sans transition-colors duration-300">      
+    <SectionProvider>
+<div className="min-h-screen text-[var(--text-primary)] overflow-x-hidden selection:bg-primary/20 selection:text-primary-foreground font-sans transition-colors duration-300">
       <BackgroundLayers />
 
       <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.65)", borderColor: "rgba(255,255,255,0.06)" }}>
@@ -133,5 +135,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </motion.main>
       </AnimatePresence>
     </div>
+    </SectionProvider>
   );
 }

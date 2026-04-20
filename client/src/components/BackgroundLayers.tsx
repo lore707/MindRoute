@@ -25,6 +25,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
+import { useSectionVariant, type SectionVariant } from "@/lib/sectionContext";
 
 type Mode = "hero" | "map" | "form" | "minimal";
 
@@ -68,14 +69,31 @@ const SHOW_AURORA: Record<Mode, boolean> = {
   minimal: false,
 };
 
+/** Override per-sezione (solo su route "/") */
+const SECTION_DENSITY: Record<SectionVariant, number> = {
+  hero: 1.0,
+  map: 0.0,
+  content: 0.3,
+  cta: 0.15,
+};
+
+const SECTION_AURORA: Record<SectionVariant, boolean> = {
+  hero: true,
+  map: false,
+  content: false,
+  cta: false,
+};
+
 export function BackgroundLayers() {
   const [location] = useLocation();
   const mode = resolveMode(location);
+  const { variant } = useSectionVariant();
   const rootRef = useRef<HTMLDivElement>(null);
   const starsRef = useRef<HTMLDivElement>(null);
 
-  const density = STAR_DENSITY[mode];
-  const showAurora = SHOW_AURORA[mode];
+  const isLanding = location === "/";
+  const density = isLanding ? SECTION_DENSITY[variant] : STAR_DENSITY[mode];
+  const showAurora = isLanding ? SECTION_AURORA[variant] : SHOW_AURORA[mode];
 
   // rigenera stelle quando cambia il mode (densità diversa)
   const stars = useMemo(() => {
@@ -134,7 +152,7 @@ export function BackgroundLayers() {
   }, [density]);
 
   return (
-    <div ref={rootRef} className="mr-bg-root" aria-hidden="true">
+    <div ref={rootRef} className="mr-bg-root" data-section={isLanding ? variant : undefined} aria-hidden="true">
       {/* LAYER 1 — atmosphere: sempre on */}
       <div className="mr-bg-atmosphere" />
 

@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
 import WorldMap, { DESTINATIONS } from "@/components/WorldMap";
+import { useSectionVariant, type SectionVariant } from "@/lib/sectionContext";
 
 const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -83,7 +84,41 @@ export default function Landing() {
   const heroSectionRef = useRef(null);
   const mapContainerRef = useRef(null);
   const howContainerRef = useRef(null);
+  const socialRef = useRef(null);
   const diffContainerRef = useRef(null);
+  const { setVariant } = useSectionVariant();
+
+  useEffect(() => {
+    const sections: [React.MutableRefObject<any>, SectionVariant][] = [
+      [heroSectionRef, "hero"],
+      [mapContainerRef, "map"],
+      [howContainerRef, "content"],
+      [socialRef,       "content"],
+      [diffContainerRef,"content"],
+      [ctaRef,          "cta"],
+    ];
+    const ratios = new Map<Element, number>();
+    const pick = () => {
+      let best: Element | null = null;
+      let bestR = -1;
+      ratios.forEach((r, el) => { if (r > bestR) { bestR = r; best = el; } });
+      if (best) {
+        const found = sections.find(([ref]) => ref.current === best);
+        if (found) setVariant(found[1]);
+      }
+    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(e => ratios.set(e.target, e.intersectionRatio));
+        pick();
+      },
+      { threshold: [0, 0.1, 0.25, 0.5] }
+    );
+    sections.forEach(([ref]) => {
+      if (ref.current) { ratios.set(ref.current, 0); observer.observe(ref.current); }
+    });
+    return () => observer.disconnect();
+  }, [setVariant]);
   return (
 <div className="landing-transparent-bg" style={{ color: "white", fontFamily: "'Georgia', serif", overflowX: "hidden", minHeight: "100vh" }}>     <style>{`
       @keyframes heroMesh { 0%,100%{opacity:0.015} 50%{opacity:0.03} }
@@ -519,7 +554,7 @@ export default function Landing() {
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
       {/* ── SOCIAL PROOF ─────────────────────────────────── */}
-<section style={{ padding: "100px 24px", background: "transparent", position: "relative", overflow: "hidden" }}>        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 100%, rgba(233,69,96,0.05), transparent)", pointerEvents: "none" }} />
+<section ref={socialRef} style={{ padding: "100px 24px", background: "transparent", position: "relative", overflow: "hidden" }}>        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 100%, rgba(233,69,96,0.05), transparent)", pointerEvents: "none" }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative" }}>
           <div style={{ textAlign: "center", marginBottom: 64 }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", color: "#E94560", marginBottom: 14, fontFamily: "system-ui" }}>

@@ -324,10 +324,53 @@
   50%      { transform: translate(6%, -8%) scale(1.1); }
 }
 
+/* Transizioni fluide al cambio sezione */
+.mr-bg-atmosphere { transition: opacity 0.9s ease; }
+.mr-bg-constellations { transition: opacity 0.7s ease; }
+.mr-bg-aurora { transition: opacity 1.2s ease; }
+
+/* ── Per-section atmosphere overrides ──────────────────── */
+
+/* MAP — blu notte: esplorazione */
+[data-section="map"] .mr-bg-atmosphere::before {
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 30%,
+      hsla(215, 60%, 18%, 0.38) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 40% at 15% 80%,
+      hsla(210, 70%, 15%, 0.32) 0%, transparent 70%),
+    radial-gradient(ellipse 45% 35% at 85% 20%,
+      hsla(230, 50%, 20%, 0.22) 0%, transparent 70%);
+}
+
+/* CONTENT (how/social/diff) — violaceo: introspezione */
+[data-section="content"] .mr-bg-atmosphere::before {
+  background:
+    radial-gradient(ellipse 55% 40% at 50% 20%,
+      hsla(265, 40%, 22%, 0.28) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 35% at 80% 80%,
+      hsla(260, 45%, 18%, 0.25) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 15% 85%,
+      hsla(220, 40%, 15%, 0.22) 0%, transparent 70%);
+}
+
+/* CTA — rosé caldo: chiamata all'azione */
+[data-section="cta"] .mr-bg-atmosphere::before {
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 40%,
+      hsl(var(--primary) / 0.13) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 35% at 80% 85%,
+      hsla(30, 50%, 25%, 0.20) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 10% 80%,
+      hsla(260, 40%, 18%, 0.18) 0%, transparent 70%);
+}
+
 /* Reduced motion — blocca tutto */
 @media (prefers-reduced-motion: reduce) {
   .mr-star,
   .mr-aurora-blob { animation: none !important; }
+  .mr-bg-atmosphere,
+  .mr-bg-constellations,
+  .mr-bg-aurora { transition: none !important; }
 }
 .landing-transparent-bg section,
 .landing-transparent-bg > div > div {
