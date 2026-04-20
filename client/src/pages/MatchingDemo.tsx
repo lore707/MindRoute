@@ -275,8 +275,7 @@ export function MatchingDemo() {
       </div>
 
  <style>{`
-        @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-     @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+        @keyframes replayPulse{0%,100%{box-shadow:0 0 0 0 rgba(233,69,96,0.4), 0 0 0 0 rgba(233,69,96,0.15)}50%{box-shadow:0 0 0 6px rgba(233,69,96,0.15), 0 0 0 12px rgba(233,69,96,0.05)}}
         @media (max-width: 640px) {
           .matching-demo-grid {
             grid-template-columns: 1fr !important;
