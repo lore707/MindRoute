@@ -8,7 +8,6 @@ import { BackgroundLayers } from "@/components/BackgroundLayers";
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
 
-
 function AuthButton() {
   const [user, setUser] = useState<any>(null);
   const [currentPath, setCurrentPath] = useState("/");
@@ -31,7 +30,7 @@ function AuthButton() {
           ? <img src={user.avatar} className="w-7 h-7 rounded-full border border-[#E94560]/30" />
           : <div className="w-7 h-7 rounded-full bg-[#E94560] flex items-center justify-center text-white text-[11px] font-bold">{user.name?.[0]}</div>
         }
-      <span className="hidden sm:inline text-[12px] font-medium transition-colors" style={{ color: "#E94560" }}>
+        <span className="hidden sm:inline text-[12px] font-medium transition-colors" style={{ color: "#E94560" }}>
           {user.name?.split(" ")[0]}
         </span>
       </a>
@@ -39,7 +38,7 @@ function AuthButton() {
   }
 
   return (
-    <a
+    
       href={`/auth/google?returnTo=${encodeURIComponent(currentPath)}`}
       className="flex items-center gap-1.5 text-[12px] font-medium transition-colors"
       style={{ color: "#E94560" }}
@@ -53,12 +52,16 @@ function AuthButton() {
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { t } = useI18n();
-const { theme } = useTheme();
+  const { theme } = useTheme();
+
   return (
     <div className="min-h-screen bg-[var(--surface)] text-[var(--text-primary)] overflow-x-hidden selection:bg-primary/20 selection:text-primary-foreground font-sans transition-colors duration-300">
-      <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.92)", borderColor: "rgba(255,255,255,0.06)" }}>
+      
+      <BackgroundLayers />
+
+      <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.75)", borderColor: "rgba(255,255,255,0.06)" }}>
         <Link href="/" className="flex items-center gap-2.5 text-[var(--text-primary)] no-underline">
-       <svg className="w-9 h-9" viewBox="0 0 120 120" fill="none">
+          <svg className="w-9 h-9" viewBox="0 0 120 120" fill="none">
             <defs>
               <linearGradient id="nav-lg1" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#FFADC0"/>
@@ -100,33 +103,32 @@ const { theme } = useTheme();
             MindRoute
           </span>
         </Link>
-        
+
         <div className="flex items-center gap-3">
           {location !== "/" && (
-             <div className="hidden md:flex gap-2 mr-3">
-               <div className="h-1 w-8 rounded-full bg-primary/20 data-[active=true]:bg-primary transition-colors" data-active={location === "/profiling"} />
-               <div className="h-1 w-8 rounded-full bg-primary/20 data-[active=true]:bg-primary transition-colors" data-active={location === "/destinations"} />
-               <div className="h-1 w-8 rounded-full bg-primary/20 data-[active=true]:bg-primary transition-colors" data-active={location.startsWith("/itinerary")} />
-             </div>
+            <div className="hidden md:flex gap-2 mr-3">
+              <div className="h-1 w-8 rounded-full bg-primary/20 data-[active=true]:bg-primary transition-colors" data-active={location === "/profiling"} />
+              <div className="h-1 w-8 rounded-full bg-primary/20 data-[active=true]:bg-primary transition-colors" data-active={location === "/destinations"} />
+              <div className="h-1 w-8 rounded-full bg-primary/20 data-[active=true]:bg-primary transition-colors" data-active={location.startsWith("/itinerary")} />
+            </div>
           )}
-        
           <LangDropdown />
-        <AuthButton />
-         <Link href="/profiling" className="text-[13px] font-medium no-underline px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center gap-1.5" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">
+          <AuthButton />
+          <Link href="/profiling" className="text-[13px] font-medium no-underline px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center gap-1.5" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">
             <Compass className="w-4 h-4 sm:hidden" />
             <span className="hidden sm:inline">{t('nav.start')}</span>
           </Link>
         </div>
       </nav>
 
-    <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait">
         <motion.main
           key={location}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="min-h-screen"relative z-10
+          className="min-h-screen relative z-10"
         >
           {children}
         </motion.main>
