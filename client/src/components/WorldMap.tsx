@@ -44,8 +44,9 @@ export default function WorldMap() {
         const w = svgRef.current.clientWidth || window.innerWidth;
         const h = svgRef.current.clientHeight || window.innerHeight;
 
+      const isMobile = w < 768;
         const projection = d3.geoNaturalEarth1()
-          .scale(w / 6.2)
+          .scale(isMobile ? w / 3.2 : w / 6.2)
           .translate([w / 2, h / 2]);
 
         const path = d3.geoPath().projection(projection);
@@ -118,15 +119,17 @@ export default function WorldMap() {
           const labelX = x > w * 0.75 ? x - 8 : x + 8;
           const anchor = x > w * 0.75 ? "end" : "start";
 
-          g.append("text")
-            .attr("x", labelX).attr("y", y - 8)
-            .attr("font-size", "10.5")
-            .attr("fill", "rgba(255,255,255,0.65)")
-            .attr("font-family", "system-ui, sans-serif")
-            .attr("text-anchor", anchor)
-            .attr("font-weight", "500")
-            .attr("letter-spacing", "0.3")
-            .text(dest.name);
+       if (w >= 500) {
+            g.append("text")
+              .attr("x", labelX).attr("y", y - 8)
+              .attr("font-size", isMobile ? "8" : "10.5")
+              .attr("fill", "rgba(255,255,255,0.65)")
+              .attr("font-family", "system-ui, sans-serif")
+              .attr("text-anchor", anchor)
+              .attr("font-weight", "500")
+              .attr("letter-spacing", "0.3")
+              .text(dest.name);
+          }
         });
 
         // ── Flight path animation ──────────────────────────
