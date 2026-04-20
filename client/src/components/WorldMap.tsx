@@ -41,12 +41,19 @@ export default function WorldMap() {
         if (cancelled || !svgRef.current) return;
 
         const svg = d3.select(svgRef.current);
-        const w = svgRef.current.clientWidth || window.innerWidth;
-        const h = svgRef.current.clientHeight || window.innerHeight;
+        const rect = svgRef.current.getBoundingClientRect();
+        const w = rect.width  || window.innerWidth;
+        const h = rect.height || window.innerHeight;
 
-      const isMobile = w < 768;
+        const isMobile = w < 768;
+        // Scala adattiva: la mappa riempie il contenitore sia in larghezza
+        // che in altezza (NaturalEarth ha aspect ratio ~2:1)
+        const scaleW = w / 6.0;
+        const scaleH = h / 3.0;
+        const scale  = Math.max(scaleW, scaleH) * (isMobile ? 1.1 : 1.0);
+
         const projection = d3.geoNaturalEarth1()
-          .scale(isMobile ? w / 3.2 : w / 6.2)
+          .scale(scale)
           .translate([w / 2, h / 2]);
 
         const path = d3.geoPath().projection(projection);

@@ -72,7 +72,7 @@ const SHOW_AURORA: Record<Mode, boolean> = {
 /** Override per-sezione (solo su route "/") */
 const SECTION_DENSITY: Record<SectionVariant, number> = {
   hero: 1.0,
-  map: 0.0,
+  map: 0.18,
   content: 0.3,
   cta: 0.15,
 };
@@ -159,51 +159,54 @@ export function BackgroundLayers() {
       {/* LAYER 2 — grain: sempre on */}
       <div className="mr-bg-grain" />
 
-      {/* LAYER 3 — constellations: solo se density > 0 */}
-      {density > 0 && (
-        <div className="mr-bg-constellations" ref={starsRef}>
-          <svg className="mr-silk" viewBox="0 0 1600 900" preserveAspectRatio="none">
-            <path d="M -50 200 Q 400 120 800 260 T 1650 180" />
-            <path d="M -50 620 Q 350 520 780 640 T 1650 560" />
-            <path d="M 200 -50 Q 400 300 700 500 T 1000 950" opacity="0.5" />
-            <path d="M 1400 -50 Q 1200 300 900 500 T 600 950" opacity="0.5" />
-          </svg>
-          {STAR_LAYERS.map((layer, idx) => (
-            <div
-              key={idx}
-              className="mr-star-layer"
-              data-depth={layer.depth}
-            >
-              {stars
-                .filter((s) => s.layerIdx === idx)
-                .map((s, i) => (
-                  <span
-                    key={i}
-                    className={`mr-star${s.dim ? " dim" : ""}`}
-                    style={{
-                      left: `${s.x}%`,
-                      top: `${s.y}%`,
-                      width: `${s.size}px`,
-                      height: `${s.size}px`,
-                      ["--base" as any]: s.base,
-                      ["--dur" as any]: `${s.dur}s`,
-                      ["--delay" as any]: `${s.delay}s`,
-                    }}
-                  />
-                ))}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* LAYER 3 — constellations: sempre montato, opacity controlla visibilità */}
+      <div
+        className="mr-bg-constellations"
+        ref={starsRef}
+        style={{ opacity: density > 0 ? 1 : 0, transition: "opacity 0.9s ease" }}
+      >
+        <svg className="mr-silk" viewBox="0 0 1600 900" preserveAspectRatio="none">
+          <path d="M -50 200 Q 400 120 800 260 T 1650 180" />
+          <path d="M -50 620 Q 350 520 780 640 T 1650 560" />
+          <path d="M 200 -50 Q 400 300 700 500 T 1000 950" opacity="0.5" />
+          <path d="M 1400 -50 Q 1200 300 900 500 T 600 950" opacity="0.5" />
+        </svg>
+        {STAR_LAYERS.map((layer, idx) => (
+          <div
+            key={idx}
+            className="mr-star-layer"
+            data-depth={layer.depth}
+          >
+            {stars
+              .filter((s) => s.layerIdx === idx)
+              .map((s, i) => (
+                <span
+                  key={i}
+                  className={`mr-star${s.dim ? " dim" : ""}`}
+                  style={{
+                    left: `${s.x}%`,
+                    top: `${s.y}%`,
+                    width: `${s.size}px`,
+                    height: `${s.size}px`,
+                    ["--base" as any]: s.base,
+                    ["--dur" as any]: `${s.dur}s`,
+                    ["--delay" as any]: `${s.delay}s`,
+                  }}
+                />
+              ))}
+          </div>
+        ))}
+      </div>
 
-      {/* LAYER 4 — aurora: solo su hero */}
-      {showAurora && (
-        <div className="mr-bg-aurora">
-          <div className="mr-aurora-blob a" />
-          <div className="mr-aurora-blob b" />
-          <div className="mr-aurora-blob c" />
-        </div>
-      )}
+      {/* LAYER 4 — aurora: sempre montata, opacity controlla visibilità */}
+      <div
+        className="mr-bg-aurora"
+        style={{ opacity: showAurora ? 1 : 0, transition: "opacity 1.2s ease" }}
+      >
+        <div className="mr-aurora-blob a" />
+        <div className="mr-aurora-blob b" />
+        <div className="mr-aurora-blob c" />
+      </div>
     </div>
   );
 }

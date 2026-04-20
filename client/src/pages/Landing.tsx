@@ -97,26 +97,20 @@ export default function Landing() {
       [diffContainerRef,"content"],
       [ctaRef,          "cta"],
     ];
-    const ratios = new Map<Element, number>();
-    const pick = () => {
-      let best: Element | null = null;
-      let bestR = -1;
-      ratios.forEach((r, el) => { if (r > bestR) { bestR = r; best = el; } });
-      if (best) {
-        const found = sections.find(([ref]) => ref.current === best);
-        if (found) setVariant(found[1]);
-      }
-    };
+    // rootMargin "-35% 0px -35% 0px" → la sezione è "attiva" solo quando
+    // occupa la fascia centrale del 30% del viewport. Una sezione per volta.
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach(e => ratios.set(e.target, e.intersectionRatio));
-        pick();
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const found = sections.find(([ref]) => ref.current === entry.target);
+            if (found) setVariant(found[1]);
+          }
+        });
       },
-      { threshold: [0, 0.1, 0.25, 0.5] }
+      { rootMargin: "-35% 0px -35% 0px", threshold: 0 }
     );
-    sections.forEach(([ref]) => {
-      if (ref.current) { ratios.set(ref.current, 0); observer.observe(ref.current); }
-    });
+    sections.forEach(([ref]) => { if (ref.current) observer.observe(ref.current); });
     return () => observer.disconnect();
   }, [setVariant]);
   return (
@@ -345,7 +339,7 @@ export default function Landing() {
       <div ref={mapContainerRef}>
         <section
          style={{
-            height: "clamp(60vh, 100vw, 100vh)", width: "100%",
+            height: "100vh", width: "100%",
             background: "#060810",
             display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
