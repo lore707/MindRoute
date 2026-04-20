@@ -338,3 +338,7 @@
   .mr-star,
   .mr-aurora-blob { animation: none !important; }
 }
+.landing-transparent-bg section,
+.landing-transparent-bg > div > div {
+  background: transparent !important;
+}
