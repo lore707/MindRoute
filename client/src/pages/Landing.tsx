@@ -332,7 +332,6 @@ export default function Landing() {
             overflow: "hidden",
             position: "relative",
           }}
-          }}
         >
           {/* Oceano */}
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(15,30,80,0.4) 0%, transparent 70%)" }} />
