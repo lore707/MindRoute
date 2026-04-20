@@ -58,7 +58,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 <div className="min-h-screen text-[var(--text-primary)] overflow-x-hidden selection:bg-primary/20 selection:text-primary-foreground font-sans transition-colors duration-300">      
       <BackgroundLayers />
 
-      <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.75)", borderColor: "rgba(255,255,255,0.06)" }}>
+      <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.65)", borderColor: "rgba(255,255,255,0.06)" }}>
         <Link href="/" className="flex items-center gap-2.5 text-[var(--text-primary)] no-underline">
           <svg className="w-9 h-9" viewBox="0 0 120 120" fill="none">
             <defs>

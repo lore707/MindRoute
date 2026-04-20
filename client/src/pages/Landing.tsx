@@ -131,22 +131,9 @@ export default function Landing() {
      {/* ── HERO ──────────────────────────────────────────── */}
   <div ref={heroSectionRef} style={{ position: "relative" }}>
 <motion.section style={{ minHeight: "100vh", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "clamp(80px, 10vh, 120px) 24px 60px", overflow: "hidden" }}>
-<div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse 90% 70% at 50% -5%, rgba(233,69,96,0.20) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 15% 100%, rgba(100,50,180,0.08) 0%, transparent 55%)" }} /><div<div style={{ position:"absolute", top:"18%", left:"50%", transform:"translateX(-50%)", width:340, height:340, borderRadius:"50%", background:"radial-gradient(circle, rgba(180,30,60,0.55) 0%, rgba(140,20,45,0.30) 30%, rgba(80,10,25,0.12) 60%, transparent 75%)", pointerEvents:"none", filter:"blur(18px)" }} />
+<div<div style={{ position:"absolute", top:"18%", left:"50%", transform:"translateX(-50%)", width:340, height:340, borderRadius:"50%", background:"radial-gradient(circle, rgba(180,30,60,0.55) 0%, rgba(140,20,45,0.30) 30%, rgba(80,10,25,0.12) 60%, transparent 75%)", pointerEvents:"none", filter:"blur(18px)" }} />
         <div style={{ position:"absolute", top:"24%", left:"50%", transform:"translateX(-50%)", width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle, rgba(233,69,96,0.45) 0%, transparent 70%)", pointerEvents:"none", filter:"blur(8px)" }} />
-                <svg style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none", opacity:0.18 }} viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" fill="none">
-          <path d="M-100 160 C 150 100, 300 220, 500 150 S 750 50, 950 170 S 1100 240, 1350 150" stroke="rgba(233,69,96,0.55)" strokeWidth="1" fill="none"/>
-          <path d="M-100 210 C 180 150, 350 260, 560 190 S 800 90, 1000 210 S 1150 280, 1350 200" stroke="rgba(233,69,96,0.25)" strokeWidth="0.7" fill="none"/>
-
-          <circle cx="950" cy="360" r="2.5" fill="rgba(233,69,96,0.35)"/>
-          <circle cx="150" cy="280" r="2" fill="rgba(233,69,96,0.25)"/>
-          <rect x="80" y="180" width="18" height="18" rx="2" stroke="rgba(233,69,96,0.18)" strokeWidth="1" fill="none"/>
-          <rect x="1060" y="220" width="14" height="14" rx="2" stroke="rgba(233,69,96,0.14)" strokeWidth="1" fill="none"/>
-          <rect x="180" y="520" width="10" height="10" rx="1.5" stroke="rgba(233,69,96,0.12)" strokeWidth="1" fill="none"/>
-          <rect x="980" y="480" width="16" height="16" rx="2" stroke="rgba(233,69,96,0.14)" strokeWidth="1" fill="none"/>
-          <rect x="600" y="120" width="12" height="12" rx="1.5" stroke="rgba(233,69,96,0.12)" strokeWidth="1" fill="none"/>
-          <rect x="380" y="540" width="8" height="8" rx="1" stroke="rgba(233,69,96,0.10)" strokeWidth="1" fill="none"/>
-          <rect x="820" y="150" width="10" height="10" rx="1.5" stroke="rgba(233,69,96,0.10)" strokeWidth="1" fill="none"/>
-        </svg>        <div style={{ position:"absolute", top:"24%", left:"50%", transform:"translateX(-50%)", width:160, height:160, borderRadius:"50%", background:"radial-gradient(circle, rgba(233,69,96,0.45) 0%, transparent 70%)", pointerEvents:"none", filter:"blur(8px)" }} />             <motion.div className="hero-section-inner" style={{ maxWidth: 960, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1, paddingTop: 20 }}>
+             <motion.div className="hero-section-inner" style={{ maxWidth: 960, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1, paddingTop: 20 }}>
 
        {/* Logo premium 3D */}
           <div className="fadeup-1" style={{ marginBottom: 32 }}>
