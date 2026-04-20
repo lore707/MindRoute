@@ -301,7 +301,7 @@ export default function Landing() {
           </div>
 
           {/* Stats */}
-          <div className="fadeup-4" style={{ display: "flex", justifyContent: "center", gap: 40, flexWrap: "wrap" }}>
+        <div className="fadeup-4" style={{ display: "flex", justifyContent: "center", gap: "clamp(16px, 5vw, 40px)", flexWrap: "wrap" }}>
             {(lang === "it"
               ? [["7", "domande"], ["3", "mete in sintonia"], ["~3 min", "per scoprirle"]]
               : [["7", "questions"], ["3", "matched destinations"], ["~3 min", "to discover them"]]
@@ -319,13 +319,14 @@ export default function Landing() {
    {/* ── SEZIONE MAPPA ── */}
       <div ref={mapContainerRef}>
         <section
-          style={{
-            height: "100vh", width: "100%",
+         style={{
+            height: "clamp(60vh, 100vw, 100vh)", width: "100%",
             background: "#060810",
             display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             overflow: "hidden",
             position: "relative",
+          }}
           }}
         >
           {/* Oceano */}
@@ -368,7 +369,7 @@ export default function Landing() {
                 transition={{ duration: 0.35, ease: "easeOut" }}
                 style={{
                   position: "absolute",
-                  bottom: 52, right: 28,
+                 bottom: "clamp(16px, 4vw, 52px)", right: "clamp(12px, 3vw, 28px)",
                   background: "rgba(6,8,16,0.82)",
                   backdropFilter: "blur(18px)",
                   WebkitBackdropFilter: "blur(18px)",
