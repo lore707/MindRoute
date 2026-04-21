@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, ChevronDown, Moon, Sun, HelpCircle as QuestionIcon, Leaf, Volume2, Zap, Heart, User, Sparkles, Landmark, Compass, Home, Globe, Plane, UtensilsCrossed, Waves, Building2, Tent, Car, Mountain, Flower2, Dice5, Camera, Search, Battery, Wind, Bird, Eye, Bus, Users, Clock, MessageCircle, Footprints, PiggyBank, Timer, Star, Coffee, Sunset } from "lucide-react";
 import { useSubmitProfiling } from "@/hooks/use-profiling";
@@ -12,7 +12,7 @@ import { FormChip } from "./profiling/FormChip";
 import { createProfilingContent } from "./profiling/questions";
 import { SliderTrack } from "./profiling/SliderTrack";
 import type { ChipsQuestion, Question, TextQuestion } from "./profiling/types";
-import { getQuestionTheme, getMultipleThemes } from './profiling/questionThemes';
+import { getQuestionTheme, getMultipleThemes, questionThemes } from './profiling/questionThemes';
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
     <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85" />
@@ -82,6 +82,41 @@ export default function Profiling() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const transitionBusy = useRef(false);
   const analyzeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // ── Background image per domanda – guida il crossfade ──────────────
+  const bgImageUrl = useMemo(() => {
+    const pathADefaults = [
+      "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1400&q=85", // stile – mongolfiera
+      "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1400&q=85", // bisogno – natura aerea
+      "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85", // drains – strada aperta
+      "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=1400&q=85", // visual – medina
+      "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1400&q=85", // slider – scoperta
+      "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1400&q=85", // text – montagna solitaria
+      "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1400&q=85", // distanza – asia far away
+    ];
+    const pathBDefaults = [
+      "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1400&q=85", // geo – europa
+      "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85", // tipo – road
+      "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1400&q=85", // momento – mercato
+      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1400&q=85", // atmosfera – seaside
+      "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1400&q=85", // slider – discovery
+      "https://images.unsplash.com/photo-1520209759809-a9bcb6cb3241?w=1400&q=85", // feeling – regenerating
+      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1400&q=85", // avoid – quiet mountain
+    ];
+    const defaults = selectedPath === 'b' ? pathBDefaults : pathADefaults;
+    const fallback = defaults[step] ?? questionThemes.default.imageUrl;
+
+    if (currentQ?.type === 'images' && imageSelections.length > 0) {
+      const opt = (currentQ as any).options?.find((o: any) => o.value === imageSelections[0]);
+      if (opt?.src) return opt.src.replace(/w=\d+/, 'w=1400');
+    }
+    const sels = chipSelections[step] || [];
+    if (sels.length > 0) {
+      const theme = getQuestionTheme(sels);
+      if (theme !== questionThemes.default) return theme.imageUrl.replace(/w=\d+/, 'w=1400');
+    }
+    return fallback;
+  }, [chipSelections, imageSelections, step, currentQ, selectedPath]);
 
   const getPlaceholderForRegion = (regionLabel?: string) => {
     const label = (regionLabel || "").toLowerCase();
@@ -607,35 +642,68 @@ const profilingPayload = {
     </nav>
   );
 
-  const TopProgressBar = () => (
-    <div className="fixed top-[57px] left-0 right-0 z-[99] pt-10 pb-4 px-4 md:px-8 transition-colors duration-300" style={{ background: 'var(--surface)' }}>
-      <div className="relative flex items-center justify-center max-w-[700px] mx-auto">
-        <span className="absolute left-0 text-[11px] font-bold tracking-[2px] uppercase text-[#E94560] hidden sm:block" data-testid="text-section-label">
-          {currentQ?.section}
-        </span>
-        <div className="flex items-center gap-[6px] w-full max-w-[320px]">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => i < step && goToStep(i)}
-              data-testid={`progress-step-${i + 1}`}
-              className="flex-1 border-none p-0 rounded-full transition-all duration-500"
-              style={{
-                height: i === step ? 7 : 5,
-                background: i <= step ? '#E94560' : 'var(--border-subtle)',
-                opacity: i < step ? 0.5 : 1,
-                cursor: i < step ? 'pointer' : 'default',
-                boxShadow: i === step ? '0 0 10px rgba(233,69,96,0.35)' : 'none'
-              }}
-            />
-          ))}
+  const TopProgressBar = () => {
+    const total = questions.length || 7;
+    const progress = (step / (total - 1)) * 100;
+    return (
+      <div className="fixed top-[57px] left-0 right-0 z-[99] pt-8 pb-3 px-4 md:px-10"
+        style={{ background: 'linear-gradient(to bottom, rgba(7,9,15,0.92) 0%, rgba(7,9,15,0.0) 100%)', backdropFilter: 'blur(0px)' }}>
+        <div className="relative flex items-center gap-4 max-w-[780px] mx-auto">
+
+          {/* Label sezione – sinistra */}
+          <span className="hidden sm:block text-[10px] font-bold tracking-[2.5px] uppercase text-[#E94560] shrink-0 w-[110px]" data-testid="text-section-label">
+            {currentQ?.section}
+          </span>
+
+          {/* Rotta aerea */}
+          <div className="flex-1 relative h-[28px] flex items-center">
+            {/* Linea base tratteggiata */}
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px"
+              style={{ background: 'repeating-linear-gradient(to right, rgba(233,69,96,0.22) 0px, rgba(233,69,96,0.22) 6px, transparent 6px, transparent 14px)' }} />
+            {/* Linea completata */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 h-px bg-[#E94560] transition-all duration-700 ease-out"
+              style={{ width: `${progress}%`, boxShadow: '0 0 6px rgba(233,69,96,0.5)' }} />
+            {/* Punti step */}
+            {Array.from({ length: total }).map((_, i) => {
+              const pct = (i / (total - 1)) * 100;
+              const isDone = i < step;
+              const isCurrent = i === step;
+              return (
+                <button
+                  key={i}
+                  onClick={() => isDone && goToStep(i)}
+                  data-testid={`progress-step-${i + 1}`}
+                  title={questions[i]?.section}
+                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-500 border-none bg-transparent p-0"
+                  style={{ left: `${pct}%`, cursor: isDone ? 'pointer' : 'default' }}
+                >
+                  {isCurrent ? (
+                    /* Dot attivo – pulse ring come i pin della WorldMap */
+                    <span className="relative flex items-center justify-center w-[18px] h-[18px]">
+                      <span className="absolute inset-0 rounded-full border border-[#E94560] opacity-40"
+                        style={{ animation: 'dotPulse 2s ease-in-out infinite' }} />
+                      <span className="w-[10px] h-[10px] rounded-full bg-[#E94560]"
+                        style={{ boxShadow: '0 0 10px rgba(233,69,96,0.65)' }} />
+                    </span>
+                  ) : isDone ? (
+                    <span className="w-[8px] h-[8px] rounded-full block bg-[#E94560] opacity-60 hover:opacity-100 transition-opacity" />
+                  ) : (
+                    <span className="w-[6px] h-[6px] rounded-full block bg-white opacity-15" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Contatore – destra */}
+          <span className="text-[13px] text-white/50 font-semibold tabular-nums shrink-0 w-[36px] text-right" data-testid="text-step-counter">
+            <span className="text-white/80">{step + 1}</span>
+            <span className="text-white/30">/{total}</span>
+          </span>
         </div>
-        <span className="absolute right-0 text-[14px] text-[var(--text-secondary)] font-semibold tabular-nums" data-testid="text-step-counter">
-          {step + 1}<span className="text-[var(--text-muted)] font-normal">/7</span>
-        </span>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (showSplit) {
     return (
@@ -1261,9 +1329,9 @@ const profilingPayload = {
             placeholder={currentQ.placeholder}
             value={answers[step] || ''}
             onChange={(e) => setAnswers(prev => ({ ...prev, [step]: e.target.value }))}
-            className="w-full min-h-[150px] p-5 md:p-6 text-[15px] leading-[1.85] text-[var(--text-primary)] bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-[22px] resize-none outline-none transition-all duration-350 shadow-[0_2px_16px_rgba(26,26,46,0.03)] focus:border-[#E94560] focus:shadow-[0_6px_32px_rgba(233,69,96,0.08),0_0_0_4px_rgba(233,69,96,0.04)] placeholder:text-[var(--text-muted)] placeholder:font-light"
+            className="w-full min-h-[150px] p-5 md:p-6 text-[15px] leading-[1.85] text-white bg-white/6 border-[1.5px] border-white/10 rounded-[22px] resize-none outline-none transition-all duration-350 focus:border-[#E94560] focus:bg-white/8 focus:shadow-[0_0_0_3px_rgba(233,69,96,0.12)] placeholder:text-white/25 placeholder:font-light"
           />
-          <div className="flex justify-between mt-2 text-[12px] text-[var(--text-muted)]">
+          <div className="flex justify-between mt-2 text-[12px] text-white/25">
             <span>{(currentQ as TextQuestion).optional ? t('q.optional') : t('q.writeTrue')}</span>
           </div>
         </div>
@@ -1925,10 +1993,10 @@ const buildDynamicProfileMessage = (): string | null => {
         {entries.map((entry, i) => (
           <div
             key={entry.idx}
-           className="px-4 py-3 bg-[var(--surface)] rounded-[12px] mb-2 text-[13px] text-[var(--text-secondary)] leading-[1.5] font-light border-l-2 border-[#E94560] opacity-55"
+           className="px-4 py-3 bg-white/5 rounded-[12px] mb-2 text-[13px] text-white/50 leading-[1.5] font-light border-l-2 border-[#E94560] opacity-75"
             style={{ animation: `sidebarIn 0.3s ease ${i * 0.06}s both` }}
           >
-            <b className="font-medium text-[var(--text-primary)] text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} - {entry.section}</b>
+            <b className="font-medium text-white/70 text-[10px] tracking-[0.5px] uppercase block mb-0.5">Q{entry.idx + 1} - {entry.section}</b>
             {entry.text}
           </div>
         ))}
@@ -1937,14 +2005,56 @@ const buildDynamicProfileMessage = (): string | null => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden transition-colors duration-300" style={{ background: 'var(--surface)' }}>
-  {null}
-      <div className="fixed inset-x-0 top-[84px] h-[340px] pointer-events-none z-0 opacity-90" style={{ background: profilingStageGlow }} />
-      <svg className="fixed inset-0 w-full h-full pointer-events-none z-0" preserveAspectRatio="none" viewBox="0 0 1440 900">
-        <path d="M-20 180 C 200 120, 400 280, 620 200 S 900 80, 1100 220 S 1350 340, 1460 180" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.04" />
-        <path d="M-20 400 C 180 340, 350 500, 580 420 S 820 300, 1050 440 S 1300 560, 1460 400" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.035" />
-        <path d="M-20 650 C 220 590, 440 720, 660 640 S 920 520, 1140 660 S 1380 770, 1460 650" fill="none" stroke="#E94560" strokeWidth="1" opacity="0.03" />
-      </svg>
+    <div className="relative min-h-screen overflow-hidden dark" style={{ background: '#07090F' }}>
+
+      {/* ── BACKGROUND SYSTEM ────────────────────────────────────────── */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        {/* Base scuro */}
+        <div className="absolute inset-0" style={{ background: '#07090F' }} />
+
+        {/* Foto destination – crossfade al cambio selezione */}
+        <AnimatePresence>
+          <motion.div
+            key={bgImageUrl}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.30 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.6, ease: 'easeInOut' }}
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url(${bgImageUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'blur(3px)',
+              transform: 'scale(1.06)',
+            }}
+          />
+        </AnimatePresence>
+
+        {/* Vignetta scura – lascia respirare il centro */}
+        <div className="absolute inset-0" style={{
+          background: 'radial-gradient(ellipse 110% 85% at 50% 38%, rgba(7,9,15,0.38) 0%, rgba(7,9,15,0.76) 55%, rgba(7,9,15,0.96) 100%)',
+        }} />
+
+        {/* Grain texture */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundSize: '256px 256px',
+          opacity: 0.032,
+        }} />
+
+        {/* Rotte decorative – riprende il vocabolario SVG della landing */}
+        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1440 900">
+          <path d="M-20 160 C 200 100, 420 270, 660 190 S 960 60, 1180 210 S 1380 330, 1460 160"
+            fill="none" stroke="#E94560" strokeWidth="1.2" opacity="0.09" strokeDasharray="8 14" />
+          <path d="M-20 740 C 230 680, 460 810, 700 730 S 980 610, 1200 750 S 1400 860, 1460 740"
+            fill="none" stroke="#E94560" strokeWidth="1" opacity="0.065" strokeDasharray="5 10" />
+          {/* Dot di rotta – come i pin della WorldMap */}
+          <circle cx="660" cy="190" r="3.5" fill="#E94560" opacity="0.22" />
+          <circle cx="1180" cy="210" r="3" fill="#E94560" opacity="0.18" />
+          <circle cx="700" cy="730" r="3" fill="#E94560" opacity="0.16" />
+        </svg>
+      </div>
 
       <style>{`
         @keyframes sidebarIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
@@ -1978,7 +2088,7 @@ const buildDynamicProfileMessage = (): string | null => {
                   ? 'bg-[#E94560] text-white shadow-[0_10px_26px_rgba(233,69,96,0.22)] scale-[1.18]'
                   : i < step
                     ? 'bg-[#E94560] text-white opacity-65 hover:opacity-90 hover:scale-[1.08]'
-                    : 'bg-[var(--surface-card)] text-[var(--text-muted)] border-[1.5px] border-[var(--border-input)]'
+                    : 'bg-white/5 text-white/25 border-[1.5px] border-white/10'
                   }`}
               >
                 {i + 1}
@@ -1993,7 +2103,7 @@ const buildDynamicProfileMessage = (): string | null => {
                 </div>
               )}
               {i < questions.length - 1 && (
-                <div className={`w-0.5 h-7 rounded-sm transition-all duration-500 ${i < step ? 'bg-[#E94560] opacity-35' : 'bg-[#EDEBE8]'}`} />
+                <div className={`w-0.5 h-7 rounded-sm transition-all duration-500 ${i < step ? 'bg-[#E94560] opacity-35' : 'bg-white/10'}`} />
               )}
             </div>
           ))}
@@ -2003,62 +2113,71 @@ const buildDynamicProfileMessage = (): string | null => {
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
-              initial={{ opacity: 0, y: 32, scale: 0.97, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -18, scale: 0.98 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-             className="relative z-20 rounded-[30px] p-6 sm:p-8 md:p-9 xl:p-10 w-full max-w-[820px]"
-style={{
- background: theme === 'dark'
-    ? 'rgba(15,12,28,0.32)'
-    : 'rgba(255,255,255,0.18)',
-  backdropFilter: 'blur(48px) saturate(2.5) brightness(1.10)',
-  WebkitBackdropFilter: 'blur(48px) saturate(2.5) brightness(1.10)',
-border: theme === 'dark'
-    ? '1px solid rgba(255,255,255,0.06)'
-    : '1px solid rgba(255,255,255,0.30)', 
-  boxShadow: theme === 'dark'
-    ? '0 48px 120px rgba(0,0,0,0.70), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1.5px 0 rgba(255,255,255,0.10), inset 0 -1px 0 rgba(0,0,0,0.25)'
-    : '0 48px 120px rgba(80,60,70,0.22), 0 8px 32px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.22), inset 0 1.5px 0 rgba(255,255,255,0.90), inset 0 -1px 0 rgba(0,0,0,0.03)',
-}}
+              initial={{ opacity: 0, y: 28, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -14, filter: 'blur(3px)' }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="relative z-20 w-full max-w-[820px]"
             >
-<div className="relative z-10 flex items-start justify-between gap-4 mb-5">           
-  <div className="min-w-0">
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-[6px] bg-[rgba(233,69,96,0.07)] rounded-full text-[11px] font-semibold text-[#E94560] uppercase tracking-[2.5px] mb-4 border border-[rgba(233,69,96,0.14)]">
-                    <Info className="w-3 h-3" />
+              {/* ── HEADER EDITORIALE – testo diretto sul background ── */}
+              <div className="mb-6 px-2">
+                {/* Kicker */}
+                <div className="flex items-center gap-3 mb-5">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-[5px] rounded-full text-[10px] font-bold uppercase tracking-[2.8px] text-[#E94560] border border-[rgba(233,69,96,0.30)]"
+                    style={{ background: 'rgba(233,69,96,0.08)', backdropFilter: 'blur(8px)' }}>
+                    <Info className="w-2.5 h-2.5" />
                     {t('q.label')} {String(step + 1).padStart(2, '0')}
                   </span>
-
-                  <h1 className="font-serif text-[clamp(30px,4vw,44px)] leading-[1.12] tracking-tight mb-3 text-[var(--text-primary)] max-w-[12ch]">
-                    <span dangerouslySetInnerHTML={{
-                      __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
-                    }} />
-                  </h1>
-
-                  <p className="text-[15px] md:text-[17px] text-[var(--text-secondary)] font-light italic leading-[1.8] max-w-[44ch]">
-                    {currentQ.hint}
-                  </p>
-                </div>
-
-            <div className="hidden md:flex flex-col items-end gap-2 shrink-0">
-                  <span className="text-[12px] uppercase tracking-[0.22em] text-white font-bold bg-white/15 px-3 py-1 rounded-full border border-white/30">{currentQ.section}</span>
-                  <span className="rounded-full px-3 py-1.5 text-[13px] font-bold text-white border border-white/30 bg-white/15">
-                    {step + 1} / {questions.length}
+                  <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-[5px] rounded-full text-[10px] font-semibold uppercase tracking-[2px] text-white/50 border border-white/10"
+                    style={{ background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(8px)' }}>
+                    {currentQ.section}
                   </span>
                 </div>
+
+                {/* Titolo – grande, serif, leggibile sul dark photo */}
+                <h1 className="font-serif text-[clamp(32px,4.5vw,52px)] leading-[1.08] tracking-tight mb-4 text-white"
+                  style={{ textShadow: '0 2px 24px rgba(0,0,0,0.55)' }}>
+                  <span dangerouslySetInnerHTML={{
+                    __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
+                  }} />
+                </h1>
+
+                {/* Hint – corsivo, leggero */}
+                <p className="text-[15px] md:text-[16px] text-white/55 font-light italic leading-[1.85] max-w-[52ch]"
+                  style={{ textShadow: '0 1px 12px rgba(0,0,0,0.4)' }}>
+                  {currentQ.hint}
+                </p>
               </div>
 
-       {null}
-<div className="relative z-10 rounded-[24px] p-5 md:p-6 max-w-[640px] mx-auto" style={{ background: subtlePanelBg, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(255,255,255,0.35)' }}>
-  {renderQuestionInput()}
-</div>
+              {/* ── SEPARATORE ROTTA ── */}
+              <div className="flex items-center gap-3 mb-5 px-2">
+                <div className="flex-1 h-px" style={{
+                  background: 'repeating-linear-gradient(to right, rgba(233,69,96,0.30) 0px, rgba(233,69,96,0.30) 4px, transparent 4px, transparent 10px)'
+                }} />
+                <span className="text-[#E94560] opacity-50">✦</span>
+                <div className="w-16 h-px" style={{
+                  background: 'repeating-linear-gradient(to right, rgba(233,69,96,0.15) 0px, rgba(233,69,96,0.15) 4px, transparent 4px, transparent 10px)'
+                }} />
+              </div>
 
-          {/* Desktop: bottoni inline */}
-              <div className="hidden md:flex items-center justify-between mt-7 gap-4 flex-wrap max-w-[640px] mx-auto">
+              {/* ── AREA INPUT – glass panel premium ── */}
+              <div className="rounded-[24px] p-5 md:p-6"
+                style={{
+                  background: 'rgba(7,9,15,0.55)',
+                  backdropFilter: 'blur(32px) saturate(1.8)',
+                  WebkitBackdropFilter: 'blur(32px) saturate(1.8)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: '0 24px 64px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.07)',
+                }}>
+                {renderQuestionInput()}
+              </div>
+
+              {/* ── BOTTONI DESKTOP ── */}
+              <div className="hidden md:flex items-center justify-between mt-6 gap-4 flex-wrap px-1">
                 <button
                   onClick={goBack}
                   data-testid="button-back"
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border border-transparent cursor-pointer rounded-full hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] hover:border-[var(--border-input)] transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-white/40 text-[14px] bg-transparent border border-transparent cursor-pointer rounded-full hover:text-white/70 hover:border-white/15 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" /> {t('q.back')}
                 </button>
@@ -2066,14 +2185,11 @@ border: theme === 'dark'
                   onClick={handleNext}
                   disabled={!canContinue()}
                   data-testid="button-continue"
-                  className="inline-flex items-center gap-2 px-[34px] py-[15px] rounded-full font-semibold text-[15px] border-none cursor-pointer transition-all group disabled:cursor-not-allowed disabled:transform-none disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-[36px] py-[15px] rounded-full font-semibold text-[15px] border-none cursor-pointer transition-all duration-300 group disabled:cursor-not-allowed disabled:opacity-40"
                   style={{
-                    background: canContinue() ? '#E94560' : 'rgba(233,69,96,0.3)',
+                    background: canContinue() ? 'linear-gradient(135deg, #E94560, #C73050)' : 'rgba(233,69,96,0.25)',
                     color: 'white',
-                    boxShadow: canContinue() ? '0 8px 26px rgba(233,69,96,0.4)' : 'none',
-                    isolation: 'isolate',
-                    position: 'relative',
-                    zIndex: 30,
+                    boxShadow: canContinue() ? '0 8px 28px rgba(233,69,96,0.45), 0 2px 8px rgba(233,69,96,0.20)' : 'none',
                   }}
                 >
                   {t('q.continue')}
@@ -2153,7 +2269,8 @@ border: theme === 'dark'
           </div>
           {renderProfileSoFar()}
 
-          <div className="flex items-start gap-2 p-3.5 rounded-xl text-[11px] text-[var(--text-muted)] leading-[1.5] border border-[var(--border-input)]" style={{ animation: 'sidebarIn 0.5s ease 0.35s both', background: subtlePanelBg }}>
+          <div className="flex items-start gap-2 p-3.5 rounded-xl text-[11px] text-white/30 leading-[1.5] border border-white/8"
+            style={{ animation: 'sidebarIn 0.5s ease 0.35s both', background: 'rgba(255,255,255,0.03)' }}>
             <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             {t('sidebar.privacy')}
           </div>
