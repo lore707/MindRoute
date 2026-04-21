@@ -25,29 +25,42 @@ const ROUTES = [
 ];
 
 export default function WorldMap() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    let gen = 0;
     let animTimeout: ReturnType<typeof setTimeout>;
     let rafId: number;
 
-    async function load() {
-      try {
-        const [d3, topojson] = await Promise.all([
-          import("https://cdn.jsdelivr.net/npm/d3@7/+esm" as any),
-          import("https://cdn.jsdelivr.net/npm/topojson-client@3/+esm" as any),
-        ]);
-        if (cancelled || !svgRef.current) return;
+    // Cache D3 modules after first load
+    let d3Cache: any = null;
+    let topoCache: any = null;
 
+    async function render(w: number, h: number) {
+      const myGen = ++gen;
+
+      // Clear previous SVG content
+      const svgEl = svgRef.current;
+      if (!svgEl) return;
+      while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild);
+      clearTimeout(animTimeout);
+      cancelAnimationFrame(rafId);
+
+      try {
+        if (!d3Cache || !topoCache) {
+          [d3Cache, topoCache] = await Promise.all([
+            import("https://cdn.jsdelivr.net/npm/d3@7/+esm" as any),
+            import("https://cdn.jsdelivr.net/npm/topojson-client@3/+esm" as any),
+          ]);
+        }
+        if (myGen !== gen || !svgRef.current) return;
+
+        const d3 = d3Cache;
+        const topojson = topoCache;
         const svg = d3.select(svgRef.current);
-        const rect = svgRef.current.getBoundingClientRect();
-        const w = rect.width  || window.innerWidth;
-        const h = rect.height || window.innerHeight;
 
         const isMobile = w < 768;
-        // Scala adattiva: la mappa riempie il contenitore sia in larghezza
-        // che in altezza (NaturalEarth ha aspect ratio ~2:1)
         const scaleW = w / 6.0;
         const scaleH = h / 3.0;
         const scale  = Math.max(scaleW, scaleH) * (isMobile ? 1.1 : 1.0);
@@ -61,7 +74,7 @@ export default function WorldMap() {
         const world = await d3.json(
           "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"
         );
-        if (cancelled) return;
+        if (myGen !== gen) return;
 
         const countries = topojson.feature(world, world.objects.countries);
 
@@ -74,7 +87,7 @@ export default function WorldMap() {
           .attr("stroke", "rgba(233,69,96,0.28)")
           .attr("stroke-width", "0.5");
 
-        // Defs per filtro glow
+        // Glow filter
         const defs = svg.append("defs");
         const filter = defs.append("filter").attr("id", "dot-glow").attr("x", "-50%").attr("y", "-50%").attr("width", "200%").attr("height", "200%");
         filter.append("feGaussianBlur").attr("stdDeviation", "2.5").attr("result", "blur");
@@ -82,10 +95,7 @@ export default function WorldMap() {
         feMerge.append("feMergeNode").attr("in", "blur");
         feMerge.append("feMergeNode").attr("in", "SourceGraphic");
 
-        // Gruppo flight paths (sotto i pin)
         const flightG = svg.append("g").attr("class", "flight-g");
-
-        // Pin destinazioni
         const pinsG = svg.append("g");
 
         DESTINATIONS.forEach((dest, i) => {
@@ -126,7 +136,7 @@ export default function WorldMap() {
           const labelX = x > w * 0.75 ? x - 8 : x + 8;
           const anchor = x > w * 0.75 ? "end" : "start";
 
-       if (w >= 360) {
+          if (w >= 360) {
             g.append("text")
               .attr("x", labelX).attr("y", y - 8)
               .attr("font-size", isMobile ? "11" : "10.5")
@@ -139,11 +149,11 @@ export default function WorldMap() {
           }
         });
 
-        // ── Flight path animation ──────────────────────────
+        // ── Flight path animation ──
         let routeIdx = 0;
 
         const animateRoute = () => {
-          if (cancelled) return;
+          if (myGen !== gen) return;
 
           const [fromIdx, toIdx] = ROUTES[routeIdx % ROUTES.length];
           routeIdx++;
@@ -163,7 +173,6 @@ export default function WorldMap() {
             properties: {},
           };
 
-          // Arco
           const arcEl = flightG.append("path")
             .datum(geoLine)
             .attr("d", (d: any) => path(d) || "")
@@ -187,7 +196,6 @@ export default function WorldMap() {
             .ease((d3 as any).easeQuadInOut)
             .attr("stroke-dashoffset", 0);
 
-          // Dot mobile
           const dotOuter = flightG.append("circle")
             .attr("r", 6)
             .attr("fill", "rgba(233,69,96,0.22)");
@@ -201,7 +209,7 @@ export default function WorldMap() {
           const startTime = performance.now();
 
           function moveDot(now: number) {
-            if (cancelled) return;
+            if (myGen !== gen) return;
             const elapsed = now - startTime;
             const t = Math.min(elapsed / ANIM_DUR, 1);
             const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
@@ -214,7 +222,6 @@ export default function WorldMap() {
             if (t < 1) {
               rafId = requestAnimationFrame(moveDot);
             } else {
-              // Fade out
               arcEl.transition().delay(900).duration(900).attr("opacity", 0).remove();
               dotOuter.transition().delay(900).duration(600).attr("opacity", 0).remove();
               dotInner.transition().delay(900).duration(600).attr("opacity", 0).remove();
@@ -223,7 +230,7 @@ export default function WorldMap() {
           }
 
           rafId = requestAnimationFrame(moveDot);
-        }
+        };
 
         animTimeout = setTimeout(animateRoute, 1200);
 
@@ -232,18 +239,38 @@ export default function WorldMap() {
       }
     }
 
-    load();
+    // ResizeObserver: re-render whenever the container size changes
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) render(width, height);
+    });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+      // Initial render using actual container dimensions
+      const { clientWidth: w, clientHeight: h } = containerRef.current;
+      if (w > 0 && h > 0) render(w, h);
+    }
+
     return () => {
-      cancelled = true;
+      gen++; // invalidate any in-flight render
       clearTimeout(animTimeout);
       cancelAnimationFrame(rafId);
+      observer.disconnect();
     };
   }, []);
 
   return (
-    <svg
-      ref={svgRef}
-      style={{ width: "100%", height: "100%", display: "block" }}
-    />
+    <div
+      ref={containerRef}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+    >
+      <svg
+        ref={svgRef}
+        style={{ display: "block", width: "100%", height: "100%" }}
+      />
+    </div>
   );
 }

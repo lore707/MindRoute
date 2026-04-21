@@ -351,9 +351,7 @@ export default function Landing() {
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(15,30,80,0.4) 0%, transparent 70%)" }} />
 
           {/* Mappa D3 */}
-          <div style={{ position: "absolute", inset: 0 }}>
-            <WorldMap />
-          </div>
+          <WorldMap />
 
 
           {/* Label centrale */}
