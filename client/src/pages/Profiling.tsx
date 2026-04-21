@@ -231,6 +231,39 @@ export default function Profiling() {
   const questions = selectedPath ? questionsByPath[selectedPath] : ([] as Question[]);
   const currentQ = questions[step];
 
+  const bgImageUrl = useMemo(() => {
+    const pathADefaults = [
+      "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1400&q=85",
+      "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1400&q=85",
+      "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85",
+      "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=1400&q=85",
+      "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1400&q=85",
+      "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1400&q=85",
+      "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1400&q=85",
+    ];
+    const pathBDefaults = [
+      "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1400&q=85",
+      "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85",
+      "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1400&q=85",
+      "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1400&q=85",
+      "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1400&q=85",
+      "https://images.unsplash.com/photo-1520209759809-a9bcb6cb3241?w=1400&q=85",
+      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1400&q=85",
+    ];
+    const defaults = selectedPath === 'b' ? pathBDefaults : pathADefaults;
+    const fallback = defaults[step] ?? questionThemes.default.imageUrl;
+    if (currentQ?.type === 'images' && imageSelections.length > 0) {
+      const opt = (currentQ as any).options?.find((o: any) => o.value === imageSelections[0]);
+      if (opt?.src) return opt.src.replace(/w=\d+/, 'w=1400');
+    }
+    const sels = chipSelections[step] || [];
+    if (sels.length > 0) {
+      const theme = getQuestionTheme(sels);
+      if (theme !== questionThemes.default) return theme.imageUrl.replace(/w=\d+/, 'w=1400');
+    }
+    return fallback;
+  }, [chipSelections, imageSelections, step, currentQ, selectedPath]);
+
   useEffect(() => {
     if (!showSplit && textareaRef.current && currentQ?.type === 'text') {
       setTimeout(() => textareaRef.current?.focus(), 300);
