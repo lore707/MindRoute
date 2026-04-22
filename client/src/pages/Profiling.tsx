@@ -938,12 +938,19 @@ const profilingPayload = {
 
                     {/* Budget */}
                     <div
-                      className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]"
+                      className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]"
                       style={{ background: sidePanelBg }}
                       onFocus={() => setFormFocus('budget')}
                     >
-                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.budget')}</h3>
-                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.budgetSub')}</p>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                          <PiggyBank className="w-4 h-4 text-[#E94560]" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">{t('form.budget')}</h3>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('form.budgetSub')}</p>
+                        </div>
+                      </div>
                       <div className="flex flex-wrap gap-3">
                         {[['low', t('form.budgetLow')], ['medium', t('form.budgetMed')], ['high', t('form.budgetHigh')], ['unlimited', t('form.budgetUnlimited')]].map(([val, label]) => (
                           <FormChip key={val} label={label} selected={formData.budget === val} onClick={() => setFormData(p => ({ ...p, budget: val }))} testId={`budget-${val}`} />
@@ -2015,7 +2022,7 @@ const buildDynamicProfileMessage = (): string | null => {
           <motion.div
             key={bgImageUrl}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.30 }}
+            animate={{ opacity: 0.55 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.6, ease: 'easeInOut' }}
             className="absolute inset-0"
