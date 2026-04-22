@@ -3,7 +3,7 @@ import { MatchingDemo } from "./MatchingDemo";
 import { Link } from "wouter";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
-import WorldMap, { DESTINATIONS } from "@/components/WorldMap";
+import WorldMap, { DESTINATIONS, type RecentDestination } from "@/components/WorldMap";
 import { useSectionVariant, type SectionVariant } from "@/lib/sectionContext";
 
 const Logo = ({ className = "w-9 h-9" }: { className?: string }) => (
@@ -23,7 +23,8 @@ export default function Landing() {
   const [user, setUser] = React.useState<any>(null);
   const [itineraryCount, setItineraryCount] = useState(0);
   const [displayCount, setDisplayCount] = useState(0);
-  const [liveNote, setLiveNote] = useState<{ flag: string; city: string } | null>(null);
+  const [liveNote, setLiveNote] = useState<{ flag: string; city: string; timeAgo?: string } | null>(null);
+  const [recentDestination, setRecentDestination] = useState<RecentDestination | null>(null);
   const heroRef = useRef(null);
   const howRef = useRef(null);
   const diffRef = useRef(null);
@@ -64,20 +65,56 @@ export default function Landing() {
     requestAnimationFrame(tick);
   }, [itineraryCount]);
 
+  // Fetch last real generated destination
+  useEffect(() => {
+    fetch("/api/recent-destination")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setRecentDestination(data); })
+      .catch(() => {});
+  }, []);
+
+  function timeAgo(isoDate: string): string {
+    const diff = Math.floor((Date.now() - new Date(isoDate).getTime()) / 60000);
+    if (lang === "it") {
+      if (diff < 1) return "proprio ora";
+      if (diff < 60) return `${diff} min fa`;
+      const h = Math.floor(diff / 60);
+      if (h < 24) return `${h}h fa`;
+      return `${Math.floor(h / 24)}g fa`;
+    } else {
+      if (diff < 1) return "just now";
+      if (diff < 60) return `${diff}m ago`;
+      const h = Math.floor(diff / 60);
+      if (h < 24) return `${h}h ago`;
+      return `${Math.floor(h / 24)}d ago`;
+    }
+  }
+
   // Live notification per sezione mappa
   useEffect(() => {
     const shuffled = [...DESTINATIONS].sort(() => Math.random() - 0.5);
     let idx = 0;
+    let shownReal = false;
     const show = () => {
-      const dest = shuffled[idx % shuffled.length];
-      idx++;
-      setLiveNote({ flag: dest.flag, city: lang === "it" ? dest.name : dest.nameEn });
+      // Show real recent destination first (once), then cycle static ones
+      if (recentDestination && !shownReal) {
+        shownReal = true;
+        setLiveNote({
+          flag: recentDestination.flag,
+          city: recentDestination.destinationName.split(",")[0],
+          timeAgo: timeAgo(recentDestination.createdAt),
+        });
+      } else {
+        const dest = shuffled[idx % shuffled.length];
+        idx++;
+        setLiveNote({ flag: dest.flag, city: lang === "it" ? dest.name : dest.nameEn });
+      }
       setTimeout(() => setLiveNote(null), 2800);
     };
     const first = setTimeout(show, 2200);
     const interval = setInterval(show, 5000);
     return () => { clearTimeout(first); clearInterval(interval); };
-  }, [lang]);
+  }, [lang, recentDestination]);
 
   const startHref = user ? "/profiling" : "/auth/google";
 
@@ -351,7 +388,7 @@ export default function Landing() {
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(15,30,80,0.4) 0%, transparent 70%)" }} />
 
           {/* Mappa D3 */}
-          <WorldMap />
+          <WorldMap recentDestination={recentDestination} />
 
 
           {/* Label centrale */}
@@ -403,7 +440,9 @@ export default function Landing() {
                     {liveNote.city}
                   </div>
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontFamily: "system-ui", marginTop: 2, letterSpacing: "0.1px" }}>
-                    {lang === "it" ? "itinerario generato ora" : "itinerary just generated"}
+                    {liveNote.timeAgo
+                      ? (lang === "it" ? `itinerario generato ${liveNote.timeAgo}` : `itinerary generated ${liveNote.timeAgo}`)
+                      : (lang === "it" ? "itinerario generato ora" : "itinerary just generated")}
                   </div>
                 </div>
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80", boxShadow: "0 0 6px rgba(74,222,128,0.7)", flexShrink: 0 }} />

@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+export type RecentDestination = { destinationName: string; flag: string; lat: number | null; lon: number | null; createdAt: string };
+
 export const DESTINATIONS = [
   { name: "Parigi",       nameEn: "Paris",        flag: "🇫🇷", lon: 2.35,    lat: 48.85  },
   { name: "Tokyo",        nameEn: "Tokyo",         flag: "🇯🇵", lon: 139.69,  lat: 35.68  },
@@ -24,7 +26,7 @@ const ROUTES = [
   [3, 7], // Bali → Nairobi
 ];
 
-export default function WorldMap() {
+export default function WorldMap({ recentDestination }: { recentDestination?: RecentDestination | null }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -149,6 +151,41 @@ export default function WorldMap() {
           }
         });
 
+        // ── Real recent destination pin ──
+        if (recentDestination?.lat != null && recentDestination?.lon != null) {
+          const coords = projection([recentDestination.lon!, recentDestination.lat!]);
+          if (coords) {
+            const [rx, ry] = coords;
+            const rg = pinsG.append("g");
+
+            // Outer pulse ring
+            const rring = rg.append("circle")
+              .attr("cx", rx).attr("cy", ry).attr("r", 5)
+              .attr("fill", "none").attr("stroke", "#ffffff").attr("stroke-width", "1.5").attr("opacity", 0.7);
+            rring.append("animate").attr("attributeName", "r").attr("values", "5;22").attr("dur", "2.2s").attr("repeatCount", "indefinite");
+            rring.append("animate").attr("attributeName", "opacity").attr("values", "0.7;0").attr("dur", "2.2s").attr("repeatCount", "indefinite");
+
+            // Core dot (white)
+            rg.append("circle")
+              .attr("cx", rx).attr("cy", ry).attr("r", 5)
+              .attr("fill", "#ffffff").attr("filter", "url(#dot-glow)").attr("opacity", 1);
+
+            // Flag + name label
+            if (w >= 360) {
+              const lx = rx > w * 0.75 ? rx - 10 : rx + 10;
+              const anchor = rx > w * 0.75 ? "end" : "start";
+              rg.append("text")
+                .attr("x", lx).attr("y", ry - 10)
+                .attr("font-size", isMobile ? "12" : "11")
+                .attr("fill", "rgba(255,255,255,0.9)")
+                .attr("font-family", "system-ui, sans-serif")
+                .attr("text-anchor", anchor)
+                .attr("font-weight", "600")
+                .text(`${recentDestination.flag} ${recentDestination.destinationName.split(",")[0]}`);
+            }
+          }
+        }
+
         // ── Flight path animation ──
         let routeIdx = 0;
 
@@ -260,7 +297,7 @@ export default function WorldMap() {
       cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, []);
+  }, [recentDestination]);
 
   return (
     <div

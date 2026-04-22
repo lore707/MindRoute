@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, timestamp, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -58,6 +58,15 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export const recentDestinations = pgTable("recent_destinations", {
+  id: serial("id").primaryKey(),
+  destinationName: text("destination_name").notNull(),
+  flag: text("flag").notNull(),
+  lat: real("lat"),
+  lon: real("lon"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 export const profilingRequestSchema = z.object({
   answers: z.array(z.string()),

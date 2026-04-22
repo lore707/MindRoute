@@ -1,5 +1,20 @@
 import type { Express } from "express";
 import type { Server } from "http";
+
+async function recordRecentDestination(destinationName: string) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`);
+    const d = await r.json();
+    if (!d?.[0]) return;
+    const { lat, lon, country_code } = d[0];
+    const flag = Array.from((country_code as string).toUpperCase()).map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join('');
+    const { db } = await import("./db");
+    const { recentDestinations } = await import("@shared/schema");
+    await db.insert(recentDestinations).values({ destinationName, flag, lat: parseFloat(lat), lon: parseFloat(lon) });
+  } catch (e) {
+    console.error("recordRecentDestination error:", e);
+  }
+}
 async function fetchUnsplashHero(destinationName: string): Promise<{ url: string; photographer: string; photographerUrl: string } | null> {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   if (!key) return null;
@@ -268,6 +283,7 @@ export async function registerRoutes(
         userId,
         createdAt: new Date().toISOString(),
       });
+      recordRecentDestination(destinationName); // fire-and-forget
       res.json(saved);
     } catch (err) {
       console.error("Error generating itinerary:", err);
@@ -515,6 +531,7 @@ export async function registerRoutes(
               }).where(eq(itineraries.id, finalItinId));
             }
 
+        recordRecentDestination(destinationName); // fire-and-forget
         console.log(`Background structured itinerary completed for id ${finalItinId}`);
           } catch (bgErr) {
             console.error("Background structured generation error:", bgErr);
@@ -750,6 +767,19 @@ export async function registerRoutes(
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ message: "Errore aggiornamento mappa" });
+    }
+  });
+
+  // Recent destination — last real itinerary generated
+  app.get("/api/recent-destination", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { recentDestinations } = await import("@shared/schema");
+      const { desc } = await import("drizzle-orm");
+      const rows = await db.select().from(recentDestinations).orderBy(desc(recentDestinations.createdAt)).limit(1);
+      res.json(rows[0] ?? null);
+    } catch (e) {
+      res.json(null);
     }
   });
 

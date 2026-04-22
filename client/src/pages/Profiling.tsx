@@ -905,9 +905,20 @@ const profilingPayload = {
         <style>{`
           @keyframes profileIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
           @keyframes sidebarIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+          @keyframes blobDrift1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(40px,-30px) scale(1.06); } 66% { transform: translate(-20px,20px) scale(0.96); } }
+          @keyframes blobDrift2 { 0%,100% { transform: translate(0,0) scale(1); } 40% { transform: translate(-35px,25px) scale(1.08); } 70% { transform: translate(25px,-15px) scale(0.94); } }
+          @keyframes blobDrift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(20px,35px) scale(1.04); } }
         `}</style>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 88 }}>
+        {/* Atmospheric background blobs */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
+          <div style={{ position: 'absolute', top: '8%', right: '5%', width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(180,30,60,0.38) 0%, rgba(140,20,45,0.18) 40%, transparent 70%)', filter: 'blur(60px)', animation: 'blobDrift1 14s ease-in-out infinite' }} />
+          <div style={{ position: 'absolute', top: '15%', right: '12%', width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(233,69,96,0.28) 0%, transparent 70%)', filter: 'blur(24px)', animation: 'blobDrift1 14s ease-in-out infinite 1.5s' }} />
+          <div style={{ position: 'absolute', bottom: '20%', left: '3%', width: 440, height: 440, borderRadius: '50%', background: 'radial-gradient(circle, rgba(160,25,55,0.30) 0%, rgba(100,15,35,0.14) 45%, transparent 70%)', filter: 'blur(55px)', animation: 'blobDrift2 18s ease-in-out infinite' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '35%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(233,69,96,0.12) 0%, transparent 70%)', filter: 'blur(40px)', animation: 'blobDrift3 22s ease-in-out infinite' }} />
+        </div>
+
+        <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 88, zIndex: 1 }}>
 
           {/* MAIN FORM */}
           <main className="relative py-10 px-6 sm:px-12 xl:px-16 pb-[120px]">
