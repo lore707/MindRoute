@@ -960,12 +960,19 @@ const profilingPayload = {
 
                     {/* Date + Durata */}
                     <div
-                      className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]"
+                      className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]"
                       style={{ background: sidePanelBg }}
                       onFocus={() => setFormFocus('dates')}
                     >
-                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.when')}</h3>
-                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.whenSub')}</p>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                          <Plane className="w-4 h-4 text-[#E94560]" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">{t('form.when')}</h3>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('form.whenSub')}</p>
+                        </div>
+                      </div>
                       <div className="flex gap-2 mb-4 flex-wrap">
                         {(['exact', 'flexible-month', 'flexible-period'] as const).map(mode => (
                           <button key={mode} type="button" onClick={() => setFormData(p => ({ ...p, dateMode: mode }))}
@@ -1015,16 +1022,26 @@ const profilingPayload = {
 
                       <div className="grid gap-6 md:grid-cols-2 mt-6 pt-5 border-t border-dashed border-[var(--border-input)]">
                         <div onFocus={() => setFormFocus('duration')}>
-                          <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.duration')}</h3>
-                          <div className="flex flex-wrap gap-2.5 mt-3">
+                          <div className="flex items-center gap-2.5 mb-3">
+                            <div className="w-7 h-7 rounded-lg bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                              <Timer className="w-3.5 h-3.5 text-[#E94560]" />
+                            </div>
+                            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{t('form.duration')}</h3>
+                          </div>
+                          <div className="flex flex-wrap gap-2.5">
                             {[['weekend', t('form.durationWeekend')], ['week', t('form.durationWeek')], ['10-14', t('form.duration1014')], ['long', t('form.durationLong')]].map(([val, label]) => (
                               <FormChip key={val} label={label} selected={formData.duration === val} onClick={() => setFormData(p => ({ ...p, duration: val }))} testId={`duration-${val}`} />
                             ))}
                           </div>
                         </div>
                         <div onFocus={() => setFormFocus('companions')}>
-                          <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.companions')}</h3>
-                          <div className="flex flex-wrap gap-2.5 mt-3">
+                          <div className="flex items-center gap-2.5 mb-3">
+                            <div className="w-7 h-7 rounded-lg bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                              <Users className="w-3.5 h-3.5 text-[#E94560]" />
+                            </div>
+                            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{t('form.companions')}</h3>
+                          </div>
+                          <div className="flex flex-wrap gap-2.5">
                             {[['solo', t('form.solo')], ['couple', t('form.partner')], ['friends', t('form.friends')], ['family', t('form.family')]].map(([val, label]) => (
                               <FormChip key={val} label={label} selected={formData.companions === val} onClick={() => setFormData(p => ({ ...p, companions: val }))} testId={`companions-${val}`} />
                             ))}
@@ -1035,11 +1052,16 @@ const profilingPayload = {
 
                     {/* Partenza */}
                     <div
-                      className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]"
+                      className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]"
                       style={{ background: sidePanelBg }}
                       onFocus={() => setFormFocus('departure')}
                     >
-                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.departure')}</h3>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                          <MapPin className="w-4 h-4 text-[#E94560]" />
+                        </div>
+                        <h3 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">{t('form.departure')}</h3>
+                      </div>
                       <input type="text" data-testid="input-departure" value={formData.departure} onChange={e => setFormData(p => ({ ...p, departure: e.target.value }))} placeholder={t('form.departurePlaceholder')}
                         className="w-full mt-3 px-5 py-4 bg-[var(--surface-card)] border-[1.5px] border-[var(--border-input)] rounded-2xl text-[15px] text-[var(--text-primary)] outline-none focus:border-[#E94560] focus:shadow-[0_4px_20px_rgba(233,69,96,0.06)] placeholder:text-[var(--text-muted)] placeholder:font-light transition-all" />
                     </div>
@@ -1049,18 +1071,32 @@ const profilingPayload = {
 
                 {formStep === 2 && (
                   <div className="space-y-6">
-<div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('travelStyle')}>
-                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.travelStyle')}</h3>
-                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.travelStyleSub')}</p>
+<div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('travelStyle')}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                          <Compass className="w-4 h-4 text-[#E94560]" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">{t('form.travelStyle')}</h3>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('form.travelStyleSub')}</p>
+                        </div>
+                      </div>
                       <div className="flex flex-wrap gap-3">
                         {[['fixed', t('form.travelStyleFixed')], ['two', t('form.travelStyleTwo')], ['discover', t('form.travelStyleDiscover')]].map(([val, label]) => (
                           <FormChip key={val} label={label} selected={formData.travelStyle === val} onClick={() => setFormData(p => ({ ...p, travelStyle: val }))} testId={`travelstyle-${val}`} />
                         ))}
                       </div>
                     </div>
-                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('accommodation')}>
-                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.accommodation')}</h3>
-                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.accommodationSub')}</p>
+                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('accommodation')}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                          <Home className="w-4 h-4 text-[#E94560]" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">{t('form.accommodation')}</h3>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('form.accommodationSub')}</p>
+                        </div>
+                      </div>
                       <div className="flex flex-wrap gap-3">
                         {[['hostel', t('form.accHostel')], ['budget', t('form.accBudget')], ['mid', t('form.accMid')], ['boutique', t('form.accBoutique')], ['luxury', t('form.accLuxury')], ['mix', t('form.accMix')]].map(([val, label]) => (
                           <FormChip key={val} label={label} selected={formData.accommodation === val} onClick={() => setFormData(p => ({ ...p, accommodation: val }))} testId={`acc-${val}`} />
@@ -1068,9 +1104,16 @@ const profilingPayload = {
                       </div>
                     </div>
 
-                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('food')}>
-                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.food')}</h3>
-                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.foodSub')}</p>
+                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('food')}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                          <UtensilsCrossed className="w-4 h-4 text-[#E94560]" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">{t('form.food')}</h3>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('form.foodSub')}</p>
+                        </div>
+                      </div>
                       <div className="flex flex-wrap gap-3">
                         {[['street', t('form.foodStreet')], ['budget', t('form.foodBudget')], ['mid', t('form.foodMid')], ['foodie', t('form.foodFoodie')], ['mix', t('form.foodMix')]].map(([val, label]) => (
                           <FormChip key={val} label={label} selected={formData.food === val} onClick={() => setFormData(p => ({ ...p, food: val }))} testId={`food-${val}`} />
@@ -1078,9 +1121,16 @@ const profilingPayload = {
                       </div>
                     </div>
 
-                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('effort')}>
-                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.effort')}</h3>
-                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.effortSub')}</p>
+                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('effort')}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                          <Mountain className="w-4 h-4 text-[#E94560]" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">{t('form.effort')}</h3>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('form.effortSub')}</p>
+                        </div>
+                      </div>
                       <div className="flex flex-wrap gap-3">
                         {[['low', t('form.effortLow')], ['normal', t('form.effortNormal')], ['high', t('form.effortHigh')], ['extreme', t('form.effortExtreme')]].map(([val, label]) => (
                           <FormChip key={val} label={label} selected={formData.effort === val} onClick={() => setFormData(p => ({ ...p, effort: val }))} testId={`effort-${val}`} />
@@ -1088,9 +1138,16 @@ const profilingPayload = {
                       </div>
                     </div>
 
-                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }}>
-                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.dietary')}</h3>
-                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.dietarySub')}</p>
+                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                          <Leaf className="w-4 h-4 text-[#E94560]" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">{t('form.dietary')}</h3>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('form.dietarySub')}</p>
+                        </div>
+                      </div>
                       <div className="flex flex-wrap gap-3">
                         {[['none', t('form.dietNone')], ['vegetarian', t('form.dietVegetarian')], ['vegan', t('form.dietVegan')], ['gluten', t('form.dietGluten')], ['lactose', t('form.dietLactose')], ['halal', t('form.dietHalal')], ['kosher', t('form.dietKosher')], ['allergies', t('form.dietAllergies')]].map(([val, label]) => (
                           <FormChip key={val} label={label} selected={formData.dietary.includes(val)} onClick={() => toggleDietary(val)} testId={`diet-${val}`} />
@@ -1098,9 +1155,16 @@ const profilingPayload = {
                       </div>
                     </div>
 
-                    <div className="rounded-[20px] border-l-4 border-l-[#E94560] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_4px_24px_rgba(233,69,96,0.06)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('constraints')}>
-                      <h3 className="text-[15px] font-semibold mb-1 text-[var(--text-primary)]">{t('form.constraints')}</h3>
-                      <p className="text-[12px] text-[var(--text-muted)] mb-4">{t('form.constraintsSub')}</p>
+                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('constraints')}>
+                      <div className="flex items-center gap-3 mb-5">
+                        <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
+                          <MessageCircle className="w-4 h-4 text-[#E94560]" />
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">{t('form.constraints')}</h3>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('form.constraintsSub')}</p>
+                        </div>
+                      </div>
                       <textarea
                         data-testid="input-constraints"
                         value={formData.constraints}
