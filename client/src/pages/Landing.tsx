@@ -502,7 +502,9 @@ export default function Landing() {
 
    {/* ── COME FUNZIONA ───────────────────────────────── */}
       <div ref={howContainerRef}>
-<motion.section ref={howRef} style={{ padding: "100px 24px", background: "transparent", borderTop: "1px solid rgba(255,255,255,0.06)", overflow: "hidden" }}      >
+<motion.section ref={howRef} style={{ padding: "100px 24px", background: "transparent", borderTop: "1px solid rgba(255,255,255,0.06)", overflow: "hidden", position: "relative" }}      >
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 55% 65% at 15% 40%, rgba(233,69,96,0.10) 0%, transparent 65%)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 40% 40% at 85% 80%, rgba(180,40,80,0.06) 0%, transparent 60%)", pointerEvents: "none" }} />
 
         <div style={{ maxWidth: 1180, margin: "0 auto", position: "relative" }}>
           {/* Header */}
@@ -531,10 +533,10 @@ export default function Landing() {
                 animate={howInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: i * 0.12, duration: 0.6 }}
                 className="step-card"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 16, padding: "24px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: "24px 20px", display: "flex", gap: 16, alignItems: "flex-start" }}>
                 <div style={{ flexShrink: 0, width: 42, height: 42, borderRadius: 10, background: "rgba(233,69,96,0.12)", border: "1px solid rgba(233,69,96,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>{step.icon}</div>
                 <div>
-                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "system-ui", letterSpacing: "1px", marginBottom: 5 }}>{step.n}</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.50)", fontFamily: "system-ui", letterSpacing: "1px", marginBottom: 5 }}>{step.n}</div>
                   <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 7, letterSpacing: -0.3, color: "white" }}>{step.title}</div>
                   <div style={{ fontSize: 13, color: "rgba(255,255,255,0.70)", lineHeight: 1.65, fontFamily: "system-ui, sans-serif", fontWeight: 300 }}>{step.desc}</div>
                 </div>
@@ -594,7 +596,8 @@ export default function Landing() {
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
 
       {/* ── SOCIAL PROOF ─────────────────────────────────── */}
-<section ref={socialRef} style={{ padding: "100px 24px", background: "transparent", position: "relative", overflow: "hidden" }}>        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 50% at 50% 100%, rgba(233,69,96,0.05), transparent)", pointerEvents: "none" }} />
+<section ref={socialRef} style={{ padding: "100px 24px", background: "transparent", position: "relative", overflow: "hidden" }}>        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 55% at 50% 100%, rgba(233,69,96,0.11), transparent)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 40% at 50% 0%, rgba(100,40,80,0.08), transparent)", pointerEvents: "none" }} />
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative" }}>
           <div style={{ textAlign: "center", marginBottom: 64 }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", color: "#E94560", marginBottom: 14, fontFamily: "system-ui" }}>
@@ -616,7 +619,7 @@ export default function Landing() {
               { quote: "Finally a tool that doesn't ask where I want to go, but understands how I feel. The itinerary was ready in under 3 minutes.", author: "Marco R.", tag: "Couple" },
               { quote: "I didn't expect such a detailed plan. Bookings already integrated, everything in one place.", author: "Alessia V.", tag: "Family" },
             ]).map((item, i) => (
-              <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "28px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+              <div key={i} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, padding: "28px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
                 <svg width="20" height="14" viewBox="0 0 20 14" fill="none"><path d="M0 14V8.4C0 3.733 2.533 1.067 7.6 0l1 1.6C5.467 2.4 4 4.133 3.8 6.8H7V14H0zm11 0V8.4C11 3.733 13.533 1.067 18.6 0l1 1.6c-3.133.8-4.6 2.533-4.8 5.2H18V14h-7z" fill="rgba(233,69,96,0.4)"/></svg>
                 <p style={{ fontSize: 14, color: "rgba(255,255,255,0.80)", lineHeight: 1.75, fontFamily: "system-ui", fontWeight: 300, flex: 1 }}>{item.quote}</p>
                 <div>
@@ -636,7 +639,7 @@ export default function Landing() {
             ].map(s => (
               <div key={s.label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 300, letterSpacing: -1.5, color: "white", fontFamily: "Georgia, serif", lineHeight: 1 }}>{s.val}</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.40)", marginTop: 6, fontFamily: "system-ui", letterSpacing: "0.5px" }}>{s.label}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.50)", marginTop: 6, fontFamily: "system-ui", letterSpacing: "0.5px" }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -646,7 +649,8 @@ export default function Landing() {
       <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(233,69,96,0.5), transparent)", margin: "0 10%" }} />
       {/* ── DIFFERENZA ───────────────────────────────────── */}
 <div ref={diffContainerRef}>
-<motion.section ref={diffRef} style={{ padding: "100px 24px", background: "transparent", borderTop: "1px solid rgba(255,255,255,0.05)", overflow: "hidden" }}      >        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 90% 50%, rgba(233,69,96,0.05), transparent)" }} />
+<motion.section ref={diffRef} style={{ padding: "100px 24px", background: "transparent", borderTop: "1px solid rgba(255,255,255,0.05)", overflow: "hidden" }}      >        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 90% 50%, rgba(233,69,96,0.10), transparent)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 50% 40% at 10% 50%, rgba(233,69,96,0.06), transparent)", pointerEvents: "none" }} />
 
         <div style={{ maxWidth: 1100, margin: "0 auto", position: "relative" }}>
           <div className="diff-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px,1fr))", gap: 64, alignItems: "start" }}>
@@ -680,7 +684,7 @@ export default function Landing() {
 
             {/* Comparison table */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={diffInView ? { opacity: 1, y: 0 } : {}} transition={{ delay: 0.15, duration: 0.7 }}>
-              <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 18, overflow: "hidden" }}>
+              <div style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.13)", borderRadius: 18, overflow: "hidden" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                   <div style={{ padding: "14px 18px", fontSize: 11, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.30)", fontFamily: "system-ui", borderRight: "1px solid rgba(255,255,255,0.07)" }}>
                     {lang === "it" ? "Altri planner" : "Other planners"}
@@ -725,7 +729,8 @@ export default function Landing() {
 
       {/* ── CTA FINALE ───────────────────────────────────── */}
       <section ref={ctaRef} style={{ padding: "100px 24px 80px", textAlign: "center", position: "relative", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(233,69,96,0.08), transparent)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(233,69,96,0.14), transparent)" }} />
+        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: "70%", height: "50%", background: "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.04), transparent)", pointerEvents: "none" }} />
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={ctaInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.8 }} style={{ maxWidth: 640, margin: "0 auto", position: "relative" }}>
        <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
