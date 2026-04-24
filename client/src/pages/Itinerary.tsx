@@ -416,7 +416,7 @@ export default function Itinerary() {
   };
 
   if (isLoading) return (
-<div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
+<div className="min-h-screen flex items-center justify-center" style={{ background: "transparent" }}>
       <div className="flex flex-col items-center gap-6">
         <div className="w-16 h-16 border-[3px] border-[#E94560] border-t-transparent rounded-full animate-spin" />
         <p className="text-white/50 font-serif italic text-xl animate-pulse">{t('itin.loading')}</p>
@@ -425,7 +425,7 @@ export default function Itinerary() {
   );
 
   if (!isLoading && (error || !itinerary)) return (
-    <div className="container max-w-lg mx-auto py-32 text-center min-h-screen" style={{ background: "#0f0a10" }}>
+    <div className="container max-w-lg mx-auto py-32 text-center min-h-screen" style={{ background: "transparent" }}>
       <h2 className="text-3xl font-serif font-bold text-white mb-6">{t('itin.notfound')}</h2>
       <Link href="/destinations" className="btn-primary">{t('itin.return')}</Link>
     </div>
@@ -664,7 +664,7 @@ export default function Itinerary() {
   const displayDays = editMode ? editedDays : (itinerary?.days ?? []);
 
   return (
- <div className="min-h-screen" style={{ background: "#0a0814" }} id="itinerary-pdf-content">
+ <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
       {/* HERO */}
       <div className="relative overflow-hidden" style={{ height: "65vh", minHeight: 420 }}>
         {(itinerary?.heroImageUrl || itinerary?.imageUrl) ? (

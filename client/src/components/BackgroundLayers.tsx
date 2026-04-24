@@ -27,14 +27,14 @@ import { useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { useSectionVariant, type SectionVariant } from "@/lib/sectionContext";
 
-type Mode = "hero" | "map" | "form" | "minimal";
+type Mode = "hero" | "map" | "form" | "minimal" | "journey";
 
 /** Intensità dei layer per rotta */
 const ROUTE_MODE: Record<string, Mode> = {
   "/":            "hero",      // Landing: tutto al massimo
   "/destinations":"map",       // Mappa: atmosfera + grana, poche stelle, no aurora
   "/profiling":   "form",      // Quiz: atmosfera + grana + stelle rarefatte
-  "/itinerary":   "minimal",   // Itinerario: solo atmosfera + grana
+  "/itinerary":   "journey",   // Itinerario: stelle + aurora warm
   "/my-account":  "minimal",
   "/privacy":     "minimal",
 };
@@ -60,6 +60,7 @@ const STAR_DENSITY: Record<Mode, number> = {
   map: 0.0,      // la mappa ha già pin e rotte
   form: 0.5,
   minimal: 0.0,
+  journey: 0.45, // itinerario: stelle moderate — sei già arrivato
 };
 
 const SHOW_AURORA: Record<Mode, boolean> = {
@@ -67,6 +68,7 @@ const SHOW_AURORA: Record<Mode, boolean> = {
   map: false,
   form: false,
   minimal: false,
+  journey: true,
 };
 
 /** Override per-sezione (solo su route "/") */
@@ -155,7 +157,7 @@ export function BackgroundLayers() {
   }, [density]);
 
   return (
-    <div ref={rootRef} className="mr-bg-root" data-section={isLanding ? variant : undefined} aria-hidden="true">
+    <div ref={rootRef} className="mr-bg-root" data-section={isLanding ? variant : mode} aria-hidden="true">
       {/* LAYER 1 — atmosphere: sempre on */}
       <div className="mr-bg-atmosphere" />
 
