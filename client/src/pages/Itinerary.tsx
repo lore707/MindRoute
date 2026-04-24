@@ -113,6 +113,13 @@ function BookTab({ urls, region, destinationName, profilingInput, itineraryId }:
   const leaveDate = profilingInput?.leaveDate ?? "";
   const days = profilingInput?.days ?? 7;
   const hasDate = !!(profilingInput?.leaveDate?.match(/\d{4}-\d{2}-\d{2}/));
+  const companionsLower = companions.toLowerCase();
+  const exactDateMatch = leaveDate.match(/(\d{4}-\d{2}-\d{2})/);
+  const baseDate = exactDateMatch ? new Date(exactDateMatch[1]) : (() => { const d = new Date(); d.setMonth(d.getMonth() + 3); return d; })();
+  const coDate = new Date(baseDate); coDate.setDate(coDate.getDate() + days);
+  const fmt = (dt: Date) => dt.toISOString().split("T")[0];
+  const checkin = hasDate ? fmt(baseDate) : "";
+  const checkout = hasDate ? fmt(coDate) : "";
   const sections = [
     { label: "Voli", emoji: "✈️", links: [{ key: "expedia_flights", label: `Expedia Voli → ${dest}${hasDate ? " · date preimpostate" : ""}`, url: urls.expedia_flights, color: "rgba(14,165,233,0.15)", border: "rgba(14,165,233,0.35)", text: "#38bdf8" }] },
  { label: "Hotel", emoji: "🏨", links: [{ key: "hotels", label: `Hotels.com · ${dest}${hasDate ? ` · ${days} notti` : ""}`, url: urls.hotels, color: "rgba(233,69,96,0.12)", border: "rgba(233,69,96,0.35)", text: "#E94560" }, { key: "tablet_hotels", label: `Tablet Hotels · boutique a ${dest}`, url: urls.tablet_hotels, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }, { key: "expedia_packages", label: `Expedia Pacchetti · volo + hotel`, url: urls.expedia_packages, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }] },

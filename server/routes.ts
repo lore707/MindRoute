@@ -682,6 +682,8 @@ export async function registerRoutes(
       send("done", { itineraryId: saved.id, destinationId });
       res.end();
 
+      recordRecentDestination(destinationName); // fire-and-forget
+
       // Geocoding in background — non blocca l'utente
       (async () => {
         try {

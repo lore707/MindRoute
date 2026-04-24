@@ -37,7 +37,7 @@ export default function Landing() {
     fetch("/api/auth/me").then(r => r.ok ? r.json() : null).then(setUser).catch(() => setUser(null));
   }, []);
 
-  // Stats counter
+  // Stats counter + visibility refresh
   useEffect(() => {
     const fetchStats = () => {
       fetch("/api/stats")
@@ -45,9 +45,26 @@ export default function Landing() {
         .then(data => { if (data?.itineraryCount != null) setItineraryCount(data.itineraryCount); })
         .catch(() => {});
     };
+    const fetchRecent = () => {
+      fetch("/api/recent-destination")
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setRecentDestination(data); })
+        .catch(() => {});
+    };
     fetchStats();
+    fetchRecent();
     const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        fetchStats();
+        fetchRecent();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   useEffect(() => {
@@ -64,14 +81,6 @@ export default function Landing() {
     };
     requestAnimationFrame(tick);
   }, [itineraryCount]);
-
-  // Fetch last real generated destination
-  useEffect(() => {
-    fetch("/api/recent-destination")
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setRecentDestination(data); })
-      .catch(() => {});
-  }, []);
 
   function timeAgo(isoDate: string): string {
     const diff = Math.floor((Date.now() - new Date(isoDate).getTime()) / 60000);
