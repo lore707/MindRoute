@@ -321,7 +321,7 @@ function SortableDayCard({ day, index, isOpen, onToggle, isPeak, t, itineraryId,
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function Itinerary() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [, params] = useRoute("/itinerary/:id");
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
@@ -409,7 +409,7 @@ export default function Itinerary() {
   };
 
   if (isLoading) return (
-<div className="min-h-screen flex items-center justify-center" style={{ background: "#120e1c" }}>
+<div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0814" }}>
       <div className="flex flex-col items-center gap-6">
         <div className="w-16 h-16 border-[3px] border-[#E94560] border-t-transparent rounded-full animate-spin" />
         <p className="text-white/50 font-serif italic text-xl animate-pulse">{t('itin.loading')}</p>
@@ -657,7 +657,7 @@ export default function Itinerary() {
   const displayDays = editMode ? editedDays : (itinerary?.days ?? []);
 
   return (
- <div className="min-h-screen" style={{ background: "#120e1c" }} id="itinerary-pdf-content">
+ <div className="min-h-screen" style={{ background: "#0a0814" }} id="itinerary-pdf-content">
       {/* HERO */}
       <div className="relative overflow-hidden" style={{ height: "65vh", minHeight: 420 }}>
         {(itinerary?.heroImageUrl || itinerary?.imageUrl) ? (
@@ -706,11 +706,27 @@ export default function Itinerary() {
 
       {/* TAB BAR */}
       <div className="sticky top-0 z-40 px-4 md:px-10 mb-0" style={{ background: "rgba(10,8,20,0.96)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div className="max-w-3xl mx-auto flex gap-0">
-          {([{ id: "itin", label: "Itinerario", emoji: "📍" }, { id: "book", label: "Prenota", emoji: "🎟" }, { id: "overview", label: "Panoramica", emoji: "🗺" }] as const).map(tab => (
+        <div className="max-w-4xl mx-auto flex gap-0">
+          {([
+            {
+              id: "itin",
+              label: lang === "it" ? "Itinerario" : "Itinerary",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+            },
+            {
+              id: "book",
+              label: lang === "it" ? "Prenota" : "Book",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+            },
+            {
+              id: "overview",
+              label: lang === "it" ? "Panoramica" : "Overview",
+              icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+            },
+          ] as const).map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              style={{ flex: 1, padding: "14px 8px", fontSize: 12, fontWeight: 700, color: activeTab === tab.id ? "#E94560" : "rgba(255,255,255,0.35)", background: "transparent", border: "none", borderBottom: `2px solid ${activeTab === tab.id ? "#E94560" : "transparent"}`, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-              <span style={{ fontSize: 14 }}>{tab.emoji}</span>
+              style={{ flex: 1, padding: "14px 8px", fontSize: 12, fontWeight: 700, color: activeTab === tab.id ? "#E94560" : "rgba(255,255,255,0.35)", background: "transparent", border: "none", borderBottom: `2px solid ${activeTab === tab.id ? "#E94560" : "transparent"}`, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              {tab.icon}
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           ))}
@@ -718,11 +734,11 @@ export default function Itinerary() {
       </div>
 
       {/* TAB CONTENT */}
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
 
         {/* ITINERARIO TAB */}
         {activeTab === "itin" && (
-          <div className="px-4 md:px-10 pt-6 pb-24">
+          <div className="px-4 md:px-8 pt-6 pb-24">
             {/* Header con bottone modifica */}
             <div className="flex items-center justify-between mb-6">
               <div>

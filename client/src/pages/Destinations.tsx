@@ -7,7 +7,7 @@ import { type Destination } from "@shared/schema";
 import { useI18n } from "@/lib/i18n";
 
 export default function Destinations() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 const [isGenerating, setIsGenerating] = useState(false);
@@ -48,7 +48,7 @@ const handleContinue = async () => {
       setGenHeroUrl(selectedDest.imageUrl || "");
       setGenDestName(selectedDest.name || "");
 
-      const messages = [
+      const messages = lang === "it" ? [
         "Analizzo il tuo profilo psicologico...",
         "Scelgo la destinazione perfetta per te...",
         "Costruisco il Giorno 1 e 2...",
@@ -58,6 +58,16 @@ const handleContinue = async () => {
         "Aggiungo i link di prenotazione...",
         "Cerco le immagini perfette...",
         "Quasi pronto...",
+      ] : [
+        "Analyzing your psychological profile...",
+        "Choosing the perfect destination for you...",
+        "Building Day 1 and 2...",
+        "Building Day 3 and 4...",
+        "Building Day 5 and 6...",
+        "Adding Day 7 and practical details...",
+        "Adding booking links...",
+        "Finding the perfect images...",
+        "Almost ready...",
       ];
       let msgIdx = 0;
       const msgInterval = setInterval(() => {
@@ -184,16 +194,36 @@ if (destinations.length === 0) return null;
   }
 
   return (
+    <div style={{ background: "#0a0814", color: "white", minHeight: "100vh" }}>
     <div className="container max-w-7xl mx-auto px-4 md:px-6 pt-24 pb-20">
       <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ fontSize: 11, fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", color: "#E94560", fontFamily: "system-ui, sans-serif", marginBottom: 14 }}
+        >
+          {lang === "it" ? "Le tue 3 mete" : "Your 3 matches"}
+        </motion.p>
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl md:text-4xl font-serif font-bold"
+          transition={{ delay: 0.08 }}
+          className="font-serif"
+          style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 400, letterSpacing: "-1.5px", lineHeight: 1.05, color: "white", marginBottom: 12 }}
           data-testid="text-dest-title"
         >
           {t("dest.title")}
         </motion.h2>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.16 }}
+          style={{ fontSize: 15, color: "rgba(255,255,255,0.55)", fontFamily: "system-ui, sans-serif", fontWeight: 300, lineHeight: 1.7 }}
+        >
+          {lang === "it"
+            ? "Una sicura, una inaspettata, una nel mezzo — costruite su di te."
+            : "One safe, one unexpected, one in between — built around you."}
+        </motion.p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
@@ -209,10 +239,12 @@ if (destinations.length === 0) return null;
             transition={{ delay: index * 0.1 }}
             onClick={() => handleSelect(dest.id)}
             data-testid={`card-dest-${dest.id}`}
-            className={`
-              group relative flex flex-col h-full bg-[var(--surface-card)] rounded-2xl overflow-hidden border transition-all duration-300 cursor-pointer
-              ${selectedId === dest.id ? "border-primary ring-1 ring-primary" : "border-[var(--border-subtle)] shadow-sm hover:shadow-xl hover:-translate-y-1"}
-            `}
+            className="group relative flex flex-col h-full rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: `1px solid ${selectedId === dest.id ? "#E94560" : "rgba(255,255,255,0.10)"}`,
+              boxShadow: selectedId === dest.id ? "0 0 0 1px rgba(233,69,96,0.3), 0 20px 50px rgba(0,0,0,0.5)" : "0 4px 24px rgba(0,0,0,0.35)",
+            }}
           >
             <div className="relative h-48 md:h-64 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
@@ -228,28 +260,28 @@ if (destinations.length === 0) return null;
 
             <div className="flex-1 p-5 md:p-8 flex flex-col gap-6">
               <div className="space-y-1">
-                <h4 className="text-[10px] font-sans font-bold text-primary uppercase tracking-[2px]">
+                <h4 className="text-[10px] font-sans font-bold uppercase tracking-[2px]" style={{ color: "#E94560" }}>
                   {t("dest.why")}
                 </h4>
-                <p className="text-muted-foreground font-sans text-sm leading-relaxed">
+                <p className="font-sans text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
                   {dest.whyYours}
                 </p>
               </div>
 
-              <div className="p-5 bg-[var(--surface-alt)] rounded-xl border border-[var(--border-subtle)]">
-                <h4 className="text-[10px] font-sans font-bold text-foreground uppercase tracking-[2px] mb-2">
+              <div className="p-5 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                <h4 className="text-[10px] font-sans font-bold uppercase tracking-[2px] mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>
                   {t("dest.experience")}
                 </h4>
-                <p className="text-foreground/80 font-serif italic text-[15px] leading-relaxed">
+                <p className="font-serif italic text-[15px] leading-relaxed" style={{ color: "rgba(255,255,255,0.80)" }}>
                   "{dest.experiencePreview}"
                 </p>
               </div>
 
-              <div className="mt-auto pt-4 border-t border-[var(--border-subtle)]">
-                <h4 className="text-[10px] font-sans font-bold text-foreground uppercase tracking-[2px] mb-2">
+              <div className="mt-auto pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                <h4 className="text-[10px] font-sans font-bold uppercase tracking-[2px] mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>
                   {t("dest.practical")}
                 </h4>
-                <p className="text-muted-foreground font-sans text-xs leading-relaxed">
+                <p className="font-sans text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
                   {dest.practicalInfo}
                 </p>
               </div>
@@ -270,23 +302,33 @@ if (destinations.length === 0) return null;
               onClick={handleContinue}
               disabled={isGenerating}
               data-testid="button-continue-dest"
-              className="btn-primary group px-8 py-4 text-base md:px-12 md:py-5 md:text-lg shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 9,
+                background: isGenerating ? "rgba(233,69,96,0.5)" : "#E94560",
+                color: "white", fontSize: 15, fontWeight: 600,
+                padding: "15px 36px", borderRadius: 50,
+                boxShadow: "0 12px 36px rgba(233,69,96,0.28)",
+                border: "none", cursor: isGenerating ? "not-allowed" : "pointer",
+                fontFamily: "system-ui, sans-serif", letterSpacing: "-0.2px",
+                transition: "all 0.25s ease",
+              }}
             >
               {isGenerating ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  {streamMessage || "Creo il tuo itinerario..."}
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {lang === "it" ? "Creo il tuo itinerario..." : "Building your itinerary..."}
                 </>
               ) : (
                 <>
                   {t("dest.choose")} {selectedName?.split(",")[0]}{" "}
-                  <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                 </>
               )}
             </button>
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
     </div>
   );
 }
