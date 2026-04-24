@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
+import { profilingLimiter, itineraryLimiter } from "./rate-limiter";
 
 async function recordRecentDestination(destinationName: string) {
   try {
@@ -80,7 +81,7 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // STEP 1 — Genera 3 destinazioni leggere
-  app.post(api.profiling.submit.path, async (req, res) => {
+  app.post(api.profiling.submit.path, profilingLimiter, async (req, res) => {
     try {
       const input = api.profiling.submit.input.parse(req.body);
       const destinations = await generateDestinationsOnly(input);
@@ -123,7 +124,7 @@ export async function registerRoutes(
   });
 
 // STEP 3 — Genera itinerario completo per destinazione scelta
-  app.post("/api/itinerary/generate", async (req, res) => {
+  app.post("/api/itinerary/generate", itineraryLimiter, async (req, res) => {
     try {
       const { input, destinationName, destinationId, whyYours } = req.body;
       if (!input || !destinationName || !destinationId) {
@@ -548,7 +549,7 @@ export async function registerRoutes(
   });
 
   // STEP 3b — Genera itinerario con SSE streaming progress
-  app.post("/api/itinerary/generate-stream", async (req, res) => {
+  app.post("/api/itinerary/generate-stream", itineraryLimiter, async (req, res) => {
     const { input, destinationName, destinationId, whyYours } = req.body;
     if (!input || !destinationName || !destinationId) {
       return res.status(400).json({ message: "Missing fields" });

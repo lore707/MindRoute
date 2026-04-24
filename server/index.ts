@@ -6,6 +6,7 @@ import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { setupAuth } from "./auth";
+import { ensureRateLimitTable, globalApiLimiter } from "./rate-limiter";
 import { createServer } from "http";
 const app = express();
 app.set("trust proxy", 1);
@@ -102,6 +103,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  await ensureRateLimitTable();
+  app.use("/api", globalApiLimiter);
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

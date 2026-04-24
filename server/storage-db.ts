@@ -39,7 +39,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async clearAll(): Promise<void> {
-    await db.delete(itineraries);
     await db.delete(destinations);
     await db.delete(profilingInputs);
   }

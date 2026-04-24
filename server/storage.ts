@@ -47,9 +47,7 @@ export class MemoryStorage implements IStorage {
 
   async clearAll(): Promise<void> {
     this.destinations = [];
-    this.itineraries = [];
     this.destIdCounter = 1;
-    this.itinIdCounter = 1;
   }
 
   async saveProfilingInput(input: any): Promise<void> {
