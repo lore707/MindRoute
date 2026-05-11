@@ -70,6 +70,49 @@ async function fetchUnsplashHero(destinationName: string): Promise<{ url: string
   // Final fallback: generic tropical/travel photo
   return searchUnsplash("tropical island paradise landscape");
 }
+
+/**
+ * Fetch a real Unsplash image for a single itinerary day.
+ * Always grounds the search geographically by prepending the destination city,
+ * then falls back to less specific queries until a real photo is found.
+ * Returns null only if Unsplash is unreachable / no key — never an invented URL.
+ */
+async function fetchDayImageWithFallback(query: string | null | undefined, destinationName: string): Promise<string | null> {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  if (!key) return null;
+  const city = (destinationName || "").split(",")[0].trim();
+
+  const tryQuery = async (q: string): Promise<string | null> => {
+    if (!q || q.length < 2) return null;
+    try {
+      const r = await fetch(
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&orientation=landscape&per_page=1`,
+        { headers: { Authorization: `Client-ID ${key}` } }
+      );
+      if (!r.ok) return null;
+      const d = await r.json();
+      return d.results?.[0]?.urls?.regular ?? null;
+    } catch { return null; }
+  };
+
+  // Stage 1: city + imageQuery — geo-grounded, best match for "this place specifically"
+  if (city && query) {
+    const url = await tryQuery(`${city} ${query}`);
+    if (url) return url;
+  }
+  // Stage 2: imageQuery alone — in case the LLM query is already geographic
+  if (query) {
+    const url = await tryQuery(query);
+    if (url) return url;
+  }
+  // Stage 3: city alone — always at least a photo of the right destination
+  if (city) {
+    const url = await tryQuery(`${city} travel landscape`);
+    if (url) return url;
+  }
+  return null;
+}
+
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
@@ -137,22 +180,6 @@ export async function registerRoutes(
       ]);
 
 // --- Helper functions ---
-      const keyDayIndices = new Set([0, 3, 4, (itinerary.days?.length ?? 7) - 1]);
-
-      async function fetchDayImage(query: string): Promise<string | null> {
-        const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
-        if (!unsplashKey || !query) return null;
-        try {
-          const r = await fetch(
-            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
-            { headers: { Authorization: `Client-ID ${unsplashKey}` } }
-          );
-          if (!r.ok) return null;
-          const d = await r.json();
-          return d.results?.[0]?.urls?.regular ?? null;
-        } catch { return null; }
-      }
-
       async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
         try {
           const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=en`);
@@ -184,11 +211,9 @@ export async function registerRoutes(
         (itinerary.days || []).map(async (day: any, idx: number) => {
           const extras: Record<string, any> = {};
 
-          // Image for key days
-          if (keyDayIndices.has(idx) && day.imageQuery) {
-            const img = await fetchDayImage(day.imageQuery);
-            if (img) extras.dayImage = img;
-          }
+          // Real image for EVERY day, geo-grounded. Always overrides any LLM-invented URL.
+          const dayImg = await fetchDayImageWithFallback(day.imageQuery, destinationName);
+          extras.dayImageUrl = dayImg; // null if Unsplash unavailable — never the LLM hallucination
 
           // Geocode places for map pins — use multiple strategies
           const mapPoints: any[] = [];
@@ -422,22 +447,6 @@ export async function registerRoutes(
             const structuredItinerary = await generateItineraryForDestination(input, destinationName);
             const heroImage = await fetchUnsplashHero(destinationName);
 
-            const keyDayIndices = new Set([0, 3, 4, (structuredItinerary.days?.length ?? 7) - 1]);
-
-            async function fetchDayImageBg(query: string): Promise<string | null> {
-              const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
-              if (!unsplashKey || !query) return null;
-              try {
-                const r = await fetch(
-                  `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
-                  { headers: { Authorization: `Client-ID ${unsplashKey}` } }
-                );
-                if (!r.ok) return null;
-                const d = await r.json();
-                return d.results?.[0]?.urls?.regular ?? null;
-              } catch { return null; }
-            }
-
             async function geocodeBg(query: string): Promise<{ lat: number; lng: number } | null> {
               try {
                 const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=en`);
@@ -495,10 +504,8 @@ export async function registerRoutes(
             const daysWithExtras = await Promise.all(
               (structuredItinerary.days || []).map(async (day: any, idx: number) => {
                 const extras: Record<string, any> = {};
-                if (keyDayIndices.has(idx) && day.imageQuery) {
-                  const img = await fetchDayImageBg(day.imageQuery);
-                  if (img) extras.dayImage = img;
-                }
+                const dayImg = await fetchDayImageWithFallback(day.imageQuery, destinationName);
+                extras.dayImageUrl = dayImg; // null if Unsplash unavailable — never the LLM hallucination
                 const dayPoints = globalMapPoints.filter(p => p.dayNum === day.dayNumber);
                 if (dayPoints.length > 0) extras.mapPoints = dayPoints;
                 return { ...day, ...extras };
@@ -574,22 +581,6 @@ export async function registerRoutes(
 
       send("progress", { step: 3, message: "Costruisco la mappa dei luoghi..." });
 
-      const keyDayIndices = new Set([0, 3, 4, (itinerary.days?.length ?? 7) - 1]);
-
-      async function fetchDayImage(query: string): Promise<string | null> {
-        const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
-        if (!unsplashKey || !query) return null;
-        try {
-          const r = await fetch(
-            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=1`,
-            { headers: { Authorization: `Client-ID ${unsplashKey}` } }
-          );
-          if (!r.ok) return null;
-          const d = await r.json();
-          return d.results?.[0]?.urls?.regular ?? null;
-        } catch { return null; }
-      }
-
       async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
         try {
           const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=en`);
@@ -649,14 +640,12 @@ export async function registerRoutes(
       );
       const globalMapPoints = geocodeResults.filter(Boolean) as any[];
 
-      // Fetch immagini giorni chiave in parallelo
+      // Fetch immagini per OGNI giorno in parallelo — geo-grounded, override sempre l'URL inventato dall'LLM
       const daysWithExtras = await Promise.all(
         (itinerary.days || []).map(async (day: any, idx: number) => {
           const extras: Record<string, any> = {};
-          if (keyDayIndices.has(idx) && day.imageQuery) {
-            const img = await fetchDayImage(day.imageQuery);
-            if (img) extras.dayImage = img;
-          }
+          const dayImg = await fetchDayImageWithFallback(day.imageQuery, destinationName);
+          extras.dayImageUrl = dayImg; // null se Unsplash non disponibile — mai l'allucinazione LLM
           // Assegna map points di questo giorno
           const dayPoints = globalMapPoints.filter(p => p.dayNum === day.dayNumber);
           if (dayPoints.length > 0) extras.mapPoints = dayPoints;
