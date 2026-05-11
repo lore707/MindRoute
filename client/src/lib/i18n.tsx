@@ -138,6 +138,7 @@ const translations: Record<string, Record<Lang, string>> = {
 "b.q3.chip5": { en: "living something completely new", it: "vivere qualcosa di completamente nuovo" },
 "b.q3.chip6": { en: "photographing something extraordinary", it: "fotografare qualcosa di straordinario" },
 "b.q3.chip7": { en: "finding a place I didn't know existed", it: "trovare un posto che non sapevo esistesse" },
+"b.q2.addendum": { en: "Want to add something specific? (optional)", it: "Vuoi aggiungere qualcosa di specifico? (opzionale)" },
 "b.q3.addendum": { en: "Do you have something specific in mind? (optional)", it: "Hai qualcosa di specifico in mente? (opzionale)" },
 "b.q3.placeholder": { en: "E.g. I want to see the temples of Kyoto at dawn, the fish markets, the hidden neighborhoods...", it: "Es. Voglio vedere i templi di Kyoto all'alba, i mercati del pesce, i quartieri nascosti..." },
 "b.q3.precise": { en: "Why that place specifically?", it: "Perché proprio quel posto?" },

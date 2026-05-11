@@ -496,8 +496,8 @@ export default function Profiling() {
     const travel_type_primary = normalizedTypes[0] || null;
     const travel_type_secondary = normalizedTypes.slice(1);
 
-    // Q3 – momento / must-see (oggi è una text question)
-    const q3 = answers[2] || '';
+    // Q3 – must-see / momento (chips, multi-select)
+    const mustSeeChips = chipSelections[2] || [];
 
     // Atmosfera (Q4 immagini)
     const atmosValue = imageSelections[0];
@@ -512,8 +512,8 @@ export default function Profiling() {
     if (sliderValue <= 25) pace = "structured";
     else if (sliderValue >= 75) pace = "spontaneous";
 
-    // Obiettivo emotivo (Q6 – text)
-    const emotional_goal = answers[5] || '';
+    // Obiettivi emotivi (Q6 – chips, multi-select)
+    const emotionalGoalChips = chipSelections[5] || [];
 
     // Cose da evitare (Q7 chips)
     const avoidChips = chipSelections[6] || [];
@@ -532,8 +532,7 @@ export default function Profiling() {
     };
     const avoid = avoidChips.map(normalizeAvoid);
 
-    const experience_priority = q3 || (answers[`1_addendum`] || "");
-    const must_see = q3 ? [q3] : [];
+    const experience_priority = (answers[`1_addendum`] || mustSeeChips[0] || "");
 
     return {
       region,
@@ -541,10 +540,10 @@ export default function Profiling() {
       travel_type_primary,
       travel_type_secondary: travel_type_secondary.length ? travel_type_secondary : undefined,
       experience_priority: experience_priority || undefined,
-      must_see: must_see.length ? must_see : undefined,
+      must_see: mustSeeChips.length ? mustSeeChips : undefined,
       atmosphere: atmosphere || undefined,
       pace,
-      emotional_goal: emotional_goal || undefined,
+      emotional_goals: emotionalGoalChips.length ? emotionalGoalChips : undefined,
       avoid: avoid.length ? avoid : undefined,
     };
   };

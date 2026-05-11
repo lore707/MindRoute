@@ -257,7 +257,6 @@ export function getQuestionTheme(selectedValues: string[]): QuestionTheme {
     'city & nightlife': 'city',
     'city and nightlife': 'city',
     'off the grid': 'offgrid',
-    'road trip': 'roadtrip',
     'trekking & sports': 'trekking',
     'trekking and sport': 'trekking',
     'wellness & spa': 'wellness',
@@ -321,20 +320,17 @@ export function getQuestionTheme(selectedValues: string[]): QuestionTheme {
     'festeggiare': 'festive',
     'ritrovarmi': 'spiritual',
     // path a q2 need EN
-    'disconnect from routine': 'quiet',
     'feel alive again': 'adventure',
-    'slow down': 'regenerating',
     'be surprised': 'explorative',
     'recharge my energy': 'regenerating',
     'change something': 'chaotic',
     'celebrate': 'festive',
     'find myself': 'spiritual',
     // path a q7 distanza EN
-    'close to home': 'close',
     'same continent': 'continent',
     'far away': 'far',
     'anywhere, truly surprise me': 'anywhere',
-    // path a q2 distanza
+    // path a q7 distanza IT
     'stesso continente': 'continent',
     'lontano': 'far',
     'ovunque': 'anywhere',
@@ -467,7 +463,6 @@ export function getMultipleThemes(selectedValues: string[]): QuestionTheme[] {
     'celebrate': 'festive',
     'find myself': 'spiritual',
     // path a q7 distanza IT
-    'vicino a casa': 'close',
     'stesso continente': 'continent',
     'lontano': 'far',
     'ovunque': 'anywhere',

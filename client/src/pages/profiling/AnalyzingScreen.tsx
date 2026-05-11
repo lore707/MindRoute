@@ -71,7 +71,7 @@ export function AnalyzingScreen({ titleHtml, visibleTraits }: AnalyzingScreenPro
       <div className="absolute inset-0 grid gap-0.5" style={{ gridTemplateColumns: "repeat(4, 1fr)", gridTemplateRows: "repeat(3, 1fr)" }}>
         {Array.from({ length: GRID_SIZE }, (_, i) => (
           <div key={i} className="relative overflow-hidden">
-            <AnimatePresence mode="crossfade">
+            <AnimatePresence mode="sync">
               <motion.img
                 key={offsets[i]}
                 src={PHOTOS[offsets[i]]}

@@ -1,7 +1,6 @@
 import type { Question, Translate } from "./types";
 
 const drainChipKeys = ["guided", "crowded", "museums", "resort", "nightlife", "touristy", "transits", "mornings", "schedules", "smalltalk", "unfamiliarfood", "toomuchwalking", "tooisolated", "tooexpensive", "toolong"];
-const drainSubsetKeys = ["guided", "crowded", "museums", "resort", "nightlife", "touristy", "transits", "mornings", "schedules", "smalltalk"];
 const monthKeys = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const pathAStyleChipKeys = ["wild", "quiet", "chaotic", "intimate", "solitary", "regenerating", "authentic", "quietluxury", "spiritual", "festive", "adventure", "romantic", "cultural", "explorative"];
 const pathADistanceChipKeys = ["close", "continent", "far", "anywhere"];
@@ -48,7 +47,7 @@ function buildPathB(t: Translate): Question[] {
       options: pathBTypeChipKeys.map((k) => t(`b.q2.chips.${k}`)),
       multi: true,
       max: 3,
-      addendum: "Vuoi aggiungere qualcosa di specifico? (opzionale)",
+      addendum: t("b.q2.addendum"),
       why: t("b.q2.why"),
       tags: ["trip type", "category", "combination"],
       section: t("section.b.type"),
@@ -95,12 +94,13 @@ function buildPathB(t: Translate): Question[] {
         t("b.q6.chip6"),
       ],
       multi: true,
+      max: 3,
       addendum: t("b.q6.addendum"),
       why: t("b.q6.why"),
       tags: ["emotional need", "life phase", "core desire"],
       section: t("section.b.feeling"),
     },
-    { text: t("b.q7.text"), hint: t("b.q7.hint"), type: "chips", options: drainSubsetKeys.map((k) => t(`chips.${k}`)), multi: true, addendum: t("b.q7.addendum"), why: t("b.q7.why"), tags: ["anti-patterns", "quick filter"], section: t("section.b.avoid") },
+    { text: t("b.q7.text"), hint: t("b.q7.hint"), type: "chips", options: drainChipKeys.map((k) => t(`chips.${k}`)), multi: true, addendum: t("b.q7.addendum"), why: t("b.q7.why"), tags: ["anti-patterns", "quick filter"], section: t("section.b.avoid") },
   ];
 }
 
