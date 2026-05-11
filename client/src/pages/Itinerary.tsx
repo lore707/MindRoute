@@ -17,7 +17,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useI18n } from "@/lib/i18n";
-import html2pdf from "html2pdf.js";
+import { pdf } from "@react-pdf/renderer";
+import { ItineraryPDF } from "@/components/ItineraryPDF";
 import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
 
 // ── URL BUILDER ───────────────────────────────────────────────────────────────
@@ -555,230 +556,28 @@ export default function Itinerary() {
     </div>
   );
 
- const handleSavePdf = () => {
-    const dest = itinerary.destinationName ?? "Destinazione";
-    const destEncoded = encodeURIComponent(dest);
-    const itinUrl = `https://mindroute-pgav.onrender.com/itinerary/${id}`;
-    const mapsUrl = `https://maps.google.com/maps?q=${destEncoded}`;
-    const qrMaps = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(mapsUrl)}&color=1a0a14&bgcolor=ffffff`;
-    const qrItin = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(itinUrl)}&color=E94560&bgcolor=ffffff`;
-    const today = new Date().toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
-    const days = itinerary.days ?? [];
-    const slotLabels = { morning: t("itin.morning"), lunch: t("itin.lunch"), afternoon: t("itin.afternoon"), evening: t("itin.evening") };
-    const slotIcons: Record<string,string> = { morning: "🌅", lunch: "🍽️", afternoon: "☀️", evening: "🌙" };
-    const slotColors: Record<string,string> = { morning: "#E94560", lunch: "#FF8C42", afternoon: "#4ECDC4", evening: "#9B59B6" };
-
-    // Budget parsing
-    let budgetLines: {label:string, value:string, isTotal:boolean}[] = [];
-    if (itinerary.budgetSummary) {
-      try {
-        const p = JSON.parse(itinerary.budgetSummary);
-        if (p?.items) budgetLines = p.items.map((item:any) => ({ label: item.label, value: item.total, isTotal: /totale/i.test(item.label) }));
-      } catch {
-        budgetLines = (itinerary.budgetSummary?.split(/[|·\n]/) ?? []).filter((s:string) => s.trim().length > 3).slice(0,6).map((s:string) => {
-          const parts = s.trim().split(/[:—–]/);
-          return { label: parts[0]?.trim() ?? "", value: parts.slice(1).join("—").trim(), isTotal: /totale|total/i.test(s) };
-        });
-      }
+ const handleSavePdf = async () => {
+    if (!itinerary) return;
+    const dest = itinerary.destinationName ?? "Destination";
+    const safeName = dest.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "");
+    const createdAt = (itinerary as any).createdAt ? new Date((itinerary as any).createdAt) : new Date();
+    const monthYear = isNaN(createdAt.getTime())
+      ? undefined
+      : new Intl.DateTimeFormat(lang === "it" ? "it-IT" : "en-US", { month: "long", year: "numeric" }).format(createdAt);
+    try {
+      const blob = await pdf(<ItineraryPDF data={itinerary as any} lang={lang as "it" | "en"} monthYear={monthYear} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `MindRoute-${safeName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      window.alert(lang === "it" ? "Errore nella generazione del PDF" : "PDF generation failed");
     }
-
-    // Getting there parsing
-    let gettingThereHtml = "";
-    if (itinerary.gettingThere) {
-      try {
-        const p = JSON.parse(itinerary.gettingThere);
-        if (p?.steps) gettingThereHtml = p.steps.map((s:any) => `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px"><div style="width:8px;height:8px;border-radius:50%;background:#E94560;margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600;color:#1a0a14">${s.from} → ${s.to}</div><div style="font-size:11px;color:#888">${s.method} · ${s.duration}${s.cost ? ` · ${s.cost}` : ""}</div></div></div>`).join("");
-      } catch { gettingThereHtml = `<p style="font-size:12px;color:#555;line-height:1.7">${itinerary.gettingThere}</p>`; }
-    }
-
-    // Packing list parsing
-    let packingHtml = "";
-    if (itinerary.packingList) {
-      try {
-        const p = JSON.parse(itinerary.packingList);
-        if (p?.items) packingHtml = p.items.map((item:any) => `<span style="display:inline-block;font-size:11px;padding:4px 12px;border-radius:20px;background:#f5f0f2;color:#555;border:1px solid #e8dde2;margin:3px">${item.emoji ?? ""} ${item.label}</span>`).join("");
-      } catch {
-        packingHtml = (itinerary.packingList?.split(/[,;]/) ?? []).filter((s:string) => s.trim().length > 1).map((s:string) => `<span style="display:inline-block;font-size:11px;padding:4px 12px;border-radius:20px;background:#f5f0f2;color:#555;border:1px solid #e8dde2;margin:3px">${s.trim()}</span>`).join("");
-      }
-    }
-
-    const daysHtml = days.map((day: any, idx: number) => {
-      const isPeak = idx === 3 || idx === 4;
-      const slotsHtml = (["morning","lunch","afternoon","evening"] as const).map(key => {
-        const text = day[key];
-        if (!text || text.length < 3) return "";
-        return `
-          <div style="display:flex;border-top:1px solid #f0e8ec;page-break-inside:avoid">
-            <div style="width:52px;display:flex;flex-direction:column;align-items:center;padding:14px 0 10px;border-right:2px solid ${slotColors[key]}20;background:${slotColors[key]}08;flex-shrink:0">
-              <span style="font-size:18px;margin-bottom:4px">${slotIcons[key]}</span>
-              <span style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${slotColors[key]};text-align:center">${slotLabels[key]}</span>
-            </div>
-            <div style="flex:1;padding:14px 16px;min-width:0">
-              <p style="margin:0;font-size:12.5px;color:#2a1018;line-height:1.75;font-family:'Georgia',serif">${text}</p>
-            </div>
-          </div>`;
-      }).join("");
-
-      return `
-        <div style="margin-bottom:20px;border-radius:16px;overflow:hidden;border:${isPeak ? "2px solid #E94560" : "1.5px solid #f0e0e6"};page-break-inside:avoid;box-shadow:${isPeak ? "0 4px 24px rgba(233,69,96,0.12)" : "0 2px 12px rgba(0,0,0,0.04)"}">
-          <div style="display:flex;align-items:stretch">
-            <div style="width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${isPeak ? "#E94560" : "#f9f0f3"};padding:16px 0;flex-shrink:0">
-              ${isPeak ? `<span style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">CLOU</span>` : ""}
-              <span style="font-size:22px;font-weight:700;color:${isPeak ? "white" : "#E94560"};font-family:'Georgia',serif;line-height:1">${day.dayNumber}</span>
-              <span style="font-size:8px;text-transform:uppercase;letter-spacing:1px;color:${isPeak ? "rgba(255,255,255,0.6)" : "#c0909a"};font-weight:600">giorno</span>
-            </div>
-            <div style="flex:1;padding:14px 18px;background:${isPeak ? "rgba(233,69,96,0.03)" : "white"}">
-              ${isPeak ? `<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#E94560;margin-bottom:4px">✦ Momento clou</div>` : ""}
-              <h3 style="margin:0;font-size:15px;font-weight:700;color:#1a0a14;font-family:'Georgia',serif;line-height:1.3">${day.title}</h3>
-            </div>
-          </div>
-          ${slotsHtml}
-          ${day._note ? `<div style="padding:10px 16px;background:#fdf8f9;border-top:1px solid #f0e8ec;font-size:11px;color:#888;font-style:italic">📝 ${day._note}</div>` : ""}
-        </div>`;
-    }).join("");
-
-    const html = `
-      <div style="font-family:'Georgia',serif;background:white;color:#1a0a14;margin:0;padding:0">
-
-        <!-- COVER -->
-        <div style="position:relative;height:100vh;min-height:600px;page-break-after:always;overflow:hidden;background:#1a0a14">
-          ${(itinerary.heroImageUrl || itinerary.imageUrl) ? `<img src="${itinerary.heroImageUrl || itinerary.imageUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.55" crossorigin="anonymous"/>` : ""}
-          <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(10,8,20,0.2) 0%, rgba(10,8,20,0.85) 100%)"></div>
-          <div style="position:absolute;bottom:0;left:0;right:0;padding:48px 52px">
-            <div style="display:inline-block;padding:6px 16px;border-radius:20px;border:1px solid rgba(233,69,96,0.5);background:rgba(233,69,96,0.15);margin-bottom:20px">
-              <span style="font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#E94560">✦ Il tuo MindRoute</span>
-            </div>
-            <h1 style="margin:0 0 12px;font-size:56px;font-weight:700;color:white;line-height:1.05;letter-spacing:-1px">${dest}</h1>
-            <div style="width:60px;height:3px;background:#E94560;border-radius:2px;margin-bottom:16px"></div>
-            <p style="margin:0;font-size:15px;color:rgba(255,255,255,0.55);font-style:italic;letter-spacing:0.5px">${days.length} giorni di esperienza costruiti per te · ${today}</p>
-          </div>
-          <div style="position:absolute;top:40px;right:48px">
-            <svg viewBox="0 0 120 120" fill="none" style="width:48px;height:48px;opacity:0.8">
-              <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
-              <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
-              <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
-              <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
-              <ellipse cx="60" cy="60" rx="5" ry="6" fill="white"/>
-              <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7"/>
-            </svg>
-          </div>
-        </div>
-
-        <!-- PAGINA 2: PERCHÉ + HIGHLIGHTS + PANORAMICA -->
-        <div style="padding:52px;page-break-after:always;min-height:100vh;box-sizing:border-box">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:36px">
-            <div style="width:3px;height:36px;background:#E94560;border-radius:2px;flex-shrink:0"></div>
-            <div>
-              <p style="margin:0 0 2px;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#E94560">Perché questo posto ti somiglia</p>
-              <div style="width:40px;height:1px;background:#E94560;opacity:0.3"></div>
-            </div>
-          </div>
-          ${itinerary.whyYours ? `
-          <blockquote style="margin:0 0 32px;padding:24px 28px;border-left:4px solid #E94560;background:linear-gradient(135deg,rgba(233,69,96,0.04),rgba(233,69,96,0.01));border-radius:0 16px 16px 0">
-            <p style="margin:0;font-size:18px;font-style:italic;color:#1a0a14;line-height:1.75;font-family:'Georgia',serif">"${itinerary.whyYours}"</p>
-          </blockquote>` : ""}
-          ${itinerary.highlights?.length ? `
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:36px">
-            ${itinerary.highlights.map((h:string) => `<span style="display:inline-block;padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(233,69,96,0.08);color:#E94560;border:1px solid rgba(233,69,96,0.2)">${h}</span>`).join("")}
-          </div>` : ""}
-
-          ${budgetLines.length ? `
-          <div style="background:#fdf8f9;border-radius:16px;padding:24px;margin-bottom:20px;border:1px solid #f0e0e6">
-            <p style="margin:0 0 16px;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#E94560">💰 Budget stimato</p>
-            ${budgetLines.map(l => `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0e8ec"><span style="font-size:12px;color:${l.isTotal ? "#E94560" : "#888"};font-weight:${l.isTotal ? 700 : 400}">${l.label}</span><span style="font-size:${l.isTotal ? 14 : 12}px;color:${l.isTotal ? "#E94560" : "#333"};font-weight:700">${l.value}</span></div>`).join("")}
-          </div>` : ""}
-
-          ${itinerary.bestTime ? `
-          <div style="background:#fdf8f9;border-radius:16px;padding:20px;margin-bottom:20px;border:1px solid #f0e0e6">
-            <p style="margin:0 0 10px;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#E94560">📅 Periodo migliore</p>
-            <p style="margin:0;font-size:12px;color:#555;line-height:1.7">${itinerary.bestTime}</p>
-          </div>` : ""}
-
-          ${gettingThereHtml ? `
-          <div style="background:#fdf8f9;border-radius:16px;padding:20px;margin-bottom:20px;border:1px solid #f0e0e6">
-            <p style="margin:0 0 14px;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#E94560">✈️ Come arrivare</p>
-            ${gettingThereHtml}
-          </div>` : ""}
-
-          ${packingHtml ? `
-          <div style="background:#fdf8f9;border-radius:16px;padding:20px;border:1px solid #f0e0e6">
-            <p style="margin:0 0 12px;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#E94560">🎒 Da portare</p>
-            <div style="display:flex;flex-wrap:wrap;gap:4px">${packingHtml}</div>
-          </div>` : ""}
-        </div>
-
-        <!-- PAGINA 3+: GIORNI -->
-        <div style="padding:52px;page-break-after:always">
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:32px">
-            <div style="width:3px;height:36px;background:#E94560;border-radius:2px;flex-shrink:0"></div>
-            <div>
-              <p style="margin:0 0 2px;font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#E94560">Giorno per giorno</p>
-              <h2 style="margin:0;font-size:28px;font-weight:700;color:#1a0a14;font-family:'Georgia',serif">Il tuo itinerario</h2>
-            </div>
-          </div>
-          ${daysHtml}
-        </div>
-
-        <!-- ULTIMA PAGINA: CHIUSURA -->
-        <div style="padding:52px;min-height:60vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:linear-gradient(135deg,#fdf8f9,white)">
-          <div style="width:40px;height:2px;background:#E94560;border-radius:2px;margin-bottom:32px"></div>
-          ${itinerary.closingMessage ? `<p style="margin:0 0 40px;font-size:22px;font-style:italic;color:#1a0a14;line-height:1.7;max-width:480px;font-family:'Georgia',serif">"${itinerary.closingMessage}"</p>` : ""}
-          <div style="display:flex;gap:52px;justify-content:center;align-items:flex-start;margin-bottom:48px">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
-              <div style="padding:8px;border-radius:12px;border:1.5px solid #f0e0e6;background:white">
-                <img src="${qrMaps}" width="100" height="100" style="display:block;border-radius:6px"/>
-              </div>
-              <span style="font-size:10px;font-weight:700;color:#888;letter-spacing:1px;text-transform:uppercase">📍 Apri la mappa</span>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
-              <div style="padding:8px;border-radius:12px;border:1.5px solid rgba(233,69,96,0.3);background:white">
-                <img src="${qrItin}" width="100" height="100" style="display:block;border-radius:6px"/>
-              </div>
-              <span style="font-size:10px;font-weight:700;color:#E94560;letter-spacing:1px;text-transform:uppercase">✦ Rivedi l'itinerario</span>
-            </div>
-          </div>
-          <div style="width:1px;height:40px;background:linear-gradient(to bottom,#E94560,transparent);margin-bottom:20px"></div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-            <svg viewBox="0 0 120 120" fill="none" style="width:22px;height:22px">
-              <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
-              <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
-              <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85"/>
-              <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55"/>
-            </svg>
-            <span style="font-size:13px;font-weight:700;color:#1a0a14;letter-spacing:0.5px">MindRoute</span>
-          </div>
-          <p style="margin:0;font-size:10px;color:#bbb;letter-spacing:1px">mindroute-pgav.onrender.com · Generato il ${today}</p>
-        </div>
-
-      </div>`;
-
-  const container = document.createElement("div");
-    container.style.cssText = "position:absolute;left:0;top:0;width:794px;background:white;z-index:9999;visibility:hidden;pointer-events:none";
-    container.innerHTML = html;
-    document.body.appendChild(container);
-
-    setTimeout(() => {
-      container.style.visibility = "visible";
-      setTimeout(() => {
-        html2pdf().set({
-          margin: 0,
-          filename: `MindRoute-${dest.replace(/[^a-zA-Z0-9]/g, "-")}.pdf`,
-          image: { type: "jpeg", quality: 0.95 },
-          html2canvas: { 
-            scale: 2, 
-            useCORS: true, 
-            backgroundColor: "#ffffff", 
-            logging: false,
-            allowTaint: true,
-            foreignObjectRendering: false
-          },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-          pagebreak: { mode: ["css", "legacy"] }
-        }).from(container).save().then(() => {
-          document.body.removeChild(container);
-        });
-      }, 500);
-    }, 1200);
   };
 
   const region = detectRegion(itinerary.destinationName ?? "");
