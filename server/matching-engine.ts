@@ -169,13 +169,13 @@ ${(input as any)._destinationOverride ? `\nDESTINATION ALREADY CHOSEN: ${(input 
 TASK: Generate exactly 1 perfectly personalized destination with a ${days}-day itinerary.
 
 ═══════════════════════════════════════
-STEP 0 — EXTRACT CHIPS (do this first, before any reasoning)
+STEP 0 — EXTRACT CHIPS + INFER TILT (do this first, verbatim, internal)
 ═══════════════════════════════════════
-Parse the quiz answers and structured profile. Extract into these exact categories:
+Parse the quiz answers and structured profile. Extract VERBATIM into these exact categories — no paraphrasing, no inference yet:
 
 STYLE_CHIPS (from Path A Q1 or Path B Q2): list every selected chip verbatim
 NEED_CHIPS (from Path A Q2 or Path B Q6): list every selected chip verbatim
-ANTI_PATTERN_CHIPS (from Path A Q3 or Path B Q7): list every selected chip verbatim
+ANTI_PATTERN_CHIPS (from Path A Q3 or Path B Q7): list every selected chip verbatim — these are HARD VETOES
 ATMOSPHERE_CHIPS (from image selections Q4): list selected values
 MOMENT_CHIPS (from Path B Q3): list every selected chip verbatim
 PACE_SLIDER: number 0-100 (0=structured, 100=spontaneous)
@@ -189,7 +189,24 @@ ACCOMMODATION_PREF: value
 FOOD_PREF: value
 EFFORT_LEVEL: value
 
-These extracted values are the SOURCE OF TRUTH for everything that follows. Every constraint, prohibition, and requirement derives from this list — not from general travel knowledge.
+These extracted values are the SOURCE OF TRUTH for everything that follows. Every constraint, prohibition, and requirement derives from this list — never from general travel knowledge, never from invented preferences, never from "what most travelers want".
+
+── 0b — DOMINANT CHIPS + TILT INFERENCE (mandatory) ──
+List the 2-3 DOMINANT chips: those that appear in multiple categories, or are emotionally strongest, or carry the heaviest mandate. These dictate every concrete choice (hotel type, restaurant style, transport mode, activity density). Secondary chips refine WITHIN the dominant frame, never against it.
+
+Then classify the profile on two axes — name the specific chips that drove each call:
+
+MAINSTREAM ↔ OFFBEAT axis:
+  pushers MAINSTREAM: "Comfort medio" / "Boutique / Design" / "Lusso" accommodation, "Famiglia", "Lusso discreto", "Cibo sconosciuto" in anti-patterns, "Troppo isolato" in anti-patterns, "Lunghi trasferimenti" in anti-patterns.
+  pushers OFFBEAT: "Selvaggio", "Solitario", "Fuori dal mondo", "Scoperta, sorprendimi", "Sorprendermi", "Ostello / Capsule", "Autentico"+"Esplorativo" together, "Ovunque sorprendimi davvero".
+  → TILT_M_O = mainstream / offbeat / neutral.
+
+COMFORT ↔ RAW axis:
+  pushers COMFORT: "Comfort medio"/"Boutique"/"Lusso", "Famiglia", "Sveglie presto" anti-pattern, "Troppo camminare" anti-pattern, "Programmi rigidi" anti-pattern, PACE_SLIDER ≤ 30.
+  pushers RAW: "Avventuroso", "Trekking e sport", "Selvaggio", "Ostello / Capsule", PACE_SLIDER ≥ 70, travel style = "scoperta".
+  → TILT_C_R = comfort / raw / neutral.
+
+The tilts determine the CHARACTER of every concrete element of the itinerary. If TILT_C_R = comfort, every hotel must be design/boutique-feel even when not luxury-tier; every transport must be the smooth option (taxi over local bus); every restaurant must be table-service not communal counters; activity density must not exceed 2-3 anchors/day. If TILT_C_R = raw, the reverse. Do NOT mix tilts within the same itinerary unless the chips themselves contradict.
 
 ═══════════════════════════════════════
 STEP 1 — CHIP-TO-CONSTRAINT MAPPING (MANDATORY — apply ALL of these)
@@ -524,6 +541,19 @@ Before finalizing, verify every item on this list:
 
 13. ACCOMMODATION COMPLIANCE: Named hotel within ACCOMMODATION_PREF price range.
 
+14. TILT ALIGNMENT (from Step 0b):
+    - Mainstream tilt + you named a remote homestay or village-only spot → MISMATCH, replace.
+    - Offbeat tilt + you named a chain hotel or a fully touristic neighborhood → MISMATCH, replace.
+    - Comfort tilt + an itinerary with 5+ km walks/day, 7am starts, or communal-table dinners → MISMATCH, soften it.
+    - Raw tilt + design-hotel-only stays, taxi-only transport, no physical/sensory friction → MISMATCH, sharpen it.
+
+15. CHIP-MAPPING GRID (internal, mandatory gate before emitting JSON):
+    Build a mental table — for EVERY named concrete element (hotel, every lunch, every evening, every morning activity, every afternoon activity, every transport leg) → which 1+ DOMINANT chips does it satisfy? Which (if any) does it violate?
+    REPLACE any element where:
+      - it satisfies ZERO dominant chips AND it doesn't solve a logistical need (transport between zones, check-in, return flight) → replace with one that satisfies at least 1 dominant chip
+      - it violates ANY dominant chip or any anti-pattern chip → replace
+    Re-run the grid after replacement. Only emit JSON when every element passes. "Interesting", "famous", or "well-rated" are NOT chips — they do not count as justification.
+
 ═══════════════════════════════════════
 MANDATORY SPECIFIC NAMES
 ═══════════════════════════════════════
@@ -738,13 +768,13 @@ Travel companions: ${input.companions || "not specified"}
 ${structuredProfileBlock ? `Structured profile:\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 
 ═══════════════════════════════════════
-STEP 0 — EXTRACT CHIPS (do this first)
+STEP 0 — EXTRACT CHIPS + INFER TILT (do this first, verbatim, internal)
 ═══════════════════════════════════════
-Parse ALL answers and structured profile. Extract:
+Parse ALL answers and structured profile. Extract VERBATIM — no paraphrasing, no inference yet:
 
 STYLE_CHIPS: [list every style chip selected verbatim]
 NEED_CHIPS: [list every need/feeling chip selected]
-ANTI_PATTERN_CHIPS: [list every anti-pattern chip selected — these are VETOES]
+ANTI_PATTERN_CHIPS: [list every anti-pattern chip selected — these are HARD VETOES]
 ATMOSPHERE_CHIPS: [image selections]
 MOMENT_CHIPS: [must-see/moment chips from Path B Q3]
 PACE_SLIDER: [0-100]
@@ -756,7 +786,22 @@ COMPANIONS: [value]
 BUDGET_TIER: [low/medium/high/unlimited]
 TRIP_TYPE_CHIPS: [all trip type chips selected]
 
-These are the SOURCE OF TRUTH. Everything that follows derives from this list.
+These are the SOURCE OF TRUTH. Everything that follows derives from this list and ONLY this list. Never invent chips that aren't there. Never ignore chips that are there.
+
+── 0b — TILT INFERENCE (mandatory; drives Slot 3 and verification) ──
+Classify the profile on two independent axes. For each, name the SPECIFIC chips that drove the call. If no chips push either direction → tilt = neutral.
+
+MAINSTREAM ↔ OFFBEAT axis:
+  pushers MAINSTREAM: "Comfort medio" / "Boutique / Design" / "Lusso" accommodation, "Famiglia" companions, "Lusso discreto", "Cibo sconosciuto" in anti-patterns, "Troppo isolato" in anti-patterns, "Lunghi trasferimenti" in anti-patterns, very short trips (≤4 days) with "comfort" signals.
+  pushers OFFBEAT: "Selvaggio", "Solitario", "Fuori dal mondo" trip type, "Scoperta, sorprendimi" trip type, "Sorprendermi" need, "Ostello / Capsule" accommodation, "Autentico"+"Esplorativo" together, DISTANCE_CHIP = "Ovunque sorprendimi davvero".
+  → TILT_M_O = mainstream / offbeat / neutral + the 1-3 chips that drove it.
+
+COMFORT ↔ RAW axis:
+  pushers COMFORT: "Comfort medio" / "Boutique" / "Lusso", "Famiglia", "Sveglie presto" in anti-patterns, "Troppo camminare" in anti-patterns, "Programmi rigidi" in anti-patterns, PACE_SLIDER ≤ 30.
+  pushers RAW: "Avventuroso", "Trekking e sport", "Selvaggio", "Ostello / Capsule", PACE_SLIDER ≥ 70, travel style = "scoperta".
+  → TILT_C_R = comfort / raw / neutral + the 1-3 chips that drove it.
+
+The tilts are NOT preferences to balance — they are READINGS that determine the character of all 3 slots. If TILT_M_O = mainstream, do NOT inject offbeat picks "for variety". If TILT_M_O = offbeat, do NOT soften with mainstream picks "for safety". If neutral, choose purely by fit per slot.
 
 ═══════════════════════════════════════
 STEP 1 — BUILD CONSTRAINTS (apply ALL)
@@ -919,11 +964,14 @@ This can be mainstream or obscure — what matters is that it offers the same do
 Do NOT default to: Georgia, Albania, Montenegro, North Macedonia unless they genuinely are the best match.
 Think: same vibe, different geography, different culture, different season optimization.
 
-SLOT 3 — GENUINE SURPRISE:
-The most unexpected destination that still perfectly satisfies the dominant chips.
-This should make the user think "I never would have found this alone — and it's exactly right."
-Can be obscure OR a famous destination used in a completely unexpected way (e.g. proposing Palermo's street food scene for a foodie who expected Bangkok, or proposing a specific neighborhood of Tokyo rather than generic Tokyo).
-Must still respect ALL hard constraints (geographic, budget, anti-patterns, companions).
+SLOT 3 — DEPTH PICK (character DETERMINED by TILT_M_O from Step 0b — do NOT default to "surprise"):
+The destination that goes deepest into the dominant emotional need. Its character adapts to the user's tilt:
+
+  - TILT_M_O = mainstream → famous, recognizable destination chosen for a LESS OBVIOUS angle (e.g. Trastevere as the lens on Rome, Hydra as the lens on Greek islands, Naoshima as the lens on Japan). Still inside the comfort zone the user signaled. The depth is in the angle, not in the obscurity. Do NOT propose an unknown village.
+  - TILT_M_O = offbeat → genuine off-the-beaten-path destination the user would never find alone. This is the ONLY slot where surprise belongs, and ONLY when the user explicitly signaled offbeat.
+  - TILT_M_O = neutral → strongest alternative to Slots 1+2 that satisfies the dominant chips through a different geographic/cultural lens. No bias toward famous or obscure — bias toward fit.
+
+In all 3 tilt cases this slot must still respect ALL hard constraints (geographic, budget, anti-patterns, companions, seasonality) and must be clearly distinct in character from Slots 1 and 2.
 
 DIVERSITY REQUIREMENT:
 - 3 different countries if possible (or 3 clearly distinct regions)
@@ -957,6 +1005,25 @@ PRACTICALINFO FORMAT — use this exact format for all 3:
 "✈️ [flight duration and approx cost] · 🏨 [hotel type matching accommodation pref + price range] · 📅 [best months to visit]"
 Example: "✈️ ~2h30 da Milano, ~€180/pp a/r · 🏨 Boutique hotel centro storico €90-130/notte · 📅 Aprile-giugno, settembre-ottobre"
 For "Vicino a casa" (no flight): "🚗 [transport method + duration + approx cost] · 🏨 [type + price] · 📅 [best period]"
+
+═══════════════════════════════════════
+STEP 4 — VERIFICATION SELF-CHECK (mandatory before emitting JSON)
+═══════════════════════════════════════
+For EACH of the 3 destinations, internally tabulate the following grid. Do not output the grid — use it as a gate.
+
+For destination N:
+  - DOMINANT_CHIPS_SATISFIED: which of the 2-3 dominant chips from Step 0 does this destination clearly satisfy? Name them.
+  - ANTI_PATTERN_TRIGGERS: does this destination trigger any chip in ANTI_PATTERN_CHIPS at peak season? Name them or write NONE.
+  - TILT_ALIGNMENT: does this destination match TILT_M_O? On the offbeat↔mainstream axis, an offbeat-tilt user paired with a mainstream destination = mismatch; a mainstream-tilt user paired with a remote unknown = mismatch. Allowed only on neutral tilt.
+  - GEO_OK / BUDGET_OK / REACH_OK / SEASON_OK: pass/fail each one.
+
+REPLACE the destination if ANY of these is true:
+  - Zero dominant chips satisfied
+  - Any anti-pattern triggered
+  - Tilt mismatch on a non-neutral axis
+  - Any of GEO/BUDGET/REACH/SEASON = fail
+
+After replacement, re-run the check on the new destination. Only when all 3 destinations pass cleanly, emit the JSON. Never emit a destination that fails this check "because it's interesting" — interestingness is not a chip.
 
 ═══════════════════════════════════════
 RESPONSE LANGUAGE: Write all text fields in ${input.lang === 'it' ? 'Italian' : 'English'}.
