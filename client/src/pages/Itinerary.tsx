@@ -18,6 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useI18n } from "@/lib/i18n";
 import html2pdf from "html2pdf.js";
+import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
 
 // ── URL BUILDER ───────────────────────────────────────────────────────────────
 function buildAffiliateUrls(destinationName: string, profilingInput: any, region: string, topLinks: Record<string, string>): Record<string, string> {
@@ -324,6 +325,129 @@ function SortableDayCard({ day, index, isOpen, onToggle, isPeak, t, itineraryId,
       />
     </div>
   );
+}
+
+// ── CINEMATIC ADAPTER ─────────────────────────────────────────────────────────
+const HIGHLIGHT_ICONS = ["✦", "◆", "●", "▲", "✺", "❉", "✧", "◈"];
+
+function dayArc(i: number, total: number, t: (k: string) => string): string {
+  if (total <= 1) return t('itin.cin.arc.peak');
+  if (i === 0) return t('itin.cin.arc.arrival');
+  if (i === total - 1) return t('itin.cin.arc.departure');
+  const peakIdx = Math.floor((total - 1) / 2);
+  if (i === peakIdx) return t('itin.cin.arc.peak');
+  if (i < peakIdx) return t('itin.cin.arc.discovery');
+  return t('itin.cin.arc.descent');
+}
+
+function firstSentence(s: string, maxWords = 14): string {
+  if (!s) return "";
+  const sentences = s.split(/(?<=[.!?—])\s+/);
+  let title = sentences[0] ?? s;
+  const words = title.split(/\s+/);
+  if (words.length > maxWords) title = words.slice(0, maxWords).join(" ") + "…";
+  return title.trim().replace(/[.!?—]+$/, "");
+}
+
+function buildMoments(day: any, t: (k: string) => string): CinMoment[] {
+  const slots = [
+    { key: "morning", label: t('itin.morning'), ic: "🌅" },
+    { key: "lunch", label: t('itin.lunch'), ic: "🍽" },
+    { key: "afternoon", label: t('itin.afternoon'), ic: "☀️" },
+    { key: "evening", label: t('itin.evening'), ic: "🌙" },
+  ];
+  const moments: CinMoment[] = [];
+  for (const s of slots) {
+    const text = day?.[s.key];
+    if (!text || text.length < 3) continue;
+    const title = firstSentence(text);
+    const remainder = text.slice(title.length).replace(/^[\s.!?—]+/, "").trim();
+    const desc = remainder || text;
+    const links = day.affiliateLinks ?? {};
+    const linkKey = Object.keys(links).find(k => k.endsWith(`_${s.key}`) && !k.includes("_place_"));
+    const ctaUrl = linkKey ? links[linkKey] : undefined;
+    moments.push({ t: s.label, ic: s.ic, title, desc, cta: ctaUrl ? t('itin.cin.book') : undefined, ctaUrl });
+  }
+  return moments;
+}
+
+function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang: "en" | "it"): ItineraryData {
+  const destinationFull = itinerary?.destinationName ?? "";
+  const parts = destinationFull.split(",").map((s: string) => s.trim()).filter(Boolean);
+  const destinationCity = parts[0] ?? destinationFull;
+  const country = parts.slice(1).join(", ");
+
+  const days = (itinerary?.days ?? []) as any[];
+  const dayCount = days.length;
+
+  const dateStr = itinerary?.createdAt ? new Date(itinerary.createdAt) : new Date();
+  const monthYear = isNaN(dateStr.getTime())
+    ? ""
+    : new Intl.DateTimeFormat(lang === "it" ? "it-IT" : "en-US", { month: "long", year: "numeric" }).format(dateStr);
+  const subtitle = monthYear ? `${t('itin.cin.subtitlePrefix')} · ${monthYear}` : t('itin.cin.subtitlePrefix');
+
+  const duration = `${dayCount} ${dayCount === 1 ? t('itin.cin.duration.day') : t('itin.cin.duration.days')}`;
+
+  const rawHighlights = (itinerary?.highlights ?? []) as string[];
+  const highlights: CinHighlight[] = rawHighlights.slice(0, 6).map((h, i) => ({
+    ic: HIGHLIGHT_ICONS[i % HIGHLIGHT_ICONS.length],
+    name: h,
+    desc: "",
+  }));
+
+  const cinDays: CinDay[] = days.map((d, i) => ({
+    n: d.dayNumber ?? i + 1,
+    arc: dayArc(i, dayCount, t),
+    title: d.title ?? "",
+    sub: firstSentence(d.morning ?? "", 12),
+    img: d.dayImageUrl ?? "",
+  }));
+
+  const momentsByDay: Record<number, CinMoment[]> = {};
+  for (let i = 0; i < days.length; i++) {
+    const d = days[i];
+    momentsByDay[d.dayNumber ?? i + 1] = buildMoments(d, t);
+  }
+
+  let mapPoints: ItineraryData["mapPoints"];
+  const allPoints: { lat: number; lng: number; label: string }[] = [];
+  const seen = new Set<string>();
+  for (const d of days) {
+    for (const p of (d.mapPoints ?? []) as any[]) {
+      if (p?.lat == null || p?.lng == null) continue;
+      const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "" });
+    }
+  }
+  if (allPoints.length > 0) {
+    const lats = allPoints.map(p => p.lat);
+    const lngs = allPoints.map(p => p.lng);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    const latRange = (maxLat - minLat) || 0.001;
+    const lngRange = (maxLng - minLng) || 0.001;
+    mapPoints = allPoints.map(p => ({
+      x: 60 + ((p.lng - minLng) / lngRange) * 280,
+      y: 60 + (1 - (p.lat - minLat) / latRange) * 280,
+      label: p.label,
+    }));
+  }
+
+  return {
+    destination: destinationCity,
+    subtitle,
+    country,
+    duration,
+    heroImg: itinerary?.heroImageUrl || itinerary?.imageUrl || "",
+    manifesto: itinerary?.whyYours ?? "",
+    highlights,
+    days: cinDays,
+    momentsByDay,
+    closingQuote: itinerary?.closingMessage ?? "",
+    mapPoints,
+  };
 }
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
@@ -662,6 +786,31 @@ export default function Itinerary() {
   const profilingInput = (itinerary as any).profilingInput ?? null;
   const affiliateUrls = buildAffiliateUrls(itinerary.destinationName ?? "", profilingInput, region, topLinks);
   const displayDays = editMode ? editedDays : (itinerary?.days ?? []);
+
+  if (!editMode) {
+    const cinematicData = mapItineraryToCinematic(itinerary, t, lang);
+    return (
+      <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
+        <ItineraryCinematic
+          data={cinematicData}
+          onSavePdf={handleSavePdf}
+          onStartOver={() => setLocation("/")}
+          onBack={() => setLocation("/destinations")}
+          onEdit={enterEditMode}
+          extraSections={
+            <div className="extras-grid">
+              <div className="extras-card">
+                <BookTab urls={affiliateUrls} region={region} destinationName={itinerary.destinationName ?? ""} profilingInput={profilingInput} itineraryId={itinerary.id} />
+              </div>
+              <div className="extras-card">
+                <OverviewTab itinerary={itinerary} />
+              </div>
+            </div>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
  <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
