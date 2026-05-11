@@ -268,15 +268,6 @@ if (destinations.length === 0) return null;
                 </p>
               </div>
 
-              <div className="p-5 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <h4 className="text-[10px] font-sans font-bold uppercase tracking-[2px] mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>
-                  {t("dest.experience")}
-                </h4>
-                <p className="font-serif italic text-[15px] leading-relaxed" style={{ color: "rgba(255,255,255,0.80)" }}>
-                  "{dest.experiencePreview}"
-                </p>
-              </div>
-
               <div className="mt-auto pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                 <h4 className="text-[10px] font-sans font-bold uppercase tracking-[2px] mb-2" style={{ color: "rgba(255,255,255,0.45)" }}>
                   {t("dest.practical")}

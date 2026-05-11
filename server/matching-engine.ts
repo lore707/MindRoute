@@ -624,7 +624,7 @@ REQUIRED JSON:
     {
       "name": "City, Country",
       "imageUrl": "https://images.unsplash.com/photo-[ID]?w=600&h=400&fit=crop",
-      "whyYours": "2-3 sentences — devastatingly personal, referencing specific quiz answers",
+      "whyYours": "EXACTLY 2 short sentences (~25 words total). S1: diagnosis ('Non cerchi X, cerchi Y'). S2: this destination + one precise sensory beat.",
       "experiencePreview": "1 short evocative sentence in first person",
       "practicalInfo": "✈️ [flight duration + cost] · 🏨 [hotel type + price range] · 📅 [best period]"
     }
@@ -944,13 +944,14 @@ Default to summer (June-August) if no period specified.
 ═══════════════════════════════════════
 STEP 3 — WHYYOURS FORMULA (apply to all 3)
 ═══════════════════════════════════════
-The whyYours field MUST follow this structure:
-Sentence 1: Reference a specific chip or answer verbatim → explain what it reveals about the user's emotional need.
-Sentence 2: Explain why THIS specific destination is the answer to that need — be precise about what the destination offers (specific neighborhood, specific quality, specific experience).
-Sentence 3 (optional): Name the one moment that will make the user feel "this trip understood me."
+The whyYours field MUST be EXACTLY 2 short sentences. ~25 words total. No more.
+Sentence 1 — DIAGNOSIS: name the emotional need behind the user's quiz answers in a single sharp line. Format: "Non cerchi X, cerchi Y." (or equivalent in the response language). Y must reference a chip/answer verbatim or paraphrase it tightly.
+Sentence 2 — PLACE + MOMENT: name THIS destination and ONE precise sensory beat (specific time of day, specific street/quality/sound) that delivers that need. No generic adjectives ("beautiful", "magical", "perfect").
 
 BAD whyYours: "Questo posto è perfetto per chi ama la natura e vuole rilassarsi."
-GOOD whyYours: "Hai scelto [CHIP VERBATIM] — segnale che cerchi [EMOTIONAL NEED]. [DESTINATION] offre esattamente questo: [specific quality unique to that destination, not generic]. Il momento che ricorderai: [one precise emotional scene specific to that place and this user]."
+BAD whyYours (too long): "Hai scelto X — segnale che cerchi Y. La destinazione offre Z. Il momento che ricorderai: W."
+GOOD whyYours: "Non cerchi una vacanza, cerchi silenzio abitato. Procida te lo dà al mattino presto, quando i pescatori rientrano a Marina Corricella e l'isola è tua."
+GOOD whyYours: "You don't want crowds, you want presence. Procida gives you that at dawn, when the boats return to Marina Corricella and the island is yours."
 
 PRACTICALINFO FORMAT — use this exact format for all 3:
 "✈️ [flight duration and approx cost] · 🏨 [hotel type matching accommodation pref + price range] · 📅 [best months to visit]"
@@ -966,21 +967,21 @@ REQUIRED JSON — respond ONLY with this, no text outside:
     {
       "name": "Specific City or Area, Country",
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
-      "whyYours": "2-3 sentences following the formula above — reference specific quiz answers verbatim",
+      "whyYours": "EXACTLY 2 short sentences (~25 words) following the formula above — diagnosis + place/moment",
       "experiencePreview": "1 short evocative sentence in first person — what it FEELS like to be there",
       "practicalInfo": "✈️ [duration + cost] · 🏨 [hotel type + price] · 📅 [best period]"
     },
     {
       "name": "Same Emotion Different Angle, Country",
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
-      "whyYours": "2-3 sentences — explain WHY this place delivers the same emotional experience from a different angle",
+      "whyYours": "EXACTLY 2 short sentences (~25 words) — diagnosis + this destination/moment that delivers the same emotional experience from a different angle",
       "experiencePreview": "1 short evocative sentence in first person",
       "practicalInfo": "✈️ [duration + cost] · 🏨 [type + price] · 📅 [best period]"
     },
     {
       "name": "Genuine Surprise, Country",
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
-      "whyYours": "2-3 sentences — explain what makes this the most surprising RIGHT answer for this specific profile",
+      "whyYours": "EXACTLY 2 short sentences (~25 words) — diagnosis + the surprising precise reason this destination is the right answer for this profile",
       "experiencePreview": "1 short evocative sentence in first person",
       "practicalInfo": "✈️ [duration + cost] · 🏨 [type + price] · 📅 [best period]"
     }
