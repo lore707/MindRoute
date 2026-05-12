@@ -78,7 +78,8 @@ const s = StyleSheet.create({
   arcDayTitle: { fontFamily: "Playfair Display", fontSize: 14, color: C.ink, marginBottom: 3 },
   arcDaySub: { fontSize: 9, color: C.inkDim, lineHeight: 1.5 },
 
-  dayImage: { width: "100%", height: 220, marginBottom: 24, objectFit: "cover" },
+  dayImage: { width: "100%", height: 220, marginBottom: 8, objectFit: "cover" },
+  dayCaption: { fontFamily: "Playfair Display", fontStyle: "italic", fontSize: 9, color: C.inkFaint, marginBottom: 22, letterSpacing: 0.3 },
   dayHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 },
   dayHeaderArc: { fontSize: 9, letterSpacing: 2.2, textTransform: "uppercase", color: C.accent },
   dayHeaderNum: { fontSize: 9, letterSpacing: 1.8, color: C.inkFaint },
@@ -86,6 +87,7 @@ const s = StyleSheet.create({
   moment: { flexDirection: "row", marginBottom: 14, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: C.hairline },
   momentLabel: { width: 78, fontSize: 8, letterSpacing: 1.8, textTransform: "uppercase", color: C.accent, paddingTop: 2 },
   momentText: { flex: 1, fontSize: 10, color: C.ink, lineHeight: 1.55 },
+  versal: { fontFamily: "Playfair Display", fontSize: 24, color: C.accent, lineHeight: 1 },
 
   mapWrapper: { width: "100%", height: 380, marginTop: 18, marginBottom: 18, backgroundColor: C.cardBg, padding: 24 },
   mapPin: { fill: C.accent },
@@ -152,6 +154,21 @@ function tryParse<T = any>(raw: string | null | undefined): T | null {
   try { return JSON.parse(raw) as T; } catch { return null; }
 }
 
+// Replace ASCII punctuation with proper typographic forms so the body text
+// reads like a magazine rather than a terminal. Applied to long-form fields
+// only — labels and metadata stay literal.
+function typo(input: string | null | undefined): string {
+  if (!input) return "";
+  return input
+    .replace(/\.\.\./g, "…")
+    .replace(/(\s)-(\s)/g, "$1—$2")
+    .replace(/--/g, "—")
+    .replace(/(\w)'(\w)/g, "$1’$2")
+    .replace(/(\w)'(\s|$|[.,!?;:])/g, "$1’$2")
+    .replace(/(^|[\s\(\[—])"/g, "$1“")
+    .replace(/"/g, "”");
+}
+
 function dayArc(i: number, total: number, L: typeof labelsEn): string {
   if (total <= 1) return L.peak;
   if (i === 0) return L.arrival;
@@ -207,11 +224,14 @@ const labelsIt: typeof labelsEn = {
   page: "pagina", of: "di",
 };
 
-function Footer({ destination, pageLabel, pageNum, total }: { destination: string; pageLabel: string; pageNum: number; total: number }) {
+function Footer({ destination, pageLabel }: { destination: string; pageLabel: string }) {
+  // Using @react-pdf's render prop on a fixed Text gives us the actual
+  // pageNumber/totalPages after layout, instead of the JS-estimated count
+  // which drifted whenever a wrap pushed content to the next page.
   return (
     <View style={s.footer} fixed>
       <Text>MindRoute · {destination}</Text>
-      <Text>{pageLabel} {pageNum}/{total}</Text>
+      <Text render={({ pageNumber, totalPages }) => `${pageLabel} ${pageNumber}/${totalPages}`} />
     </View>
   );
 }
@@ -242,15 +262,6 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
   }
 
   const pages: React.ReactNode[] = [];
-  let pageIdx = 0;
-  const totalEst =
-    1 +
-    (data.whyYours || (data.highlights && data.highlights.length) ? 1 : 0) +
-    (dayCount > 1 ? 1 : 0) +
-    dayCount +
-    (allMapPoints.length > 0 ? 1 : 0) +
-    1 +
-    (data.closingMessage ? 1 : 0);
 
   pages.push(
     <Page key="cover" size="A4" style={s.pageNoMargin}>
@@ -275,36 +286,33 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
       </View>
     </Page>
   );
-  pageIdx++;
 
   if (data.whyYours || (data.highlights && data.highlights.length)) {
-    pageIdx++;
     pages.push(
       <Page key="manifesto" size="A4" style={s.page}>
         <Text style={s.eyebrow}>● {L.manifesto.toUpperCase()}</Text>
         {data.whyYours ? (
           <>
-            <Text style={s.quoteMark}>"</Text>
-            <Text style={s.quote}>{data.whyYours}</Text>
+            <Text style={s.quoteMark}>“</Text>
+            <Text style={s.quote}>{typo(data.whyYours)}</Text>
           </>
         ) : null}
         {data.highlights && data.highlights.length > 0 ? (
           <>
             <Text style={[s.eyebrow, { marginTop: 24, marginBottom: 12 }]}>● {L.highlights.toUpperCase()}</Text>
             {data.highlights.slice(0, 6).map((h, i) => (
-              <View key={i} style={s.highlightRow}>
-                <Text style={s.highlightText}>{h}</Text>
+              <View key={i} style={s.highlightRow} wrap={false}>
+                <Text style={s.highlightText}>{typo(h)}</Text>
               </View>
             ))}
           </>
         ) : null}
-        <Footer destination={city || dest} pageLabel={L.page} pageNum={pageIdx} total={totalEst} />
+        <Footer destination={city || dest} pageLabel={L.page} />
       </Page>
     );
   }
 
   if (dayCount > 1) {
-    pageIdx++;
     pages.push(
       <Page key="arc" size="A4" style={s.page}>
         <Text style={s.eyebrow}>● {L.arcEyebrow.toUpperCase()}</Text>
@@ -312,49 +320,62 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
         <Text style={s.sectionLead}>{L.arcLead}</Text>
         <View style={s.hairline} />
         {days.map((d, i) => (
-          <View key={i} style={s.arcDay}>
+          <View key={i} style={s.arcDay} wrap={false}>
             <Text style={s.arcDayNum}>{String(d.dayNumber ?? i + 1).padStart(2, "0")}</Text>
             <View style={s.arcDayBody}>
               <Text style={s.arcDayArc}>{dayArc(i, dayCount, L)}</Text>
-              <Text style={s.arcDayTitle}>{d.title ?? `${L.day} ${i + 1}`}</Text>
-              {d.morning ? <Text style={s.arcDaySub}>{(d.morning ?? "").split(/(?<=[.!?])\s+/)[0]}</Text> : null}
+              <Text style={s.arcDayTitle}>{typo(d.title) || `${L.day} ${i + 1}`}</Text>
+              {d.morning ? <Text style={s.arcDaySub}>{typo((d.morning ?? "").split(/(?<=[.!?])\s+/)[0])}</Text> : null}
             </View>
           </View>
         ))}
-        <Footer destination={city || dest} pageLabel={L.page} pageNum={pageIdx} total={totalEst} />
+        <Footer destination={city || dest} pageLabel={L.page} />
       </Page>
     );
   }
 
   days.forEach((d, i) => {
-    pageIdx++;
     const slots: Array<[string, string | undefined]> = [
       [L.morning, d.morning],
       [L.lunch, d.lunch],
       [L.afternoon, d.afternoon],
       [L.evening, d.evening],
     ];
+    const visibleSlots = slots.filter(([, text]) => !!text && text.trim().length > 2);
     pages.push(
       <Page key={`day-${i}`} size="A4" style={s.page}>
         {d.dayImageUrl ? <Image src={d.dayImageUrl} style={s.dayImage} /> : null}
+        {d.dayImageUrl ? (
+          <Text style={s.dayCaption}>{(city || dest) ? `${city || dest} · ${dayArc(i, dayCount, L)}` : dayArc(i, dayCount, L)}</Text>
+        ) : null}
         <View style={s.dayHeader}>
           <Text style={s.dayHeaderArc}>{dayArc(i, dayCount, L)}</Text>
           <Text style={s.dayHeaderNum}>{L.day.toUpperCase()} {d.dayNumber ?? i + 1} / {dayCount}</Text>
         </View>
-        <Text style={s.dayTitle}>{d.title ?? `${L.day} ${i + 1}`}</Text>
-        {slots.filter(([, text]) => !!text && text.trim().length > 2).map(([label, text], j) => (
-          <View key={j} style={s.moment}>
-            <Text style={s.momentLabel}>{label}</Text>
-            <Text style={s.momentText}>{text}</Text>
-          </View>
-        ))}
-        <Footer destination={city || dest} pageLabel={L.page} pageNum={pageIdx} total={totalEst} />
+        <Text style={s.dayTitle}>{typo(d.title) || `${L.day} ${i + 1}`}</Text>
+        {visibleSlots.map(([label, text], j) => {
+          const useVersal = i === 0 && j === 0 && text && text.length > 2;
+          const typedText = typo(text);
+          return (
+            <View key={j} style={s.moment} wrap={false}>
+              <Text style={s.momentLabel}>{label}</Text>
+              <Text style={s.momentText}>
+                {useVersal ? (
+                  <>
+                    <Text style={s.versal}>{typedText.charAt(0)}</Text>
+                    <Text>{typedText.slice(1)}</Text>
+                  </>
+                ) : typedText}
+              </Text>
+            </View>
+          );
+        })}
+        <Footer destination={city || dest} pageLabel={L.page} />
       </Page>
     );
   });
 
   if (allMapPoints.length > 0) {
-    pageIdx++;
     const lats = allMapPoints.map((p) => p.lat);
     const lngs = allMapPoints.map((p) => p.lng);
     const minLat = Math.min(...lats), maxLat = Math.max(...lats);
@@ -381,12 +402,11 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
             ))}
           </Svg>
         </View>
-        <Footer destination={city || dest} pageLabel={L.page} pageNum={pageIdx} total={totalEst} />
+        <Footer destination={city || dest} pageLabel={L.page} />
       </Page>
     );
   }
 
-  pageIdx++;
   pages.push(
     <Page key="practical" size="A4" style={s.page}>
       <Text style={s.eyebrow}>● {L.practicalEyebrow.toUpperCase()}</Text>
@@ -398,13 +418,13 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
           <Text style={[s.eyebrow, { marginTop: 8 }]}>● {L.budget.toUpperCase()}</Text>
           <View style={s.practicalGrid}>
             {budget.items.filter((it) => !/totale|total/i.test(it.label)).map((it, i) => (
-              <View key={i} style={s.practicalRow}>
+              <View key={i} style={s.practicalRow} wrap={false}>
                 <Text style={s.practicalLabel}>{it.label}</Text>
                 <Text style={s.practicalValue}>{it.perPerson || it.total || ""}</Text>
               </View>
             ))}
             {budget.items.filter((it) => /totale|total/i.test(it.label)).slice(0, 1).map((it, i) => (
-              <View key={`t-${i}`} style={[s.practicalRow, s.practicalTotal]}>
+              <View key={`t-${i}`} style={[s.practicalRow, s.practicalTotal]} wrap={false}>
                 <Text style={s.practicalTotalLabel}>{L.total.toUpperCase()}</Text>
                 <Text style={s.practicalTotalValue}>{it.perPerson || it.total || ""}</Text>
               </View>
@@ -416,7 +436,7 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
       {data.bestTime ? (
         <>
           <Text style={[s.eyebrow, { marginTop: 24 }]}>● {L.bestTime.toUpperCase()}</Text>
-          <Text style={{ fontSize: 12, color: C.ink, fontFamily: "Playfair Display" }}>{data.bestTime}</Text>
+          <Text style={{ fontSize: 12, color: C.ink, fontFamily: "Playfair Display" }}>{typo(data.bestTime)}</Text>
         </>
       ) : null}
 
@@ -424,7 +444,7 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
         <>
           <Text style={[s.eyebrow, { marginTop: 24 }]}>● {L.getting.toUpperCase()}</Text>
           {getting.steps.map((step, i) => (
-            <View key={i} style={s.gettingStep}>
+            <View key={i} style={s.gettingStep} wrap={false}>
               <View style={s.gettingDot} />
               <View style={s.gettingStepBody}>
                 <Text style={s.gettingStepRoute}>{step.from} → {step.to}</Text>
@@ -446,12 +466,11 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
         </>
       ) : null}
 
-      <Footer destination={city || dest} pageLabel={L.page} pageNum={pageIdx} total={totalEst} />
+      <Footer destination={city || dest} pageLabel={L.page} />
     </Page>
   );
 
   if (data.closingMessage) {
-    pageIdx++;
     const aff = data.topAffiliateLinks ?? {};
     const ctas: Array<[string, string | undefined]> = [
       [L.bookFlights, aff.expedia_flights],
@@ -461,12 +480,12 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
     ];
     pages.push(
       <Page key="closing" size="A4" style={s.page}>
-        <Text style={s.closingQuote}>"{data.closingMessage}"</Text>
+        <Text style={s.closingQuote}>“{typo(data.closingMessage)}”</Text>
         <View style={s.closingDivider} />
         <View style={s.closingCtas}>
           {ctas.filter(([, url]) => !!url).map(([label, url], i) => (
             <Link key={i} src={url!} style={{ textDecoration: "none" }}>
-              <View style={s.closingCtaRow}>
+              <View style={s.closingCtaRow} wrap={false}>
                 <Text style={s.closingCtaLabel}>{label}</Text>
                 <Text style={s.closingCtaArrow}>→</Text>
               </View>
