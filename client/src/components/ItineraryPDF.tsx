@@ -1,19 +1,33 @@
 import { Document, Page, Text, View, Image, StyleSheet, Font, Svg, Path, Circle, Link } from "@react-pdf/renderer";
 
+// Bundle fonts as static assets via Vite ?url to eliminate the CDN race that
+// caused glyph fallback / layout shifts when PDF rendering started before the
+// remote font finished downloading. The `latin` subset of fontsource includes
+// Latin-1 Supplement (è à ò ù ì) and General Punctuation (— " " …) so Italian
+// typography renders correctly without falling back to Helvetica.
+import playfair400 from "@fontsource/playfair-display/files/playfair-display-latin-400-normal.woff?url";
+import playfair400i from "@fontsource/playfair-display/files/playfair-display-latin-400-italic.woff?url";
+import playfair700 from "@fontsource/playfair-display/files/playfair-display-latin-700-normal.woff?url";
+import playfair700i from "@fontsource/playfair-display/files/playfair-display-latin-700-italic.woff?url";
+import dmSans400 from "@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff?url";
+import dmSans500 from "@fontsource/dm-sans/files/dm-sans-latin-500-normal.woff?url";
+import dmSans700 from "@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff?url";
+
 Font.register({
   family: "Playfair Display",
   fonts: [
-    { src: "https://cdn.jsdelivr.net/fontsource/fonts/playfair-display@latest/latin-400-normal.ttf", fontWeight: 400 },
-    { src: "https://cdn.jsdelivr.net/fontsource/fonts/playfair-display@latest/latin-400-italic.ttf", fontWeight: 400, fontStyle: "italic" },
-    { src: "https://cdn.jsdelivr.net/fontsource/fonts/playfair-display@latest/latin-700-normal.ttf", fontWeight: 700 },
+    { src: playfair400, fontWeight: 400 },
+    { src: playfair400i, fontWeight: 400, fontStyle: "italic" },
+    { src: playfair700, fontWeight: 700 },
+    { src: playfair700i, fontWeight: 700, fontStyle: "italic" },
   ],
 });
 Font.register({
   family: "DM Sans",
   fonts: [
-    { src: "https://cdn.jsdelivr.net/fontsource/fonts/dm-sans@latest/latin-400-normal.ttf", fontWeight: 400 },
-    { src: "https://cdn.jsdelivr.net/fontsource/fonts/dm-sans@latest/latin-500-normal.ttf", fontWeight: 500 },
-    { src: "https://cdn.jsdelivr.net/fontsource/fonts/dm-sans@latest/latin-700-normal.ttf", fontWeight: 700 },
+    { src: dmSans400, fontWeight: 400 },
+    { src: dmSans500, fontWeight: 500 },
+    { src: dmSans700, fontWeight: 700 },
   ],
 });
 
