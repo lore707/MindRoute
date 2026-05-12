@@ -115,6 +115,32 @@
 .vA .extras-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start}
 .vA .extras-card{border:1px solid var(--ic-stroke);border-radius:20px;background:rgba(255,255,255,.02);overflow:hidden}
 
+/* TRIP AT A GLANCE — chip strip directly under hero */
+.vA .trip-glance{padding:28px 32px;border-top:1px solid var(--ic-stroke);display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+.vA .trip-glance .glance-chip{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--ic-stroke-strong);font-size:13px;color:var(--ic-ink-dim);letter-spacing:.02em}
+.vA .trip-glance .glance-chip strong{color:var(--ic-ink);font-weight:500;font-family:var(--ic-serif);font-size:15px}
+.vA .trip-glance .glance-chip .glance-ic{color:var(--ic-accent);font-size:14px;line-height:1}
+
+/* STICKY TOC — chip nav that appears after scrolling past hero */
+.vA .ic-sticky-toc{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-80px);z-index:100;opacity:0;pointer-events:none;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .25s}
+.vA .ic-sticky-toc.visible{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
+.vA .ic-sticky-toc-inner{display:flex;gap:6px;padding:8px;background:rgba(10,7,16,.78);border:1px solid var(--ic-stroke-strong);border-radius:999px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 8px 32px -8px rgba(0,0,0,.6)}
+.vA .ic-toc-chip{padding:8px 16px;border-radius:999px;border:0;background:transparent;color:var(--ic-ink-dim);font-size:12px;font-weight:500;letter-spacing:.04em;cursor:pointer;transition:all .2s;font-family:var(--ic-sans)}
+.vA .ic-toc-chip:hover{background:rgba(255,255,255,.06);color:var(--ic-ink)}
+
+/* DEDICATED CHAPTERS — practical + booking each as a full section */
+.vA .chapter-section{padding:120px 0;border-top:1px solid var(--ic-stroke)}
+.vA .chapter-head{margin-bottom:48px}
+.vA .chapter-h2{font-family:var(--ic-serif);font-size:48px;font-weight:400;letter-spacing:-.01em;margin-top:14px}
+.vA .chapter-body{}
+
+/* MOBILE STICKY BOTTOM BAR — persistent PDF action on mobile */
+.vA .ic-mobile-bottombar{position:fixed;bottom:0;left:0;right:0;z-index:100;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:rgba(10,7,16,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--ic-stroke-strong);transform:translateY(120%);transition:transform .35s cubic-bezier(.2,.8,.2,1);display:none}
+.vA .ic-mobile-bottombar.visible{transform:translateY(0)}
+.vA .ic-mobile-bottombar-btn{width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-radius:999px;background:var(--ic-accent);color:#1a0508;font-weight:500;font-size:14px;border:0;cursor:pointer;letter-spacing:.04em}
+.vA .ic-mobile-bottombar-label{font-weight:600}
+.vA .ic-mobile-bottombar-counter{font-family:var(--ic-serif);font-style:italic;font-size:13px;opacity:.7}
+
 /* CLOSING */
 .vA .closing{padding:160px 0;text-align:center;border-top:1px solid var(--ic-stroke);background:radial-gradient(ellipse 60% 50% at 50% 50%,rgba(122,16,32,.3),transparent 70%)}
 .vA .closing-quote{font-family:var(--ic-serif);font-style:italic;font-size:clamp(28px,4vw,52px);line-height:1.3;max-width:880px;margin:0 auto 40px;text-wrap:balance}
@@ -129,7 +155,64 @@
   .vA .hero-topbar{padding:0 16px}
   .vA .manifesto-grid,.vA .detail-grid,.vA .map-grid,.vA .extras-grid{grid-template-columns:1fr;gap:48px}
   .vA .moments-rail{position:relative;top:0}
-  .vA .manifesto,.vA .timeline,.vA .map-ch,.vA .extras{padding:64px 0}
+  .vA .manifesto,.vA .timeline,.vA .map-ch,.vA .extras,.vA .chapter-section{padding:64px 0}
   .vA .closing{padding:96px 0}
-  .vA .timeline-head h2,.vA .map-h2{font-size:34px}
+  .vA .timeline-head h2,.vA .map-h2,.vA .chapter-h2{font-size:34px}
+  .vA .ic-container{padding:0 20px}
+}
+
+/* Mobile-first additions for the new components */
+@media (max-width:720px){
+  /* Hero: avoid 100vh which dynamic toolbars on iOS/Android disturb */
+  .vA .hero{height:90svh;min-height:560px}
+
+  /* Trip glance chips: smaller, no horizontal padding */
+  .vA .trip-glance{padding:20px 16px;gap:10px}
+  .vA .trip-glance .glance-chip{padding:8px 14px;font-size:12px}
+  .vA .trip-glance .glance-chip strong{font-size:14px}
+
+  /* Sticky TOC: anchor to top, full-width strip, smaller chips */
+  .vA .ic-sticky-toc{top:8px;width:calc(100% - 16px);max-width:none;left:8px;right:8px;transform:translateY(-80px)}
+  .vA .ic-sticky-toc.visible{transform:translateY(0)}
+  .vA .ic-sticky-toc-inner{justify-content:center;padding:6px;gap:2px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .vA .ic-sticky-toc-inner::-webkit-scrollbar{display:none}
+  .vA .ic-toc-chip{padding:8px 12px;font-size:11.5px;white-space:nowrap;flex-shrink:0}
+
+  /* Timeline: horizontal swipe instead of grid */
+  .vA .timeline-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;padding-bottom:8px;margin:0 -20px;padding-left:20px;padding-right:20px;scrollbar-width:none}
+  .vA .timeline-track::-webkit-scrollbar{display:none}
+  .vA .day-card{flex:0 0 78%;scroll-snap-align:start;min-width:260px}
+  .vA .day-img{height:160px}
+  .vA .day-body{padding:16px}
+  .vA .day-title{font-size:17px}
+
+  /* Detail: smaller hero image */
+  .vA .detail-img{height:240px;border-radius:14px;margin-bottom:24px}
+  .vA .detail-title{font-size:28px}
+  .vA .detail-desc{font-size:14px}
+
+  /* Moments rail: horizontal chip row on mobile, sticky underneath toc */
+  .vA .moments-rail{margin:0 -20px 24px;padding:0 20px;overflow-x:auto;scrollbar-width:none;display:flex;flex-direction:row;gap:8px;align-items:stretch}
+  .vA .moments-rail::-webkit-scrollbar{display:none}
+  .vA .moments-head{display:none}
+  .vA .moment{flex:0 0 auto;padding:10px 14px;margin:0;border:1px solid var(--ic-stroke);border-left:1px solid var(--ic-stroke);border-radius:12px;background:rgba(255,255,255,.02);min-width:120px}
+  .vA .moment.active{border-color:var(--ic-accent);background:rgba(233,69,96,.08)}
+  .vA .moment::before{display:none}
+  .vA .moment-time{font-size:9px}
+  .vA .moment-title{font-size:13px;margin-top:2px}
+
+  /* Manifesto: tighter spacing */
+  .vA .manifesto-quote{font-size:20px}
+  .vA .manifesto-quote::before{font-size:80px;margin:14px 0 6px}
+
+  /* Closing: reduce padding for mobile sticky bottombar */
+  .vA .closing{padding:80px 0 120px}
+
+  /* Mobile bottom bar — show on mobile only */
+  .vA .ic-mobile-bottombar{display:block}
+}
+
+/* Hide mobile bar above mobile breakpoint — keep desktop hero buttons */
+@media (min-width:721px){
+  .vA .ic-mobile-bottombar{display:none !important}
 }

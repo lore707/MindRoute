@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 
 export type Highlight = { ic: string; name: string; desc: string };
@@ -22,20 +22,49 @@ export type ItineraryData = {
 
 export type ItineraryCinematicProps = {
   data: ItineraryData;
+  /** Chip strip rendered immediately under the hero — typically duration/budget/period. */
+  tripGlance?: ReactNode | null;
+  /** Dedicated chapter for practical info (budget, packing, best time, getting there). */
+  practicalSection?: ReactNode;
+  /** Dedicated chapter for the affiliate booking links. */
+  bookingSection?: ReactNode;
   onSavePdf?: () => void;
   onStartOver?: () => void;
   onBack?: () => void;
   onEdit?: () => void;
+  /** @deprecated Prefer `practicalSection` + `bookingSection`. Kept for callers not yet migrated. */
   extraSections?: ReactNode;
 };
 
-export function ItineraryCinematic({ data, onSavePdf, onStartOver, onBack, onEdit, extraSections }: ItineraryCinematicProps) {
+export function ItineraryCinematic({ data, tripGlance, practicalSection, bookingSection, onSavePdf, onStartOver, onBack, onEdit, extraSections }: ItineraryCinematicProps) {
   const { t } = useI18n();
   const [activeDay, setActiveDay] = useState(data.days[0]?.n ?? 1);
   const [activeMoment, setActiveMoment] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
   const moments = data.momentsByDay[activeDay] ?? [];
   const currentDay = data.days.find(d => d.n === activeDay) ?? data.days[0];
   const currentMoment = moments[activeMoment] ?? moments[0];
+
+  // Sticky TOC and mobile bottom action appear only after the user has scrolled
+  // past the hero. We use a small threshold (400px) — IntersectionObserver would
+  // be more accurate but adds setup cost for a one-axis scroll.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 400);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const jumpTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const tocItems = [
+    { id: "ic-arc", label: t("itin.cin.toc.arc"), show: data.days.length > 0 },
+    { id: "ic-map", label: t("itin.cin.toc.map"), show: !!data.mapPoints?.length },
+    { id: "ic-practical", label: t("itin.cin.toc.practical"), show: !!practicalSection },
+    { id: "ic-booking", label: t("itin.cin.toc.book"), show: !!bookingSection },
+  ].filter(item => item.show);
 
   const renderManifesto = () => {
     if (!data.emWord || !data.manifesto.includes(data.emWord)) return data.manifesto;
@@ -63,11 +92,29 @@ export function ItineraryCinematic({ data, onSavePdf, onStartOver, onBack, onEdi
             <span>{t('itin.cin.crafted')}</span>
           </div>
           <h1>{data.destination}<em>{data.subtitle}</em></h1>
-          <button className="hero-scroll" onClick={() => document.querySelector(".manifesto")?.scrollIntoView({ behavior: "smooth" })}>
+          <button className="hero-scroll" onClick={() => document.querySelector(".manifesto, .trip-glance")?.scrollIntoView({ behavior: "smooth" })}>
             {t('itin.cin.begin')} <span className="arrow">↓</span>
           </button>
         </div>
       </section>
+
+      {/* TRIP AT A GLANCE — chips under hero so the user knows the trip's
+          shape (duration, budget, period) without scrolling further. */}
+      {tripGlance && <div className="trip-glance">{tripGlance}</div>}
+
+      {/* STICKY TOC — chips appear after hero, jump to anchored sections.
+          Mobile-first quick-nav so the user doesn't have to scroll-hunt. */}
+      {tocItems.length > 0 && (
+        <nav className={"ic-sticky-toc" + (scrolled ? " visible" : "")} aria-label="Section navigation">
+          <div className="ic-sticky-toc-inner">
+            {tocItems.map(item => (
+              <button key={item.id} className="ic-toc-chip" onClick={() => jumpTo(item.id)}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+      )}
 
       {/* MANIFESTO */}
       {(data.manifesto || data.highlights.length > 0) && (
@@ -100,8 +147,8 @@ export function ItineraryCinematic({ data, onSavePdf, onStartOver, onBack, onEdi
         </section>
       )}
 
-      {/* TIMELINE */}
-      <section className="timeline">
+      {/* TIMELINE / Chapters */}
+      <section id="ic-arc" className="timeline">
         <div className="ic-container">
           <div className="timeline-head">
             <div>
@@ -112,7 +159,7 @@ export function ItineraryCinematic({ data, onSavePdf, onStartOver, onBack, onEdi
           </div>
           <div className="timeline-track">
             {data.days.map(d => (
-              <div key={d.n} className={"day-card" + (activeDay === d.n ? " active" : "")} onClick={() => { setActiveDay(d.n); setActiveMoment(0); }}>
+              <div key={d.n} className={"day-card" + (activeDay === d.n ? " active" : "")} onClick={() => { setActiveDay(d.n); setActiveMoment(0); document.querySelector(".detail")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
                 <div className="day-img" style={d.img ? { backgroundImage: `url(${d.img})` } : undefined}>
                   <div className="day-num">{d.n}</div>
                 </div>
@@ -178,7 +225,7 @@ export function ItineraryCinematic({ data, onSavePdf, onStartOver, onBack, onEdi
 
       {/* MAP CHAPTER */}
       {data.mapPoints && data.mapPoints.length > 0 && (
-        <section className="map-ch">
+        <section id="ic-map" className="map-ch">
           <div className="ic-container">
             <div className="map-grid">
               <div>
@@ -206,8 +253,34 @@ export function ItineraryCinematic({ data, onSavePdf, onStartOver, onBack, onEdi
         </section>
       )}
 
-      {/* EXTRA SECTIONS (booking + overview) */}
-      {extraSections && (
+      {/* PRACTICAL — own chapter for budget/packing/best-time/getting-there */}
+      {practicalSection && (
+        <section id="ic-practical" className="chapter-section">
+          <div className="ic-container">
+            <div className="chapter-head">
+              <div className="eyebrow"><span className="d" />{t('itin.cin.practicalEyebrow')}</div>
+              <h2 className="chapter-h2">{t('itin.cin.practicalTitle')}</h2>
+            </div>
+            <div className="chapter-body">{practicalSection}</div>
+          </div>
+        </section>
+      )}
+
+      {/* BOOKING — own chapter for affiliate links */}
+      {bookingSection && (
+        <section id="ic-booking" className="chapter-section">
+          <div className="ic-container">
+            <div className="chapter-head">
+              <div className="eyebrow"><span className="d" />{t('itin.cin.bookingEyebrow')}</div>
+              <h2 className="chapter-h2">{t('itin.cin.bookingTitle')}</h2>
+            </div>
+            <div className="chapter-body">{bookingSection}</div>
+          </div>
+        </section>
+      )}
+
+      {/* Backward compatibility: old extras slot. Skip when new props are used. */}
+      {extraSections && !practicalSection && !bookingSection && (
         <section className="extras">
           <div className="ic-container">
             <div className="extras-head">
@@ -231,6 +304,19 @@ export function ItineraryCinematic({ data, onSavePdf, onStartOver, onBack, onEdi
           </div>
         </div>
       </section>
+
+      {/* MOBILE STICKY BOTTOM — persistent PDF action; shown only after hero on
+          small screens (display:none above 720px via CSS). */}
+      {onSavePdf && (
+        <div className={"ic-mobile-bottombar" + (scrolled ? " visible" : "")}>
+          <button className="ic-mobile-bottombar-btn" onClick={onSavePdf}>
+            <span className="ic-mobile-bottombar-label">{t('itin.pdf')}</span>
+            <span className="ic-mobile-bottombar-counter">
+              {t('itin.cin.dayLabel')} {activeDay}/{data.days.length}
+            </span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

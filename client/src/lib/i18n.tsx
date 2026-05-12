@@ -496,6 +496,14 @@ const translations: Record<string, Record<Lang, string>> = {
   "itin.cin.arc.departure": { en: "Departure", it: "Partenza" },
   "itin.cin.extrasEyebrow": { en: "Plan & book", it: "Pianifica e prenota" },
   "itin.cin.extrasTitle": { en: "Everything you need to make it real.", it: "Tutto quello che ti serve per renderlo reale." },
+  "itin.cin.toc.arc": { en: "Chapters", it: "Capitoli" },
+  "itin.cin.toc.map": { en: "Map", it: "Mappa" },
+  "itin.cin.toc.practical": { en: "Practical", it: "Pratico" },
+  "itin.cin.toc.book": { en: "Book", it: "Prenota" },
+  "itin.cin.practicalEyebrow": { en: "Practical", it: "Pratica" },
+  "itin.cin.practicalTitle": { en: "What it takes", it: "Cosa serve" },
+  "itin.cin.bookingEyebrow": { en: "Bookings", it: "Prenotazioni" },
+  "itin.cin.bookingTitle": { en: "Ready to begin", it: "Pronto a partire" },
 };
 
 interface I18nContextType {

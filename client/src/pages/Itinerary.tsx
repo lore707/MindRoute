@@ -588,24 +588,65 @@ export default function Itinerary() {
 
   if (!editMode) {
     const cinematicData = mapItineraryToCinematic(itinerary, t, lang);
+
+    // Trip-at-a-glance chip strip — duration, budget total (if parseable),
+    // and travel period (if profiling gave us a leaveDate). Each chip is
+    // optional; the strip collapses gracefully when data is missing.
+    let budgetTotal: string | null = null;
+    if (itinerary.budgetSummary) {
+      try {
+        const parsed = JSON.parse(itinerary.budgetSummary);
+        const totalRow = parsed?.items?.find((it: any) => /totale|total/i.test(it.label));
+        budgetTotal = totalRow?.total ?? totalRow?.perPerson ?? null;
+      } catch { /* free-form budget — skip */ }
+    }
+    const leaveDate = profilingInput?.leaveDate ?? profilingInput?.travelDate ?? null;
+    const periodLabel = leaveDate
+      ? (() => {
+          try {
+            return new Intl.DateTimeFormat(lang === "it" ? "it-IT" : "en-US", { month: "short", day: "numeric" }).format(new Date(leaveDate));
+          } catch { return null; }
+        })()
+      : null;
+
+    const tripGlance = (
+      <>
+        <div className="glance-chip">
+          <span className="glance-ic">◐</span>
+          <strong>{cinematicData.duration}</strong>
+        </div>
+        {budgetTotal && (
+          <div className="glance-chip">
+            <span className="glance-ic">€</span>
+            <strong>{budgetTotal}</strong>
+          </div>
+        )}
+        {periodLabel && (
+          <div className="glance-chip">
+            <span className="glance-ic">◇</span>
+            <strong>{periodLabel}</strong>
+          </div>
+        )}
+        {cinematicData.country && (
+          <div className="glance-chip">
+            <span className="glance-ic">◯</span>
+            <strong>{cinematicData.country}</strong>
+          </div>
+        )}
+      </>
+    );
+
     return (
       <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
         <ItineraryCinematic
           data={cinematicData}
+          tripGlance={tripGlance}
+          practicalSection={<OverviewTab itinerary={itinerary} />}
+          bookingSection={<BookTab urls={affiliateUrls} region={region} destinationName={itinerary.destinationName ?? ""} profilingInput={profilingInput} itineraryId={itinerary.id} />}
           onSavePdf={handleSavePdf}
           onStartOver={() => setLocation("/")}
           onBack={() => setLocation("/destinations")}
           onEdit={enterEditMode}
-          extraSections={
-            <div className="extras-grid">
-              <div className="extras-card">
-                <BookTab urls={affiliateUrls} region={region} destinationName={itinerary.destinationName ?? ""} profilingInput={profilingInput} itineraryId={itinerary.id} />
-              </div>
-              <div className="extras-card">
-                <OverviewTab itinerary={itinerary} />
-              </div>
-            </div>
-          }
         />
       </div>
     );
