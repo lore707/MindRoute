@@ -1,5 +1,7 @@
 # MindRoute — CLAUDE.md
 
+> **For data flows, file map, schema overview, image/PDF pipelines, and hard invariants, read `ARCHITECTURE.md` first.** This file covers stack and conventions only.
+
 ## What is this project
 
 MindRoute is a full-stack travel recommendation SaaS. Users answer a 7-question profiling quiz (personality + logistics), an AI matching engine scores and ranks 16 destination profiles, and the user gets a day-by-day itinerary generated via Claude API streaming.
