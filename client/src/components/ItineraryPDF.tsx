@@ -56,7 +56,7 @@ const s = StyleSheet.create({
   coverGradient: { position: "absolute", left: 0, right: 0, bottom: 0, height: "55%", backgroundColor: C.ink, opacity: 0.55 },
   coverTopGradient: { position: "absolute", left: 0, right: 0, top: 0, height: "25%", backgroundColor: C.ink, opacity: 0.18 },
   coverContent: { position: "absolute", bottom: 56, left: 56, right: 56, color: "#FFFFFF" },
-  coverMeta: { fontSize: 9, letterSpacing: 2.2, textTransform: "uppercase", color: "rgba(255,255,255,0.85)", marginBottom: 14, flexDirection: "row", gap: 12 },
+  coverMeta: { fontSize: 9, letterSpacing: 2.2, textTransform: "uppercase", color: "rgba(255,255,255,0.85)" },
   coverDot: { color: C.accent, marginHorizontal: 6 },
   coverTitle: { fontFamily: "Playfair Display", fontSize: 72, fontWeight: 400, color: "#FFFFFF", lineHeight: 0.92, letterSpacing: -1.2, marginBottom: 10 },
   coverSubtitle: { fontFamily: "Playfair Display", fontStyle: "italic", fontSize: 18, color: C.accent, marginBottom: 6 },
@@ -87,7 +87,6 @@ const s = StyleSheet.create({
   moment: { flexDirection: "row", marginBottom: 14, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: C.hairline },
   momentLabel: { width: 78, fontSize: 8, letterSpacing: 1.8, textTransform: "uppercase", color: C.accent, paddingTop: 2 },
   momentText: { flex: 1, fontSize: 10, color: C.ink, lineHeight: 1.55 },
-  versal: { fontFamily: "Playfair Display", fontSize: 24, color: C.accent, lineHeight: 1 },
 
   mapWrapper: { width: "100%", height: 380, marginTop: 18, marginBottom: 18, backgroundColor: C.cardBg, padding: 24 },
   mapPin: { fill: C.accent },
@@ -353,23 +352,12 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
           <Text style={s.dayHeaderNum}>{L.day.toUpperCase()} {d.dayNumber ?? i + 1} / {dayCount}</Text>
         </View>
         <Text style={s.dayTitle}>{typo(d.title) || `${L.day} ${i + 1}`}</Text>
-        {visibleSlots.map(([label, text], j) => {
-          const useVersal = i === 0 && j === 0 && text && text.length > 2;
-          const typedText = typo(text);
-          return (
-            <View key={j} style={s.moment} wrap={false}>
-              <Text style={s.momentLabel}>{label}</Text>
-              <Text style={s.momentText}>
-                {useVersal ? (
-                  <>
-                    <Text style={s.versal}>{typedText.charAt(0)}</Text>
-                    <Text>{typedText.slice(1)}</Text>
-                  </>
-                ) : typedText}
-              </Text>
-            </View>
-          );
-        })}
+        {visibleSlots.map(([label, text], j) => (
+          <View key={j} style={s.moment} wrap={false}>
+            <Text style={s.momentLabel}>{label}</Text>
+            <Text style={s.momentText}>{typo(text)}</Text>
+          </View>
+        ))}
         <Footer destination={city || dest} pageLabel={L.page} />
       </Page>
     );
@@ -414,8 +402,8 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
       <View style={s.hairline} />
 
       {budget?.items && budget.items.length > 0 ? (
-        <>
-          <Text style={[s.eyebrow, { marginTop: 8 }]}>● {L.budget.toUpperCase()}</Text>
+        <View>
+          <Text style={[s.eyebrow, { marginTop: 8 }]} minPresenceAhead={60}>● {L.budget.toUpperCase()}</Text>
           <View style={s.practicalGrid}>
             {budget.items.filter((it) => !/totale|total/i.test(it.label)).map((it, i) => (
               <View key={i} style={s.practicalRow} wrap={false}>
@@ -430,19 +418,19 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
               </View>
             ))}
           </View>
-        </>
+        </View>
       ) : null}
 
       {data.bestTime ? (
-        <>
+        <View wrap={false}>
           <Text style={[s.eyebrow, { marginTop: 24 }]}>● {L.bestTime.toUpperCase()}</Text>
           <Text style={{ fontSize: 12, color: C.ink, fontFamily: "Playfair Display" }}>{typo(data.bestTime)}</Text>
-        </>
+        </View>
       ) : null}
 
       {getting?.steps && getting.steps.length > 0 ? (
-        <>
-          <Text style={[s.eyebrow, { marginTop: 24 }]}>● {L.getting.toUpperCase()}</Text>
+        <View>
+          <Text style={[s.eyebrow, { marginTop: 24 }]} minPresenceAhead={60}>● {L.getting.toUpperCase()}</Text>
           {getting.steps.map((step, i) => (
             <View key={i} style={s.gettingStep} wrap={false}>
               <View style={s.gettingDot} />
@@ -452,18 +440,18 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
               </View>
             </View>
           ))}
-        </>
+        </View>
       ) : null}
 
       {packing?.items && packing.items.length > 0 ? (
-        <>
-          <Text style={[s.eyebrow, { marginTop: 24 }]}>● {L.packing.toUpperCase()}</Text>
+        <View>
+          <Text style={[s.eyebrow, { marginTop: 24 }]} minPresenceAhead={60}>● {L.packing.toUpperCase()}</Text>
           <View style={s.packingChips}>
             {packing.items.map((it, i) => (
               <Text key={i} style={s.packingChip}>{it.emoji ? `${it.emoji} ` : ""}{it.label}</Text>
             ))}
           </View>
-        </>
+        </View>
       ) : null}
 
       <Footer destination={city || dest} pageLabel={L.page} />

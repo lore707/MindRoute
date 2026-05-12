@@ -73,9 +73,17 @@ async function fetchUnsplashHero(destinationName: string): Promise<{ url: string
 
 /**
  * Fetch a real Unsplash image for a single itinerary day.
- * Always grounds the search geographically by prepending the destination city,
- * then falls back to less specific queries until a real photo is found.
- * Returns null only if Unsplash is unreachable / no key — never an invented URL.
+ *
+ * Resilience layered on top of a 3-stage query cascade:
+ *   - retries 429 / 5xx with exponential backoff (1s, 2s, 4s) — short bursts
+ *     during Promise.all of 7 days were silently 429ing and leaving days
+ *     without images. The Authorization-rate-limit on Unsplash is per
+ *     access key per hour, but their CDN also throttles short bursts.
+ *   - logs every transient failure so we can see rate-limit pressure in
+ *     production rather than discovering it only in user reports.
+ *   - returns null only after all stages + all retries exhausted; the
+ *     caller is expected to fall back to the hero image as a final safety
+ *     net so the user never sees a missing photo.
  */
 async function fetchDayImageWithFallback(query: string | null | undefined, destinationName: string): Promise<string | null> {
   const key = process.env.UNSPLASH_ACCESS_KEY;
@@ -83,16 +91,35 @@ async function fetchDayImageWithFallback(query: string | null | undefined, desti
   const city = (destinationName || "").split(",")[0].trim();
 
   const tryQuery = async (q: string): Promise<string | null> => {
-    if (!q || q.length < 2) return null;
-    try {
-      const r = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&orientation=landscape&per_page=1`,
-        { headers: { Authorization: `Client-ID ${key}` } }
-      );
-      if (!r.ok) return null;
-      const d = await r.json();
-      return d.results?.[0]?.urls?.regular ?? null;
-    } catch { return null; }
+    if (!q || q.trim().length < 2) return null;
+    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q.trim())}&orientation=landscape&per_page=1`;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const r = await fetch(url, { headers: { Authorization: `Client-ID ${key}` } });
+        if (r.ok) {
+          const d = await r.json();
+          return d.results?.[0]?.urls?.regular ?? null;
+        }
+        // Retry on rate-limit (429) and any 5xx — these are transient
+        if (r.status === 429 || r.status >= 500) {
+          if (attempt < 2) {
+            console.warn(`[unsplash] ${r.status} on "${q}", retrying in ${1000 * Math.pow(2, attempt)}ms (attempt ${attempt + 1}/3)`);
+            await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt)));
+            continue;
+          }
+          console.warn(`[unsplash] ${r.status} on "${q}" — gave up after 3 attempts`);
+        }
+        return null; // 4xx other than 429: real failure, don't retry
+      } catch (e) {
+        if (attempt < 2) {
+          await new Promise(res => setTimeout(res, 1000 * Math.pow(2, attempt)));
+          continue;
+        }
+        console.warn(`[unsplash] network error on "${q}":`, e instanceof Error ? e.message : e);
+        return null;
+      }
+    }
+    return null;
   };
 
   // Stage 1: city + imageQuery — geo-grounded, best match for "this place specifically"
@@ -111,6 +138,26 @@ async function fetchDayImageWithFallback(query: string | null | undefined, desti
     if (url) return url;
   }
   return null;
+}
+
+/**
+ * Run async tasks with a bounded concurrency cap, instead of `Promise.all` which
+ * fires them all simultaneously. Used to avoid burst-rate-limiting Unsplash with
+ * 7 day-image fetches in parallel — at 3-wide we stagger naturally over ~1.5s
+ * and stay below the per-second throttle that returns 429s.
+ */
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      results[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 import { storage } from "./storage";
@@ -206,14 +253,17 @@ export async function registerRoutes(
         return null;
       }
 
-    // --- Process each day: images + map points — in parallelo tra giorni ---
-      const daysWithExtras = await Promise.all(
-        (itinerary.days || []).map(async (day: any, idx: number) => {
+    // --- Process each day: images + map points — bounded concurrency to avoid
+    //     hitting Unsplash with a 7-wide burst that triggers 429s.
+      const heroUrl = heroImage?.url ?? null;
+      const daysWithExtras = await mapWithConcurrency(itinerary.days || [], 3, async (day: any, idx: number) => {
           const extras: Record<string, any> = {};
 
-          // Real image for EVERY day, geo-grounded. Always overrides any LLM-invented URL.
+          // Real image for EVERY day, geo-grounded. Override the LLM URL; if
+          // Unsplash is exhausted, fall back to the hero so the user always
+          // sees something coherent rather than a missing photo.
           const dayImg = await fetchDayImageWithFallback(day.imageQuery, destinationName);
-          extras.dayImageUrl = dayImg; // null if Unsplash unavailable — never the LLM hallucination
+          extras.dayImageUrl = dayImg ?? heroUrl;
 
           // Geocode places for map pins — use multiple strategies
           const mapPoints: any[] = [];
@@ -294,8 +344,7 @@ export async function registerRoutes(
 
           if (mapPoints.length > 0) extras.mapPoints = mapPoints;
           return { ...day, ...extras };
-        })
-      );
+        });
 
      const userId = (req as any).user?.id ?? null;
       const saved = await storage.createItinerary({
@@ -501,16 +550,15 @@ export async function registerRoutes(
             );
             const globalMapPoints = geocodeResults.filter(Boolean) as any[];
 
-            const daysWithExtras = await Promise.all(
-              (structuredItinerary.days || []).map(async (day: any, idx: number) => {
-                const extras: Record<string, any> = {};
-                const dayImg = await fetchDayImageWithFallback(day.imageQuery, destinationName);
-                extras.dayImageUrl = dayImg; // null if Unsplash unavailable — never the LLM hallucination
-                const dayPoints = globalMapPoints.filter(p => p.dayNum === day.dayNumber);
-                if (dayPoints.length > 0) extras.mapPoints = dayPoints;
-                return { ...day, ...extras };
-              })
-            );
+            const heroUrlBg = heroImage?.url ?? null;
+            const daysWithExtras = await mapWithConcurrency(structuredItinerary.days || [], 3, async (day: any, idx: number) => {
+              const extras: Record<string, any> = {};
+              const dayImg = await fetchDayImageWithFallback(day.imageQuery, destinationName);
+              extras.dayImageUrl = dayImg ?? heroUrlBg;
+              const dayPoints = globalMapPoints.filter(p => p.dayNum === day.dayNumber);
+              if (dayPoints.length > 0) extras.mapPoints = dayPoints;
+              return { ...day, ...extras };
+            });
 
             // Aggiorna il placeholder con l'itinerario completo
             const updatedDays = daysWithExtras;
@@ -640,18 +688,18 @@ export async function registerRoutes(
       );
       const globalMapPoints = geocodeResults.filter(Boolean) as any[];
 
-      // Fetch immagini per OGNI giorno in parallelo — geo-grounded, override sempre l'URL inventato dall'LLM
-      const daysWithExtras = await Promise.all(
-        (itinerary.days || []).map(async (day: any, idx: number) => {
-          const extras: Record<string, any> = {};
-          const dayImg = await fetchDayImageWithFallback(day.imageQuery, destinationName);
-          extras.dayImageUrl = dayImg; // null se Unsplash non disponibile — mai l'allucinazione LLM
-          // Assegna map points di questo giorno
-          const dayPoints = globalMapPoints.filter(p => p.dayNum === day.dayNumber);
-          if (dayPoints.length > 0) extras.mapPoints = dayPoints;
-          return { ...day, ...extras };
-        })
-      );
+      // Fetch immagini per OGNI giorno con concorrenza limitata — geo-grounded,
+      // override sempre l'URL inventato dall'LLM. Se Unsplash è esaurita,
+      // fallback su hero così l'utente non vede mai un giorno senza foto.
+      const heroUrlStream = heroImage?.url ?? null;
+      const daysWithExtras = await mapWithConcurrency(itinerary.days || [], 3, async (day: any, idx: number) => {
+        const extras: Record<string, any> = {};
+        const dayImg = await fetchDayImageWithFallback(day.imageQuery, destinationName);
+        extras.dayImageUrl = dayImg ?? heroUrlStream;
+        const dayPoints = globalMapPoints.filter(p => p.dayNum === day.dayNumber);
+        if (dayPoints.length > 0) extras.mapPoints = dayPoints;
+        return { ...day, ...extras };
+      });
 
   send("progress", { step: 5, message: "Quasi pronto, ultime rifiniture..." });
 
