@@ -194,7 +194,6 @@ function BookTab({ urls, region, destinationName, profilingInput, itineraryId }:
 function OverviewTab({ itinerary }: { itinerary: any }) {
   return (
     <div style={{ padding: "16px 14px 24px" }}>
-      <div style={{ fontSize: 17, fontWeight: 700, color: "white", fontFamily: "Georgia, serif", marginBottom: 16 }}>Panoramica</div>
       {itinerary.budgetSummary && (
         <div style={{ background: "rgba(233,69,96,0.06)", border: "1px solid rgba(233,69,96,0.15)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginBottom: 10 }}>💰 Budget stimato</div>
@@ -287,23 +286,6 @@ function OverviewTab({ itinerary }: { itinerary: any }) {
           })()}
         </div>
       )}
-      {itinerary.days && (
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden", marginBottom: 10, height: 260 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", padding: "12px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>🗺 Mappa destinazione</div>
-          <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName ?? ""} />
-        </div>
-      )}
-      <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px" }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>💡 Da sapere</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {[{ emoji: "💳", text: "Controlla se serve il visto" }, { emoji: "📱", text: "Attiva il roaming o compra una SIM locale" }, { emoji: "🏥", text: "Verifica la tua assicurazione viaggio" }, { emoji: "🔌", text: "Controlla il tipo di presa elettrica" }].map((tip, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.02)" }}>
-              <span style={{ fontSize: 13 }}>{tip.emoji}</span>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>{tip.text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

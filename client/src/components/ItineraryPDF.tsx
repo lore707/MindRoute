@@ -68,14 +68,14 @@ const s = StyleSheet.create({
   highlightRow: { flexDirection: "row", paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: C.hairline, alignItems: "center" },
   highlightText: { fontFamily: "Playfair Display", fontSize: 13, color: C.ink, flex: 1 },
 
-  sectionTitle: { fontFamily: "Playfair Display", fontSize: 32, fontWeight: 400, marginBottom: 8, letterSpacing: -0.4 },
+  sectionTitle: { fontFamily: "Playfair Display", fontSize: 32, fontWeight: 400, lineHeight: 1.15, marginBottom: 12, letterSpacing: -0.4 },
   sectionLead: { fontSize: 11, color: C.inkDim, marginBottom: 28, maxWidth: "75%", lineHeight: 1.5 },
 
   arcDay: { flexDirection: "row", paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: C.hairline },
   arcDayNum: { fontFamily: "Playfair Display", fontSize: 28, color: C.accent, width: 56 },
   arcDayBody: { flex: 1 },
   arcDayArc: { fontSize: 8, letterSpacing: 1.8, textTransform: "uppercase", color: C.inkFaint, marginBottom: 4 },
-  arcDayTitle: { fontFamily: "Playfair Display", fontSize: 14, color: C.ink, marginBottom: 3 },
+  arcDayTitle: { fontFamily: "Playfair Display", fontSize: 14, lineHeight: 1.3, color: C.ink, marginBottom: 3 },
   arcDaySub: { fontSize: 9, color: C.inkDim, lineHeight: 1.5 },
 
   dayImage: { width: "100%", height: 220, marginBottom: 8, objectFit: "cover" },
@@ -289,7 +289,7 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
   if (data.whyYours || (data.highlights && data.highlights.length)) {
     pages.push(
       <Page key="manifesto" size="A4" style={s.page}>
-        <Text style={s.eyebrow}>● {L.manifesto.toUpperCase()}</Text>
+        <Text style={s.eyebrow}>• {L.manifesto.toUpperCase()}</Text>
         {data.whyYours ? (
           <>
             <Text style={s.quoteMark}>“</Text>
@@ -298,7 +298,7 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
         ) : null}
         {data.highlights && data.highlights.length > 0 ? (
           <>
-            <Text style={[s.eyebrow, { marginTop: 24, marginBottom: 12 }]}>● {L.highlights.toUpperCase()}</Text>
+            <Text style={[s.eyebrow, { marginTop: 24, marginBottom: 12 }]}>• {L.highlights.toUpperCase()}</Text>
             {data.highlights.slice(0, 6).map((h, i) => (
               <View key={i} style={s.highlightRow} wrap={false}>
                 <Text style={s.highlightText}>{typo(h)}</Text>
@@ -314,7 +314,7 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
   if (dayCount > 1) {
     pages.push(
       <Page key="arc" size="A4" style={s.page}>
-        <Text style={s.eyebrow}>● {L.arcEyebrow.toUpperCase()}</Text>
+        <Text style={s.eyebrow}>• {L.arcEyebrow.toUpperCase()}</Text>
         <Text style={s.sectionTitle}>{dayCount} {L.arcTitle}</Text>
         <Text style={s.sectionLead}>{L.arcLead}</Text>
         <View style={s.hairline} />
@@ -353,7 +353,7 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
         </View>
         <Text style={s.dayTitle}>{typo(d.title) || `${L.day} ${i + 1}`}</Text>
         {visibleSlots.map(([label, text], j) => (
-          <View key={j} style={s.moment} wrap={false}>
+          <View key={j} style={s.moment} minPresenceAhead={48}>
             <Text style={s.momentLabel}>{label}</Text>
             <Text style={s.momentText}>{typo(text)}</Text>
           </View>
@@ -379,7 +379,7 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
 
     pages.push(
       <Page key="map" size="A4" style={s.page}>
-        <Text style={s.eyebrow}>● {L.geographyEyebrow.toUpperCase()}</Text>
+        <Text style={s.eyebrow}>• {L.geographyEyebrow.toUpperCase()}</Text>
         <Text style={s.sectionTitle}>{L.geographyTitle}</Text>
         <Text style={s.sectionLead}>{L.geographyLead}</Text>
         <View style={s.mapWrapper}>
@@ -397,13 +397,13 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
 
   pages.push(
     <Page key="practical" size="A4" style={s.page}>
-      <Text style={s.eyebrow}>● {L.practicalEyebrow.toUpperCase()}</Text>
+      <Text style={s.eyebrow}>• {L.practicalEyebrow.toUpperCase()}</Text>
       <Text style={s.sectionTitle}>{L.practicalTitle}</Text>
       <View style={s.hairline} />
 
       {budget?.items && budget.items.length > 0 ? (
         <View>
-          <Text style={[s.eyebrow, { marginTop: 8 }]} minPresenceAhead={60}>● {L.budget.toUpperCase()}</Text>
+          <Text style={[s.eyebrow, { marginTop: 8 }]} minPresenceAhead={60}>• {L.budget.toUpperCase()}</Text>
           <View style={s.practicalGrid}>
             {budget.items.filter((it) => !/totale|total/i.test(it.label)).map((it, i) => (
               <View key={i} style={s.practicalRow} wrap={false}>
@@ -423,19 +423,19 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
 
       {data.bestTime ? (
         <View wrap={false}>
-          <Text style={[s.eyebrow, { marginTop: 24 }]}>● {L.bestTime.toUpperCase()}</Text>
+          <Text style={[s.eyebrow, { marginTop: 24 }]}>• {L.bestTime.toUpperCase()}</Text>
           <Text style={{ fontSize: 12, color: C.ink, fontFamily: "Playfair Display" }}>{typo(data.bestTime)}</Text>
         </View>
       ) : null}
 
       {getting?.steps && getting.steps.length > 0 ? (
         <View>
-          <Text style={[s.eyebrow, { marginTop: 24 }]} minPresenceAhead={60}>● {L.getting.toUpperCase()}</Text>
+          <Text style={[s.eyebrow, { marginTop: 24 }]} minPresenceAhead={60}>• {L.getting.toUpperCase()}</Text>
           {getting.steps.map((step, i) => (
             <View key={i} style={s.gettingStep} wrap={false}>
               <View style={s.gettingDot} />
               <View style={s.gettingStepBody}>
-                <Text style={s.gettingStepRoute}>{step.from} → {step.to}</Text>
+                <Text style={s.gettingStepRoute}>{step.from} › {step.to}</Text>
                 <Text style={s.gettingStepMeta}>{step.method} · {step.duration}{step.cost ? ` · ${step.cost}` : ""}</Text>
               </View>
             </View>
@@ -445,10 +445,10 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
 
       {packing?.items && packing.items.length > 0 ? (
         <View>
-          <Text style={[s.eyebrow, { marginTop: 24 }]} minPresenceAhead={60}>● {L.packing.toUpperCase()}</Text>
+          <Text style={[s.eyebrow, { marginTop: 24 }]} minPresenceAhead={60}>• {L.packing.toUpperCase()}</Text>
           <View style={s.packingChips}>
             {packing.items.map((it, i) => (
-              <Text key={i} style={s.packingChip}>{it.emoji ? `${it.emoji} ` : ""}{it.label}</Text>
+              <Text key={i} style={s.packingChip}>{it.label}</Text>
             ))}
           </View>
         </View>
@@ -475,7 +475,7 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
             <Link key={i} src={url!} style={{ textDecoration: "none" }}>
               <View style={s.closingCtaRow} wrap={false}>
                 <Text style={s.closingCtaLabel}>{label}</Text>
-                <Text style={s.closingCtaArrow}>→</Text>
+                <Text style={s.closingCtaArrow}>›</Text>
               </View>
             </Link>
           ))}
