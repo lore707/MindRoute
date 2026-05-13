@@ -36,7 +36,139 @@ export const itineraries = pgTable("itineraries", {
   heroPhotographerUrl: text("hero_photographer_url"),
  topAffiliateLinks: jsonb("top_affiliate_links").$type<Record<string, string>>(),
   rawNarrative: text("raw_narrative"),
+  // v2 — moment-based schema. schemaVersion=1 → legacy (morning/lunch/afternoon/evening),
+  // schemaVersion=2 → moments[]. Readers dispatch on this column.
+  schemaVersion: integer("schema_version").notNull().default(1),
+  country: text("country"),
+  // tripMeta holds v2-only top-level metadata that doesn't justify its own
+  // column: em_word, travel_dates, total_cost_bookable, total_cost_onsite,
+  // total_cost_range, map_points. Null for v1 rows.
+  tripMeta: jsonb("trip_meta").$type<TripMetaV2 | null>(),
 });
+
+// ── v2 — moment-based itinerary types ──────────────────────────────────────
+// Replaces the v1 day shape (morning/lunch/afternoon/evening text strings)
+// with a structured moments[] array per day. Readers must dispatch on
+// itinerary.schemaVersion to pick the right shape.
+
+export type MomentType =
+  | "transport"      // flight/train/bus/ferry/taxi/transfer
+  | "accommodation"  // hotel/B&B/check-in/check-out
+  | "food"           // restaurant/street food/market
+  | "experience"     // tour/activity/museum/class/boat
+  | "walk"           // free wander, neighborhood exploration
+  | "view"           // viewpoint/sunset/beach
+  | "rest";          // free time/back to hotel/decompression
+
+export type BookingStatus =
+  | "bookable_now"        // strong CTA, prenotabile ora
+  | "reserve_recommended" // consigliato prenotare, walk-in possibile
+  | "walk_in";            // info only, no booking
+
+export type BookingProvider =
+  | "skyscanner" | "trainline" | "flixbus" | "booking" | "getyourguide"
+  | "viator" | "civitatis" | "musement" | "klook" | "samboat"
+  | "thefork" | "expedia_cars" | "welcome_pickups" | "direct" | "none";
+
+export type EnergyLevel = "low" | "medium" | "high";
+
+export type TransportMode =
+  | "walk" | "taxi" | "metro" | "bus" | "train" | "ferry" | "drive" | "flight";
+
+export type WeatherCondition =
+  | "sunny" | "cloudy" | "rain" | "mixed" | "snow";
+
+export interface BookingInfoV2 {
+  provider: BookingProvider;
+  affiliate_url: string;
+  display_label: string;
+  status: BookingStatus;
+}
+
+export interface TransportToNextV2 {
+  mode: TransportMode;
+  duration_min: number;
+  cost_estimate?: string;
+  note?: string;
+}
+
+export interface PlanBV2 {
+  trigger: string;
+  alternative: string;
+}
+
+export interface MomentV2 {
+  id: string;
+  type: MomentType;
+  title_evocative: string;
+  title_operational: string;
+  time_label: "morning" | "lunch" | "afternoon" | "evening" | "night";
+  start_time?: string;
+  end_time?: string;
+  duration_min?: number;
+  cost_min?: number;
+  cost_max?: number;
+  cost_note?: string;
+  location_name?: string;
+  location_address?: string;
+  location_lat?: number;
+  location_lng?: number;
+  image_url: string;
+  image_alt: string;
+  booking?: BookingInfoV2;
+  description: string;
+  why_this: string;
+  transport_to_next?: TransportToNextV2;
+  plan_b?: PlanBV2;
+}
+
+export interface WeatherForecastV2 {
+  temp_min: number;
+  temp_max: number;
+  condition: WeatherCondition;
+  note?: string;
+}
+
+export interface DayV2 {
+  day_number: number;
+  date?: string;
+  arc: string;
+  title_evocative: string;
+  subtitle: string;
+  hero_image_url: string;
+  weather_forecast?: WeatherForecastV2;
+  energy_level: EnergyLevel;
+  energy_note?: string;
+  walking_distance_km?: number;
+  cost_bookable_total: number;
+  cost_onsite_estimate: number;
+  moments: MomentV2[];
+}
+
+export interface HighlightV2 {
+  icon: string;
+  name: string;
+  description: string;
+}
+
+export interface MapPointV2 {
+  day: number;
+  lat: number;
+  lng: number;
+  label: string;
+}
+
+export interface TripMetaV2 {
+  em_word?: string;
+  travel_dates?: { start: string; end: string };
+  total_cost_bookable: number;
+  total_cost_onsite_estimate: number;
+  total_cost_range: string;
+  map_points?: MapPointV2[];
+  // v2 highlights are richer objects; v1 highlights stay as string[] in the
+  // legacy column. Reader picks based on schemaVersion.
+  highlights_v2?: HighlightV2[];
+}
 
 export const insertDestinationSchema = createInsertSchema(destinations).omit({ id: true });
 export type InsertDestination = z.infer<typeof insertDestinationSchema>;
