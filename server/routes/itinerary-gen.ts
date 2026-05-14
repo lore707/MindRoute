@@ -5,6 +5,7 @@ import { generateItineraryForDestination } from "../matching-engine";
 import { fetchUnsplashHero, fetchDayImageWithFallback, mapWithConcurrency } from "../unsplash";
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
+import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 
 const SLOT_MAPPING: Record<string, string> = {
   getyourguide_morning: "Mattina", klook_morning: "Mattina", viator_morning: "Mattina",
@@ -32,7 +33,10 @@ export function registerItineraryGenRoutes(app: Express) {
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
-      const itinerary = await generateItineraryForDestination(input, destinationName);
+      const userIdForPrior = (req.user as any)?.id ?? null;
+      const prior = await getTraitPriorForUser(userIdForPrior);
+      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      const itinerary = await generateItineraryForDestination(input, destinationName, priorBlock);
       const [heroImage] = await Promise.all([fetchUnsplashHero(destinationName)]);
 
       const destCenter = await geocode(destinationName);
@@ -167,6 +171,8 @@ export function registerItineraryGenRoutes(app: Express) {
     try {
       const { generateItineraryStreamingStructured } = await import("../matching-engine");
       const userId = (req as any).user?.id ?? null;
+      const prior = await getTraitPriorForUser(userId);
+      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
       const collectedDays: any[] = [];
       let metaData: any = null;
 
@@ -174,7 +180,8 @@ export function registerItineraryGenRoutes(app: Express) {
         input,
         destinationName,
         (day: any) => { collectedDays.push(day); send("day", { day }); },
-        (meta: any) => { metaData = meta; }
+        (meta: any) => { metaData = meta; },
+        priorBlock
       );
 
       const heroImage = await fetchUnsplashHero(destinationName);
@@ -268,7 +275,9 @@ export function registerItineraryGenRoutes(app: Express) {
         const finalItinId = savedId;
         (async () => {
           try {
-            const structuredItinerary = await generateItineraryForDestination(input, destinationName);
+            const bgPrior = await getTraitPriorForUser(userId);
+            const bgPriorBlock = bgPrior ? formatTraitPriorBlock(bgPrior) : "";
+            const structuredItinerary = await generateItineraryForDestination(input, destinationName, bgPriorBlock);
             const heroImage = await fetchUnsplashHero(destinationName);
 
             const destCenter = await geocode(destinationName);
@@ -376,7 +385,10 @@ export function registerItineraryGenRoutes(app: Express) {
 
     try {
       send("progress", { step: 1, message: "Analizzo il tuo profilo psicologico..." });
-      const itinerary = await generateItineraryForDestination(input, destinationName);
+      const userIdForPrior = (req.user as any)?.id ?? null;
+      const prior = await getTraitPriorForUser(userIdForPrior);
+      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      const itinerary = await generateItineraryForDestination(input, destinationName, priorBlock);
 
       send("progress", { step: 2, message: "Cerco l'immagine perfetta per il tuo viaggio..." });
       const [heroImage] = await Promise.all([fetchUnsplashHero(destinationName)]);

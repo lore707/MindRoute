@@ -158,8 +158,8 @@ export type ItineraryV2 = z.infer<typeof itineraryV2Schema>;
 
 const V1_OUTPUT_MARKER = "IMAGE QUERY & IMAGE URL";
 
-export function buildPromptV2(input: ProfilingInput): string {
-  const v1 = buildPrompt(input);
+export function buildPromptV2(input: ProfilingInput, priorBlock = ""): string {
+  const v1 = buildPrompt(input, priorBlock);
   const idx = v1.indexOf(V1_OUTPUT_MARKER);
   if (idx === -1) {
     throw new Error("buildPromptV2: v1 OUTPUT FORMAT marker not found — buildPrompt has drifted");
@@ -358,9 +358,10 @@ explanations. Start with { end with }. Pure JSON only.`;
 
 export async function generateItineraryV2ForDestination(
   input: ProfilingInput,
-  destinationName: string
+  destinationName: string,
+  priorBlock = ""
 ): Promise<ItineraryV2> {
-  const prompt = buildPromptV2({ ...input, _destinationOverride: destinationName } as any);
+  const prompt = buildPromptV2({ ...input, _destinationOverride: destinationName } as any, priorBlock);
 
   // Higher max_tokens than v1: each day has 2–6 moments with ~15 fields each,
   // plus day-level fields (weather, energy, costs). 24K leaves headroom for

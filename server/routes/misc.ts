@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { emaAggregate, AXIS_NAMES, type TraitVector, MAPPING_VERSION } from "@shared/traits";
+import { getTraitHeadline } from "../trait-headline";
 
 export function registerMiscRoutes(app: Express) {
   // GET /api/me/trait-history — chronological snapshots + EMA-aggregated
@@ -22,10 +23,19 @@ export function registerMiscRoutes(app: Express) {
             ),
           ) as TraitVector
         : null;
+
+      // Haiku-generated headline — only attempt with enough signal (N>=3).
+      // Non-blocking-ish: awaited but errors → null, never fails the endpoint.
+      let headline: string | null = null;
+      if (validVectors.length >= 3) {
+        headline = await getTraitHeadline(user.id, current, validVectors.length);
+      }
+
       res.json({
         snapshots,
         current,
         delta,
+        headline,
         axes: AXIS_NAMES,
         mappingVersion: MAPPING_VERSION,
       });

@@ -6,13 +6,17 @@ import { profilingLimiter } from "../rate-limiter";
 import { generateDestinationsOnly } from "../matching-engine";
 import { fetchUnsplashHero } from "../unsplash";
 import { computeTraitVector, MAPPING_VERSION } from "@shared/traits";
+import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 
 export function registerProfilingRoutes(app: Express) {
   // STEP 1 — Genera 3 destinazioni leggere dal profiling
   app.post(api.profiling.submit.path, profilingLimiter, async (req, res) => {
     try {
       const input = api.profiling.submit.input.parse(req.body);
-      const destinations = await generateDestinationsOnly(input);
+      const userIdForPrior = (req.user as any)?.id ?? null;
+      const prior = await getTraitPriorForUser(userIdForPrior);
+      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      const destinations = await generateDestinationsOnly(input, priorBlock);
       await storage.clearAll();
       const createdDests = [];
       for (const dest of destinations) {

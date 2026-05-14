@@ -15,6 +15,7 @@ import { generateItineraryV2ForDestination, type ItineraryV2 } from "../matching
 import { fetchUnsplashHero, fetchMomentImage, fetchDayImageWithFallback, mapWithConcurrency } from "../unsplash";
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
+import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2 } from "../../shared/schema";
 
 async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
@@ -191,7 +192,10 @@ export function registerItineraryGenV2Routes(app: Express) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
 
-      const rough = await generateItineraryV2ForDestination(input, destinationName);
+      const userIdForPrior = (req.user as any)?.id ?? null;
+      const prior = await getTraitPriorForUser(userIdForPrior);
+      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      const rough = await generateItineraryV2ForDestination(input, destinationName, priorBlock);
       const enriched = await enrichItineraryV2(rough, destinationName);
 
       const userId = (req.user as any)?.id ?? null;

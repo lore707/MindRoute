@@ -19,6 +19,7 @@ type TraitHistory = {
   snapshots: Array<{ id: number; createdAt: string; source: string; traits: Record<string, number> }>;
   current: Record<string, number>;
   delta: Record<string, number> | null;
+  headline: string | null;
   axes: Record<string, AxisLabel>;
   mappingVersion: number;
 };
@@ -71,7 +72,11 @@ export default function MyAccount() {
 
   const badge = getBadge(trips.length);
   const hasTraits = traitHistory && traitHistory.snapshots.length > 0;
-  const headline = hasTraits ? buildHeadline(traitHistory.current, traitHistory.axes) : "";
+  // Prefer the Haiku headline when present (richer, contextual). Fallback to the
+  // pure-client one ("Sei offbeat, intimo.") so the UI is never empty.
+  const headline = hasTraits
+    ? (traitHistory.headline || buildHeadline(traitHistory.current, traitHistory.axes))
+    : "";
   const axisKeys: Array<keyof TraitHistory["current"]> = hasTraits
     ? (Object.keys(traitHistory.current) as Array<keyof TraitHistory["current"]>)
     : [];
