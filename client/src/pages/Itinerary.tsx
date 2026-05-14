@@ -354,11 +354,54 @@ function buildMoments(day: any, t: (k: string) => string): CinMoment[] {
   return moments;
 }
 
+// v2 — MomentV2[] → CinMoment[]. The cinematic component's moment shape is
+// intentionally smaller than MomentV2; we surface title_evocative + description
+// + a booking CTA, and drop transport/plan_b/weather (no UI slot for them yet).
+const MOMENT_TYPE_ICONS: Record<string, string> = {
+  transport: "✈️",
+  accommodation: "🏨",
+  food: "🍽",
+  experience: "🎟",
+  walk: "🚶",
+  view: "🌅",
+  rest: "☕",
+};
+function buildMomentsV2(day: any, t: (k: string) => string): CinMoment[] {
+  const moments: any[] = Array.isArray(day?.moments) ? day.moments : [];
+  const slotLabel = (timeLabel: string): string => {
+    switch (timeLabel) {
+      case "morning": return t('itin.morning');
+      case "lunch": return t('itin.lunch');
+      case "afternoon": return t('itin.afternoon');
+      case "evening": return t('itin.evening');
+      case "night": return t('itin.evening');
+      default: return timeLabel ?? "";
+    }
+  };
+  return moments.map((m) => {
+    const title = m.title_evocative || m.title_operational || "";
+    const desc = m.description || m.why_this || "";
+    const booking = m.booking;
+    const bookable = booking && (booking.status === "bookable_now" || booking.status === "reserve_recommended");
+    return {
+      t: slotLabel(m.time_label),
+      ic: MOMENT_TYPE_ICONS[m.type] ?? "✦",
+      title,
+      desc,
+      cta: bookable ? (booking.display_label || t('itin.cin.book')) : undefined,
+      ctaUrl: bookable ? booking.affiliate_url : undefined,
+    } as CinMoment;
+  });
+}
+
 function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang: "en" | "it"): ItineraryData {
+  const isV2 = itinerary?.schemaVersion === 2;
+  const tripMeta = itinerary?.tripMeta ?? null;
+
   const destinationFull = itinerary?.destinationName ?? "";
   const parts = destinationFull.split(",").map((s: string) => s.trim()).filter(Boolean);
   const destinationCity = parts[0] ?? destinationFull;
-  const country = parts.slice(1).join(", ");
+  const country = itinerary?.country ?? parts.slice(1).join(", ");
 
   const days = (itinerary?.days ?? []) as any[];
   const dayCount = days.length;
@@ -371,37 +414,61 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
 
   const duration = `${dayCount} ${dayCount === 1 ? t('itin.cin.duration.day') : t('itin.cin.duration.days')}`;
 
-  const rawHighlights = (itinerary?.highlights ?? []) as string[];
-  const highlights: CinHighlight[] = rawHighlights.slice(0, 6).map((h, i) => ({
-    ic: HIGHLIGHT_ICONS[i % HIGHLIGHT_ICONS.length],
-    name: h,
-    desc: "",
-  }));
+  // v2 highlights live in tripMeta.highlights_v2 ({icon, name, description});
+  // v1 highlights are a plain string[] in itinerary.highlights.
+  let highlights: CinHighlight[];
+  if (isV2 && Array.isArray(tripMeta?.highlights_v2)) {
+    highlights = tripMeta.highlights_v2.slice(0, 6).map((h: any, i: number) => ({
+      ic: h.icon || HIGHLIGHT_ICONS[i % HIGHLIGHT_ICONS.length],
+      name: h.name ?? "",
+      desc: h.description ?? "",
+    }));
+  } else {
+    const rawHighlights = (itinerary?.highlights ?? []) as string[];
+    highlights = rawHighlights.slice(0, 6).map((h, i) => ({
+      ic: HIGHLIGHT_ICONS[i % HIGHLIGHT_ICONS.length],
+      name: h,
+      desc: "",
+    }));
+  }
 
   const cinDays: CinDay[] = days.map((d, i) => ({
-    n: d.dayNumber ?? i + 1,
-    arc: dayArc(i, dayCount, t),
-    title: d.title ?? "",
-    sub: firstSentence(d.morning ?? "", 12),
-    img: d.dayImageUrl ?? "",
+    n: (isV2 ? d.day_number : d.dayNumber) ?? i + 1,
+    arc: isV2 ? (d.arc || dayArc(i, dayCount, t)) : dayArc(i, dayCount, t),
+    title: (isV2 ? d.title_evocative : d.title) ?? "",
+    sub: isV2 ? (d.subtitle ?? "") : firstSentence(d.morning ?? "", 12),
+    img: (isV2 ? d.hero_image_url : d.dayImageUrl) ?? "",
   }));
 
   const momentsByDay: Record<number, CinMoment[]> = {};
   for (let i = 0; i < days.length; i++) {
     const d = days[i];
-    momentsByDay[d.dayNumber ?? i + 1] = buildMoments(d, t);
+    const key = (isV2 ? d.day_number : d.dayNumber) ?? i + 1;
+    momentsByDay[key] = isV2 ? buildMomentsV2(d, t) : buildMoments(d, t);
   }
 
+  // map_points: v2 keeps them at the top level inside tripMeta (lat/lng), v1
+  // attaches them per-day. Both get projected into the cinematic's 60–340 box.
   let mapPoints: ItineraryData["mapPoints"];
   const allPoints: { lat: number; lng: number; label: string }[] = [];
   const seen = new Set<string>();
-  for (const d of days) {
-    for (const p of (d.mapPoints ?? []) as any[]) {
+  if (isV2 && Array.isArray(tripMeta?.map_points)) {
+    for (const p of tripMeta.map_points as any[]) {
       if (p?.lat == null || p?.lng == null) continue;
       const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
       if (seen.has(k)) continue;
       seen.add(k);
       allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "" });
+    }
+  } else {
+    for (const d of days) {
+      for (const p of (d.mapPoints ?? []) as any[]) {
+        if (p?.lat == null || p?.lng == null) continue;
+        const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "" });
+      }
     }
   }
   if (allPoints.length > 0) {
@@ -425,6 +492,7 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
     duration,
     heroImg: itinerary?.heroImageUrl || itinerary?.imageUrl || "",
     manifesto: itinerary?.whyYours ?? "",
+    emWord: isV2 ? tripMeta?.em_word : undefined,
     highlights,
     days: cinDays,
     momentsByDay,
@@ -538,6 +606,10 @@ export default function Itinerary() {
     </div>
   );
 
+  // Narrow guard — the two early returns above already cover loading/error/!itinerary,
+  // but TS doesn't always carry the narrow through; this makes it explicit.
+  if (!itinerary) return null;
+
  const handleSavePdf = async () => {
     if (!itinerary) return;
     const dest = itinerary.destinationName ?? "Destination";
@@ -638,8 +710,8 @@ export default function Itinerary() {
  <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
       {/* HERO */}
       <div className="relative overflow-hidden" style={{ height: "65vh", minHeight: 420 }}>
-        {(itinerary?.heroImageUrl || itinerary?.imageUrl) ? (
-          <img src={itinerary?.heroImageUrl || itinerary?.imageUrl} alt={itinerary?.destinationName} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        {(itinerary.heroImageUrl || (itinerary as any).imageUrl) ? (
+          <img src={itinerary.heroImageUrl || (itinerary as any).imageUrl} alt={itinerary.destinationName ?? undefined} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         ) : <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a14] to-[#0a0814]" />}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/30 to-transparent" />
         <div className="absolute top-6 left-4 md:left-10 z-20">
