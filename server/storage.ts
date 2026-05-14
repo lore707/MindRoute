@@ -1,4 +1,4 @@
-import type { Destination, Itinerary, InsertDestination, InsertItinerary } from "@shared/schema";
+import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot } from "@shared/schema";
 
 export interface IStorage {
   getDestinations(): Promise<Destination[]>;
@@ -12,6 +12,8 @@ export interface IStorage {
   getItineraryById(id: number): Promise<Itinerary | undefined>;
  updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
   getUserItineraries(userId: number): Promise<any[]>;
+  createTraitSnapshot(snapshot: InsertTraitSnapshot): Promise<TraitSnapshot>;
+  getTraitSnapshots(userId: number): Promise<TraitSnapshot[]>;
 }
 
 export class MemoryStorage implements IStorage {
@@ -71,6 +73,24 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
 
   async getUserItineraries(userId: number): Promise<any[]> {
     return this.itineraries.filter(i => (i as any).userId === userId);
+  }
+
+  private traitSnapshots: TraitSnapshot[] = [];
+  private traitIdCounter = 1;
+  async createTraitSnapshot(snapshot: InsertTraitSnapshot): Promise<TraitSnapshot> {
+    const row: TraitSnapshot = {
+      id: this.traitIdCounter++,
+      createdAt: new Date(),
+      sourceItineraryId: snapshot.sourceItineraryId ?? null,
+      ...snapshot,
+    } as TraitSnapshot;
+    this.traitSnapshots.push(row);
+    return row;
+  }
+  async getTraitSnapshots(userId: number): Promise<TraitSnapshot[]> {
+    return this.traitSnapshots
+      .filter(s => s.userId === userId)
+      .sort((a, b) => +a.createdAt - +b.createdAt);
   }
 }
 import { DatabaseStorage } from "./storage-db";

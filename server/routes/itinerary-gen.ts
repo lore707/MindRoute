@@ -4,6 +4,7 @@ import { itineraryLimiter } from "../rate-limiter";
 import { generateItineraryForDestination } from "../matching-engine";
 import { fetchUnsplashHero, fetchDayImageWithFallback, mapWithConcurrency } from "../unsplash";
 import { recordRecentDestination } from "../recent-destinations";
+import { recordPickSnapshot } from "../trait-recorder";
 
 const SLOT_MAPPING: Record<string, string> = {
   getyourguide_morning: "Mattina", klook_morning: "Mattina", viator_morning: "Mattina",
@@ -139,6 +140,7 @@ export function registerItineraryGenRoutes(app: Express) {
         createdAt: new Date().toISOString(),
       });
       recordRecentDestination(destinationName);
+      recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id });
       res.json(saved);
     } catch (err) {
       console.error("Error generating itinerary:", err);
@@ -340,6 +342,7 @@ export function registerItineraryGenRoutes(app: Express) {
             }
 
             recordRecentDestination(destinationName);
+            recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: finalItinId });
             console.log(`Background structured itinerary completed for id ${finalItinId}`);
           } catch (bgErr) {
             console.error("Background structured generation error:", bgErr);
@@ -447,6 +450,7 @@ export function registerItineraryGenRoutes(app: Express) {
       res.end();
 
       recordRecentDestination(destinationName);
+      recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id });
 
       // Background: wider geocoding pass to enrich map after user has the itinerary
       (async () => {

@@ -1,8 +1,8 @@
 import { db } from "./db";
-import { destinations, itineraries, profilingInputs } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { destinations, itineraries, profilingInputs, traitSnapshots } from "@shared/schema";
+import { eq, desc, asc } from "drizzle-orm";
 import type { IStorage } from "./storage";
-import type { Destination, Itinerary, InsertDestination, InsertItinerary } from "@shared/schema";
+import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot } from "@shared/schema";
 
 export class DatabaseStorage implements IStorage {
   async getDestinations(): Promise<Destination[]> {
@@ -55,5 +55,16 @@ async getProfilingInput(): Promise<any | undefined> {
 
   async getUserItineraries(userId: number): Promise<Itinerary[]> {
     return await db.select().from(itineraries).where(eq(itineraries.userId, userId)).orderBy(desc(itineraries.id));
+  }
+
+  async createTraitSnapshot(snapshot: InsertTraitSnapshot): Promise<TraitSnapshot> {
+    const result = await db.insert(traitSnapshots).values(snapshot).returning();
+    return result[0];
+  }
+
+  async getTraitSnapshots(userId: number): Promise<TraitSnapshot[]> {
+    return await db.select().from(traitSnapshots)
+      .where(eq(traitSnapshots.userId, userId))
+      .orderBy(asc(traitSnapshots.createdAt));
   }
 }

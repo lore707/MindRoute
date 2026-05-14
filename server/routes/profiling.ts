@@ -5,6 +5,7 @@ import { api } from "@shared/routes";
 import { profilingLimiter } from "../rate-limiter";
 import { generateDestinationsOnly } from "../matching-engine";
 import { fetchUnsplashHero } from "../unsplash";
+import { computeTraitVector, MAPPING_VERSION } from "@shared/traits";
 
 export function registerProfilingRoutes(app: Express) {
   // STEP 1 — Genera 3 destinazioni leggere dal profiling
@@ -24,6 +25,31 @@ export function registerProfilingRoutes(app: Express) {
         createdDests.push(created);
       }
       await storage.saveProfilingInput(input);
+
+      // Trait snapshot — only if user is logged in. Anonymous quizzes can't
+      // build a history (no userId), so we just skip silently.
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        try {
+          const traits = computeTraitVector({
+            answers: input.answers ?? [],
+            companions: input.companions ?? null,
+            budget: input.budget ?? null,
+            travelStyle: input.travelStyle ?? null,
+            constraints: input.constraints ?? null,
+          });
+          await storage.createTraitSnapshot({
+            userId,
+            traits,
+            source: "quiz",
+            mappingVersion: MAPPING_VERSION,
+          });
+        } catch (e) {
+          // Trait snapshot is non-critical — never fail the quiz submit.
+          console.warn("[traits] quiz snapshot failed:", e);
+        }
+      }
+
       res.json(createdDests);
     } catch (err) {
       if (err instanceof z.ZodError) {

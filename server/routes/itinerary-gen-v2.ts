@@ -14,6 +14,7 @@ import { itineraryLimiter } from "../rate-limiter";
 import { generateItineraryV2ForDestination, type ItineraryV2 } from "../matching-engine-v2";
 import { fetchUnsplashHero, fetchMomentImage, fetchDayImageWithFallback, mapWithConcurrency } from "../unsplash";
 import { recordRecentDestination } from "../recent-destinations";
+import { recordPickSnapshot } from "../trait-recorder";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2 } from "../../shared/schema";
 
 async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
@@ -198,6 +199,7 @@ export function registerItineraryGenV2Routes(app: Express) {
       const saved = await storage.createItinerary(insertRow);
 
       recordRecentDestination(destinationName).catch(() => {});
+      recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id });
 
       res.json({ id: saved.id, itinerary: enriched });
     } catch (err) {

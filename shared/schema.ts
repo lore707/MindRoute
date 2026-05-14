@@ -200,6 +200,25 @@ export const recentDestinations = pgTable("recent_destinations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Per-user psychological trait snapshots. Written at two events:
+//   (a) profiling submit          → source = "quiz"
+//   (b) destination chosen + gen  → source = "pick" (blended with destination)
+// History allows the UI to show the user's profile evolving over time.
+// mappingVersion lets us change weights without invalidating old rows.
+export const traitSnapshots = pgTable("trait_snapshots", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  traits: jsonb("traits").notNull().$type<{
+    exposure: number; comfort: number; social: number; matter: number; structure: number;
+  }>(),
+  source: text("source").notNull(), // "quiz" | "pick"
+  sourceItineraryId: integer("source_itinerary_id").references(() => itineraries.id),
+  mappingVersion: integer("mapping_version").notNull(),
+});
+export type TraitSnapshot = typeof traitSnapshots.$inferSelect;
+export type InsertTraitSnapshot = typeof traitSnapshots.$inferInsert;
+
 export const profilingRequestSchema = z.object({
   answers: z.array(z.string()),
   days: z.number(),
