@@ -15,11 +15,11 @@ export const BUDGET_MAP: Record<string, string> = {
   "Money's not an issue":       "unlimited budget, aim for luxury and quality in every choice",
 };
 
-const client = new Anthropic({
+export const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-interface ProfilingInput {
+export interface ProfilingInput {
   answers: string[];
   budget: string;
   departure: string;
@@ -118,7 +118,7 @@ function buildCheckinCheckout(leaveDate: string, days: number): {
   }
 }
 
-function buildPrompt(input: ProfilingInput): string {
+export function buildPrompt(input: ProfilingInput): string {
   const rawAnswers =
     input.answers[0] === "path_a" || input.answers[0] === "path_b"
       ? input.answers.slice(1)
