@@ -14,35 +14,42 @@ function getBadge(count: number) {
   return BADGES.find(b => count >= b.min && count <= b.max) || BADGES[0];
 }
 
-function extractTraits(trips: any[]): string[] {
-  if (!trips.length) return [];
-  const traits: string[] = [];
-  const names = trips.map(t => (t.destinationName || "").toLowerCase()).join(" ");
-  const whys = trips.map(t => (t.whyYours || "").toLowerCase()).join(" ");
-  const all = names + " " + whys;
+type AxisLabel = { left: string; right: string; it: { left: string; right: string } };
+type TraitHistory = {
+  snapshots: Array<{ id: number; createdAt: string; source: string; traits: Record<string, number> }>;
+  current: Record<string, number>;
+  delta: Record<string, number> | null;
+  axes: Record<string, AxisLabel>;
+  mappingVersion: number;
+};
 
-  if (/silenz|quiet|isola|isolat/.test(all)) traits.push("Silenzioso");
-  if (/autentic|local|genuine/.test(all)) traits.push("Autentico");
-  if (/avventur|trekking|wild|selvag/.test(all)) traits.push("Avventuroso");
-  if (/cultur|storia|museo|storico/.test(all)) traits.push("Culturale");
-  if (/romantico|coppia|intimo/.test(all)) traits.push("Romantico");
-  if (/natura|montagna|forest|lago/.test(all)) traits.push("Natura");
-  if (/food|cibo|gastronomia|mercato/.test(all)) traits.push("Foodie");
-  if (/lento|rallentare|pace|respiro/.test(all)) traits.push("Ritmo lento");
-
-  const regions: string[] = [];
-  if (/grecia|italia|portogallo|spagna|francia|europa|albania/.test(all)) regions.push("Europa");
-  if (/asia|giappone|thailandia|bali|india/.test(all)) regions.push("Asia");
-  if (/america|messico|patagonia/.test(all)) regions.push("Americhe");
-  if (regions.length) traits.push(...regions);
-
-  return traits.slice(0, 5);
+// Pick the 1-2 most-pronounced axes (farthest from 0.5) and build a short
+// Italian headline. Pure client logic — no LLM. The intent is identity,
+// not description: "sei X" not "i tuoi viaggi sono X".
+function buildHeadline(current: Record<string, number>, axes: Record<string, AxisLabel>): string {
+  const ranked = (Object.keys(current) as Array<keyof typeof current>)
+    .map(k => ({ k, v: current[k], dist: Math.abs(current[k] - 0.5) }))
+    .sort((a, b) => b.dist - a.dist);
+  const pick = (axisKey: string, value: number): string => {
+    const labels = axes[axisKey]?.it;
+    if (!labels) return "";
+    return value < 0.5 ? labels.left : labels.right;
+  };
+  const top = ranked[0];
+  const second = ranked[1];
+  // Only include the second axis if it's meaningfully off-center too.
+  if (!top || top.dist < 0.08) return "Il tuo profilo è ancora in formazione.";
+  const a = pick(top.k as string, top.v);
+  if (!second || second.dist < 0.12) return `Sei ${a}.`;
+  const b = pick(second.k as string, second.v);
+  return `Sei ${a}, ${b}.`;
 }
 
 export default function MyAccount() {
   const [user, setUser] = useState<any>(null);
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [traitHistory, setTraitHistory] = useState<TraitHistory | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -55,10 +62,19 @@ export default function MyAccount() {
       .then(data => setTrips(Array.isArray(data) ? data : []))
       .catch(() => setTrips([]))
       .finally(() => setLoading(false));
+
+    fetch("/api/me/trait-history")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: TraitHistory | null) => setTraitHistory(data))
+      .catch(() => setTraitHistory(null));
   }, []);
 
   const badge = getBadge(trips.length);
-  const traits = extractTraits(trips);
+  const hasTraits = traitHistory && traitHistory.snapshots.length > 0;
+  const headline = hasTraits ? buildHeadline(traitHistory.current, traitHistory.axes) : "";
+  const axisKeys: Array<keyof TraitHistory["current"]> = hasTraits
+    ? (Object.keys(traitHistory.current) as Array<keyof TraitHistory["current"]>)
+    : [];
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 md:px-12" style={{ background: "#0a0814" }}>
@@ -105,21 +121,52 @@ export default function MyAccount() {
             style={{ background: "rgba(233,69,96,0.05)", border: "1px solid rgba(233,69,96,0.15)" }}
           >
             <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold tracking-[2px] uppercase text-[#E94560] mb-3">Il tuo profilo viaggiatore</p>
-                {traits.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {traits.map(trait => (
-                      <span key={trait} className="px-3 py-1.5 rounded-full text-[12px] font-semibold text-white/80" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                        {trait}
-                      </span>
-                    ))}
-                  </div>
+
+                {hasTraits ? (
+                  <>
+                    <p className="text-white/90 font-serif italic text-lg leading-snug mb-5">{headline}</p>
+                    <div className="space-y-3 mb-4">
+                      {axisKeys.map((axisKey) => {
+                        const value = traitHistory.current[axisKey];
+                        const labels = traitHistory.axes[axisKey as string]?.it;
+                        const delta = traitHistory.delta?.[axisKey];
+                        if (!labels) return null;
+                        return (
+                          <div key={axisKey}>
+                            <div className="flex items-center justify-between text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-1">
+                              <span>{labels.left}</span>
+                              <span>{labels.right}</span>
+                            </div>
+                            <div className="relative h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                              <div
+                                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2"
+                                style={{
+                                  left: `calc(${value * 100}% - 6px)`,
+                                  background: "#E94560",
+                                  borderColor: "rgba(10,8,20,1)",
+                                  transition: "left 0.6s ease",
+                                }}
+                              />
+                            </div>
+                            {delta !== undefined && delta !== null && Math.abs(delta) >= 0.04 && (
+                              <p className="text-[10px] mt-1" style={{ color: delta > 0 ? "rgba(140,220,160,0.7)" : "rgba(220,160,140,0.7)" }}>
+                                {delta > 0 ? "→" : "←"} {Math.abs(delta * 100).toFixed(0)}% verso {delta > 0 ? labels.right : labels.left} dal primo viaggio
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 ) : (
                   <p className="text-white/30 text-sm mb-4">Genera più itinerari per costruire il tuo profilo.</p>
                 )}
+
                 <p className="text-white/30 text-[12px]">
                   {trips.length === 1 ? "1 itinerario generato" : `${trips.length} itinerari generati`}
+                  {hasTraits && traitHistory.snapshots.length < 3 && " · Servono almeno 3 viaggi per vedere l'evoluzione"}
                 </p>
               </div>
 
