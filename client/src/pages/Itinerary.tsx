@@ -700,7 +700,7 @@ export default function Itinerary() {
           onSavePdf={handleSavePdf}
           onStartOver={() => setLocation("/")}
           onBack={() => setLocation("/destinations")}
-          onEdit={enterEditMode}
+          onEdit={itinerary.schemaVersion === 2 ? undefined : enterEditMode}
         />
       </div>
     );
