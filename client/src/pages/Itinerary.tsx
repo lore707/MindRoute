@@ -390,6 +390,12 @@ function buildMomentsV2(day: any, t: (k: string) => string): CinMoment[] {
       desc,
       cta: bookable ? (booking.display_label || t('itin.cin.book')) : undefined,
       ctaUrl: bookable ? booking.affiliate_url : undefined,
+      // Pass-through dei campi v2 necessari al bookmark (Ondata B).
+      id: m.id,
+      type: m.type,
+      locationName: m.location_name,
+      imageUrl: m.image_url,
+      dayNumber: day?.day_number,
     } as CinMoment;
   });
 }
@@ -517,6 +523,61 @@ export default function Itinerary() {
   const [originalDays, setOriginalDays] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  // ── SAVED MOMENTS (Ondata B — bookmark trasversale) ──
+  // Fetcho lo stato all'apertura della pagina; il toggle è ottimistico:
+  // aggiorno il Set subito, poi committo al server. Se fallisce, rollback.
+  const [savedMomentIds, setSavedMomentIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!id) return;
+    fetch("/api/me/saved-moments")
+      .then(r => r.ok ? r.json() : [])
+      .then((rows: any[]) => {
+        if (!Array.isArray(rows)) return;
+        const mine = rows.filter(r => r.itineraryId === id).map(r => r.momentId);
+        setSavedMomentIds(new Set(mine));
+      })
+      .catch(() => { /* anonymous user → 401, ignore */ });
+  }, [id]);
+
+  const handleToggleSaved = useCallback(async (momentId: string, moment: CinMoment) => {
+    const isCurrentlySaved = savedMomentIds.has(momentId);
+    // Optimistic update
+    setSavedMomentIds(prev => {
+      const next = new Set(prev);
+      if (isCurrentlySaved) next.delete(momentId); else next.add(momentId);
+      return next;
+    });
+    try {
+      if (isCurrentlySaved) {
+        await fetch(`/api/me/saved-moments/${id}/${encodeURIComponent(momentId)}`, { method: "DELETE" });
+      } else {
+        await fetch("/api/me/saved-moments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itineraryId: id,
+            momentId,
+            momentSnapshot: {
+              title: moment.title,
+              image_url: moment.imageUrl ?? null,
+              location_name: moment.locationName ?? null,
+              destination_name: itinerary?.destinationName ?? null,
+              day_number: moment.dayNumber ?? null,
+              type: moment.type ?? null,
+            },
+          }),
+        });
+      }
+    } catch {
+      // Rollback on error
+      setSavedMomentIds(prev => {
+        const next = new Set(prev);
+        if (isCurrentlySaved) next.add(momentId); else next.delete(momentId);
+        return next;
+      });
+    }
+  }, [id, savedMomentIds, itinerary?.destinationName]);
 
   const hasMapPoints = itinerary?.days?.some((d: any) => d.mapPoints?.length > 0);
   const { data: mapData } = useMapPointsPolling(id, !hasMapPoints && !isLoading && !!itinerary);
@@ -701,6 +762,9 @@ export default function Itinerary() {
           onStartOver={() => setLocation("/")}
           onBack={() => setLocation("/destinations")}
           onEdit={itinerary.schemaVersion === 2 ? undefined : enterEditMode}
+          itineraryId={itinerary.id}
+          savedMomentIds={savedMomentIds}
+          onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
         />
       </div>
     );

@@ -3,7 +3,20 @@ import { useI18n } from "@/lib/i18n";
 
 export type Highlight = { ic: string; name: string; desc: string };
 export type Day = { n: number; arc: string; title: string; sub: string; img: string };
-export type Moment = { t: string; ic: string; title: string; desc: string; cta?: string; ctaUrl?: string };
+export type Moment = {
+  t: string;
+  ic: string;
+  title: string;
+  desc: string;
+  cta?: string;
+  ctaUrl?: string;
+  // v2 only — usato per il bookmark trasversale (Ondata B). Assente nei v1.
+  id?: string;
+  type?: string;
+  locationName?: string;
+  imageUrl?: string;
+  dayNumber?: number;
+};
 
 export type ItineraryData = {
   destination: string;
@@ -34,11 +47,16 @@ export type ItineraryCinematicProps = {
   onEdit?: () => void;
   /** @deprecated Prefer `practicalSection` + `bookingSection`. Kept for callers not yet migrated. */
   extraSections?: ReactNode;
+  // Bookmark trasversale (Ondata B). Passare tutti e tre per attivare il cuore
+  // sui moment v2; assenti → nessun cuore (modalità v1 / anonimo / read-only).
+  itineraryId?: number;
+  savedMomentIds?: Set<string>;
+  onToggleSaved?: (momentId: string, moment: Moment) => void;
 };
 
 type TabId = "itinerary" | "practical" | "booking";
 
-export function ItineraryCinematic({ data, tripGlance, practicalSection, bookingSection, onSavePdf, onStartOver, onBack, onEdit, extraSections }: ItineraryCinematicProps) {
+export function ItineraryCinematic({ data, tripGlance, practicalSection, bookingSection, onSavePdf, onStartOver, onBack, onEdit, extraSections, itineraryId, savedMomentIds, onToggleSaved }: ItineraryCinematicProps) {
   const { t } = useI18n();
   const [activeDay, setActiveDay] = useState(data.days[0]?.n ?? 1);
   const [activeMoment, setActiveMoment] = useState(0);
@@ -215,7 +233,39 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
                 </div>
                 {currentMoment && (
                   <>
-                    <h3 className="detail-title">{currentMoment.title}</h3>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                      <h3 className="detail-title" style={{ flex: 1 }}>{currentMoment.title}</h3>
+                      {/* Cuore bookmark — solo v2 + props passati. Toggle ottimistico:
+                          il parent aggiorna savedMomentIds e committa al server. */}
+                      {onToggleSaved && itineraryId && currentMoment.id && (() => {
+                        const isSaved = savedMomentIds?.has(currentMoment.id) ?? false;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => onToggleSaved(currentMoment.id!, currentMoment)}
+                            aria-label={isSaved ? "Rimuovi dai momenti salvati" : "Salva questo momento"}
+                            title={isSaved ? "Salvato — clicca per rimuovere" : "Salva questo momento"}
+                            style={{
+                              flexShrink: 0,
+                              width: 40,
+                              height: 40,
+                              borderRadius: 999,
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              background: isSaved ? "rgba(233,69,96,0.15)" : "rgba(255,255,255,0.04)",
+                              color: isSaved ? "#E94560" : "rgba(245,240,238,0.5)",
+                              cursor: "pointer",
+                              fontSize: 18,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              transition: "all 0.18s ease",
+                            }}
+                          >
+                            {isSaved ? "♥" : "♡"}
+                          </button>
+                        );
+                      })()}
+                    </div>
                     <p className="detail-desc">{currentMoment.desc}</p>
                     {currentMoment.cta && (
                       currentMoment.ctaUrl ? (

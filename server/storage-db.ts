@@ -1,8 +1,8 @@
 import { db } from "./db";
-import { destinations, itineraries, profilingInputs, traitSnapshots } from "@shared/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { destinations, itineraries, profilingInputs, traitSnapshots, savedMoments } from "@shared/schema";
+import { eq, desc, asc, and } from "drizzle-orm";
 import type { IStorage } from "./storage";
-import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot } from "@shared/schema";
+import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment } from "@shared/schema";
 
 export class DatabaseStorage implements IStorage {
   async getDestinations(): Promise<Destination[]> {
@@ -66,5 +66,24 @@ async getProfilingInput(): Promise<any | undefined> {
     return await db.select().from(traitSnapshots)
       .where(eq(traitSnapshots.userId, userId))
       .orderBy(asc(traitSnapshots.createdAt));
+  }
+
+  async getSavedMoments(userId: number): Promise<SavedMoment[]> {
+    return await db.select().from(savedMoments)
+      .where(eq(savedMoments.userId, userId))
+      .orderBy(desc(savedMoments.createdAt));
+  }
+
+  async createSavedMoment(row: InsertSavedMoment): Promise<SavedMoment> {
+    const result = await db.insert(savedMoments).values(row).returning();
+    return result[0];
+  }
+
+  async deleteSavedMoment(userId: number, itineraryId: number, momentId: string): Promise<void> {
+    await db.delete(savedMoments).where(and(
+      eq(savedMoments.userId, userId),
+      eq(savedMoments.itineraryId, itineraryId),
+      eq(savedMoments.momentId, momentId),
+    ));
   }
 }

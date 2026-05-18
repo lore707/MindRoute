@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { emaAggregate, AXIS_NAMES, type TraitVector, MAPPING_VERSION } from "@shared/traits";
 import { getTraitHeadline } from "../trait-headline";
+import { computeAccountInsights, continentOf, CONTINENT_LABEL_IT } from "../account-insights";
 
 export function registerMiscRoutes(app: Express) {
   // GET /api/me/trait-history — chronological snapshots + EMA-aggregated
@@ -25,10 +26,13 @@ export function registerMiscRoutes(app: Express) {
         : null;
 
       // Haiku-generated headline — only attempt with enough signal (N>=3).
-      // Non-blocking-ish: awaited but errors → null, never fails the endpoint.
+      // Arricchita con i pattern dai viaggi (continente, durata media) così
+      // produce frasi tipo "Sei un esploratore che torna in Europa per viaggi brevi".
       let headline: string | null = null;
       if (validVectors.length >= 3) {
-        headline = await getTraitHeadline(user.id, current, validVectors.length);
+        const trips = await storage.getUserItineraries(user.id);
+        const { patterns } = computeAccountInsights(trips);
+        headline = await getTraitHeadline(user.id, current, validVectors.length, patterns);
       }
 
       res.json({
@@ -42,6 +46,22 @@ export function registerMiscRoutes(app: Express) {
     } catch (err) {
       console.error("trait-history error:", err);
       res.status(500).json({ message: "Errore nel recupero del profilo" });
+    }
+  });
+
+  // GET /api/me/account-insights — Wrapped-style stats su tutto lo storico:
+  // n destinazioni, giorni totali, € pianificati (solo trip v2), continente
+  // top. Letture pure dagli itineraries — niente nuove tabelle.
+  app.get("/api/me/account-insights", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const trips = await storage.getUserItineraries(user.id);
+      const insights = computeAccountInsights(trips);
+      res.json(insights);
+    } catch (err) {
+      console.error("account-insights error:", err);
+      res.status(500).json({ message: "Errore nel recupero degli insights" });
     }
   });
   // Last destination shown on home/map widget
@@ -62,9 +82,79 @@ export function registerMiscRoutes(app: Express) {
     if (!user) return res.status(401).json({ message: "Non autenticato" });
     try {
       const trips = await storage.getUserItineraries(user.id);
-      res.json(trips);
+      // Arricchimento: continent + continentLabel dedotti dal country/destination
+      // così il client può filtrare senza replicare la mappa country→continent.
+      const enriched = trips.map((t: any) => {
+        const cont = continentOf(t);
+        return {
+          ...t,
+          continent: cont,
+          continentLabel: cont ? CONTINENT_LABEL_IT[cont] : null,
+        };
+      });
+      res.json(enriched);
     } catch (err) {
       res.status(500).json({ message: "Errore nel recupero dei viaggi" });
+    }
+  });
+
+  // ── Saved moments (Ondata B — bookmark trasversale) ──────────────────────
+  // GET → lista dei moments salvati dall'utente, ordinati per createdAt desc.
+  // POST → idempotente: se già esiste (userId, itineraryId, momentId), no-op.
+  // DELETE → unsave per (itineraryId, momentId).
+
+  app.get("/api/me/saved-moments", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const rows = await storage.getSavedMoments(user.id);
+      res.json(rows);
+    } catch (err) {
+      console.error("saved-moments GET error:", err);
+      res.status(500).json({ message: "Errore nel recupero dei momenti salvati" });
+    }
+  });
+
+  app.post("/api/me/saved-moments", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    const { itineraryId, momentId, momentSnapshot } = req.body ?? {};
+    if (typeof itineraryId !== "number" || typeof momentId !== "string" || !momentId) {
+      return res.status(400).json({ message: "itineraryId (number) e momentId (string) richiesti" });
+    }
+    try {
+      // Idempotenza: se esiste già, ritorno la riga esistente senza errore.
+      const existing = await storage.getSavedMoments(user.id);
+      const dup = existing.find(s => s.itineraryId === itineraryId && s.momentId === momentId);
+      if (dup) return res.json(dup);
+
+      const created = await storage.createSavedMoment({
+        userId: user.id,
+        itineraryId,
+        momentId,
+        momentSnapshot: momentSnapshot ?? null,
+      });
+      res.json(created);
+    } catch (err) {
+      console.error("saved-moments POST error:", err);
+      res.status(500).json({ message: "Errore nel salvataggio del momento" });
+    }
+  });
+
+  app.delete("/api/me/saved-moments/:itineraryId/:momentId", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    const itineraryId = parseInt(req.params.itineraryId, 10);
+    const momentId = req.params.momentId;
+    if (!Number.isFinite(itineraryId) || !momentId) {
+      return res.status(400).json({ message: "Parametri non validi" });
+    }
+    try {
+      await storage.deleteSavedMoment(user.id, itineraryId, momentId);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("saved-moments DELETE error:", err);
+      res.status(500).json({ message: "Errore nella rimozione" });
     }
   });
 

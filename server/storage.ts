@@ -1,4 +1,4 @@
-import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot } from "@shared/schema";
+import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment } from "@shared/schema";
 
 export interface IStorage {
   getDestinations(): Promise<Destination[]>;
@@ -14,6 +14,9 @@ export interface IStorage {
   getUserItineraries(userId: number): Promise<any[]>;
   createTraitSnapshot(snapshot: InsertTraitSnapshot): Promise<TraitSnapshot>;
   getTraitSnapshots(userId: number): Promise<TraitSnapshot[]>;
+  getSavedMoments(userId: number): Promise<SavedMoment[]>;
+  createSavedMoment(row: InsertSavedMoment): Promise<SavedMoment>;
+  deleteSavedMoment(userId: number, itineraryId: number, momentId: string): Promise<void>;
 }
 
 export class MemoryStorage implements IStorage {
@@ -91,6 +94,29 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     return this.traitSnapshots
       .filter(s => s.userId === userId)
       .sort((a, b) => +a.createdAt - +b.createdAt);
+  }
+
+  private savedMoments: SavedMoment[] = [];
+  private savedMomentIdCounter = 1;
+  async getSavedMoments(userId: number): Promise<SavedMoment[]> {
+    return this.savedMoments
+      .filter(s => s.userId === userId)
+      .sort((a, b) => +b.createdAt - +a.createdAt);
+  }
+  async createSavedMoment(row: InsertSavedMoment): Promise<SavedMoment> {
+    const saved: SavedMoment = {
+      id: this.savedMomentIdCounter++,
+      createdAt: new Date(),
+      momentSnapshot: row.momentSnapshot ?? null,
+      ...row,
+    } as SavedMoment;
+    this.savedMoments.push(saved);
+    return saved;
+  }
+  async deleteSavedMoment(userId: number, itineraryId: number, momentId: string): Promise<void> {
+    this.savedMoments = this.savedMoments.filter(s =>
+      !(s.userId === userId && s.itineraryId === itineraryId && s.momentId === momentId)
+    );
   }
 }
 import { DatabaseStorage } from "./storage-db";

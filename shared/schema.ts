@@ -219,6 +219,28 @@ export const traitSnapshots = pgTable("trait_snapshots", {
 export type TraitSnapshot = typeof traitSnapshots.$inferSelect;
 export type InsertTraitSnapshot = typeof traitSnapshots.$inferInsert;
 
+// Per-user saved moments (Ondata B — "Bookmark trasversale"). L'utente può
+// salvare singoli moment v2 dagli itinerari; collezione orizzontale che taglia
+// attraverso i viaggi. momentSnapshot evita lookup join in lettura: ogni riga
+// porta già con sé i dati minimi per renderizzare la card di anteprima.
+export const savedMoments = pgTable("saved_moments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  itineraryId: integer("itinerary_id").notNull().references(() => itineraries.id),
+  momentId: text("moment_id").notNull(), // MomentV2.id
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  momentSnapshot: jsonb("moment_snapshot").$type<{
+    title: string;
+    image_url: string | null;
+    location_name: string | null;
+    destination_name: string | null;
+    day_number: number | null;
+    type: string | null;
+  } | null>(),
+});
+export type SavedMoment = typeof savedMoments.$inferSelect;
+export type InsertSavedMoment = typeof savedMoments.$inferInsert;
+
 export const profilingRequestSchema = z.object({
   answers: z.array(z.string()),
   days: z.number(),

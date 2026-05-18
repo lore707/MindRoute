@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, LogOut, MapPin, Calendar, Plus, ExternalLink } from "lucide-react";
+import { ArrowLeft, LogOut, MapPin, Calendar, Plus, ExternalLink, Globe, Clock, Compass, Wallet, Search, Heart, X, RotateCcw } from "lucide-react";
 
 const BADGES = [
   { min: 1, max: 2, label: "Primo passo", emoji: "🌱", desc: "Hai generato il tuo primo itinerario" },
@@ -23,6 +23,78 @@ type TraitHistory = {
   axes: Record<string, AxisLabel>;
   mappingVersion: number;
 };
+
+type AccountInsights = {
+  stats: {
+    destinationsExplored: number;
+    daysImagined: number;
+    budgetBookableEur: number | null;
+    topContinent: { continent: string; label: string; count: number } | null;
+    avgTripDays: number | null;
+  };
+  patterns: {
+    topContinent: string | null;
+    topContinentRatio: number | null;
+    avgDays: number | null;
+    shortTripBias: boolean;
+    longTripBias: boolean;
+    tripCount: number;
+  };
+};
+
+type SavedMoment = {
+  id: number;
+  itineraryId: number;
+  momentId: string;
+  createdAt: string;
+  momentSnapshot: {
+    title: string;
+    image_url: string | null;
+    location_name: string | null;
+    destination_name: string | null;
+    day_number: number | null;
+    type: string | null;
+  } | null;
+};
+
+type DurationBucket = "all" | "short" | "mid" | "long";
+
+const DURATION_LABELS: Record<DurationBucket, string> = {
+  all: "Tutte",
+  short: "≤ 3 giorni",
+  mid: "4–7 giorni",
+  long: "8+ giorni",
+};
+
+function bucketOf(days: number): DurationBucket {
+  if (days <= 3) return "short";
+  if (days <= 7) return "mid";
+  return "long";
+}
+
+// Sintetizza la frase di evoluzione: trova l'asse con delta più forte e la
+// racconta in italiano. Pura UI, nessuna chiamata AI — è una narrazione
+// deterministica sopra i numeri.
+function buildEvolutionNarrative(
+  delta: Record<string, number> | null,
+  axes: Record<string, AxisLabel>,
+): string | null {
+  if (!delta) return null;
+  const ranked = Object.entries(delta)
+    .map(([k, v]) => ({ k, v, abs: Math.abs(v) }))
+    .sort((a, b) => b.abs - a.abs);
+  const top = ranked[0];
+  if (!top || top.abs < 0.06) return null;
+  const labels = axes[top.k]?.it;
+  if (!labels) return null;
+  const direction = top.v > 0 ? labels.right : labels.left;
+  return `Stai diventando più ${direction} nel tempo.`;
+}
+
+function formatEur(amount: number): string {
+  if (amount >= 10000) return `€${Math.round(amount / 1000)}k`;
+  return `€${Math.round(amount).toLocaleString("it-IT")}`;
+}
 
 // Pick the 1-2 most-pronounced axes (farthest from 0.5) and build a short
 // Italian headline. Pure client logic — no LLM. The intent is identity,
@@ -51,6 +123,13 @@ export default function MyAccount() {
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [traitHistory, setTraitHistory] = useState<TraitHistory | null>(null);
+  const [insights, setInsights] = useState<AccountInsights | null>(null);
+  const [savedMoments, setSavedMoments] = useState<SavedMoment[]>([]);
+
+  // ── Filtri lista viaggi (Ondata B punto 4) — puro client-side
+  const [searchQ, setSearchQ] = useState("");
+  const [durationFilter, setDurationFilter] = useState<DurationBucket>("all");
+  const [continentFilter, setContinentFilter] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -68,7 +147,62 @@ export default function MyAccount() {
       .then(r => r.ok ? r.json() : null)
       .then((data: TraitHistory | null) => setTraitHistory(data))
       .catch(() => setTraitHistory(null));
+
+    fetch("/api/me/account-insights")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: AccountInsights | null) => setInsights(data))
+      .catch(() => setInsights(null));
+
+    fetch("/api/me/saved-moments")
+      .then(r => r.ok ? r.json() : [])
+      .then((rows: SavedMoment[]) => setSavedMoments(Array.isArray(rows) ? rows : []))
+      .catch(() => setSavedMoments([]));
   }, []);
+
+  // Lista filtrata + lista dei continenti effettivamente presenti (per le pill).
+  const filteredTrips = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    return trips.filter(t => {
+      if (q && !(t.destinationName ?? "").toLowerCase().includes(q)) return false;
+      if (durationFilter !== "all") {
+        const days = Array.isArray(t.days) ? t.days.length : 0;
+        if (bucketOf(days) !== durationFilter) return false;
+      }
+      if (continentFilter && t.continent !== continentFilter) return false;
+      return true;
+    });
+  }, [trips, searchQ, durationFilter, continentFilter]);
+
+  const availableContinents = useMemo(() => {
+    const obj: Record<string, string> = {};
+    for (const t of trips) {
+      if (t.continent && t.continentLabel) obj[t.continent] = t.continentLabel;
+    }
+    return Object.entries(obj).map(([continent, label]) => ({ continent, label }));
+  }, [trips]);
+
+  // "Da riprendere" (Ondata B punto 5): heuristica senza tracking — i 3 trip
+  // più vecchi quando ce ne sono almeno 6, perché il signal è solo significativo
+  // a volume. createdAt arriva come stringa ISO; ordine ascendente = più vecchio prima.
+  const toResume = useMemo(() => {
+    if (trips.length < 6) return [];
+    return [...trips]
+      .filter(t => t.createdAt)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .slice(0, 3);
+  }, [trips]);
+
+  const hasActiveFilters = searchQ.length > 0 || durationFilter !== "all" || continentFilter !== null;
+  const resetFilters = () => { setSearchQ(""); setDurationFilter("all"); setContinentFilter(null); };
+
+  const removeSavedMoment = async (s: SavedMoment) => {
+    setSavedMoments(prev => prev.filter(x => x.id !== s.id));
+    try {
+      await fetch(`/api/me/saved-moments/${s.itineraryId}/${encodeURIComponent(s.momentId)}`, { method: "DELETE" });
+    } catch {
+      // best-effort: se fallisce, l'utente ricaricherà la pagina
+    }
+  };
 
   const badge = getBadge(trips.length);
   const hasTraits = traitHistory && traitHistory.snapshots.length > 0;
@@ -80,6 +214,13 @@ export default function MyAccount() {
   const axisKeys: Array<keyof TraitHistory["current"]> = hasTraits
     ? (Object.keys(traitHistory.current) as Array<keyof TraitHistory["current"]>)
     : [];
+  const firstSnapshot = hasTraits && traitHistory.snapshots.length >= 3
+    ? (traitHistory.snapshots[0].traits as Record<string, number>)
+    : null;
+  const evolutionNarrative = hasTraits
+    ? buildEvolutionNarrative(traitHistory.delta, traitHistory.axes)
+    : null;
+  const showInsights = !loading && trips.length > 0 && insights !== null;
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 md:px-12" style={{ background: "#0a0814" }}>
@@ -116,6 +257,53 @@ export default function MyAccount() {
           </motion.div>
         )}
 
+        {/* Fascia Wrapped — destinazioni esplorate, giorni immaginati, € pianificati,
+            continente più chiamato. Le card si autoadattano: budget appare solo
+            quando almeno un viaggio v2 ha numeri reali; continente solo con
+            almeno 1 match country→continente. */}
+        {showInsights && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-6"
+          >
+            <p className="text-[10px] font-bold tracking-[2px] uppercase text-white/40 mb-3 px-1">Il tuo viaggio su MindRoute</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <StatCard
+                icon={<Compass className="w-4 h-4" />}
+                value={String(insights.stats.destinationsExplored)}
+                label={insights.stats.destinationsExplored === 1 ? "destinazione esplorata" : "destinazioni esplorate"}
+              />
+              <StatCard
+                icon={<Clock className="w-4 h-4" />}
+                value={String(insights.stats.daysImagined)}
+                label={insights.stats.daysImagined === 1 ? "giorno immaginato" : "giorni immaginati"}
+              />
+              {insights.stats.budgetBookableEur !== null && insights.stats.budgetBookableEur > 0 ? (
+                <StatCard
+                  icon={<Wallet className="w-4 h-4" />}
+                  value={formatEur(insights.stats.budgetBookableEur)}
+                  label="pianificati in esperienze"
+                />
+              ) : insights.stats.avgTripDays !== null ? (
+                <StatCard
+                  icon={<Wallet className="w-4 h-4" />}
+                  value={`${insights.stats.avgTripDays}`}
+                  label="giorni medi per viaggio"
+                />
+              ) : null}
+              {insights.stats.topContinent ? (
+                <StatCard
+                  icon={<Globe className="w-4 h-4" />}
+                  value={insights.stats.topContinent.label}
+                  label={`${insights.stats.topContinent.count} ${insights.stats.topContinent.count === 1 ? "viaggio" : "viaggi"}`}
+                />
+              ) : null}
+            </div>
+          </motion.div>
+        )}
+
         {/* Profilo viaggiatore + gamification */}
         {!loading && trips.length > 0 && (
           <motion.div
@@ -131,12 +319,17 @@ export default function MyAccount() {
 
                 {hasTraits ? (
                   <>
-                    <p className="text-white/90 font-serif italic text-lg leading-snug mb-5">{headline}</p>
+                    <p className="text-white/90 font-serif italic text-lg leading-snug mb-2">{headline}</p>
+                    {evolutionNarrative && (
+                      <p className="text-[12px] text-[#E94560]/80 mb-5 tracking-wide">{evolutionNarrative}</p>
+                    )}
+                    {!evolutionNarrative && <div className="mb-3" />}
                     <div className="space-y-3 mb-4">
                       {axisKeys.map((axisKey) => {
                         const value = traitHistory.current[axisKey];
                         const labels = traitHistory.axes[axisKey as string]?.it;
                         const delta = traitHistory.delta?.[axisKey];
+                        const prior = firstSnapshot ? firstSnapshot[axisKey] : null;
                         if (!labels) return null;
                         return (
                           <div key={axisKey}>
@@ -145,6 +338,19 @@ export default function MyAccount() {
                               <span>{labels.right}</span>
                             </div>
                             <div className="relative h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                              {/* Pallino "prima" (semitrasparente, più piccolo) */}
+                              {prior !== null && Math.abs(prior - value) >= 0.04 && (
+                                <div
+                                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
+                                  style={{
+                                    left: `calc(${prior * 100}% - 4px)`,
+                                    background: "rgba(255,255,255,0.25)",
+                                    transition: "left 0.6s ease",
+                                  }}
+                                  title="Primo viaggio"
+                                />
+                              )}
+                              {/* Pallino "ora" */}
                               <div
                                 className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2"
                                 style={{
@@ -153,6 +359,7 @@ export default function MyAccount() {
                                   borderColor: "rgba(10,8,20,1)",
                                   transition: "left 0.6s ease",
                                 }}
+                                title="Ora"
                               />
                             </div>
                             {delta !== undefined && delta !== null && Math.abs(delta) >= 0.04 && (
@@ -164,6 +371,18 @@ export default function MyAccount() {
                         );
                       })}
                     </div>
+                    {firstSnapshot && (
+                      <div className="flex items-center gap-3 text-[10px] text-white/30 mb-3">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full" style={{ background: "rgba(255,255,255,0.25)" }} />
+                          Primo viaggio
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full border" style={{ background: "#E94560", borderColor: "rgba(10,8,20,1)" }} />
+                          Oggi
+                        </span>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <p className="text-white/30 text-sm mb-4">Genera più itinerari per costruire il tuo profilo.</p>
@@ -216,9 +435,185 @@ export default function MyAccount() {
           </Link>
         </motion.div>
 
+        {/* Momenti salvati (Ondata B punto 7) — collezione orizzontale che
+            taglia attraverso gli itinerari. Compare solo se l'utente ha
+            salvato almeno un moment v2. */}
+        {savedMoments.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+            className="mb-10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-serif font-bold text-white inline-flex items-center gap-2">
+                <Heart className="w-4 h-4 text-[#E94560]" fill="currentColor" />
+                Momenti che ti hanno chiamato
+              </h2>
+              <span className="text-[11px] text-white/30">{savedMoments.length} salvat{savedMoments.length === 1 ? "o" : "i"}</span>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x" style={{ scrollbarWidth: "thin" }}>
+              {savedMoments.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/itinerary/${s.itineraryId}`}
+                  className="group relative shrink-0 w-[220px] rounded-[16px] overflow-hidden snap-start"
+                  style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+                >
+                  <div className="h-28 relative overflow-hidden">
+                    {s.momentSnapshot?.image_url
+                      ? <img src={s.momentSnapshot.image_url} alt={s.momentSnapshot.title} className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-500" />
+                      : <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#1a0814,#2d0a1a)" }} />
+                    }
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeSavedMoment(s); }}
+                      aria-label="Rimuovi"
+                      title="Rimuovi"
+                      className="absolute top-2 right-2 w-7 h-7 inline-flex items-center justify-center rounded-full text-white/80 hover:text-white"
+                      style={{ background: "rgba(10,8,20,0.55)", backdropFilter: "blur(6px)" }}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="p-3">
+                    <div className="text-white text-[13px] font-serif leading-tight line-clamp-2">{s.momentSnapshot?.title ?? "Momento"}</div>
+                    <div className="text-[10px] text-white/40 mt-1 truncate">
+                      {s.momentSnapshot?.destination_name ?? "—"}
+                      {s.momentSnapshot?.day_number ? ` · giorno ${s.momentSnapshot.day_number}` : ""}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Da riprendere (Ondata B punto 5) — euristica: trip più vecchi quando
+            la lista è già consistente (≥6 viaggi). Frase con call emotivo. */}
+        {toResume.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-10"
+          >
+            <h2 className="text-xl font-serif font-bold text-white mb-1 inline-flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-white/60" />
+              Da riprendere
+            </h2>
+            <p className="text-[12px] text-white/40 mb-4">
+              {toResume[0]?.destinationName?.split(",")[0] ?? "Una destinazione"} ti aveva chiamato. Vuoi tornare a guardarla?
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {toResume.map((trip: any) => (
+                <Link
+                  key={`resume-${trip.id}`}
+                  href={`/itinerary/${trip.id}`}
+                  className="group flex items-center gap-3 p-3 rounded-[14px] transition-all hover:-translate-y-0.5"
+                  style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+                >
+                  <div className="w-14 h-14 rounded-[10px] overflow-hidden shrink-0">
+                    {trip.heroImageUrl
+                      ? <img src={trip.heroImageUrl} alt={trip.destinationName} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#1a0814,#2d0a1a)" }} />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white text-[13px] font-serif leading-tight line-clamp-1">{trip.destinationName}</div>
+                    <div className="text-[10px] text-white/30 mt-1">
+                      {trip.createdAt ? new Date(trip.createdAt).toLocaleDateString("it-IT", { month: "short", year: "numeric" }) : "—"}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* I miei viaggi */}
         <div>
-          <h2 className="text-2xl font-serif font-bold text-white mb-6">I miei viaggi</h2>
+          <h2 className="text-2xl font-serif font-bold text-white mb-4">I miei viaggi</h2>
+
+          {/* Filtri (Ondata B punto 4) — appaiono solo da 4+ viaggi, sotto non
+              c'è abbastanza da filtrare per giustificarli. */}
+          {!loading && trips.length >= 4 && (
+            <div className="mb-6 space-y-3">
+              {/* Search */}
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                <input
+                  type="text"
+                  value={searchQ}
+                  onChange={(e) => setSearchQ(e.target.value)}
+                  placeholder="Cerca destinazione…"
+                  className="w-full pl-10 pr-3 py-2.5 rounded-full text-sm text-white placeholder-white/30 outline-none focus:border-white/30"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                />
+              </div>
+              {/* Pill durata */}
+              <div className="flex flex-wrap gap-2">
+                {(["all", "short", "mid", "long"] as DurationBucket[]).map(b => (
+                  <button
+                    key={b}
+                    type="button"
+                    onClick={() => setDurationFilter(b)}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
+                    style={{
+                      background: durationFilter === b ? "#E94560" : "rgba(255,255,255,0.04)",
+                      color: durationFilter === b ? "white" : "rgba(255,255,255,0.5)",
+                      border: durationFilter === b ? "1px solid #E94560" : "1px solid rgba(255,255,255,0.08)",
+                    }}
+                  >
+                    {DURATION_LABELS[b]}
+                  </button>
+                ))}
+              </div>
+              {/* Pill continenti */}
+              {availableContinents.length > 1 && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setContinentFilter(null)}
+                    className="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
+                    style={{
+                      background: continentFilter === null ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.04)",
+                      color: continentFilter === null ? "white" : "rgba(255,255,255,0.5)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                    }}
+                  >
+                    Tutti i continenti
+                  </button>
+                  {availableContinents.map(({ continent, label }) => (
+                    <button
+                      key={continent}
+                      type="button"
+                      onClick={() => setContinentFilter(continent)}
+                      className="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
+                      style={{
+                        background: continentFilter === continent ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.04)",
+                        color: continentFilter === continent ? "white" : "rgba(255,255,255,0.5)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Contatore + reset */}
+              <div className="flex items-center gap-3 text-[11px] text-white/40">
+                <span>{filteredTrips.length === trips.length
+                  ? `${trips.length} ${trips.length === 1 ? "viaggio" : "viaggi"}`
+                  : `${filteredTrips.length} di ${trips.length}`}</span>
+                {hasActiveFilters && (
+                  <button type="button" onClick={resetFilters} className="text-white/60 hover:text-white underline underline-offset-2">
+                    azzera filtri
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {loading && (
             <div className="flex items-center justify-center py-16">
@@ -233,9 +628,16 @@ export default function MyAccount() {
             </div>
           )}
 
-          {!loading && trips.length > 0 && (
+          {!loading && trips.length > 0 && filteredTrips.length === 0 && (
+            <div className="text-center py-12 rounded-[20px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <p className="text-white/30 text-base mb-3">Nessun viaggio corrisponde ai filtri.</p>
+              <button type="button" onClick={resetFilters} className="text-[#E94560] text-sm hover:underline">Azzera filtri</button>
+            </div>
+          )}
+
+          {!loading && filteredTrips.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {trips.map((trip: any, i: number) => (
+              {filteredTrips.map((trip: any, i: number) => (
                 <motion.div
                   key={trip.id}
                   initial={{ opacity: 0, y: 12 }}
@@ -272,7 +674,7 @@ export default function MyAccount() {
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 text-white/25 text-[11px]">
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {trip.createdAt ? new Date(trip.createdAt).toLocaleDateString("it-IT") : "—"}</span>
-                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {(trip.destinationName || "").split(",")[1]?.trim() || trip.destinationName}</span>
+                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {trip.continentLabel ?? (trip.destinationName || "").split(",")[1]?.trim() ?? trip.destinationName}</span>
                       </div>
                       <Link href={`/itinerary/${trip.id}`}
                         className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-semibold text-white transition-all hover:-translate-y-0.5"
@@ -288,5 +690,20 @@ export default function MyAccount() {
         </div>
       </div>
     </div>
+  );
+}
+
+function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-4 rounded-[16px]"
+      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+    >
+      <div className="flex items-center gap-2 text-white/40 mb-1.5">{icon}</div>
+      <div className="text-white text-xl font-serif font-bold leading-tight">{value}</div>
+      <div className="text-[10px] text-white/40 uppercase tracking-wider mt-1 leading-tight">{label}</div>
+    </motion.div>
   );
 }

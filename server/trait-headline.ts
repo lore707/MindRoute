@@ -10,14 +10,22 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { AXIS_NAMES, type TraitVector, type Axis } from "@shared/traits";
+import type { PatternSignals } from "./account-insights";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 interface CacheEntry {
   headline: string;
-  snapshotCount: number;
+  // Cache key incorpora snapshotCount + un hash dei pattern (continent+avg).
+  // Se uno dei due cambia, la headline va rigenerata.
+  key: string;
 }
 const cache = new Map<number, CacheEntry>();
+
+function patternKey(p?: PatternSignals | null): string {
+  if (!p) return "none";
+  return `${p.topContinent ?? ""}|${p.avgDays ?? ""}|${p.tripCount}`;
+}
 
 function describeVector(vector: TraitVector): string {
   const lines: string[] = [];
@@ -33,40 +41,60 @@ function describeVector(vector: TraitVector): string {
   return lines.join("\n");
 }
 
+function describePatterns(p: PatternSignals): string {
+  const lines: string[] = [];
+  if (p.topContinent && p.topContinentRatio !== null && p.topContinentRatio >= 0.4) {
+    const pct = Math.round(p.topContinentRatio * 100);
+    lines.push(`- continente preferito: ${p.topContinent} (${pct}% dei viaggi)`);
+  }
+  if (p.avgDays !== null) {
+    if (p.shortTripBias) lines.push(`- preferisci viaggi brevi (media ${p.avgDays.toFixed(1)} giorni)`);
+    else if (p.longTripBias) lines.push(`- preferisci viaggi lunghi (media ${p.avgDays.toFixed(1)} giorni)`);
+    else lines.push(`- durata media: ${p.avgDays.toFixed(1)} giorni`);
+  }
+  return lines.join("\n");
+}
+
 export async function getTraitHeadline(
   userId: number,
   vector: TraitVector,
   snapshotCount: number,
+  patterns?: PatternSignals | null,
 ): Promise<string | null> {
-  // Cache hit — snapshot count unchanged means no new signal, headline can be reused.
+  // Cache hit — la chiave incorpora snapshotCount + pattern key, così cambia
+  // quando il profilo o i pattern cambiano.
+  const key = `${snapshotCount}::${patternKey(patterns)}`;
   const cached = cache.get(userId);
-  if (cached && cached.snapshotCount === snapshotCount) return cached.headline;
+  if (cached && cached.key === key) return cached.headline;
 
   if (!process.env.ANTHROPIC_API_KEY) return null;
   const description = describeVector(vector);
   if (!description) return null; // all axes neutral — no signal to headline
 
+  const patternBlock = patterns ? describePatterns(patterns) : "";
+
   try {
     const message = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 120,
+      max_tokens: 140,
       messages: [{
         role: "user",
-        content: `Sei l'assistente di MindRoute, una piattaforma di viaggio psicologica. Genera UNA SOLA frase italiana di 8-14 parole che descriva il profilo di viaggio di questa persona. Usa la seconda persona singolare ("Cerchi...", "Sei...", "Ti muovi..."). NIENTE aggettivi vuoti come "unico", "speciale", "perfetto". Niente emoji. Niente virgolette. Solo la frase, nient'altro.
+        content: `Sei l'assistente di MindRoute, una piattaforma di viaggio psicologica. Genera UNA SOLA frase italiana di 10-18 parole che descriva il profilo di viaggio di questa persona, COMBINANDO tratti psicologici E pattern di comportamento (continente preferito, durata media). Esempio di tono: "Sei un esploratore contemplativo che torna in Europa per viaggi brevi e intensi." Usa la seconda persona singolare. NIENTE aggettivi vuoti come "unico", "speciale", "perfetto". Niente emoji. Niente virgolette. Solo la frase, nient'altro.
 
-Profilo aggregato su ${snapshotCount} viaggi:
+Profilo psicologico (aggregato su ${snapshotCount} viaggi):
 ${description}
+${patternBlock ? `\nPattern dai viaggi generati:\n${patternBlock}` : ""}
 
-Una sola frase, italiana, 8-14 parole.`,
+Una sola frase, italiana, 10-18 parole.`,
       }],
     });
 
     const block = message.content[0];
     if (block.type !== "text") return null;
     const headline = block.text.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, " ");
-    if (!headline || headline.length > 200) return null;
+    if (!headline || headline.length > 240) return null;
 
-    cache.set(userId, { headline, snapshotCount });
+    cache.set(userId, { headline, key });
     return headline;
   } catch (e) {
     console.warn("[trait-headline] Haiku call failed:", e);

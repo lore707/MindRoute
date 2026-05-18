@@ -2,10 +2,21 @@
   "permissions": {
     "defaultMode": "bypassPermissions",
     "allow": [
-      "Bash(xargs wc *)",
-      "Bash(git add *)",
-      "Bash(git commit -m ' *)",
-      "Skill(update-config)"
+      "Bash",
+      "Write",
+      "Edit",
+      "Read",
+      "Glob",
+      "Grep",
+      "PowerShell",
+      "Skill",
+      "Agent",
+      "TaskCreate",
+      "TaskUpdate",
+      "TaskList",
+      "TaskGet",
+      "WebFetch",
+      "WebSearch"
     ]
   }
 }
