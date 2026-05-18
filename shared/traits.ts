@@ -380,6 +380,59 @@ export function blendWithDestination(
 }
 
 /**
+ * Inverse direction: given an aggregated TraitVector, synthesize a minimal set
+ * of canonical chip labels that, if fed to computeTraitVector, would produce
+ * roughly the same profile. Used by the "Genera dal profilo" flow (Ondata C)
+ * to bypass the quiz for returning users — we let their accumulated profile
+ * drive the matching engine instead of forcing 7 questions again.
+ *
+ * Strategy: per axis, pick 1-2 chips whose primary contribution points in the
+ * right direction with the right magnitude (mild/clear/strong). Returns chip
+ * canonical keys (not labels) which the matching engine treats the same way.
+ */
+export function synthesizeAnswersFromVector(vector: TraitVector): string[] {
+  // Per ogni asse, pre-calcolo le chip più "rappresentative" del polo right
+  // (positive contrib) e left (negative contrib). Inverto la mappa al volo —
+  // solo le chip con magnitude >= 0.5 sui rispettivi assi qualificano, così
+  // emergono i segnali "forti" (cultural per matter-left, nature per matter-right).
+  const chipsByPole: Record<Axis, { right: string[]; left: string[] }> = {
+    exposure:  { right: [], left: [] },
+    comfort:   { right: [], left: [] },
+    social:    { right: [], left: [] },
+    matter:    { right: [], left: [] },
+    structure: { right: [], left: [] },
+  };
+  for (const [chipKey, contrib] of Object.entries(CHIP_TRAITS)) {
+    for (const [axis, w] of Object.entries(contrib)) {
+      if (w === undefined) continue;
+      if (Math.abs(w) < 0.5) continue;
+      const ax = axis as Axis;
+      if (w > 0) chipsByPole[ax].right.push(chipKey);
+      else chipsByPole[ax].left.push(chipKey);
+    }
+  }
+
+  const chosen = new Set<string>();
+  for (const axis of Object.keys(vector) as Axis[]) {
+    const v = vector[axis];
+    if (v >= 0.42 && v <= 0.58) continue; // neutro → no signal
+    const dist = Math.abs(v - 0.5);
+    const wantRight = v > 0.5;
+    const pool = wantRight ? chipsByPole[axis].right : chipsByPole[axis].left;
+    if (pool.length === 0) continue;
+    // Scelgo deterministicamente la prima — è arbitraria ma stabile (la mappa
+    // CHIP_TRAITS è dichiarata, l'ordine è prevedibile). Per assi "forti"
+    // (dist > 0.25) prendo 2 chip così il signal arriva al matching come
+    // più voci coerenti, non un'unica.
+    chosen.add(pool[0]);
+    if (dist > 0.25 && pool.length > 1) chosen.add(pool[1]);
+  }
+  const out: string[] = [];
+  chosen.forEach(k => out.push(k));
+  return out;
+}
+
+/**
  * Exponential moving average over an ordered list of snapshots (oldest first).
  * α controls how fast the profile shifts: 0.3 means each new snapshot moves
  * the profile by 30% toward itself. With <3 snapshots returns the latest as-is

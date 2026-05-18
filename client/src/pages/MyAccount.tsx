@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
-import { motion } from "framer-motion";
-import { ArrowLeft, LogOut, MapPin, Calendar, Plus, ExternalLink, Globe, Clock, Compass, Wallet, Search, Heart, X, RotateCcw } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, LogOut, MapPin, Calendar, Plus, ExternalLink, Globe, Clock, Compass, Wallet, Search, Heart, X, RotateCcw, Sparkles, GitCompare } from "lucide-react";
 
 const BADGES = [
   { min: 1, max: 2, label: "Primo passo", emoji: "🌱", desc: "Hai generato il tuo primo itinerario" },
@@ -119,6 +119,7 @@ function buildHeadline(current: Record<string, number>, axes: Record<string, Axi
 }
 
 export default function MyAccount() {
+  const [, setLocation] = useLocation();
   const [user, setUser] = useState<any>(null);
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,6 +131,16 @@ export default function MyAccount() {
   const [searchQ, setSearchQ] = useState("");
   const [durationFilter, setDurationFilter] = useState<DurationBucket>("all");
   const [continentFilter, setContinentFilter] = useState<string | null>(null);
+
+  // ── "Genera dal profilo" modal (Ondata C punto 3)
+  const [showFromProfile, setShowFromProfile] = useState(false);
+  const [fpLoading, setFpLoading] = useState(false);
+  const [fpError, setFpError] = useState("");
+  const [fpDays, setFpDays] = useState(5);
+  const [fpCompanions, setFpCompanions] = useState("solo");
+  const [fpDeparture, setFpDeparture] = useState("");
+  const [fpBudget, setFpBudget] = useState("medio");
+  const [fpLeaveDate, setFpLeaveDate] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -201,6 +212,37 @@ export default function MyAccount() {
       await fetch(`/api/me/saved-moments/${s.itineraryId}/${encodeURIComponent(s.momentId)}`, { method: "DELETE" });
     } catch {
       // best-effort: se fallisce, l'utente ricaricherà la pagina
+    }
+  };
+
+  // Soglia per mostrare il bottone "Genera dal profilo": almeno 2 snapshot
+  // del trait history, perché sotto il signal è ancora rumore.
+  const canGenerateFromProfile = !!traitHistory && traitHistory.snapshots.length >= 2;
+
+  const submitFromProfile = async () => {
+    setFpLoading(true); setFpError("");
+    try {
+      const res = await fetch("/api/profiling/from-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          days: fpDays,
+          leaveDate: fpLeaveDate || new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10),
+          departure: fpDeparture || "Italia",
+          budget: fpBudget,
+          companions: fpCompanions,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({ message: "Errore" }));
+        throw new Error(j.message ?? "Errore");
+      }
+      setShowFromProfile(false);
+      setLocation("/destinations");
+    } catch (e: any) {
+      setFpError(e?.message ?? "Errore generico");
+    } finally {
+      setFpLoading(false);
     }
   };
 
@@ -421,18 +463,29 @@ export default function MyAccount() {
           </motion.div>
         )}
 
-        {/* CTA nuovo viaggio */}
+        {/* CTA nuovo viaggio + (se profilo abbastanza maturo) "Genera dal profilo" */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mb-8"
+          className="mb-8 flex flex-wrap items-center gap-3"
         >
           <Link href="/profiling" className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-[14px] text-white transition-all hover:-translate-y-0.5"
             style={{ background: "#E94560", boxShadow: "0 8px 24px rgba(233,69,96,0.25)" }}>
             <Plus className="w-4 h-4" />
             {trips.length === 0 ? "Inizia il tuo primo viaggio" : "Nuovo itinerario"}
           </Link>
+          {canGenerateFromProfile && (
+            <button
+              type="button"
+              onClick={() => setShowFromProfile(true)}
+              className="inline-flex items-center gap-2.5 px-5 py-3.5 rounded-full font-semibold text-[14px] text-white/90 transition-all hover:-translate-y-0.5 hover:text-white"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.15)" }}
+            >
+              <Sparkles className="w-4 h-4 text-[#E94560]" />
+              Genera dal tuo profilo
+            </button>
+          )}
         </motion.div>
 
         {/* Momenti salvati (Ondata B punto 7) — collezione orizzontale che
@@ -676,11 +729,22 @@ export default function MyAccount() {
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {trip.createdAt ? new Date(trip.createdAt).toLocaleDateString("it-IT") : "—"}</span>
                         <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {trip.continentLabel ?? (trip.destinationName || "").split(",")[1]?.trim() ?? trip.destinationName}</span>
                       </div>
-                      <Link href={`/itinerary/${trip.id}`}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                        style={{ background: "rgba(233,69,96,0.15)", border: "1px solid rgba(233,69,96,0.3)" }}>
-                        Riapri <ExternalLink className="w-3 h-3" />
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        {trips.length >= 2 && (
+                          <Link href={`/compare?a=${trip.id}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-semibold text-white/70 transition-all hover:-translate-y-0.5 hover:text-white"
+                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
+                            title="Confronta con un altro viaggio"
+                          >
+                            <GitCompare className="w-3 h-3" />
+                          </Link>
+                        )}
+                        <Link href={`/itinerary/${trip.id}`}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                          style={{ background: "rgba(233,69,96,0.15)", border: "1px solid rgba(233,69,96,0.3)" }}>
+                          Riapri <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -689,6 +753,154 @@ export default function MyAccount() {
           )}
         </div>
       </div>
+
+      {/* Modal "Genera dal profilo" (Ondata C punto 3) — 3 micro-domande:
+          compagnia, durata, partenza/periodo. Il vector psicologico parte
+          dall'aggregato senza far rifare il quiz. */}
+      <AnimatePresence>
+        {showFromProfile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(10,8,20,0.78)", backdropFilter: "blur(10px)" }}
+            onClick={() => !fpLoading && setShowFromProfile(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.97 }}
+              transition={{ duration: 0.22 }}
+              className="w-full max-w-md rounded-[24px] p-6 md:p-7"
+              style={{ background: "#15101e", border: "1px solid rgba(255,255,255,0.08)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] uppercase text-[#E94560]">
+                  <Sparkles className="w-3 h-3" /> Shortcut profilo
+                </div>
+                <button type="button" onClick={() => !fpLoading && setShowFromProfile(false)} className="text-white/40 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <h3 className="font-serif text-xl text-white leading-tight mb-2">Genera dal tuo profilo</h3>
+              <p className="text-[12px] text-white/50 leading-relaxed mb-5">
+                Salti il quiz: usiamo il tuo profilo psicologico aggregato sui {traitHistory?.snapshots.length ?? 0} viaggi precedenti. Tre dettagli e via.
+              </p>
+
+              {/* Compagnia */}
+              <div className="mb-4">
+                <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Compagnia</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { v: "solo", l: "Solo/a" },
+                    { v: "couple", l: "In coppia" },
+                    { v: "friends", l: "Amici" },
+                    { v: "family", l: "Famiglia" },
+                  ].map(opt => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setFpCompanions(opt.v)}
+                      className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                      style={{
+                        background: fpCompanions === opt.v ? "#E94560" : "rgba(255,255,255,0.04)",
+                        color: fpCompanions === opt.v ? "white" : "rgba(255,255,255,0.6)",
+                        border: fpCompanions === opt.v ? "1px solid #E94560" : "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Durata */}
+              <div className="mb-4">
+                <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Durata · <span className="text-white/70">{fpDays} giorni</span></label>
+                <input
+                  type="range" min={2} max={14} value={fpDays}
+                  onChange={(e) => setFpDays(parseInt(e.target.value, 10))}
+                  className="w-full accent-[#E94560]"
+                />
+              </div>
+
+              {/* Partenza + Data */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                  <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Parti da</label>
+                  <input
+                    type="text" value={fpDeparture} onChange={(e) => setFpDeparture(e.target.value)}
+                    placeholder="Milano, Roma…"
+                    className="w-full px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 outline-none"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Quando</label>
+                  <input
+                    type="date" value={fpLeaveDate} onChange={(e) => setFpLeaveDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl text-sm text-white outline-none"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", colorScheme: "dark" }}
+                  />
+                </div>
+              </div>
+
+              {/* Budget */}
+              <div className="mb-5">
+                <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Budget</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { v: "basso", l: "Basso" },
+                    { v: "medio", l: "Medio" },
+                    { v: "alto", l: "Alto" },
+                    { v: "unlimited", l: "Senza limite" },
+                  ].map(opt => (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      onClick={() => setFpBudget(opt.v)}
+                      className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                      style={{
+                        background: fpBudget === opt.v ? "#E94560" : "rgba(255,255,255,0.04)",
+                        color: fpBudget === opt.v ? "white" : "rgba(255,255,255,0.6)",
+                        border: fpBudget === opt.v ? "1px solid #E94560" : "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      {opt.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {fpError && <p className="text-[12px] text-[#E94560] mb-3">{fpError}</p>}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={submitFromProfile}
+                  disabled={fpLoading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full font-semibold text-[14px] text-white transition-all disabled:opacity-50"
+                  style={{ background: "#E94560", boxShadow: "0 8px 24px rgba(233,69,96,0.25)" }}
+                >
+                  {fpLoading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Generando…
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Genera 3 destinazioni
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
