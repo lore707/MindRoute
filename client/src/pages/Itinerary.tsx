@@ -17,6 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useI18n } from "@/lib/i18n";
+import { setLastOpenedItinerary } from "@/lib/last-opened";
 import { pdf } from "@react-pdf/renderer";
 import { ItineraryPDF } from "@/components/ItineraryPDF";
 import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
@@ -523,6 +524,13 @@ export default function Itinerary() {
   const [originalDays, setOriginalDays] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  // Record che questo è l'ultimo itinerario aperto — alimenta la hero della
+  // pagina /my-account (la copertina cambia ogni volta che l'utente apre un
+  // viaggio diverso, "la pagina si sente viva").
+  useEffect(() => {
+    if (id > 0) setLastOpenedItinerary(id);
+  }, [id]);
 
   // ── SAVED MOMENTS (Ondata B — bookmark trasversale) ──
   // Fetcho lo stato all'apertura della pagina; il toggle è ottimistico:

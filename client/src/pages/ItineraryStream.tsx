@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
+import { setLastOpenedItinerary } from "@/lib/last-opened";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 
@@ -95,6 +96,10 @@ export default function ItineraryStream() {
                 setItineraryId(data.itineraryId);
                 setIsStreaming(false);
                 sessionStorage.removeItem("mind_streaming");
+                if (data.itineraryId) {
+                  // Tracking ultimo aperto — alimenta la hero in /my-account
+                  setLastOpenedItinerary(data.itineraryId);
+                }
               } else if (currentEvent === "error") {
                 setIsStreaming(false);
               }

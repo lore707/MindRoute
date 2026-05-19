@@ -1,18 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, LogOut, MapPin, Calendar, Plus, ExternalLink, Globe, Clock, Compass, Wallet, Search, Heart, X, RotateCcw, Sparkles, GitCompare } from "lucide-react";
+import { Sparkles, X, Heart, GitCompare } from "lucide-react";
+import { AccountCinematic, type AccountData } from "@/components/AccountCinematic";
+import { deriveTraitLabels } from "@/lib/trait-labels";
+import { getLastOpenedItinerary } from "@/lib/last-opened";
+import type { TraitVector } from "@shared/traits";
 
-const BADGES = [
-  { min: 1, max: 2, label: "Primo passo", emoji: "🌱", desc: "Hai generato il tuo primo itinerario" },
-  { min: 3, max: 4, label: "Esploratore", emoji: "🧭", desc: "Tre viaggi all'attivo" },
-  { min: 5, max: 9, label: "Esploratore seriale", emoji: "✈️", desc: "Cinque destinazioni esplorate" },
-  { min: 10, max: 999, label: "Viaggiatore MindRoute", emoji: "🌍", desc: "Dieci itinerari generati" },
-];
-
-function getBadge(count: number) {
-  return BADGES.find(b => count >= b.min && count <= b.max) || BADGES[0];
-}
+// Fallback hero per utenti senza viaggi (o se l'ultimo aperto non ha
+// heroImageUrl). Drop `default-hero.jpg` in client/public/ per personalizzare;
+// se l'asset manca, il gradient sopra il background già garantisce una
+// visione poetica scura, senza errori di rendering.
+const FALLBACK_HERO_IMG = "/default-hero.jpg";
 
 type AxisLabel = { left: string; right: string; it: { left: string; right: string } };
 type TraitHistory = {
@@ -57,65 +56,31 @@ type SavedMoment = {
   } | null;
 };
 
-type DurationBucket = "all" | "short" | "mid" | "long";
-
-const DURATION_LABELS: Record<DurationBucket, string> = {
-  all: "Tutte",
-  short: "≤ 3 giorni",
-  mid: "4–7 giorni",
-  long: "8+ giorni",
-};
-
-function bucketOf(days: number): DurationBucket {
-  if (days <= 3) return "short";
-  if (days <= 7) return "mid";
-  return "long";
-}
-
-// Sintetizza la frase di evoluzione: trova l'asse con delta più forte e la
-// racconta in italiano. Pura UI, nessuna chiamata AI — è una narrazione
-// deterministica sopra i numeri.
-function buildEvolutionNarrative(
-  delta: Record<string, number> | null,
-  axes: Record<string, AxisLabel>,
-): string | null {
-  if (!delta) return null;
-  const ranked = Object.entries(delta)
-    .map(([k, v]) => ({ k, v, abs: Math.abs(v) }))
-    .sort((a, b) => b.abs - a.abs);
-  const top = ranked[0];
-  if (!top || top.abs < 0.06) return null;
-  const labels = axes[top.k]?.it;
-  if (!labels) return null;
-  const direction = top.v > 0 ? labels.right : labels.left;
-  return `Stai diventando più ${direction} nel tempo.`;
-}
-
 function formatEur(amount: number): string {
   if (amount >= 10000) return `€${Math.round(amount / 1000)}k`;
   return `€${Math.round(amount).toLocaleString("it-IT")}`;
 }
 
-// Pick the 1-2 most-pronounced axes (farthest from 0.5) and build a short
-// Italian headline. Pure client logic — no LLM. The intent is identity,
-// not description: "sei X" not "i tuoi viaggi sono X".
-function buildHeadline(current: Record<string, number>, axes: Record<string, AxisLabel>): string {
-  const ranked = (Object.keys(current) as Array<keyof typeof current>)
-    .map(k => ({ k, v: current[k], dist: Math.abs(current[k] - 0.5) }))
-    .sort((a, b) => b.dist - a.dist);
-  const pick = (axisKey: string, value: number): string => {
-    const labels = axes[axisKey]?.it;
-    if (!labels) return "";
-    return value < 0.5 ? labels.left : labels.right;
-  };
-  const top = ranked[0];
-  const second = ranked[1];
-  // Only include the second axis if it's meaningfully off-center too.
-  if (!top || top.dist < 0.08) return "Il tuo profilo è ancora in formazione.";
-  const a = pick(top.k as string, top.v);
-  if (!second || second.dist < 0.12) return `Sei ${a}.`;
-  const b = pick(second.k as string, second.v);
-  return `Sei ${a}, ${b}.`;
+// Mappa un nome destinazione/continente alle etichette IT usate dai filtri del
+// componente AccountCinematic ("Europa", "Asia", "Africa", "Americhe",
+// "Oceania"). Se il dato di continente è già in italiano, è passthrough.
+function normalizeContinent(label: string | null | undefined): string {
+  if (!label) return "Europa";
+  const l = label.toLowerCase();
+  if (l.includes("eur")) return "Europa";
+  if (l.includes("asia")) return "Asia";
+  if (l.includes("afric")) return "Africa";
+  if (l.includes("americ") || l.includes("north america") || l.includes("south america")) return "Americhe";
+  if (l.includes("ocean")) return "Oceania";
+  return label;
+}
+
+const MONTH_IT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+function shortDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  return `${MONTH_IT[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export default function MyAccount() {
@@ -127,13 +92,7 @@ export default function MyAccount() {
   const [insights, setInsights] = useState<AccountInsights | null>(null);
   const [savedMoments, setSavedMoments] = useState<SavedMoment[]>([]);
 
-  // ── Filtri lista viaggi (Ondata B punto 4) — puro client-side
-  const [searchQ, setSearchQ] = useState("");
-  const [durationFilter, setDurationFilter] = useState<DurationBucket>("all");
-  const [continentFilter, setContinentFilter] = useState<string | null>(null);
-
-  // ── "Genera dal profilo" modal (Ondata C punto 3, esteso con defaults
-  // pre-compilati dai past trips + textarea libera per override "stavolta…")
+  // ── "Genera dal profilo" modal (Ondata C, esteso con defaults pre-compilati + textarea override) ──
   const [showFromProfile, setShowFromProfile] = useState(false);
   const [fpLoading, setFpLoading] = useState(false);
   const [fpError, setFpError] = useState("");
@@ -145,9 +104,6 @@ export default function MyAccount() {
   const [fpContextOverride, setFpContextOverride] = useState("");
   const [fpDefaultsLoaded, setFpDefaultsLoaded] = useState(false);
 
-  // Fetch defaults pre-compilati la prima volta che l'utente apre il modal.
-  // Una sola chiamata per sessione: l'utente vede subito chip già riempite
-  // basate sui suoi pattern reali invece di valori arbitrari.
   const openFromProfileModal = async () => {
     setShowFromProfile(true);
     if (fpDefaultsLoaded) return;
@@ -196,42 +152,6 @@ export default function MyAccount() {
       .catch(() => setSavedMoments([]));
   }, []);
 
-  // Lista filtrata + lista dei continenti effettivamente presenti (per le pill).
-  const filteredTrips = useMemo(() => {
-    const q = searchQ.trim().toLowerCase();
-    return trips.filter(t => {
-      if (q && !(t.destinationName ?? "").toLowerCase().includes(q)) return false;
-      if (durationFilter !== "all") {
-        const days = Array.isArray(t.days) ? t.days.length : 0;
-        if (bucketOf(days) !== durationFilter) return false;
-      }
-      if (continentFilter && t.continent !== continentFilter) return false;
-      return true;
-    });
-  }, [trips, searchQ, durationFilter, continentFilter]);
-
-  const availableContinents = useMemo(() => {
-    const obj: Record<string, string> = {};
-    for (const t of trips) {
-      if (t.continent && t.continentLabel) obj[t.continent] = t.continentLabel;
-    }
-    return Object.entries(obj).map(([continent, label]) => ({ continent, label }));
-  }, [trips]);
-
-  // "Da riprendere" (Ondata B punto 5): heuristica senza tracking — i 3 trip
-  // più vecchi quando ce ne sono almeno 6, perché il signal è solo significativo
-  // a volume. createdAt arriva come stringa ISO; ordine ascendente = più vecchio prima.
-  const toResume = useMemo(() => {
-    if (trips.length < 6) return [];
-    return [...trips]
-      .filter(t => t.createdAt)
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      .slice(0, 3);
-  }, [trips]);
-
-  const hasActiveFilters = searchQ.length > 0 || durationFilter !== "all" || continentFilter !== null;
-  const resetFilters = () => { setSearchQ(""); setDurationFilter("all"); setContinentFilter(null); };
-
   const removeSavedMoment = async (s: SavedMoment) => {
     setSavedMoments(prev => prev.filter(x => x.id !== s.id));
     try {
@@ -241,8 +161,6 @@ export default function MyAccount() {
     }
   };
 
-  // Soglia per mostrare il bottone "Genera dal profilo": almeno 2 snapshot
-  // del trait history, perché sotto il signal è ancora rumore.
   const canGenerateFromProfile = !!traitHistory && traitHistory.snapshots.length >= 2;
 
   const submitFromProfile = async () => {
@@ -273,517 +191,258 @@ export default function MyAccount() {
     }
   };
 
-  const badge = getBadge(trips.length);
-  const hasTraits = traitHistory && traitHistory.snapshots.length > 0;
-  // Prefer the Haiku headline when present (richer, contextual). Fallback to the
-  // pure-client one ("Sei offbeat, intimo.") so the UI is never empty.
-  const headline = hasTraits
-    ? (traitHistory.headline || buildHeadline(traitHistory.current, traitHistory.axes))
-    : "";
-  const axisKeys: Array<keyof TraitHistory["current"]> = hasTraits
-    ? (Object.keys(traitHistory.current) as Array<keyof TraitHistory["current"]>)
-    : [];
-  const firstSnapshot = hasTraits && traitHistory.snapshots.length >= 3
-    ? (traitHistory.snapshots[0].traits as Record<string, number>)
-    : null;
-  const evolutionNarrative = hasTraits
-    ? buildEvolutionNarrative(traitHistory.delta, traitHistory.axes)
-    : null;
-  const showInsights = !loading && trips.length > 0 && insights !== null;
+  // ── Derivazioni per AccountData ───────────────────────────────────────
+  // L'hero usa l'ultimo itinerario aperto (localStorage); se non c'è, il più
+  // recente creato; se non c'è nulla, il fallback statico.
+  const heroImg = useMemo(() => {
+    const lastId = getLastOpenedItinerary();
+    if (lastId) {
+      const lastTrip = trips.find(t => t.id === lastId);
+      if (lastTrip?.heroImageUrl) return lastTrip.heroImageUrl;
+    }
+    return trips[0]?.heroImageUrl ?? FALLBACK_HERO_IMG;
+  }, [trips]);
+
+  const heroStats = useMemo(() => {
+    const destinations = new Set(trips.map(t => t.destinationName ?? "").filter(Boolean));
+    const continents = new Set(trips.map(t => t.continent).filter(Boolean));
+    const totalDays = trips.reduce((acc, t) => acc + (Array.isArray(t.days) ? t.days.length : 0), 0);
+    return [
+      { value: String(trips.length), label: trips.length === 1 ? "viaggio" : "viaggi" },
+      { value: String(totalDays), label: totalDays === 1 ? "giorno" : "giorni" },
+      { value: String(destinations.size), label: destinations.size === 1 ? "destinazione" : "destinazioni" },
+      { value: String(continents.size || 1), label: (continents.size || 1) === 1 ? "continente" : "continenti" },
+    ];
+  }, [trips]);
+
+  const traitLabels = useMemo(() => {
+    if (!traitHistory) return deriveTraitLabels(null);
+    return deriveTraitLabels(traitHistory.current as TraitVector);
+  }, [traitHistory]);
+
+  // Profile quote: preferisce headline AI (Haiku) se presente, altrimenti
+  // testo fallback. La byline conta i viaggi e include il delta evolutivo
+  // quando significativo.
+  const profileQuote = traitHistory?.headline
+    ? traitHistory.headline
+    : trips.length === 0
+      ? "Stai costruendo il tuo profilo di viaggio. Genera più itinerari per scoprire chi sei."
+      : "Il tuo profilo viaggiatore prende forma a ogni viaggio.";
+  const profileByline = (() => {
+    const tripsCount = trips.length;
+    const tripsLabel = tripsCount === 1 ? "viaggio" : "viaggi";
+    const base = `Distillato dai tuoi <strong>${tripsCount} ${tripsLabel}</strong>`;
+    if (!traitHistory?.delta) return base;
+    const top = Object.entries(traitHistory.delta)
+      .map(([k, v]) => ({ k, abs: Math.abs(v as number), v: v as number }))
+      .sort((a, b) => b.abs - a.abs)[0];
+    if (!top || top.abs < 0.06) return base;
+    const labels = traitHistory.axes[top.k]?.it;
+    if (!labels) return base;
+    const dir = top.v > 0 ? labels.right : labels.left;
+    return `${base} · in evoluzione verso <strong>${dir}</strong>`;
+  })();
+
+  // Continue items: la sezione "Da riprendere" (Ondata B, top 3 più vecchi
+  // quando ≥6 trips). Featured = primo della lista.
+  const continueItems = useMemo(() => {
+    if (trips.length < 6) return [];
+    const oldest = [...trips]
+      .filter(t => t.createdAt)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .slice(0, 3);
+    return oldest.map((t, i) => ({
+      title: t.destinationName ?? "Itinerario",
+      quote: t.whyYours ?? undefined,
+      sub: `${t.days?.length ?? 7} giorni`,
+      date: shortDate(t.createdAt),
+      img: t.heroImageUrl ?? FALLBACK_HERO_IMG,
+      href: `/itinerary/${t.id}`,
+      featured: i === 0,
+    }));
+  }, [trips]);
+
+  // Trips per il mosaic della collezione. Niente filtri client-side qui — il
+  // componente AccountCinematic ha la sua UI di filtri integrata.
+  const mappedTrips = useMemo(() => trips.map(t => ({
+    dest: t.destinationName ?? "Itinerario",
+    quote: t.whyYours ?? "",
+    duration: `${t.days?.length ?? 7} giorni`,
+    date: shortDate(t.createdAt),
+    continent: normalizeContinent(t.continentLabel ?? t.continent),
+    img: t.heroImageUrl ?? FALLBACK_HERO_IMG,
+    href: `/itinerary/${t.id}`,
+  })), [trips]);
+
+  // Stats novelistic — 4 numeri grandi. Costruite da trips + insights.
+  const novelStats = useMemo(() => {
+    const totalDays = trips.reduce((acc, t) => acc + (Array.isArray(t.days) ? t.days.length : 0), 0);
+    const destinations = new Set(trips.map(t => t.destinationName ?? "").filter(Boolean));
+    const continents = new Set(trips.map(t => t.continent).filter(Boolean));
+    const firstTrip = trips[trips.length - 1];
+    const lastTrip = trips[0];
+    const continentTop = insights?.stats.topContinent;
+    return [
+      {
+        value: String(trips.length),
+        label: "Viaggi completati",
+        sub: firstTrip && lastTrip && firstTrip.id !== lastTrip.id
+          ? `Da ${(firstTrip.destinationName ?? "").split(",")[0]} a ${(lastTrip.destinationName ?? "").split(",")[0]}`
+          : undefined,
+      },
+      {
+        value: String(totalDays),
+        label: "Giorni altrove",
+        sub: insights?.stats.avgTripDays ? `Media ${insights.stats.avgTripDays} per viaggio` : undefined,
+      },
+      {
+        value: String(destinations.size),
+        label: destinations.size === 1 ? "Anima di città" : "Anime di città",
+        sub: "Da rivivere",
+      },
+      {
+        value: String(continents.size || 1),
+        label: (continents.size || 1) === 1 ? "Continente" : "Continenti",
+        sub: continentTop ? `${continentTop.label} è il più amato` : undefined,
+        goldNum: true,
+      },
+    ];
+  }, [trips, insights]);
+
+  const statsNarrative = useMemo(() => {
+    const totalDays = trips.reduce((acc, t) => acc + (Array.isArray(t.days) ? t.days.length : 0), 0);
+    const destinations = new Set(trips.map(t => t.destinationName ?? "").filter(Boolean));
+    if (trips.length === 0) {
+      return "Il tuo primo viaggio è ancora da scrivere. MindRoute è qui quando vorrai partire.";
+    }
+    const n = trips.length;
+    const cities = destinations.size;
+    return `Sei partito ${n} volte. Hai immaginato ${totalDays} giorni altrove, sotto ${cities} cieli diversi. Continua così.`;
+  }, [trips]);
+  const statsBold = useMemo(() => {
+    if (trips.length === 0) return [];
+    const totalDays = trips.reduce((acc, t) => acc + (Array.isArray(t.days) ? t.days.length : 0), 0);
+    const destinations = new Set(trips.map(t => t.destinationName ?? "").filter(Boolean)).size;
+    return [`${trips.length} volte`, `${totalDays} giorni`, `${destinations} cieli diversi`];
+  }, [trips]);
+
+  // Settings: rapida lista neutrale. Email è auto-aggiunto dal componente
+  // dalla AccountData.email. La maggior parte sono placeholder "href #" finché
+  // non esistono le pagine relative; teniamo solo quelle che hanno destinazioni
+  // reali nel router.
+  const settings = useMemo(() => {
+    const out: Array<{ label: string; value: string; href?: string }> = [];
+    out.push({ label: "Lingua", value: "Italiano" });
+    if (trips.length >= 2) out.push({ label: "Confronta viaggi", value: "Apri /compare", href: "/compare" });
+    out.push({ label: "Account", value: user?.email ? "Google" : "—" });
+    return out;
+  }, [trips, user]);
+
+  // ── AccountData per il componente ─────────────────────────────────────
+  const accountData: AccountData = {
+    userName: (user?.name ?? "Viaggiatore").split(" ")[0],
+    greeting: "Bentornato,",
+    email: user?.email ?? "",
+    avatarInitial: user?.name?.[0] ?? "?",
+    heroImg,
+    heroStats,
+    profileQuote,
+    profileByline,
+    traits: traitLabels,
+    continueItems,
+    trips: mappedTrips,
+    stats: novelStats,
+    statsNarrative,
+    statsBold,
+    settings,
+    onNewItinerary: () => setLocation("/profiling"),
+    onSecondaryCta: () => {
+      if (canGenerateFromProfile) openFromProfileModal();
+      else {
+        const el = document.getElementById("ac-collection");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }
+    },
+    secondaryCtaLabel: canGenerateFromProfile ? "✨ Genera dal tuo profilo" : "↓ Continua a esplorare",
+    onLogout: () => { window.location.href = "/auth/logout"; },
+    onDelete: () => {
+      if (confirm("Sei sicuro di voler eliminare l'account? L'azione è irreversibile.")) {
+        fetch("/api/auth/delete", { method: "POST" }).then(() => setLocation("/"));
+      }
+    },
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0710" }}>
+        <div className="w-8 h-8 border-2 border-[#E94560] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 md:px-12" style={{ background: "#0a0814" }}>
-      <div className="max-w-4xl mx-auto">
+    <>
+      <AccountCinematic data={accountData} />
 
-        {/* Back */}
-        <div className="flex items-center gap-4 mb-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Home
-          </Link>
-        </div>
-
-        {/* Profilo + badge */}
-        {user && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-6 rounded-[24px]"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-          >
-            <div className="flex items-center gap-5">
-              {user.avatar
-                ? <img src={user.avatar} className="w-14 h-14 rounded-full border-2 border-[#E94560]/30" alt={user.name} />
-                : <div className="w-14 h-14 rounded-full bg-[#E94560] flex items-center justify-center text-white text-xl font-bold shrink-0">{user.name?.[0]}</div>
-              }
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg font-serif font-bold text-white">{user.name}</h1>
-                <p className="text-white/40 text-sm truncate">{user.email}</p>
-              </div>
-              <a href="/auth/logout" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-white/50 hover:text-white border border-white/10 hover:border-white/20 transition-all shrink-0">
-                <LogOut className="w-4 h-4" /> Esci
-              </a>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Fascia Wrapped — destinazioni esplorate, giorni immaginati, € pianificati,
-            continente più chiamato. Le card si autoadattano: budget appare solo
-            quando almeno un viaggio v2 ha numeri reali; continente solo con
-            almeno 1 match country→continente. */}
-        {showInsights && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="mb-6"
-          >
-            <p className="text-[10px] font-bold tracking-[2px] uppercase text-white/40 mb-3 px-1">Il tuo viaggio su MindRoute</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatCard
-                icon={<Compass className="w-4 h-4" />}
-                value={String(insights.stats.destinationsExplored)}
-                label={insights.stats.destinationsExplored === 1 ? "destinazione esplorata" : "destinazioni esplorate"}
-              />
-              <StatCard
-                icon={<Clock className="w-4 h-4" />}
-                value={String(insights.stats.daysImagined)}
-                label={insights.stats.daysImagined === 1 ? "giorno immaginato" : "giorni immaginati"}
-              />
-              {insights.stats.budgetBookableEur !== null && insights.stats.budgetBookableEur > 0 ? (
-                <StatCard
-                  icon={<Wallet className="w-4 h-4" />}
-                  value={formatEur(insights.stats.budgetBookableEur)}
-                  label="pianificati in esperienze"
-                />
-              ) : insights.stats.avgTripDays !== null ? (
-                <StatCard
-                  icon={<Wallet className="w-4 h-4" />}
-                  value={`${insights.stats.avgTripDays}`}
-                  label="giorni medi per viaggio"
-                />
-              ) : null}
-              {insights.stats.topContinent ? (
-                <StatCard
-                  icon={<Globe className="w-4 h-4" />}
-                  value={insights.stats.topContinent.label}
-                  label={`${insights.stats.topContinent.count} ${insights.stats.topContinent.count === 1 ? "viaggio" : "viaggi"}`}
-                />
-              ) : null}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Profilo viaggiatore + gamification */}
-        {!loading && trips.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-8 p-6 rounded-[24px]"
-            style={{ background: "rgba(233,69,96,0.05)", border: "1px solid rgba(233,69,96,0.15)" }}
-          >
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-bold tracking-[2px] uppercase text-[#E94560] mb-3">Il tuo profilo viaggiatore</p>
-
-                {hasTraits ? (
-                  <>
-                    <p className="text-white/90 font-serif italic text-lg leading-snug mb-2">{headline}</p>
-                    {evolutionNarrative && (
-                      <p className="text-[12px] text-[#E94560]/80 mb-5 tracking-wide">{evolutionNarrative}</p>
-                    )}
-                    {!evolutionNarrative && <div className="mb-3" />}
-                    <div className="space-y-3 mb-4">
-                      {axisKeys.map((axisKey) => {
-                        const value = traitHistory.current[axisKey];
-                        const labels = traitHistory.axes[axisKey as string]?.it;
-                        const delta = traitHistory.delta?.[axisKey];
-                        const prior = firstSnapshot ? firstSnapshot[axisKey] : null;
-                        if (!labels) return null;
-                        return (
-                          <div key={axisKey}>
-                            <div className="flex items-center justify-between text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-1">
-                              <span>{labels.left}</span>
-                              <span>{labels.right}</span>
-                            </div>
-                            <div className="relative h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
-                              {/* Pallino "prima" (semitrasparente, più piccolo) */}
-                              {prior !== null && Math.abs(prior - value) >= 0.04 && (
-                                <div
-                                  className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
-                                  style={{
-                                    left: `calc(${prior * 100}% - 4px)`,
-                                    background: "rgba(255,255,255,0.25)",
-                                    transition: "left 0.6s ease",
-                                  }}
-                                  title="Primo viaggio"
-                                />
-                              )}
-                              {/* Pallino "ora" */}
-                              <div
-                                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2"
-                                style={{
-                                  left: `calc(${value * 100}% - 6px)`,
-                                  background: "#E94560",
-                                  borderColor: "rgba(10,8,20,1)",
-                                  transition: "left 0.6s ease",
-                                }}
-                                title="Ora"
-                              />
-                            </div>
-                            {delta !== undefined && delta !== null && Math.abs(delta) >= 0.04 && (
-                              <p className="text-[10px] mt-1" style={{ color: delta > 0 ? "rgba(140,220,160,0.7)" : "rgba(220,160,140,0.7)" }}>
-                                {delta > 0 ? "→" : "←"} {Math.abs(delta * 100).toFixed(0)}% verso {delta > 0 ? labels.right : labels.left} dal primo viaggio
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {firstSnapshot && (
-                      <div className="flex items-center gap-3 text-[10px] text-white/30 mb-3">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full" style={{ background: "rgba(255,255,255,0.25)" }} />
-                          Primo viaggio
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full border" style={{ background: "#E94560", borderColor: "rgba(10,8,20,1)" }} />
-                          Oggi
-                        </span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-white/30 text-sm mb-4">Genera più itinerari per costruire il tuo profilo.</p>
-                )}
-
-                <p className="text-white/30 text-[12px]">
-                  {trips.length === 1 ? "1 itinerario generato" : `${trips.length} itinerari generati`}
-                  {hasTraits && traitHistory.snapshots.length < 3 && " · Servono almeno 3 viaggi per vedere l'evoluzione"}
-                </p>
-              </div>
-
-              {/* Badge */}
-              <div className="flex flex-col items-center gap-1 shrink-0 p-4 rounded-[16px] text-center min-w-[100px]" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <span style={{ fontSize: 28 }}>{badge.emoji}</span>
-                <span className="text-[11px] font-bold text-white/80 mt-1">{badge.label}</span>
-                <span className="text-[10px] text-white/30 leading-tight max-w-[100px]">{badge.desc}</span>
-              </div>
-            </div>
-
-            {/* Prossimo badge */}
-            {trips.length < 10 && (() => {
-              const next = BADGES.find(b => b.min > trips.length);
-              if (!next) return null;
-              const remaining = next.min - trips.length;
-              return (
-                <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-3">
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
-                    <div className="h-full rounded-full" style={{ background: "#E94560", width: `${(trips.length / next.min) * 100}%`, transition: "width 1s ease" }} />
-                  </div>
-                  <span className="text-[11px] text-white/30 shrink-0">
-                    {remaining} {remaining === 1 ? "viaggio" : "viaggi"} al badge <span className="text-white/50 font-medium">{next.emoji} {next.label}</span>
-                  </span>
-                </div>
-              );
-            })()}
-          </motion.div>
-        )}
-
-        {/* CTA nuovo viaggio + (se profilo abbastanza maturo) "Genera dal profilo" */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-8 flex flex-wrap items-center gap-3"
-        >
-          <Link href="/profiling" className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-[14px] text-white transition-all hover:-translate-y-0.5"
-            style={{ background: "#E94560", boxShadow: "0 8px 24px rgba(233,69,96,0.25)" }}>
-            <Plus className="w-4 h-4" />
-            {trips.length === 0 ? "Inizia il tuo primo viaggio" : "Nuovo itinerario"}
-          </Link>
-          {canGenerateFromProfile && (
-            <button
-              type="button"
-              onClick={openFromProfileModal}
-              className="inline-flex items-center gap-2.5 px-5 py-3.5 rounded-full font-semibold text-[14px] text-white/90 transition-all hover:-translate-y-0.5 hover:text-white"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.15)" }}
-            >
-              <Sparkles className="w-4 h-4 text-[#E94560]" />
-              Genera dal tuo profilo
-            </button>
-          )}
-        </motion.div>
-
-        {/* Momenti salvati (Ondata B punto 7) — collezione orizzontale che
-            taglia attraverso gli itinerari. Compare solo se l'utente ha
-            salvato almeno un moment v2. */}
+      {/* Sezioni custom appendute dopo il design — preservano funzionalità
+          non coperte dal componente cinematic (Ondata B saved moments + CTA
+          compare). Stili sotto .account-cinematic-extra in account-cinematic.css. */}
+      <div className="account-cinematic-extra">
         {savedMoments.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18 }}
-            className="mb-10"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-serif font-bold text-white inline-flex items-center gap-2">
-                <Heart className="w-4 h-4 text-[#E94560]" fill="currentColor" />
-                Momenti che ti hanno chiamato
-              </h2>
-              <span className="text-[11px] text-white/30">{savedMoments.length} salvat{savedMoments.length === 1 ? "o" : "i"}</span>
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x" style={{ scrollbarWidth: "thin" }}>
-              {savedMoments.map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/itinerary/${s.itineraryId}`}
-                  className="group relative shrink-0 w-[220px] rounded-[16px] overflow-hidden snap-start"
-                  style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
-                >
-                  <div className="h-28 relative overflow-hidden">
+          <section>
+            <div className="ac-container">
+              <div className="ac-eyebrow"><span className="d" />Bookmark trasversale</div>
+              <h2><em>Momenti</em> che ti hanno chiamato.</h2>
+              <p style={{ color: "rgba(245,240,238,.55)", marginTop: 12, marginBottom: 8 }}>
+                {savedMoments.length} salvat{savedMoments.length === 1 ? "o" : "i"} attraverso i tuoi viaggi.
+              </p>
+              <div className="ac-saved-grid">
+                {savedMoments.map(s => (
+                  <a key={s.id} href={`/itinerary/${s.itineraryId}`} className="ac-saved-card">
                     {s.momentSnapshot?.image_url
-                      ? <img src={s.momentSnapshot.image_url} alt={s.momentSnapshot.title} className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-500" />
-                      : <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#1a0814,#2d0a1a)" }} />
+                      ? <div className="ac-saved-card-img" style={{ backgroundImage: `url(${s.momentSnapshot.image_url})` }} />
+                      : <div className="ac-saved-card-img" style={{ background: "linear-gradient(135deg,#1a0814,#2d0a1a)" }} />
                     }
                     <button
                       type="button"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeSavedMoment(s); }}
-                      aria-label="Rimuovi"
+                      className="ac-saved-card-remove"
                       title="Rimuovi"
-                      className="absolute top-2 right-2 w-7 h-7 inline-flex items-center justify-center rounded-full text-white/80 hover:text-white"
-                      style={{ background: "rgba(10,8,20,0.55)", backdropFilter: "blur(6px)" }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeSavedMoment(s); }}
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
-                  </div>
-                  <div className="p-3">
-                    <div className="text-white text-[13px] font-serif leading-tight line-clamp-2">{s.momentSnapshot?.title ?? "Momento"}</div>
-                    <div className="text-[10px] text-white/40 mt-1 truncate">
-                      {s.momentSnapshot?.destination_name ?? "—"}
-                      {s.momentSnapshot?.day_number ? ` · giorno ${s.momentSnapshot.day_number}` : ""}
+                    <div className="ac-saved-card-body">
+                      <div className="ac-saved-card-title">{s.momentSnapshot?.title ?? "Momento"}</div>
+                      <div className="ac-saved-card-meta">
+                        {s.momentSnapshot?.destination_name ?? "—"}
+                        {s.momentSnapshot?.day_number ? ` · giorno ${s.momentSnapshot.day_number}` : ""}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Da riprendere (Ondata B punto 5) — euristica: trip più vecchi quando
-            la lista è già consistente (≥6 viaggi). Frase con call emotivo. */}
-        {toResume.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-10"
-          >
-            <h2 className="text-xl font-serif font-bold text-white mb-1 inline-flex items-center gap-2">
-              <RotateCcw className="w-4 h-4 text-white/60" />
-              Da riprendere
-            </h2>
-            <p className="text-[12px] text-white/40 mb-4">
-              {toResume[0]?.destinationName?.split(",")[0] ?? "Una destinazione"} ti aveva chiamato. Vuoi tornare a guardarla?
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {toResume.map((trip: any) => (
-                <Link
-                  key={`resume-${trip.id}`}
-                  href={`/itinerary/${trip.id}`}
-                  className="group flex items-center gap-3 p-3 rounded-[14px] transition-all hover:-translate-y-0.5"
-                  style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
-                >
-                  <div className="w-14 h-14 rounded-[10px] overflow-hidden shrink-0">
-                    {trip.heroImageUrl
-                      ? <img src={trip.heroImageUrl} alt={trip.destinationName} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#1a0814,#2d0a1a)" }} />
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white text-[13px] font-serif leading-tight line-clamp-1">{trip.destinationName}</div>
-                    <div className="text-[10px] text-white/30 mt-1">
-                      {trip.createdAt ? new Date(trip.createdAt).toLocaleDateString("it-IT", { month: "short", year: "numeric" }) : "—"}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* I miei viaggi */}
-        <div>
-          <h2 className="text-2xl font-serif font-bold text-white mb-4">I miei viaggi</h2>
-
-          {/* Filtri (Ondata B punto 4) — appaiono solo da 4+ viaggi, sotto non
-              c'è abbastanza da filtrare per giustificarli. */}
-          {!loading && trips.length >= 4 && (
-            <div className="mb-6 space-y-3">
-              {/* Search */}
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <input
-                  type="text"
-                  value={searchQ}
-                  onChange={(e) => setSearchQ(e.target.value)}
-                  placeholder="Cerca destinazione…"
-                  className="w-full pl-10 pr-3 py-2.5 rounded-full text-sm text-white placeholder-white/30 outline-none focus:border-white/30"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-                />
-              </div>
-              {/* Pill durata */}
-              <div className="flex flex-wrap gap-2">
-                {(["all", "short", "mid", "long"] as DurationBucket[]).map(b => (
-                  <button
-                    key={b}
-                    type="button"
-                    onClick={() => setDurationFilter(b)}
-                    className="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
-                    style={{
-                      background: durationFilter === b ? "#E94560" : "rgba(255,255,255,0.04)",
-                      color: durationFilter === b ? "white" : "rgba(255,255,255,0.5)",
-                      border: durationFilter === b ? "1px solid #E94560" : "1px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    {DURATION_LABELS[b]}
-                  </button>
+                  </a>
                 ))}
               </div>
-              {/* Pill continenti */}
-              {availableContinents.length > 1 && (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setContinentFilter(null)}
-                    className="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
-                    style={{
-                      background: continentFilter === null ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.04)",
-                      color: continentFilter === null ? "white" : "rgba(255,255,255,0.5)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                    }}
-                  >
-                    Tutti i continenti
-                  </button>
-                  {availableContinents.map(({ continent, label }) => (
-                    <button
-                      key={continent}
-                      type="button"
-                      onClick={() => setContinentFilter(continent)}
-                      className="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all"
-                      style={{
-                        background: continentFilter === continent ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.04)",
-                        color: continentFilter === continent ? "white" : "rgba(255,255,255,0.5)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
+            </div>
+          </section>
+        )}
+
+        {trips.length >= 2 && (
+          <section>
+            <div className="ac-container">
+              <div className="ac-compare-cta">
+                <div className="ac-compare-cta-text">
+                  Vuoi vedere <strong>due viaggi</strong> uno accanto all'altro?
                 </div>
-              )}
-              {/* Contatore + reset */}
-              <div className="flex items-center gap-3 text-[11px] text-white/40">
-                <span>{filteredTrips.length === trips.length
-                  ? `${trips.length} ${trips.length === 1 ? "viaggio" : "viaggi"}`
-                  : `${filteredTrips.length} di ${trips.length}`}</span>
-                {hasActiveFilters && (
-                  <button type="button" onClick={resetFilters} className="text-white/60 hover:text-white underline underline-offset-2">
-                    azzera filtri
-                  </button>
-                )}
+                <Link href="/compare">
+                  <GitCompare className="w-4 h-4" /> Confronta side-by-side
+                </Link>
               </div>
             </div>
-          )}
-
-          {loading && (
-            <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-2 border-[#E94560] border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
-
-          {!loading && trips.length === 0 && (
-            <div className="text-center py-12 rounded-[20px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <p className="text-white/30 text-base mb-2">Nessun itinerario ancora.</p>
-              <p className="text-white/20 text-sm">Rispondi a 7 domande e scopri la tua prossima destinazione.</p>
-            </div>
-          )}
-
-          {!loading && trips.length > 0 && filteredTrips.length === 0 && (
-            <div className="text-center py-12 rounded-[20px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <p className="text-white/30 text-base mb-3">Nessun viaggio corrisponde ai filtri.</p>
-              <button type="button" onClick={resetFilters} className="text-[#E94560] text-sm hover:underline">Azzera filtri</button>
-            </div>
-          )}
-
-          {!loading && filteredTrips.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {filteredTrips.map((trip: any, i: number) => (
-                <motion.div
-                  key={trip.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06 }}
-                  className="group rounded-[20px] overflow-hidden"
-                  style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
-                >
-                  {/* Hero image — cliccabile */}
-                  <Link href={`/itinerary/${trip.id}`} className="block relative h-44 overflow-hidden">
-                    {trip.heroImageUrl
-                      ? <img src={trip.heroImageUrl} alt={trip.destinationName} className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-500" />
-                      : <div className="w-full h-full" style={{ background: "linear-gradient(135deg,#1a0814,#2d0a1a)" }} />
-                    }
-                    <div className="absolute inset-0" style={{ background: "linear-gradient(to top,rgba(10,8,20,0.75),transparent)" }} />
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-bold text-white" style={{ background: "rgba(233,69,96,0.8)" }}>
-                      <ExternalLink className="w-3 h-3" /> Apri
-                    </div>
-                  </Link>
-
-                  {/* Info */}
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <h3 className="font-serif font-bold text-white text-[16px] leading-tight">{trip.destinationName}</h3>
-                      <span className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold text-[#E94560]" style={{ background: "rgba(233,69,96,0.1)", border: "1px solid rgba(233,69,96,0.2)" }}>
-                        {trip.days?.length || 7} giorni
-                      </span>
-                    </div>
-
-                    {trip.whyYours && (
-                      <p className="text-white/35 text-[12px] italic leading-relaxed line-clamp-2 mb-4">"{trip.whyYours}"</p>
-                    )}
-
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 text-white/25 text-[11px]">
-                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {trip.createdAt ? new Date(trip.createdAt).toLocaleDateString("it-IT") : "—"}</span>
-                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {trip.continentLabel ?? (trip.destinationName || "").split(",")[1]?.trim() ?? trip.destinationName}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {trips.length >= 2 && (
-                          <Link href={`/compare?a=${trip.id}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-semibold text-white/70 transition-all hover:-translate-y-0.5 hover:text-white"
-                            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
-                            title="Confronta con un altro viaggio"
-                          >
-                            <GitCompare className="w-3 h-3" />
-                          </Link>
-                        )}
-                        <Link href={`/itinerary/${trip.id}`}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[12px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                          style={{ background: "rgba(233,69,96,0.15)", border: "1px solid rgba(233,69,96,0.3)" }}>
-                          Riapri <ExternalLink className="w-3 h-3" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </div>
+          </section>
+        )}
       </div>
 
-      {/* Modal "Genera dal profilo" (Ondata C punto 3) — 3 micro-domande:
-          compagnia, durata, partenza/periodo. Il vector psicologico parte
-          dall'aggregato senza far rifare il quiz. */}
+      {/* Modal "Genera dal profilo" — invariato dalla versione precedente,
+          attivato dal CTA ghost della hero quando l'utente ha ≥2 snapshot. */}
       <AnimatePresence>
         {showFromProfile && (
           <motion.div
@@ -901,9 +560,6 @@ export default function MyAccount() {
                 </div>
               </div>
 
-              {/* Override testuale libero — gestisce le eccezioni ("stavolta
-                   con amici, non famiglia") che i 4 campi sopra non possono
-                   esprimere. Passato verbatim al matching engine. */}
               <div className="mb-5">
                 <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">
                   Cosa cambia questa volta? <span className="text-white/30 normal-case font-normal tracking-normal">(opzionale)</span>
@@ -965,21 +621,10 @@ export default function MyAccount() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }
 
-function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-4 rounded-[16px]"
-      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-    >
-      <div className="flex items-center gap-2 text-white/40 mb-1.5">{icon}</div>
-      <div className="text-white text-xl font-serif font-bold leading-tight">{value}</div>
-      <div className="text-[10px] text-white/40 uppercase tracking-wider mt-1 leading-tight">{label}</div>
-    </motion.div>
-  );
-}
+// Helper retained per backward compat se altri file lo importavano. Non più
+// usato qui — la formattazione monetaria del Wrapped è scomparsa.
+export { formatEur };
