@@ -132,15 +132,41 @@ export default function MyAccount() {
   const [durationFilter, setDurationFilter] = useState<DurationBucket>("all");
   const [continentFilter, setContinentFilter] = useState<string | null>(null);
 
-  // ── "Genera dal profilo" modal (Ondata C punto 3)
+  // ── "Genera dal profilo" modal (Ondata C punto 3, esteso con defaults
+  // pre-compilati dai past trips + textarea libera per override "stavolta…")
   const [showFromProfile, setShowFromProfile] = useState(false);
   const [fpLoading, setFpLoading] = useState(false);
   const [fpError, setFpError] = useState("");
-  const [fpDays, setFpDays] = useState(5);
-  const [fpCompanions, setFpCompanions] = useState("solo");
+  const [fpDays, setFpDays] = useState(7);
+  const [fpCompanions, setFpCompanions] = useState("couple");
   const [fpDeparture, setFpDeparture] = useState("");
   const [fpBudget, setFpBudget] = useState("medio");
   const [fpLeaveDate, setFpLeaveDate] = useState("");
+  const [fpContextOverride, setFpContextOverride] = useState("");
+  const [fpDefaultsLoaded, setFpDefaultsLoaded] = useState(false);
+
+  // Fetch defaults pre-compilati la prima volta che l'utente apre il modal.
+  // Una sola chiamata per sessione: l'utente vede subito chip già riempite
+  // basate sui suoi pattern reali invece di valori arbitrari.
+  const openFromProfileModal = async () => {
+    setShowFromProfile(true);
+    if (fpDefaultsLoaded) return;
+    try {
+      const r = await fetch("/api/profiling/defaults");
+      if (r.ok) {
+        const d = await r.json();
+        if (typeof d.days === "number") setFpDays(d.days);
+        if (typeof d.companions === "string") setFpCompanions(d.companions);
+        if (typeof d.departure === "string") setFpDeparture(d.departure);
+        if (typeof d.budget === "string") setFpBudget(d.budget);
+        if (typeof d.leaveDate === "string") setFpLeaveDate(d.leaveDate);
+      }
+    } catch {
+      // best-effort: se fallisce restano i default neutri
+    } finally {
+      setFpDefaultsLoaded(true);
+    }
+  };
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -231,6 +257,7 @@ export default function MyAccount() {
           departure: fpDeparture || "Italia",
           budget: fpBudget,
           companions: fpCompanions,
+          contextOverride: fpContextOverride.trim() || undefined,
         }),
       });
       if (!res.ok) {
@@ -478,7 +505,7 @@ export default function MyAccount() {
           {canGenerateFromProfile && (
             <button
               type="button"
-              onClick={() => setShowFromProfile(true)}
+              onClick={openFromProfileModal}
               className="inline-flex items-center gap-2.5 px-5 py-3.5 rounded-full font-semibold text-[14px] text-white/90 transition-all hover:-translate-y-0.5 hover:text-white"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.15)" }}
             >
@@ -785,8 +812,8 @@ export default function MyAccount() {
                 </button>
               </div>
               <h3 className="font-serif text-xl text-white leading-tight mb-2">Genera dal tuo profilo</h3>
-              <p className="text-[12px] text-white/50 leading-relaxed mb-5">
-                Salti il quiz: usiamo il tuo profilo psicologico aggregato sui {traitHistory?.snapshots.length ?? 0} viaggi precedenti. Tre dettagli e via.
+              <p className="text-[12px] text-white/50 leading-relaxed mb-4">
+                Salti il quiz: partiamo dal tuo profilo aggregato sui {traitHistory?.snapshots.length ?? 0} viaggi precedenti. Abbiamo già riempito i campi sotto dai tuoi pattern — modifica solo se serve.
               </p>
 
               {/* Compagnia */}
@@ -872,6 +899,43 @@ export default function MyAccount() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Override testuale libero — gestisce le eccezioni ("stavolta
+                   con amici, non famiglia") che i 4 campi sopra non possono
+                   esprimere. Passato verbatim al matching engine. */}
+              <div className="mb-5">
+                <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">
+                  Cosa cambia questa volta? <span className="text-white/30 normal-case font-normal tracking-normal">(opzionale)</span>
+                </label>
+                <textarea
+                  value={fpContextOverride}
+                  onChange={(e) => setFpContextOverride(e.target.value.slice(0, 300))}
+                  placeholder="Es. stavolta con amici, weekend lungo, no Europa…"
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 outline-none resize-none"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
+                />
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[
+                    "stavolta con amici",
+                    "budget alto",
+                    "no Europa",
+                    "weekend lungo",
+                    "qualcosa di diverso dal solito",
+                  ].map(ex => (
+                    <button
+                      key={ex}
+                      type="button"
+                      onClick={() => setFpContextOverride(ex)}
+                      className="px-2.5 py-1 rounded-full text-[10.5px] text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors"
+                      style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+                    >
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[10px] text-white/30 mt-1.5 text-right">{fpContextOverride.length}/300</div>
               </div>
 
               {fpError && <p className="text-[12px] text-[#E94560] mb-3">{fpError}</p>}

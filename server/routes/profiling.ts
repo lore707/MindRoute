@@ -7,6 +7,7 @@ import { generateDestinationsOnly } from "../matching-engine";
 import { fetchUnsplashHero } from "../unsplash";
 import { computeTraitVector, emaAggregate, synthesizeAnswersFromVector, MAPPING_VERSION, type TraitVector } from "@shared/traits";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
+import { computeProfileDefaults } from "../profile-defaults";
 
 export function registerProfilingRoutes(app: Express) {
   // STEP 1 — Genera 3 destinazioni leggere dal profiling
@@ -81,6 +82,25 @@ export function registerProfilingRoutes(app: Express) {
     constraints: z.string().optional(),
     travelStyle: z.string().optional(),
     lang: z.string().optional(),
+    // Override testuale libero ("stavolta con amici", "no Europa",
+    // "weekend lungo"). Passato verbatim al matching engine come sezione
+    // ad alta priorità che sovrascrive i pattern storici in conflitto.
+    contextOverride: z.string().max(300).optional(),
+  });
+
+  // Defaults pre-compilati per il modal "Genera dal profilo".
+  // Richiede login: senza userId non possiamo calcolare la mediana dei past
+  // trips e il client non avrebbe pattern personali da mostrare.
+  app.get("/api/profiling/defaults", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Login richiesto" });
+    try {
+      const defaults = await computeProfileDefaults(user.id);
+      res.json(defaults);
+    } catch (err) {
+      console.error("Error computing profile defaults:", err);
+      return res.status(500).json({ message: "Errore nel calcolo dei default" });
+    }
   });
 
   app.post("/api/profiling/from-profile", profilingLimiter, async (req, res) => {
@@ -103,14 +123,17 @@ export function registerProfilingRoutes(app: Express) {
       const synthesized = synthesizeAnswersFromVector(current);
 
       // Costruisco un ProfilingRequest valido riempiendo answers[] dalla sintesi.
+      // contextOverride esce dal request body — lo separiamo perché non fa
+      // parte di ProfilingRequest, va passato come parametro al matching.
+      const { contextOverride, ...microInputs } = micro;
       const input = {
-        ...micro,
+        ...microInputs,
         answers: synthesized,
       };
 
       const prior = await getTraitPriorForUser(user.id);
       const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
-      const destinations = await generateDestinationsOnly(input, priorBlock);
+      const destinations = await generateDestinationsOnly(input, priorBlock, contextOverride);
       await storage.clearAll();
       const createdDests = [];
       for (const dest of destinations) {
