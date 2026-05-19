@@ -734,7 +734,7 @@ Generate exactly ${days} days in the itinerary.
 CRITICAL: Respond ONLY with the JSON object. No text before or after. No explanations. Start with { end with }. Pure JSON only.`;
 }
 
-export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = ""): Promise<GeneratedDestination[]> {
+export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = "", contextOverride?: string): Promise<GeneratedDestination[]> {
   const rawAnswers = input.answers[0] === "path_a" || input.answers[0] === "path_b"
     ? input.answers.slice(1) : input.answers;
 
@@ -767,6 +767,19 @@ Departing from: ${input.departure} | Period: ${input.leaveDate} | Days: ${input.
 Travel companions: ${input.companions || "not specified"}
 ${structuredProfileBlock ? `Structured profile:\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 ${priorBlock}
+${contextOverride && contextOverride.trim().length > 0 ? `
+═══════════════════════════════════════
+USER CONTEXT FOR THIS TRIP — overrides historical patterns where in conflict
+═══════════════════════════════════════
+The user typed this short note for THIS specific trip. Treat it as HIGHER PRIORITY than the historical pattern above whenever they conflict. Do not ignore it. Do not paraphrase it away. Examples of how to apply it:
+  - "stavolta con amici" → override COMPANIONS to "amici"; treat any "famiglia" signal in history as inactive for this trip
+  - "no Europa" → exclude all European destinations even if priors favor them
+  - "budget alto" → override BUDGET_TIER to "high"
+  - "weekend lungo" → cap days, prefer short-haul, prefer city/coastal short trips
+  - "qualcosa di diverso dal solito" → push TILT_M_O toward offbeat for this generation only
+Verbatim note from user:
+"${contextOverride.trim().replace(/"/g, '\\"')}"
+` : ""}
 ═══════════════════════════════════════
 STEP 0 — EXTRACT CHIPS + INFER TILT (do this first, verbatim, internal)
 ═══════════════════════════════════════
