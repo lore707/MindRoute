@@ -44,8 +44,8 @@ export function useMapPointsPolling(itineraryId: number, enabled: boolean) {
       return res.json();
     },
     enabled: enabled && !!itineraryId,
-    refetchInterval: (data) => {
-      if (data?.ready) return false;
+    refetchInterval: (query) => {
+      if (query.state.data?.ready) return false;
       return 3000; // riprova ogni 3 secondi finché non sono pronti
     },
     staleTime: Infinity,

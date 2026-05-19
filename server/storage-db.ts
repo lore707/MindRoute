@@ -30,7 +30,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createItinerary(itinerary: InsertItinerary): Promise<Itinerary> {
-    const result = await db.insert(itineraries).values(itinerary).returning();
+    const result = await db.insert(itineraries).values(itinerary as any).returning();
     return result[0];
   }
 

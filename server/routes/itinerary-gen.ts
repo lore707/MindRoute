@@ -44,14 +44,14 @@ export function registerItineraryGenRoutes(app: Express) {
       const destLng = destCenter?.lng ?? 0;
       const city = destinationName.split(",")[0].trim();
 
-      async function tryGeocode(name: string): Promise<{ lat: number; lng: number } | null> {
+      const tryGeocode = async (name: string): Promise<{ lat: number; lng: number } | null> => {
         const coords = await geocode(`${name} ${city}`);
         if (coords) {
           const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
           if (dist < 3) return coords;
         }
         return null;
-      }
+      };
 
       // Per-day images + map-point extraction. Concurrency-3 to avoid Unsplash burst.
       const heroUrl = heroImage?.url ?? null;
@@ -136,7 +136,7 @@ export function registerItineraryGenRoutes(app: Express) {
         destinationId,
         ...itinerary,
         days: daysWithExtras,
-        whyYours: whyYours ?? itinerary.whyYours ?? null,
+        whyYours: whyYours ?? (itinerary as any).whyYours ?? null,
         heroImageUrl: heroImage?.url ?? null,
         heroPhotographer: heroImage?.photographer ?? null,
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,
@@ -285,14 +285,14 @@ export function registerItineraryGenRoutes(app: Express) {
             const destLng = destCenter?.lng ?? 0;
             const city = destinationName.split(",")[0].trim();
 
-            async function tryGeocodeBg(name: string): Promise<{ lat: number; lng: number } | null> {
+            const tryGeocodeBg = async (name: string): Promise<{ lat: number; lng: number } | null> => {
               const coords = await geocode(`${name} ${city}`);
               if (coords) {
                 const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
                 if (dist < 3) return coords;
               }
               return null;
-            }
+            };
 
             const geocodeCandidates: { name: string; slot: string; dayNum: number }[] = [];
             for (const day of (structuredItinerary.days || [])) {
@@ -342,7 +342,7 @@ export function registerItineraryGenRoutes(app: Express) {
                 closingMessage: structuredItinerary.closingMessage,
                 tripSummary: structuredItinerary.tripSummary ?? null,
                 highlights: structuredItinerary.highlights ?? null,
-                whyYours: whyYours ?? structuredItinerary.whyYours ?? null,
+                whyYours: whyYours ?? (structuredItinerary as any).whyYours ?? null,
                 heroImageUrl: heroImage?.url ?? null,
                 heroPhotographer: heroImage?.photographer ?? null,
                 heroPhotographerUrl: heroImage?.photographerUrl ?? null,
@@ -400,14 +400,14 @@ export function registerItineraryGenRoutes(app: Express) {
       const destLng = destCenter?.lng ?? 0;
       const city = destinationName.split(",")[0].trim();
 
-      async function tryGeocode(name: string): Promise<{ lat: number; lng: number } | null> {
+      const tryGeocode = async (name: string): Promise<{ lat: number; lng: number } | null> => {
         const coords = await geocode(`${name} ${city}`);
         if (coords) {
           const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
           if (dist < 3) return coords;
         }
         return null;
-      }
+      };
 
       send("progress", { step: 4, message: "Piazzo i punti sulla mappa..." });
 
@@ -450,7 +450,7 @@ export function registerItineraryGenRoutes(app: Express) {
         destinationId,
         ...itinerary,
         days: daysWithExtras,
-        whyYours: whyYours ?? itinerary.whyYours ?? null,
+        whyYours: whyYours ?? (itinerary as any).whyYours ?? null,
         heroImageUrl: heroImage?.url ?? null,
         heroPhotographer: heroImage?.photographer ?? null,
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,

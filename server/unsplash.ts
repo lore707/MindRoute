@@ -30,7 +30,7 @@ export async function fetchUnsplashHero(destinationName: string): Promise<{ url:
     `${country} nature`.trim(),
   ].filter(q => q.length > 3);
 
-  const uniqueQueries = [...new Set(queries)];
+  const uniqueQueries = Array.from(new Set(queries));
 
   async function searchUnsplash(query: string): Promise<{ url: string; photographer: string; photographerUrl: string } | null> {
     try {

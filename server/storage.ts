@@ -35,7 +35,7 @@ export class MemoryStorage implements IStorage {
   }
 
   async createDestination(destination: InsertDestination): Promise<Destination> {
-    const newDest: Destination = { ...destination, id: this.destIdCounter++ };
+    const newDest: Destination = { ...destination, id: this.destIdCounter++, imageUrl: destination.imageUrl ?? null };
     this.destinations.push(newDest);
     return newDest;
   }
@@ -45,7 +45,7 @@ export class MemoryStorage implements IStorage {
   }
 
   async createItinerary(itinerary: InsertItinerary): Promise<Itinerary> {
-    const newItin: Itinerary = { ...itinerary, id: this.itinIdCounter++ };
+    const newItin = { ...itinerary, id: this.itinIdCounter++ } as Itinerary;
     this.itineraries.push(newItin);
     return newItin;
   }
