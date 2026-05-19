@@ -14,6 +14,7 @@ import Itinerary from "@/pages/Itinerary";
 import Privacy from "@/pages/Privacy";
 import MyAccount from "@/pages/MyAccount";
 import ItineraryStream from "@/pages/ItineraryStream";
+import Compare from "@/pages/Compare";
 import { CookieBanner } from "@/components/CookieBanner";
 
 function Router() {
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
         <Route path="/itinerary/stream/:id" component={ItineraryStream} />
         <Route path="/my-account" component={MyAccount} />
+        <Route path="/compare" component={Compare} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

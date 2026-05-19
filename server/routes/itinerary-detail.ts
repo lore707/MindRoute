@@ -58,6 +58,12 @@ export function registerItineraryDetailRoutes(app: Express) {
       const { dayIndex, feedback } = req.body;
       const itin = await storage.getItineraryById(itinId);
       if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      // v2 itineraries use the moment-based shape; the v1 day-regen prompt
+      // would corrupt the days[] structure. Reject explicitly until v2 has
+      // its own regen path.
+      if ((itin as any).schemaVersion === 2) {
+        return res.status(400).json({ message: "Regenerate-day not yet supported for v2 itineraries" });
+      }
       const profilingInput = await storage.getProfilingInput();
       const dayToRegen = (itin as any).days?.[dayIndex];
       if (!dayToRegen) return res.status(400).json({ message: "Giorno non trovato" });

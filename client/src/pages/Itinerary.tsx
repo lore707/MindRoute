@@ -194,7 +194,6 @@ function BookTab({ urls, region, destinationName, profilingInput, itineraryId }:
 function OverviewTab({ itinerary }: { itinerary: any }) {
   return (
     <div style={{ padding: "16px 14px 24px" }}>
-      <div style={{ fontSize: 17, fontWeight: 700, color: "white", fontFamily: "Georgia, serif", marginBottom: 16 }}>Panoramica</div>
       {itinerary.budgetSummary && (
         <div style={{ background: "rgba(233,69,96,0.06)", border: "1px solid rgba(233,69,96,0.15)", borderRadius: 14, padding: "14px", marginBottom: 10 }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.5)", marginBottom: 10 }}>💰 Budget stimato</div>
@@ -287,23 +286,6 @@ function OverviewTab({ itinerary }: { itinerary: any }) {
           })()}
         </div>
       )}
-      {itinerary.days && (
-        <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden", marginBottom: 10, height: 260 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", padding: "12px 14px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>🗺 Mappa destinazione</div>
-          <ItineraryMap days={itinerary.days} destinationName={itinerary.destinationName ?? ""} />
-        </div>
-      )}
-      <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: "14px" }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 10 }}>💡 Da sapere</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {[{ emoji: "💳", text: "Controlla se serve il visto" }, { emoji: "📱", text: "Attiva il roaming o compra una SIM locale" }, { emoji: "🏥", text: "Verifica la tua assicurazione viaggio" }, { emoji: "🔌", text: "Controlla il tipo di presa elettrica" }].map((tip, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.02)" }}>
-              <span style={{ fontSize: 13 }}>{tip.emoji}</span>
-              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}>{tip.text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -372,11 +354,60 @@ function buildMoments(day: any, t: (k: string) => string): CinMoment[] {
   return moments;
 }
 
+// v2 — MomentV2[] → CinMoment[]. The cinematic component's moment shape is
+// intentionally smaller than MomentV2; we surface title_evocative + description
+// + a booking CTA, and drop transport/plan_b/weather (no UI slot for them yet).
+const MOMENT_TYPE_ICONS: Record<string, string> = {
+  transport: "✈️",
+  accommodation: "🏨",
+  food: "🍽",
+  experience: "🎟",
+  walk: "🚶",
+  view: "🌅",
+  rest: "☕",
+};
+function buildMomentsV2(day: any, t: (k: string) => string): CinMoment[] {
+  const moments: any[] = Array.isArray(day?.moments) ? day.moments : [];
+  const slotLabel = (timeLabel: string): string => {
+    switch (timeLabel) {
+      case "morning": return t('itin.morning');
+      case "lunch": return t('itin.lunch');
+      case "afternoon": return t('itin.afternoon');
+      case "evening": return t('itin.evening');
+      case "night": return t('itin.evening');
+      default: return timeLabel ?? "";
+    }
+  };
+  return moments.map((m) => {
+    const title = m.title_evocative || m.title_operational || "";
+    const desc = m.description || m.why_this || "";
+    const booking = m.booking;
+    const bookable = booking && (booking.status === "bookable_now" || booking.status === "reserve_recommended");
+    return {
+      t: slotLabel(m.time_label),
+      ic: MOMENT_TYPE_ICONS[m.type] ?? "✦",
+      title,
+      desc,
+      cta: bookable ? (booking.display_label || t('itin.cin.book')) : undefined,
+      ctaUrl: bookable ? booking.affiliate_url : undefined,
+      // Pass-through dei campi v2 necessari al bookmark (Ondata B).
+      id: m.id,
+      type: m.type,
+      locationName: m.location_name,
+      imageUrl: m.image_url,
+      dayNumber: day?.day_number,
+    } as CinMoment;
+  });
+}
+
 function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang: "en" | "it"): ItineraryData {
+  const isV2 = itinerary?.schemaVersion === 2;
+  const tripMeta = itinerary?.tripMeta ?? null;
+
   const destinationFull = itinerary?.destinationName ?? "";
   const parts = destinationFull.split(",").map((s: string) => s.trim()).filter(Boolean);
   const destinationCity = parts[0] ?? destinationFull;
-  const country = parts.slice(1).join(", ");
+  const country = itinerary?.country ?? parts.slice(1).join(", ");
 
   const days = (itinerary?.days ?? []) as any[];
   const dayCount = days.length;
@@ -389,37 +420,61 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
 
   const duration = `${dayCount} ${dayCount === 1 ? t('itin.cin.duration.day') : t('itin.cin.duration.days')}`;
 
-  const rawHighlights = (itinerary?.highlights ?? []) as string[];
-  const highlights: CinHighlight[] = rawHighlights.slice(0, 6).map((h, i) => ({
-    ic: HIGHLIGHT_ICONS[i % HIGHLIGHT_ICONS.length],
-    name: h,
-    desc: "",
-  }));
+  // v2 highlights live in tripMeta.highlights_v2 ({icon, name, description});
+  // v1 highlights are a plain string[] in itinerary.highlights.
+  let highlights: CinHighlight[];
+  if (isV2 && Array.isArray(tripMeta?.highlights_v2)) {
+    highlights = tripMeta.highlights_v2.slice(0, 6).map((h: any, i: number) => ({
+      ic: h.icon || HIGHLIGHT_ICONS[i % HIGHLIGHT_ICONS.length],
+      name: h.name ?? "",
+      desc: h.description ?? "",
+    }));
+  } else {
+    const rawHighlights = (itinerary?.highlights ?? []) as string[];
+    highlights = rawHighlights.slice(0, 6).map((h, i) => ({
+      ic: HIGHLIGHT_ICONS[i % HIGHLIGHT_ICONS.length],
+      name: h,
+      desc: "",
+    }));
+  }
 
   const cinDays: CinDay[] = days.map((d, i) => ({
-    n: d.dayNumber ?? i + 1,
-    arc: dayArc(i, dayCount, t),
-    title: d.title ?? "",
-    sub: firstSentence(d.morning ?? "", 12),
-    img: d.dayImageUrl ?? "",
+    n: (isV2 ? d.day_number : d.dayNumber) ?? i + 1,
+    arc: isV2 ? (d.arc || dayArc(i, dayCount, t)) : dayArc(i, dayCount, t),
+    title: (isV2 ? d.title_evocative : d.title) ?? "",
+    sub: isV2 ? (d.subtitle ?? "") : firstSentence(d.morning ?? "", 12),
+    img: (isV2 ? d.hero_image_url : d.dayImageUrl) ?? "",
   }));
 
   const momentsByDay: Record<number, CinMoment[]> = {};
   for (let i = 0; i < days.length; i++) {
     const d = days[i];
-    momentsByDay[d.dayNumber ?? i + 1] = buildMoments(d, t);
+    const key = (isV2 ? d.day_number : d.dayNumber) ?? i + 1;
+    momentsByDay[key] = isV2 ? buildMomentsV2(d, t) : buildMoments(d, t);
   }
 
+  // map_points: v2 keeps them at the top level inside tripMeta (lat/lng), v1
+  // attaches them per-day. Both get projected into the cinematic's 60–340 box.
   let mapPoints: ItineraryData["mapPoints"];
   const allPoints: { lat: number; lng: number; label: string }[] = [];
   const seen = new Set<string>();
-  for (const d of days) {
-    for (const p of (d.mapPoints ?? []) as any[]) {
+  if (isV2 && Array.isArray(tripMeta?.map_points)) {
+    for (const p of tripMeta.map_points as any[]) {
       if (p?.lat == null || p?.lng == null) continue;
       const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
       if (seen.has(k)) continue;
       seen.add(k);
       allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "" });
+    }
+  } else {
+    for (const d of days) {
+      for (const p of (d.mapPoints ?? []) as any[]) {
+        if (p?.lat == null || p?.lng == null) continue;
+        const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "" });
+      }
     }
   }
   if (allPoints.length > 0) {
@@ -443,6 +498,7 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
     duration,
     heroImg: itinerary?.heroImageUrl || itinerary?.imageUrl || "",
     manifesto: itinerary?.whyYours ?? "",
+    emWord: isV2 ? tripMeta?.em_word : undefined,
     highlights,
     days: cinDays,
     momentsByDay,
@@ -467,6 +523,61 @@ export default function Itinerary() {
   const [originalDays, setOriginalDays] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  // ── SAVED MOMENTS (Ondata B — bookmark trasversale) ──
+  // Fetcho lo stato all'apertura della pagina; il toggle è ottimistico:
+  // aggiorno il Set subito, poi committo al server. Se fallisce, rollback.
+  const [savedMomentIds, setSavedMomentIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!id) return;
+    fetch("/api/me/saved-moments")
+      .then(r => r.ok ? r.json() : [])
+      .then((rows: any[]) => {
+        if (!Array.isArray(rows)) return;
+        const mine = rows.filter(r => r.itineraryId === id).map(r => r.momentId);
+        setSavedMomentIds(new Set(mine));
+      })
+      .catch(() => { /* anonymous user → 401, ignore */ });
+  }, [id]);
+
+  const handleToggleSaved = useCallback(async (momentId: string, moment: CinMoment) => {
+    const isCurrentlySaved = savedMomentIds.has(momentId);
+    // Optimistic update
+    setSavedMomentIds(prev => {
+      const next = new Set(prev);
+      if (isCurrentlySaved) next.delete(momentId); else next.add(momentId);
+      return next;
+    });
+    try {
+      if (isCurrentlySaved) {
+        await fetch(`/api/me/saved-moments/${id}/${encodeURIComponent(momentId)}`, { method: "DELETE" });
+      } else {
+        await fetch("/api/me/saved-moments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itineraryId: id,
+            momentId,
+            momentSnapshot: {
+              title: moment.title,
+              image_url: moment.imageUrl ?? null,
+              location_name: moment.locationName ?? null,
+              destination_name: itinerary?.destinationName ?? null,
+              day_number: moment.dayNumber ?? null,
+              type: moment.type ?? null,
+            },
+          }),
+        });
+      }
+    } catch {
+      // Rollback on error
+      setSavedMomentIds(prev => {
+        const next = new Set(prev);
+        if (isCurrentlySaved) next.add(momentId); else next.delete(momentId);
+        return next;
+      });
+    }
+  }, [id, savedMomentIds, itinerary?.destinationName]);
 
   const hasMapPoints = itinerary?.days?.some((d: any) => d.mapPoints?.length > 0);
   const { data: mapData } = useMapPointsPolling(id, !hasMapPoints && !isLoading && !!itinerary);
@@ -555,6 +666,10 @@ export default function Itinerary() {
       <Link href="/destinations" className="btn-primary">{t('itin.return')}</Link>
     </div>
   );
+
+  // Narrow guard — the two early returns above already cover loading/error/!itinerary,
+  // but TS doesn't always carry the narrow through; this makes it explicit.
+  if (!itinerary) return null;
 
  const handleSavePdf = async () => {
     if (!itinerary) return;
@@ -646,7 +761,10 @@ export default function Itinerary() {
           onSavePdf={handleSavePdf}
           onStartOver={() => setLocation("/")}
           onBack={() => setLocation("/destinations")}
-          onEdit={enterEditMode}
+          onEdit={itinerary.schemaVersion === 2 ? undefined : enterEditMode}
+          itineraryId={itinerary.id}
+          savedMomentIds={savedMomentIds}
+          onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
         />
       </div>
     );
@@ -656,8 +774,8 @@ export default function Itinerary() {
  <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
       {/* HERO */}
       <div className="relative overflow-hidden" style={{ height: "65vh", minHeight: 420 }}>
-        {(itinerary?.heroImageUrl || itinerary?.imageUrl) ? (
-          <img src={itinerary?.heroImageUrl || itinerary?.imageUrl} alt={itinerary?.destinationName} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        {(itinerary.heroImageUrl || (itinerary as any).imageUrl) ? (
+          <img src={itinerary.heroImageUrl || (itinerary as any).imageUrl} alt={itinerary.destinationName ?? undefined} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
         ) : <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a14] to-[#0a0814]" />}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/30 to-transparent" />
         <div className="absolute top-6 left-4 md:left-10 z-20">

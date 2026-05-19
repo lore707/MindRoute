@@ -5,13 +5,18 @@ import { api } from "@shared/routes";
 import { profilingLimiter } from "../rate-limiter";
 import { generateDestinationsOnly } from "../matching-engine";
 import { fetchUnsplashHero } from "../unsplash";
+import { computeTraitVector, emaAggregate, synthesizeAnswersFromVector, MAPPING_VERSION, type TraitVector } from "@shared/traits";
+import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 
 export function registerProfilingRoutes(app: Express) {
   // STEP 1 — Genera 3 destinazioni leggere dal profiling
   app.post(api.profiling.submit.path, profilingLimiter, async (req, res) => {
     try {
       const input = api.profiling.submit.input.parse(req.body);
-      const destinations = await generateDestinationsOnly(input);
+      const userIdForPrior = (req.user as any)?.id ?? null;
+      const prior = await getTraitPriorForUser(userIdForPrior);
+      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      const destinations = await generateDestinationsOnly(input, priorBlock);
       await storage.clearAll();
       const createdDests = [];
       for (const dest of destinations) {
@@ -24,6 +29,31 @@ export function registerProfilingRoutes(app: Express) {
         createdDests.push(created);
       }
       await storage.saveProfilingInput(input);
+
+      // Trait snapshot — only if user is logged in. Anonymous quizzes can't
+      // build a history (no userId), so we just skip silently.
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        try {
+          const traits = computeTraitVector({
+            answers: input.answers ?? [],
+            companions: input.companions ?? null,
+            budget: input.budget ?? null,
+            travelStyle: input.travelStyle ?? null,
+            constraints: input.constraints ?? null,
+          });
+          await storage.createTraitSnapshot({
+            userId,
+            traits,
+            source: "quiz",
+            mappingVersion: MAPPING_VERSION,
+          });
+        } catch (e) {
+          // Trait snapshot is non-critical — never fail the quiz submit.
+          console.warn("[traits] quiz snapshot failed:", e);
+        }
+      }
+
       res.json(createdDests);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -34,6 +64,89 @@ export function registerProfilingRoutes(app: Express) {
       }
       console.error("Error generating destinations:", err);
       return res.status(500).json({ message: "Errore nella generazione delle destinazioni. Riprova." });
+    }
+  });
+
+  // STEP 1bis — "Genera dal profilo" (Ondata C punto 3).
+  // Bypass del quiz per utenti che hanno già un trait history significativo:
+  // 3 micro-input contestuali (compagnia, durata, partenza) + il vector
+  // aggregato sintetizzato in chip → matching engine. Salva uno snapshot
+  // "pick" implicito così l'evoluzione del profilo continua.
+  const fromProfileSchema = z.object({
+    days: z.number().int().min(2).max(21),
+    leaveDate: z.string(),
+    departure: z.string(),
+    budget: z.string(),
+    companions: z.string().optional(),
+    constraints: z.string().optional(),
+    travelStyle: z.string().optional(),
+    lang: z.string().optional(),
+  });
+
+  app.post("/api/profiling/from-profile", profilingLimiter, async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Devi essere loggato per usare 'Genera dal profilo'" });
+    try {
+      const micro = fromProfileSchema.parse(req.body);
+
+      // Aggrega tutti gli snapshot validi → vector corrente.
+      const snapshots = await storage.getTraitSnapshots(user.id);
+      const validVectors = snapshots
+        .filter(s => s.mappingVersion === MAPPING_VERSION)
+        .map(s => s.traits as TraitVector);
+      if (validVectors.length < 2) {
+        return res.status(400).json({
+          message: "Servono almeno 2 viaggi precedenti per generare dal profilo. Fai il quiz.",
+        });
+      }
+      const current = emaAggregate(validVectors);
+      const synthesized = synthesizeAnswersFromVector(current);
+
+      // Costruisco un ProfilingRequest valido riempiendo answers[] dalla sintesi.
+      const input = {
+        ...micro,
+        answers: synthesized,
+      };
+
+      const prior = await getTraitPriorForUser(user.id);
+      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      const destinations = await generateDestinationsOnly(input, priorBlock);
+      await storage.clearAll();
+      const createdDests = [];
+      for (const dest of destinations) {
+        const realImage = await fetchUnsplashHero(dest.name);
+        const destWithImage = {
+          ...dest,
+          imageUrl: realImage?.url ?? dest.imageUrl,
+        };
+        const created = await storage.createDestination(destWithImage);
+        createdDests.push(created);
+      }
+      await storage.saveProfilingInput(input);
+
+      // Snapshot derivato dal vector (non dal quiz) — flag come "quiz" per
+      // compatibilità ma il signal è chiaramente l'aggregato.
+      try {
+        await storage.createTraitSnapshot({
+          userId: user.id,
+          traits: current,
+          source: "quiz",
+          mappingVersion: MAPPING_VERSION,
+        });
+      } catch (e) {
+        console.warn("[traits] from-profile snapshot failed:", e);
+      }
+
+      res.json(createdDests);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      console.error("Error generating from profile:", err);
+      return res.status(500).json({ message: "Errore nella generazione dal profilo." });
     }
   });
 

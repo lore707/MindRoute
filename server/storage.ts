@@ -1,4 +1,4 @@
-import type { Destination, Itinerary, InsertDestination, InsertItinerary } from "@shared/schema";
+import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment } from "@shared/schema";
 
 export interface IStorage {
   getDestinations(): Promise<Destination[]>;
@@ -12,6 +12,11 @@ export interface IStorage {
   getItineraryById(id: number): Promise<Itinerary | undefined>;
  updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
   getUserItineraries(userId: number): Promise<any[]>;
+  createTraitSnapshot(snapshot: InsertTraitSnapshot): Promise<TraitSnapshot>;
+  getTraitSnapshots(userId: number): Promise<TraitSnapshot[]>;
+  getSavedMoments(userId: number): Promise<SavedMoment[]>;
+  createSavedMoment(row: InsertSavedMoment): Promise<SavedMoment>;
+  deleteSavedMoment(userId: number, itineraryId: number, momentId: string): Promise<void>;
 }
 
 export class MemoryStorage implements IStorage {
@@ -30,7 +35,7 @@ export class MemoryStorage implements IStorage {
   }
 
   async createDestination(destination: InsertDestination): Promise<Destination> {
-    const newDest: Destination = { ...destination, id: this.destIdCounter++ };
+    const newDest: Destination = { ...destination, id: this.destIdCounter++, imageUrl: destination.imageUrl ?? null };
     this.destinations.push(newDest);
     return newDest;
   }
@@ -40,7 +45,7 @@ export class MemoryStorage implements IStorage {
   }
 
   async createItinerary(itinerary: InsertItinerary): Promise<Itinerary> {
-    const newItin: Itinerary = { ...itinerary, id: this.itinIdCounter++ };
+    const newItin = { ...itinerary, id: this.itinIdCounter++ } as Itinerary;
     this.itineraries.push(newItin);
     return newItin;
   }
@@ -71,6 +76,47 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
 
   async getUserItineraries(userId: number): Promise<any[]> {
     return this.itineraries.filter(i => (i as any).userId === userId);
+  }
+
+  private traitSnapshots: TraitSnapshot[] = [];
+  private traitIdCounter = 1;
+  async createTraitSnapshot(snapshot: InsertTraitSnapshot): Promise<TraitSnapshot> {
+    const row: TraitSnapshot = {
+      id: this.traitIdCounter++,
+      createdAt: new Date(),
+      sourceItineraryId: snapshot.sourceItineraryId ?? null,
+      ...snapshot,
+    } as TraitSnapshot;
+    this.traitSnapshots.push(row);
+    return row;
+  }
+  async getTraitSnapshots(userId: number): Promise<TraitSnapshot[]> {
+    return this.traitSnapshots
+      .filter(s => s.userId === userId)
+      .sort((a, b) => +a.createdAt - +b.createdAt);
+  }
+
+  private savedMoments: SavedMoment[] = [];
+  private savedMomentIdCounter = 1;
+  async getSavedMoments(userId: number): Promise<SavedMoment[]> {
+    return this.savedMoments
+      .filter(s => s.userId === userId)
+      .sort((a, b) => +b.createdAt - +a.createdAt);
+  }
+  async createSavedMoment(row: InsertSavedMoment): Promise<SavedMoment> {
+    const saved: SavedMoment = {
+      id: this.savedMomentIdCounter++,
+      createdAt: new Date(),
+      momentSnapshot: row.momentSnapshot ?? null,
+      ...row,
+    } as SavedMoment;
+    this.savedMoments.push(saved);
+    return saved;
+  }
+  async deleteSavedMoment(userId: number, itineraryId: number, momentId: string): Promise<void> {
+    this.savedMoments = this.savedMoments.filter(s =>
+      !(s.userId === userId && s.itineraryId === itineraryId && s.momentId === momentId)
+    );
   }
 }
 import { DatabaseStorage } from "./storage-db";

@@ -1,7 +1,22 @@
 {
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
-      "Bash(xargs wc *)"
+      "Bash",
+      "Write",
+      "Edit",
+      "Read",
+      "Glob",
+      "Grep",
+      "PowerShell",
+      "Skill",
+      "Agent",
+      "TaskCreate",
+      "TaskUpdate",
+      "TaskList",
+      "TaskGet",
+      "WebFetch",
+      "WebSearch"
     ]
   }
 }

@@ -3,7 +3,20 @@ import { useI18n } from "@/lib/i18n";
 
 export type Highlight = { ic: string; name: string; desc: string };
 export type Day = { n: number; arc: string; title: string; sub: string; img: string };
-export type Moment = { t: string; ic: string; title: string; desc: string; cta?: string; ctaUrl?: string };
+export type Moment = {
+  t: string;
+  ic: string;
+  title: string;
+  desc: string;
+  cta?: string;
+  ctaUrl?: string;
+  // v2 only — usato per il bookmark trasversale (Ondata B). Assente nei v1.
+  id?: string;
+  type?: string;
+  locationName?: string;
+  imageUrl?: string;
+  dayNumber?: number;
+};
 
 export type ItineraryData = {
   destination: string;
@@ -34,20 +47,28 @@ export type ItineraryCinematicProps = {
   onEdit?: () => void;
   /** @deprecated Prefer `practicalSection` + `bookingSection`. Kept for callers not yet migrated. */
   extraSections?: ReactNode;
+  // Bookmark trasversale (Ondata B). Passare tutti e tre per attivare il cuore
+  // sui moment v2; assenti → nessun cuore (modalità v1 / anonimo / read-only).
+  itineraryId?: number;
+  savedMomentIds?: Set<string>;
+  onToggleSaved?: (momentId: string, moment: Moment) => void;
 };
 
-export function ItineraryCinematic({ data, tripGlance, practicalSection, bookingSection, onSavePdf, onStartOver, onBack, onEdit, extraSections }: ItineraryCinematicProps) {
+type TabId = "itinerary" | "practical" | "booking";
+
+export function ItineraryCinematic({ data, tripGlance, practicalSection, bookingSection, onSavePdf, onStartOver, onBack, onEdit, extraSections, itineraryId, savedMomentIds, onToggleSaved }: ItineraryCinematicProps) {
   const { t } = useI18n();
   const [activeDay, setActiveDay] = useState(data.days[0]?.n ?? 1);
   const [activeMoment, setActiveMoment] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>("itinerary");
   const moments = data.momentsByDay[activeDay] ?? [];
   const currentDay = data.days.find(d => d.n === activeDay) ?? data.days[0];
   const currentMoment = moments[activeMoment] ?? moments[0];
 
-  // Sticky TOC and mobile bottom action appear only after the user has scrolled
-  // past the hero. We use a small threshold (400px) — IntersectionObserver would
-  // be more accurate but adds setup cost for a one-axis scroll.
+  // Sticky tab bar and mobile bottom action appear only after the user has
+  // scrolled past the hero. A small threshold (400px) is enough for this
+  // single-axis layout — no need for IntersectionObserver setup cost.
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 400);
     onScroll();
@@ -55,16 +76,22 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const jumpTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
+  const tabs: Array<{ id: TabId; label: string; show: boolean }> = ([
+    { id: "itinerary", label: t("itin.cin.tab.itinerary"), show: data.days.length > 0 },
+    { id: "practical", label: t("itin.cin.tab.practical"), show: !!practicalSection },
+    { id: "booking", label: t("itin.cin.tab.booking"), show: !!bookingSection },
+  ] as Array<{ id: TabId; label: string; show: boolean }>).filter(tab => tab.show);
 
-  const tocItems = [
-    { id: "ic-arc", label: t("itin.cin.toc.arc"), show: data.days.length > 0 },
-    { id: "ic-map", label: t("itin.cin.toc.map"), show: !!data.mapPoints?.length },
-    { id: "ic-practical", label: t("itin.cin.toc.practical"), show: !!practicalSection },
-    { id: "ic-booking", label: t("itin.cin.toc.book"), show: !!bookingSection },
-  ].filter(item => item.show);
+  const selectTab = (id: TabId) => {
+    setActiveTab(id);
+    // Scroll back near the tab bar so the new content starts in the viewport
+    // instead of leaving the user mid-page after a tab switch.
+    if (typeof window !== "undefined") {
+      const hero = document.querySelector(".vA .hero") as HTMLElement | null;
+      const heroBottom = hero ? hero.offsetTop + hero.offsetHeight - 80 : 0;
+      window.scrollTo({ top: heroBottom, behavior: "smooth" });
+    }
+  };
 
   const renderManifesto = () => {
     if (!data.emWord || !data.manifesto.includes(data.emWord)) return data.manifesto;
@@ -102,14 +129,22 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
           shape (duration, budget, period) without scrolling further. */}
       {tripGlance && <div className="trip-glance">{tripGlance}</div>}
 
-      {/* STICKY TOC — chips appear after hero, jump to anchored sections.
-          Mobile-first quick-nav so the user doesn't have to scroll-hunt. */}
-      {tocItems.length > 0 && (
-        <nav className={"ic-sticky-toc" + (scrolled ? " visible" : "")} aria-label="Section navigation">
-          <div className="ic-sticky-toc-inner">
-            {tocItems.map(item => (
-              <button key={item.id} className="ic-toc-chip" onClick={() => jumpTo(item.id)}>
-                {item.label}
+      {/* TAB BAR — three top-level sections (Itinerary / Practical / Booking).
+          Inline under the hero on first render; becomes sticky once the user
+          scrolls past the hero so it stays available without competing visually
+          with the hero photo. */}
+      {tabs.length > 0 && (
+        <nav className={"ic-tab-bar" + (scrolled ? " sticky" : "")} aria-label="Itinerary sections">
+          <div className="ic-tab-bar-inner" role="tablist">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                className={"ic-tab" + (activeTab === tab.id ? " active" : "")}
+                onClick={() => selectTab(tab.id)}
+              >
+                {tab.label}
               </button>
             ))}
           </div>
@@ -117,7 +152,7 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
       )}
 
       {/* MANIFESTO */}
-      {(data.manifesto || data.highlights.length > 0) && (
+      {activeTab === "itinerary" && (data.manifesto || data.highlights.length > 0) && (
         <section className="manifesto">
           <div className="ic-container">
             <div className="manifesto-grid">
@@ -148,6 +183,7 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
       )}
 
       {/* TIMELINE / Chapters */}
+      {activeTab === "itinerary" && (
       <section id="ic-arc" className="timeline">
         <div className="ic-container">
           <div className="timeline-head">
@@ -173,9 +209,10 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
           </div>
         </div>
       </section>
+      )}
 
       {/* DAY DETAIL */}
-      {currentDay && (
+      {activeTab === "itinerary" && currentDay && (
         <section className="detail">
           <div className="ic-container">
             <div className="detail-grid">
@@ -196,7 +233,39 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
                 </div>
                 {currentMoment && (
                   <>
-                    <h3 className="detail-title">{currentMoment.title}</h3>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                      <h3 className="detail-title" style={{ flex: 1 }}>{currentMoment.title}</h3>
+                      {/* Cuore bookmark — solo v2 + props passati. Toggle ottimistico:
+                          il parent aggiorna savedMomentIds e committa al server. */}
+                      {onToggleSaved && itineraryId && currentMoment.id && (() => {
+                        const isSaved = savedMomentIds?.has(currentMoment.id) ?? false;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => onToggleSaved(currentMoment.id!, currentMoment)}
+                            aria-label={isSaved ? "Rimuovi dai momenti salvati" : "Salva questo momento"}
+                            title={isSaved ? "Salvato — clicca per rimuovere" : "Salva questo momento"}
+                            style={{
+                              flexShrink: 0,
+                              width: 40,
+                              height: 40,
+                              borderRadius: 999,
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              background: isSaved ? "rgba(233,69,96,0.15)" : "rgba(255,255,255,0.04)",
+                              color: isSaved ? "#E94560" : "rgba(245,240,238,0.5)",
+                              cursor: "pointer",
+                              fontSize: 18,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              transition: "all 0.18s ease",
+                            }}
+                          >
+                            {isSaved ? "♥" : "♡"}
+                          </button>
+                        );
+                      })()}
+                    </div>
                     <p className="detail-desc">{currentMoment.desc}</p>
                     {currentMoment.cta && (
                       currentMoment.ctaUrl ? (
@@ -224,7 +293,7 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
       )}
 
       {/* MAP CHAPTER */}
-      {data.mapPoints && data.mapPoints.length > 0 && (
+      {activeTab === "itinerary" && data.mapPoints && data.mapPoints.length > 0 && (
         <section id="ic-map" className="map-ch">
           <div className="ic-container">
             <div className="map-grid">
@@ -254,7 +323,7 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
       )}
 
       {/* PRACTICAL — own chapter for budget/packing/best-time/getting-there */}
-      {practicalSection && (
+      {activeTab === "practical" && practicalSection && (
         <section id="ic-practical" className="chapter-section">
           <div className="ic-container">
             <div className="chapter-head">
@@ -267,7 +336,7 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
       )}
 
       {/* BOOKING — own chapter for affiliate links */}
-      {bookingSection && (
+      {activeTab === "booking" && bookingSection && (
         <section id="ic-booking" className="chapter-section">
           <div className="ic-container">
             <div className="chapter-head">
@@ -294,7 +363,8 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
         </section>
       )}
 
-      {/* CLOSING */}
+      {/* CLOSING — narrative end of the Itinerary tab */}
+      {activeTab === "itinerary" && (
       <section className="closing">
         <div className="ic-container">
           {data.closingQuote && <p className="closing-quote">"{data.closingQuote}"</p>}
@@ -304,6 +374,7 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
           </div>
         </div>
       </section>
+      )}
 
       {/* MOBILE STICKY BOTTOM — persistent PDF action; shown only after hero on
           small screens (display:none above 720px via CSS). */}

@@ -15,6 +15,7 @@ const [isGenerating, setIsGenerating] = useState(false);
   const [genHeroUrl, setGenHeroUrl] = useState("");
   const [genDestName, setGenDestName] = useState("");
   const [, setLocation] = useLocation();
+  const useV2 = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("v2") === "1";
 
   useEffect(() => {
     const stored = getStoredDestinations();
@@ -74,6 +75,30 @@ const handleContinue = async () => {
         msgIdx = Math.min(msgIdx + 1, messages.length - 1);
         setGenMessage(messages[msgIdx]);
       }, 12000);
+
+      // v2 path: non-streaming endpoint. We rotate the same loading messages
+      // off the interval since there's no per-stage SSE progress event yet.
+      if (useV2) {
+        try {
+          const v2Res = await fetch("/api/itinerary/generate-v2", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              input: inputWithLang,
+              destinationName: selectedDest.name,
+              destinationId: selectedId,
+            }),
+          });
+          if (!v2Res.ok) throw new Error("Errore generazione v2");
+          const v2Data = await v2Res.json();
+          clearInterval(msgInterval);
+          setLocation(`/itinerary/${v2Data.id ?? selectedId}`);
+          return;
+        } catch (err) {
+          clearInterval(msgInterval);
+          throw err;
+        }
+      }
 
       const res = await fetch("/api/itinerary/generate-stream", {
         method: "POST",

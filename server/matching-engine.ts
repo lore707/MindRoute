@@ -15,11 +15,11 @@ export const BUDGET_MAP: Record<string, string> = {
   "Money's not an issue":       "unlimited budget, aim for luxury and quality in every choice",
 };
 
-const client = new Anthropic({
+export const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-interface ProfilingInput {
+export interface ProfilingInput {
   answers: string[];
   budget: string;
   departure: string;
@@ -118,7 +118,7 @@ function buildCheckinCheckout(leaveDate: string, days: number): {
   }
 }
 
-function buildPrompt(input: ProfilingInput): string {
+export function buildPrompt(input: ProfilingInput, priorBlock = ""): string {
   const rawAnswers =
     input.answers[0] === "path_a" || input.answers[0] === "path_b"
       ? input.answers.slice(1)
@@ -165,7 +165,7 @@ Travel style preference: ${travelStyle}
 Constraints & preferences: ${input.constraints || "none"}
 ${structuredProfileBlock ? `Structured profile (JSON):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 ${(input as any)._destinationOverride ? `\nDESTINATION ALREADY CHOSEN: ${(input as any)._destinationOverride} — generate the itinerary ONLY for this specific destination. Do not suggest alternatives.` : ''}
-
+${priorBlock}
 TASK: Generate exactly 1 perfectly personalized destination with a ${days}-day itinerary.
 
 ═══════════════════════════════════════
@@ -734,7 +734,7 @@ Generate exactly ${days} days in the itinerary.
 CRITICAL: Respond ONLY with the JSON object. No text before or after. No explanations. Start with { end with }. Pure JSON only.`;
 }
 
-export async function generateDestinationsOnly(input: ProfilingInput): Promise<GeneratedDestination[]> {
+export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = ""): Promise<GeneratedDestination[]> {
   const rawAnswers = input.answers[0] === "path_a" || input.answers[0] === "path_b"
     ? input.answers.slice(1) : input.answers;
 
@@ -766,7 +766,7 @@ Budget: ${budgetText}
 Departing from: ${input.departure} | Period: ${input.leaveDate} | Days: ${input.days}
 Travel companions: ${input.companions || "not specified"}
 ${structuredProfileBlock ? `Structured profile:\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
-
+${priorBlock}
 ═══════════════════════════════════════
 STEP 0 — EXTRACT CHIPS + INFER TILT (do this first, verbatim, internal)
 ═══════════════════════════════════════
@@ -1078,12 +1078,13 @@ export async function generateItineraryStreamingStructured(
   input: ProfilingInput,
   destinationName: string,
   onDay: (day: any) => void,
-  onMeta: (meta: any) => void
+  onMeta: (meta: any) => void,
+  priorBlock = ""
 ): Promise<void> {
   const days = Math.min(input.days, 14);
   const { checkin, checkout, checkinCompact, checkoutCompact } = buildCheckinCheckout(input.leaveDate, days);
 
-  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any);
+  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any, priorBlock);
 
   const stream = client.messages.stream({
     model: "claude-sonnet-4-6",
@@ -1268,9 +1269,10 @@ Lingua: ${lang}. Nessun testo fuori dal JSON.`;
 
 export async function generateItineraryForDestination(
   input: ProfilingInput,
-  destinationName: string
+  destinationName: string,
+  priorBlock = ""
 ): Promise<GeneratedItinerary> {
-  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any);
+  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any, priorBlock);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",

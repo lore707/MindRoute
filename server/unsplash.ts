@@ -30,7 +30,7 @@ export async function fetchUnsplashHero(destinationName: string): Promise<{ url:
     `${country} nature`.trim(),
   ].filter(q => q.length > 3);
 
-  const uniqueQueries = [...new Set(queries)];
+  const uniqueQueries = Array.from(new Set(queries));
 
   async function searchUnsplash(query: string): Promise<{ url: string; photographer: string; photographerUrl: string } | null> {
     try {
@@ -123,6 +123,54 @@ export async function fetchDayImageWithFallback(query: string | null | undefined
   }
   if (city) {
     const url = await tryQuery(`${city} travel landscape`);
+    if (url) return url;
+  }
+  return null;
+}
+
+/**
+ * Fetch a real Unsplash image for a single moment (v2 schema).
+ *
+ * Query cascade tuned for moment specificity:
+ *   1. `${city} ${location_name} ${type}` — most specific (location + activity)
+ *   2. `${city} ${location_name}` — location alone
+ *   3. `${city} ${type}` — destination + activity type
+ *   4. `${city} travel landscape` — final fallback
+ *
+ * Returns null only if all stages + all retries fail. Caller should fall back
+ * to the day's hero image so the moment never renders without a photo.
+ */
+export async function fetchMomentImage(
+  locationName: string | null | undefined,
+  type: string | null | undefined,
+  destinationName: string,
+): Promise<string | null> {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  if (!key) return null;
+  const city = (destinationName || "").split(",")[0].trim();
+
+  // Build a moment-specific query. Map abstract types to query words that
+  // Unsplash actually has photos for ("rest" and "walk" return junk; biased
+  // alternatives below land on usable scenes).
+  const typeQueryMap: Record<string, string> = {
+    transport: "airport flight",
+    accommodation: "hotel room",
+    food: "restaurant food",
+    experience: "tour activity",
+    walk: "street neighborhood",
+    view: "viewpoint sunset",
+    rest: "cafe relaxation",
+  };
+  const typeQuery = type ? (typeQueryMap[type] ?? type) : "";
+
+  const queries: string[] = [];
+  if (city && locationName) queries.push(`${city} ${locationName} ${typeQuery}`.trim());
+  if (city && locationName) queries.push(`${city} ${locationName}`.trim());
+  if (city && typeQuery) queries.push(`${city} ${typeQuery}`.trim());
+  queries.push(`${city} travel landscape`.trim());
+
+  for (const q of queries.filter(s => s.length > 3)) {
+    const url = await fetchDayImageWithFallback(q, destinationName);
     if (url) return url;
   }
   return null;
