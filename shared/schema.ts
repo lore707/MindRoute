@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, jsonb, timestamp, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, timestamp, real, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -253,3 +253,11 @@ export const profilingRequestSchema = z.object({
   lang: z.string().optional(),
 });
 export type ProfilingRequest = z.infer<typeof profilingRequestSchema>;
+// Session storage for connect-pg-simple.
+// Managed by the express-session middleware, NOT by Drizzle migrations.
+// Declared here only so drizzle-kit doesn't try to drop it during db:push.
+export const session = pgTable("session", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire", { precision: 6 }).notNull(),
+});
