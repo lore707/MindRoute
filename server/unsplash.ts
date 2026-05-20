@@ -177,6 +177,58 @@ export async function fetchMomentImage(
 }
 
 /**
+ * Search Unsplash and return multiple distinct photos, filtering out any photo
+ * IDs already used. Used by the landing-images pipeline to guarantee zero
+ * duplicates across the page even when adjacent queries return overlapping
+ * results.
+ *
+ * Returns shape includes the photo `id` so the caller can track which photos
+ * are already taken across the full landing build.
+ */
+export async function searchUnsplashMulti(
+  query: string,
+  excludeIds: ReadonlySet<string>,
+  perPage = 8,
+): Promise<Array<{ id: string; url: string; photographer: string; photographerUrl: string }>> {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  if (!key) return [];
+  const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=${perPage}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const r = await fetch(url, { headers: { Authorization: `Client-ID ${key}` } });
+      if (r.ok) {
+        const d = await r.json();
+        const photos = (d.results ?? []) as Array<any>;
+        return photos
+          .map(p => ({
+            id: p.id as string,
+            url: (p.urls?.regular ?? p.urls?.full) as string,
+            photographer: (p.user?.name ?? "Unknown") as string,
+            photographerUrl: (p.user?.links?.html ?? "https://unsplash.com") as string,
+          }))
+          .filter(p => !!p.id && !!p.url && !excludeIds.has(p.id));
+      }
+      if (r.status === 429 || r.status >= 500) {
+        if (attempt < 2) {
+          await new Promise(res => setTimeout(res, 800 * Math.pow(2, attempt)));
+          continue;
+        }
+        console.warn(`[unsplash] multi-search ${r.status} on "${query}" — gave up`);
+      }
+      return [];
+    } catch (e) {
+      if (attempt < 2) {
+        await new Promise(res => setTimeout(res, 800 * Math.pow(2, attempt)));
+        continue;
+      }
+      console.warn(`[unsplash] multi-search network error on "${query}":`, e instanceof Error ? e.message : e);
+      return [];
+    }
+  }
+  return [];
+}
+
+/**
  * Run async tasks with a bounded concurrency cap, instead of `Promise.all` which
  * fires them all simultaneously. Used to avoid burst-rate-limiting Unsplash with
  * 7 day-image fetches in parallel — at 3-wide we stagger naturally over ~1.5s

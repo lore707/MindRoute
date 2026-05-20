@@ -74,6 +74,19 @@ export function LandingCinematic({ data }: { data: LandingData }) {
     return () => { window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
   }, []);
 
+  // Preload — decode hero + final photos in the background so the crossfade
+  // never shows a blank/black flash. Browsers cache the bytes; second paint is
+  // instant. Limited to hero+final because those are the slots that auto-cycle;
+  // steps/destinations are static so the browser already lazy-loads them.
+  useEffect(() => {
+    const toPreload = [...data.heroPhotos.map(p => p.img), ...data.finalPhotos.map(p => p.img)];
+    toPreload.forEach(src => {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = src;
+    });
+  }, [data.heroPhotos, data.finalPhotos]);
+
   // Float particles for final
   const particles = useMemo(() => {
     const arr: Array<{ x: number; sz: number; dur: number; dl: number; dx: number; accent: boolean }> = [];
@@ -351,35 +364,46 @@ export function LandingCinematic({ data }: { data: LandingData }) {
 }
 
 /* ───────────────────────────────────────────────────────────────
-   DEFAULT DATA — replace with real itinerary data from your backend
+   DEFAULT / FALLBACK DATA — every photo ID is UNIQUE (no repeats
+   across hero/steps/destinations/final). Used as initial render
+   before /api/landing-images responds and as final safety net if
+   the endpoint errors. ?crop=entropy picks the photo's most visually
+   interesting region — avoids dead-center crops with sky-only frames.
    ─────────────────────────────────────────────────────────────── */
+const u = (id: string, w = 1600) =>
+  `https://images.unsplash.com/photo-${id}?w=${w}&fit=crop&crop=entropy&auto=format&q=80`;
+
 export const DEFAULT_LANDING_DATA: LandingData = {
   heroPhotos: [
-    { img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=2000&auto=format", name: "Paris", country: "France", mood: "Romantic" },
-    { img: "https://images.unsplash.com/photo-1539020140153-e8c237425f3a?w=2000&auto=format", name: "Chefchaouen", country: "Morocco", mood: "Quiet" },
-    { img: "https://images.unsplash.com/photo-1518710843675-2540dd79065c?w=2000&auto=format", name: "Iceland", country: "Reykjavik", mood: "Wild" },
-    { img: "https://images.unsplash.com/photo-1537956965359-7573183d1f57?w=2000&auto=format", name: "Bali", country: "Indonesia", mood: "Slow" },
-    { img: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=2000&auto=format", name: "Procida", country: "Italy", mood: "Authentic" },
+    { img: u("1493976040374-85c8e12f0c0e", 2000), name: "Kyoto",     country: "Japan",     mood: "Contemplative" },
+    { img: u("1502786129293-79981df4e689", 2000), name: "Lofoten",   country: "Norway",    mood: "Wild" },
+    { img: u("1531168556467-80aace0d0144", 2000), name: "Patagonia", country: "Argentina", mood: "Untamed" },
+    { img: u("1523906834658-6e24ef2386f9", 2000), name: "Procida",   country: "Italy",     mood: "Authentic" },
+    { img: u("1540959733332-eab4deabeeaf", 2000), name: "Tokyo",     country: "Japan",     mood: "Electric" },
   ],
-  marquee: ["Tokyo", "Reykjavik", "Marrakech", "Procida", "Bali", "Patagonia", "Lisbon", "Kyoto", "Faroe Islands", "Oaxaca", "Sicily", "Hanoi", "Cairo", "Cape Town", "New Orleans"],
-  manifestoBg: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=2000&auto=format",
+  marquee: [
+    "Tokyo", "Reykjavik", "Lofoten", "Procida", "Bali", "Patagonia",
+    "Lisbon", "Kyoto", "Faroe Islands", "Oaxaca", "Sicily", "Hanoi",
+    "Cairo", "Cape Town", "Lima", "Marrakech", "Samarkand", "Buenos Aires",
+  ],
+  manifestoBg: u("1469854523086-cc02fe5d8800", 2000),
   steps: [
-    { n: 1, tag: "Step 1", title: "Answer 7 questions", desc: "Not about places — about you. How do you want to feel? What do you need? What do you avoid?", img: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=1200&auto=format" },
-    { n: 2, tag: "Step 2", title: "Get your match", desc: "Three destinations chosen by feeling, not by algorithm. Each one tells you why it's yours.", img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&auto=format" },
-    { n: 3, tag: "Step 3", title: "Book the whole trip", desc: "Flights, stays, experiences. All ready, all in one place. No more jumping between ten sites.", img: "https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=1200&auto=format" },
+    { n: 1, tag: "Step 1", title: "Answer 7 questions", desc: "Not about places — about you. How do you want to feel? What do you need? What do you avoid?", img: u("1455390582262-044cdead277a", 1200) },
+    { n: 2, tag: "Step 2", title: "Get your match",     desc: "Three destinations chosen by feeling, not by algorithm. Each one tells you why it's yours.",   img: u("1524661135-423995f22d0b",  1200) },
+    { n: 3, tag: "Step 3", title: "Book the whole trip",desc: "Flights, stays, experiences. All ready, all in one place. No more jumping between ten sites.", img: u("1488646953014-85cb44e25828", 1200) },
   ],
   destinations: [
-    { name: "Procida", country: "Italy", mood: "Quiet · Authentic", size: "l", img: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=1400&auto=format" },
-    { name: "Chefchaouen", country: "Morocco", mood: "Slow · Color", size: "s", img: "https://images.unsplash.com/photo-1539020140153-e8c237425f3a?w=900&auto=format" },
-    { name: "Reykjavik", country: "Iceland", mood: "Wild · Solitude", size: "s", img: "https://images.unsplash.com/photo-1531168556467-80aace0d0144?w=900&auto=format" },
-    { name: "Ubud", country: "Bali · Indonesia", mood: "Regenerating", size: "s", img: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=900&auto=format" },
-    { name: "Patagonia", country: "Argentina", mood: "Vast · Untamed", size: "s", img: "https://images.unsplash.com/photo-1531793262751-d692fef07fcb?w=900&auto=format" },
+    { name: "Azzorre",    country: "Portogallo", mood: "Quiet · Volcanic",        size: "l", img: u("1586671267731-da2cf3ceeb80", 1400) },
+    { name: "Samarcanda", country: "Uzbekistan", mood: "Off-the-grid · Cultural", size: "s", img: u("1605649461784-edc01e2b2f4d",  900) },
+    { name: "Islanda",    country: "Iceland",    mood: "Wild · Solitude",         size: "s", img: u("1500530855697-b586d89ba3ee",  900) },
+    { name: "Alentejo",   country: "Portogallo", mood: "Slow · Pastoral",         size: "s", img: u("1568797629192-908a1c11ca80",  900) },
+    { name: "Oaxaca",     country: "Messico",    mood: "Vibrant · Authentic",     size: "s", img: u("1564507592333-c60657eea523",  900) },
   ],
-  matchPhoto: "https://images.unsplash.com/photo-1602941525421-8f8b81d3edbb?w=1400&auto=format",
+  matchPhoto: u("1602941525421-8f8b81d3edbb", 1400),
   finalPhotos: [
-    { img: "https://images.unsplash.com/photo-1505765050516-f72dcac9c60a?w=2000&auto=format", name: "Patagonia", coords: "50°26'S · 73°15'W" },
-    { img: "https://images.unsplash.com/photo-1518710843675-2540dd79065c?w=2000&auto=format", name: "Iceland", coords: "64°08'N · 21°56'W" },
-    { img: "https://images.unsplash.com/photo-1537956965359-7573183d1f57?w=2000&auto=format", name: "Bali", coords: "8°21'S · 115°11'E" },
-    { img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=2000&auto=format", name: "Paris", coords: "48°51'N · 2°21'E" },
+    { img: u("1505765050516-f72dcac9c60a", 2000), name: "Patagonia",     coords: "50°26'S · 73°15'W" },
+    { img: u("1518710843675-2540dd79065c", 2000), name: "Iceland",       coords: "64°08'N · 21°56'W" },
+    { img: u("1489493585363-d69421e0edd3", 2000), name: "Sahara",        coords: "31°N · 4°W" },
+    { img: u("1538333702852-1ce8a4cd6c54", 2000), name: "Faroe Islands", coords: "62°00'N · 6°47'W" },
   ],
 };

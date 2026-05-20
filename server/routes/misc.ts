@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { emaAggregate, AXIS_NAMES, type TraitVector, MAPPING_VERSION } from "@shared/traits";
 import { getTraitHeadline } from "../trait-headline";
 import { computeAccountInsights, continentOf, CONTINENT_LABEL_IT } from "../account-insights";
+import { getCachedLandingImageSet } from "../landing-images";
 
 export function registerMiscRoutes(app: Express) {
   // GET /api/me/trait-history — chronological snapshots + EMA-aggregated
@@ -155,6 +156,23 @@ export function registerMiscRoutes(app: Express) {
     } catch (err) {
       console.error("saved-moments DELETE error:", err);
       res.status(500).json({ message: "Errore nella rimozione" });
+    }
+  });
+
+  // Landing image set — 20 contextual photos, deduplicated, fetched fresh from
+  // Unsplash with 1h server cache. Returns the curated fallback set if the
+  // Unsplash key is missing or the API fails entirely (never 5xx).
+  app.get("/api/landing-images", async (_req, res) => {
+    try {
+      const set = await getCachedLandingImageSet();
+      // Public cache hint for CDN/browser — matches our server-side TTL.
+      res.set("Cache-Control", "public, max-age=3600, stale-while-revalidate=86400");
+      res.json(set);
+    } catch (err) {
+      console.error("landing-images error:", err);
+      // Even on unhandled error, never break the landing — caller has its own
+      // fallback in the client, but we still try to respond with something.
+      res.status(200).json(null);
     }
   });
 
