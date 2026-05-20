@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { AFFILIATES } from "./affiliate-config";
 
 export const BUDGET_MAP: Record<string, string> = {
   "low":                        "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
@@ -52,6 +53,11 @@ const generatedDestinationSchema = z.object({
   experiencePreview: z.string(),
   practicalInfo: z.string(),
   imageUrl: z.string().url(),
+  // Ruolo nella tripletta — direct = match più aderente al profilo,
+  // lateral = stessa emozione angolo diverso, surprise = predicted-positive
+  // che l'utente non avrebbe cercato. L'LLM lo dichiara esplicitamente e
+  // verifichiamo lato server che i tre valori siano una permutazione completa.
+  slotRole: z.enum(["direct", "lateral", "surprise"]).optional(),
 });
 
 const generatedItinerarySchema = z.object({
@@ -574,9 +580,9 @@ Pre-built link templates (replace CITY_NAME, CITY_SLUG, ARRIVAL_IATA):
 - Expedia packages: https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/lp/b/package-savings
 - Expedia cars: https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Cars?startDate=${checkin}&endDate=${checkout}&pickUpLocation=CITY_NAME
 - Viator: https://www.viator.com/searchResults/all?text=CITY_NAME&pid=P00293604&mcid=42383&medium=link
-- Klook: https://www.klook.com/search/?q=CITY_NAME&aid=116532
-- Civitatis: https://www.civitatis.com/it/CITY_SLUG/?aid=112605&cmp=mindroute
-- Musement: https://www.musement.com/it/CITY_SLUG/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388
+- Klook: https://www.klook.com/search/?q=CITY_NAME&aid=${AFFILIATES.klookAid}
+- Civitatis: https://www.civitatis.com/it/CITY_SLUG/?aid=${AFFILIATES.civitatisAid}&cmp=${AFFILIATES.civitatisCmp}
+- Musement: https://www.musement.com/it/CITY_SLUG/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=${AFFILIATES.musementCampaign}
 - TripAdvisor: https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME
 - Undercovertourist: https://www.kqzyfj.com/click-101710513-15733832
 - Tablet Hotels: https://www.kqzyfj.com/click-101710513-15686837
@@ -698,9 +704,9 @@ REQUIRED JSON:
           "imageQuery": "specific visual scene for this day",
           "dayImageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop",
           "affiliateLinks": {
-            "civitatis_morning": "https://www.civitatis.com/it/CITY_SLUG/?aid=112605&cmp=mindroute",
+            "civitatis_morning": "https://www.civitatis.com/it/CITY_SLUG/?aid=${AFFILIATES.civitatisAid}&cmp=${AFFILIATES.civitatisCmp}",
             "tripadvisor_lunch": "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME",
-            "civitatis_afternoon": "https://www.civitatis.com/it/CITY_SLUG/?aid=112605&cmp=mindroute",
+            "civitatis_afternoon": "https://www.civitatis.com/it/CITY_SLUG/?aid=${AFFILIATES.civitatisAid}&cmp=${AFFILIATES.civitatisCmp}",
             "tripadvisor_evening": "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME"
           },
           "affiliateLabels": {
@@ -721,9 +727,9 @@ REQUIRED JSON:
         "expedia_flights": "https://www.tkqlhce.com/click-101710513-10581071?url=...",
         "hotels": "https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=CITY_NAME&q-check-in=${checkin}&q-check-out=${checkout}",
         "tripadvisor": "https://www.tripadvisor.it/Search?q=ristoranti+CITY_NAME",
-        "civitatis_1": "https://www.civitatis.com/it/CITY_SLUG/?aid=112605&cmp=mindroute",
-        "civitatis_2": "https://www.civitatis.com/it/CITY_SLUG/?aid=112605&cmp=mindroute",
-        "musement_1": "https://www.musement.com/it/CITY_SLUG/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=mindroute-7388"
+        "civitatis_1": "https://www.civitatis.com/it/CITY_SLUG/?aid=${AFFILIATES.civitatisAid}&cmp=${AFFILIATES.civitatisCmp}",
+        "civitatis_2": "https://www.civitatis.com/it/CITY_SLUG/?aid=${AFFILIATES.civitatisAid}&cmp=${AFFILIATES.civitatisCmp}",
+        "musement_1": "https://www.musement.com/it/CITY_SLUG/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=${AFFILIATES.musementCampaign}"
       }
     }
   ]
@@ -1039,6 +1045,17 @@ REPLACE the destination if ANY of these is true:
 After replacement, re-run the check on the new destination. Only when all 3 destinations pass cleanly, emit the JSON. Never emit a destination that fails this check "because it's interesting" — interestingness is not a chip.
 
 ═══════════════════════════════════════
+STEP 5 — DECLARE SLOT ROLES (mandatory)
+═══════════════════════════════════════
+The 3 destinations are NOT three interchangeable picks. They answer three different questions about the same user. Each destination MUST be tagged with exactly ONE of these roles, and all three roles MUST appear (one each, no duplicates, no omissions):
+
+  - "direct"   = the most aligned answer to the dominant chips. If the profile says "silenzio + natura", this is the destination that says "silenzio + natura" most clearly. The user reads it and thinks: "yes, this is me."
+  - "lateral"  = same emotional core, different angle. Hits the same psychological need as "direct" but through an unexpected geography, format, or sensory register. The user reads it and thinks: "I hadn't considered this, but it fits."
+  - "surprise" = a destination the user would NOT have searched for, but which the profile vector predicts they'll love. Less obvious match on the dominant chips, but it satisfies a latent need the user didn't articulate. The user reads it and thinks: "where did this come from? I want it."
+
+Do NOT collapse "lateral" and "surprise" into "two-different-versions-of-direct". The lateral is a SIBLING of direct; the surprise is an ORTHOGONAL pick. If you can't justify the orthogonality, your surprise is wrong — go further.
+
+═══════════════════════════════════════
 RESPONSE LANGUAGE: Write all text fields in ${input.lang === 'it' ? 'Italian' : 'English'}.
 
 REQUIRED JSON — respond ONLY with this, no text outside:
@@ -1046,6 +1063,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
   "destinations": [
     {
       "name": "Specific City or Area, Country",
+      "slotRole": "direct",
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
       "whyYours": "EXACTLY 2 short sentences (~25 words) following the formula above — diagnosis + place/moment",
       "experiencePreview": "1 short evocative sentence in first person — what it FEELS like to be there",
@@ -1053,6 +1071,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
     },
     {
       "name": "Same Emotion Different Angle, Country",
+      "slotRole": "lateral",
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
       "whyYours": "EXACTLY 2 short sentences (~25 words) — diagnosis + this destination/moment that delivers the same emotional experience from a different angle",
       "experiencePreview": "1 short evocative sentence in first person",
@@ -1060,6 +1079,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
     },
     {
       "name": "Genuine Surprise, Country",
+      "slotRole": "surprise",
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
       "whyYours": "EXACTLY 2 short sentences (~25 words) — diagnosis + the surprising precise reason this destination is the right answer for this profile",
       "experiencePreview": "1 short evocative sentence in first person",
@@ -1068,23 +1088,122 @@ REQUIRED JSON — respond ONLY with this, no text outside:
   ]
 }`;
 
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 4000,
-    messages: [{ role: "user", content: prompt }],
+  const tripletSchema = z.object({
+    destinations: z.array(generatedDestinationSchema).min(3).max(3),
   });
 
-  const responseText = message.content
-    .filter((block) => block.type === "text")
-    .map((block) => (block as any).text)
-    .join("");
+  const callModel = async (extraInstruction?: string): Promise<GeneratedDestination[]> => {
+    const finalPrompt = extraInstruction
+      ? `${prompt}\n\n═══════════════════════════════════════\nIMPORTANT CORRECTION — your previous attempt was rejected:\n${extraInstruction}\nRegenerate the JSON fixing the issue. Same schema. Same language.`
+      : prompt;
+    const message = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 4000,
+      messages: [{ role: "user", content: finalPrompt }],
+    });
+    const responseText = message.content
+      .filter((block) => block.type === "text")
+      .map((block) => (block as any).text)
+      .join("");
+    const cleanJson = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    return tripletSchema.parse(JSON.parse(cleanJson)).destinations;
+  };
 
-  const cleanJson = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-  const parsed = z.object({
-    destinations: z.array(generatedDestinationSchema).min(3).max(3),
-  }).parse(JSON.parse(cleanJson));
+  // ── Slot-role enforcement ────────────────────────────────────────────────
+  // Le 3 destinazioni devono coprire direct/lateral/surprise esattamente una
+  // volta ciascuna. Se l'LLM omette il campo o ne duplica uno, prima provo
+  // a ricostruirlo per posizione (template-order fallback), poi al massimo
+  // un retry con feedback. Non blocchiamo mai la response — meglio una
+  // tripletta con ruoli inferiti che un 500.
+  const ROLE_SET: ReadonlyArray<"direct" | "lateral" | "surprise"> = ["direct", "lateral", "surprise"];
 
-  return parsed.destinations;
+  // ── Anti-bias blacklist ──────────────────────────────────────────────────
+  // L'LLM, nonostante le istruzioni del prompt, sceglie spesso queste mete
+  // come fallback "interessante ma sicuro". Sono ammesse solo come "surprise"
+  // (l'unica slot dove un'offbeat non-conforme al profilo è giustificabile),
+  // e mai più di una per tripletta. Match per substring case-insensitive sul
+  // campo `name` — copre sia "Tbilisi, Georgia" sia "Georgia, Caucaso".
+  const BLACKLIST_DEFAULTS = [
+    "tbilisi", "georgia", "marrakech", "morocco", "marocco",
+    "albania", "montenegro", "north macedonia", "macedonia",
+    "ohrid", "ksamil", "plovdiv",
+  ];
+
+  function blacklistedName(name: string): string | null {
+    const lower = name.toLowerCase();
+    return BLACKLIST_DEFAULTS.find(k => lower.includes(k)) ?? null;
+  }
+
+  function hasCompleteRoleSet(dests: GeneratedDestination[]): boolean {
+    if (dests.length !== 3) return false;
+    const roles = dests.map(d => d.slotRole).filter((r): r is "direct" | "lateral" | "surprise" =>
+      r === "direct" || r === "lateral" || r === "surprise"
+    );
+    if (roles.length !== 3) return false;
+    return new Set(roles).size === 3;
+  }
+
+  function inferRolesByPosition(dests: GeneratedDestination[]): GeneratedDestination[] {
+    // Il prompt template emette le 3 slot nell'ordine direct→lateral→surprise.
+    // Se l'LLM ha mantenuto l'ordine ma ha sbagliato/omesso il tag, ricostruisco.
+    return dests.map((d, i) => ({ ...d, slotRole: ROLE_SET[i] }));
+  }
+
+  function detectBiasViolations(dests: GeneratedDestination[]): string[] {
+    // Ritorna nomi di destinazioni che violano la blacklist. Le regole:
+    //   - più di 1 destinazione blacklistata = violazione
+    //   - 1 blacklistata, ma slotRole != "surprise" = violazione
+    //   - 0 o 1 blacklistata su slot "surprise" = ok
+    const flagged = dests
+      .map(d => ({ d, hit: blacklistedName(d.name) }))
+      .filter(x => x.hit !== null);
+    if (flagged.length === 0) return [];
+    if (flagged.length > 1) return flagged.map(x => `${x.d.name} (${x.hit})`);
+    const only = flagged[0];
+    if (only.d.slotRole && only.d.slotRole !== "surprise") {
+      return [`${only.d.name} (${only.hit}) tagged as ${only.d.slotRole}`];
+    }
+    return [];
+  }
+
+  let destinations = await callModel();
+
+  // Gate 1 — slot roles.
+  if (!hasCompleteRoleSet(destinations)) {
+    const observed = destinations.map(d => d.slotRole ?? "MISSING").join(", ");
+    try {
+      destinations = await callModel(
+        `The 3 destinations must each carry a distinct "slotRole" field with values exactly "direct", "lateral", "surprise" — one each, no duplicates, no omissions. Your previous output had: [${observed}]. Re-emit with correct slotRole tags.`,
+      );
+    } catch (e) {
+      console.warn("[matching] slotRole retry failed, falling back to position-based inference:", e);
+    }
+    if (!hasCompleteRoleSet(destinations)) {
+      destinations = inferRolesByPosition(destinations);
+    }
+  }
+
+  // Gate 2 — anti-bias. Se troppe destinazioni "default offbeat" o se quelle
+  // blacklistate occupano slot "direct"/"lateral", forza un retry esplicito.
+  // Una sola violazione retry, poi accettiamo: meglio un risultato discutibile
+  // che un 500.
+  const violations = detectBiasViolations(destinations);
+  if (violations.length > 0) {
+    console.warn("[matching] anti-bias violation:", violations);
+    try {
+      const banned = BLACKLIST_DEFAULTS.slice(0, 8).join(", ");
+      destinations = await callModel(
+        `Your previous output included these "default fallback" destinations that the prompt explicitly bans except as a genuine best-fit surprise: ${violations.join("; ")}. These places (${banned}, …) are over-used by AI travel matchers and feel generic to MindRoute users. Replace them with destinations that genuinely match this user's dominant chips. At most ONE such destination may appear, and only if tagged "surprise". Re-emit the JSON with replacements.`,
+      );
+      if (!hasCompleteRoleSet(destinations)) {
+        destinations = inferRolesByPosition(destinations);
+      }
+    } catch (e) {
+      console.warn("[matching] anti-bias retry failed, keeping original tripletta:", e);
+    }
+  }
+
+  return destinations;
 }
 
 export async function generateItineraryStreamingStructured(

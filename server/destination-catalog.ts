@@ -61,16 +61,23 @@ export interface CatalogDestination {
 }
 
 // ─── AFFILIATE LINK BUILDER ───────────────────────────────────────────────────
-const BOOKING_ID = "YOUR_BOOKING_ID";
-const GYG_ID = "YOUR_GYG_ID";
+// NOTE: questo catalogo è dead code — nessun file lo importa al di fuori di
+// se stesso. È mantenuto come reference editoriale (20 destinazioni profilate
+// con keywords/budget/seasons) ma non genera link in produzione. Per gli
+// affiliate "vivi", vedi server/affiliate-config.ts e il prompt in
+// server/matching-engine.ts.
+//
+// Booking.com e GetYourGuide rimossi dal sistema: il programma partner non
+// è stato accettato. Le funzioni qui sotto ritornano stringa vuota — i 65
+// callsites del catalogo restano sintatticamente validi ma non producono
+// URL navigabili. Nessuna pulizia ulteriore necessaria finché il catalog
+// non viene effettivamente importato.
 
-function bookingLink(city: string, budget: string = "medium"): string {
-  const priceMap: Record<string, string> = { low: "1;2", medium: "3;4", high: "4;5", unlimited: "5" };
-  const stars = priceMap[budget] || "3;4";
-  return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(city)}&nflt=class%3D${stars}&aid=${BOOKING_ID}`;
+function bookingLink(_city: string, _budget: string = "medium"): string {
+  return ""; // partner program non accettato — vedi commento sopra
 }
-function gygLink(city: string): string {
-  return `https://www.getyourguide.com/${city.toLowerCase().replace(/[^a-z]/g, "-")}/?partner_id=${GYG_ID}`;
+function gygLink(_city: string): string {
+  return ""; // partner program non accettato — vedi commento sopra
 }
 function tripadvisorLink(city: string): string {
   return `https://www.tripadvisor.com/Search?q=${encodeURIComponent(city)}`;

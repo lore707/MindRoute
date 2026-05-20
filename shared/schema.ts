@@ -9,7 +9,15 @@ export const destinations = pgTable("destinations", {
   experiencePreview: text("experience_preview").notNull(),
   practicalInfo: text("practical_info").notNull(),
   imageUrl: text("image_url"),
+  // Ruolo della destinazione nella tripletta:
+  //   "direct"   = risposta più aderente al profilo
+  //   "lateral"  = stessa emozione, angolo diverso
+  //   "surprise" = predicted-positive che l'utente non avrebbe cercato
+  // Nullable solo per backward-compat con rows pre-feature.
+  slotRole: text("slot_role"),
 });
+
+export type DestinationSlotRole = "direct" | "lateral" | "surprise";
 
 export const profilingInputs = pgTable("profiling_inputs", {
   id: serial("id").primaryKey(),

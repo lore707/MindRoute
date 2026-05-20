@@ -5,6 +5,8 @@ import { ArrowRight } from "lucide-react";
 import { getStoredDestinations } from "@/hooks/use-profiling";
 import { type Destination } from "@shared/schema";
 import { useI18n } from "@/lib/i18n";
+import { useTraitRecognition } from "@/hooks/use-trait-recognition";
+import { RecognitionBanner } from "@/components/RecognitionBanner";
 
 export default function Destinations() {
   const { t, lang } = useI18n();
@@ -15,7 +17,11 @@ const [isGenerating, setIsGenerating] = useState(false);
   const [genHeroUrl, setGenHeroUrl] = useState("");
   const [genDestName, setGenDestName] = useState("");
   const [, setLocation] = useLocation();
-  const useV2 = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("v2") === "1";
+  const recognition = useTraitRecognition();
+  // v2 è il default. Si può forzare il legacy con ?legacy=1 per debug/rollback;
+  // se v2 fallisce in produzione, eseguiamo comunque un fallback transparent
+  // verso /api/itinerary/generate-stream più in basso.
+  const forceLegacy = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("legacy") === "1";
 
   useEffect(() => {
     const stored = getStoredDestinations();
@@ -23,7 +29,15 @@ const [isGenerating, setIsGenerating] = useState(false);
       setLocation("/profiling");
       return;
     }
-    setDestinations(stored);
+    // Order by slotRole: direct → lateral → surprise. Destinazioni senza ruolo
+    // (legacy/fallback) restano in fondo nell'ordine originale.
+    const ROLE_ORDER: Record<string, number> = { direct: 0, lateral: 1, surprise: 2 };
+    const sorted = [...stored].sort((a, b) => {
+      const ra = a.slotRole ? ROLE_ORDER[a.slotRole] ?? 3 : 3;
+      const rb = b.slotRole ? ROLE_ORDER[b.slotRole] ?? 3 : 3;
+      return ra - rb;
+    });
+    setDestinations(sorted);
   }, [setLocation]);
 
   const handleSelect = (destId: number) => {
@@ -76,9 +90,11 @@ const handleContinue = async () => {
         setGenMessage(messages[msgIdx]);
       }, 12000);
 
-      // v2 path: non-streaming endpoint. We rotate the same loading messages
-      // off the interval since there's no per-stage SSE progress event yet.
-      if (useV2) {
+      // Path v2 di default: endpoint non-streaming che ritorna itinerario
+      // moment-based. Se fallisce (o ?legacy=1 in URL), fallback transparent al
+      // legacy generate-stream più sotto. Il loading message scorre comunque
+      // sull'interval — l'utente non si accorge del cambio di path.
+      if (!forceLegacy) {
         try {
           const v2Res = await fetch("/api/itinerary/generate-v2", {
             method: "POST",
@@ -89,14 +105,15 @@ const handleContinue = async () => {
               destinationId: selectedId,
             }),
           });
-          if (!v2Res.ok) throw new Error("Errore generazione v2");
-          const v2Data = await v2Res.json();
-          clearInterval(msgInterval);
-          setLocation(`/itinerary/${v2Data.id ?? selectedId}`);
-          return;
+          if (v2Res.ok) {
+            const v2Data = await v2Res.json();
+            clearInterval(msgInterval);
+            setLocation(`/itinerary/${v2Data.id ?? selectedId}`);
+            return;
+          }
+          console.warn("[v2] endpoint returned non-2xx, falling back to legacy stream");
         } catch (err) {
-          clearInterval(msgInterval);
-          throw err;
+          console.warn("[v2] endpoint threw, falling back to legacy stream:", err);
         }
       }
 
@@ -246,10 +263,12 @@ if (destinations.length === 0) return null;
           style={{ fontSize: 15, color: "rgba(255,255,255,0.55)", fontFamily: "system-ui, sans-serif", fontWeight: 300, lineHeight: 1.7 }}
         >
           {lang === "it"
-            ? "Una sicura, una inaspettata, una nel mezzo — costruite su di te."
-            : "One safe, one unexpected, one in between — built around you."}
+            ? "Tre risposte diverse a chi sei. La diretta, l'angolo laterale, la sorpresa autentica."
+            : "Three different answers to who you are. The direct match, the lateral angle, the genuine surprise."}
         </motion.p>
       </div>
+
+      <RecognitionBanner recognition={recognition} variant="compact" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
         {destinations.map((dest, index) => (
@@ -279,6 +298,19 @@ if (destinations.length === 0) return null;
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
               <div className="absolute bottom-6 left-6 z-20 text-white">
+                {dest.slotRole && (
+                  <span
+                    className="inline-block mb-2 text-[10px] font-sans font-bold uppercase tracking-[3px]"
+                    style={{
+                      color: dest.slotRole === "surprise" ? "#E94560" : "rgba(255,255,255,0.75)",
+                    }}
+                    data-testid={`slot-role-${dest.slotRole}`}
+                  >
+                    {dest.slotRole === "direct"   && t("dest.slot.direct")}
+                    {dest.slotRole === "lateral"  && t("dest.slot.lateral")}
+                    {dest.slotRole === "surprise" && t("dest.slot.surprise")}
+                  </span>
+                )}
                 <h3 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">{dest.name}</h3>
               </div>
             </div>

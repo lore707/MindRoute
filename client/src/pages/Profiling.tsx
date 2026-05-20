@@ -13,6 +13,9 @@ import { createProfilingContent } from "./profiling/questions";
 import { SliderTrack } from "./profiling/SliderTrack";
 import type { ChipsQuestion, Question, TextQuestion } from "./profiling/types";
 import { getQuestionTheme, getMultipleThemes, questionThemes } from './profiling/questionThemes';
+import { useTraitRecognition } from "@/hooks/use-trait-recognition";
+import { RecognitionBanner } from "@/components/RecognitionBanner";
+import { FromProfileModal } from "@/components/FromProfileModal";
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
     <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85" />
@@ -67,6 +70,11 @@ export default function Profiling() {
   const [selectedPath, setSelectedPath] = useState<'a' | 'b' | null>(null);
   const [showSplit, setShowSplit] = useState(true);
   const [splitExiting, setSplitExiting] = useState(false);
+  const recognition = useTraitRecognition();
+  // showRecognition gates the pre-quiz screen for returning users. Defaults to
+  // true; user dismisses it via "cambia qualcosa" to fall through to the quiz.
+  const [showRecognition, setShowRecognition] = useState(true);
+  const [fromProfileOpen, setFromProfileOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [chipSelections, setChipSelections] = useState<Record<number, string[]>>({});
@@ -701,6 +709,31 @@ const profilingPayload = {
       </div>
     );
   };
+
+  if (recognition.canShow && showRecognition && !showAnalyzing) {
+    return (
+      <div
+        className="fixed inset-0 z-[300] flex flex-col"
+        style={{ background: splitSceneBackground }}
+        data-testid="recognition-overlay"
+      >
+        <Nav />
+        <div className="flex-1 flex items-center justify-center">
+          <RecognitionBanner
+            recognition={recognition}
+            variant="full"
+            onUseProfile={() => setFromProfileOpen(true)}
+            onChangeProfile={() => setShowRecognition(false)}
+          />
+        </div>
+        <FromProfileModal
+          open={fromProfileOpen}
+          onClose={() => setFromProfileOpen(false)}
+          snapshotCount={recognition.snapshotCount}
+        />
+      </div>
+    );
+  }
 
   if (showSplit) {
     return (

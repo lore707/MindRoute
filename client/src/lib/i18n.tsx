@@ -433,6 +433,9 @@ const translations: Record<string, Record<Lang, string>> = {
   "dest.experience": { en: "Experience Preview", it: "Anteprima dell'esperienza" },
   "dest.practical": { en: "Practical Info", it: "Info pratiche" },
   "dest.choose": { en: "Continue with", it: "Continua con" },
+  "dest.slot.direct":   { en: "Direct match",     it: "Risposta diretta" },
+  "dest.slot.lateral":  { en: "Lateral angle",    it: "Angolo laterale" },
+  "dest.slot.surprise": { en: "Genuine surprise", it: "Sorpresa autentica" },
 
   "itin.loading": { en: "Crafting your journey...", it: "Creiamo il tuo viaggio..." },
   "itin.notfound": { en: "Itinerary Not Found", it: "Itinerario non trovato" },

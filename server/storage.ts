@@ -35,7 +35,12 @@ export class MemoryStorage implements IStorage {
   }
 
   async createDestination(destination: InsertDestination): Promise<Destination> {
-    const newDest: Destination = { ...destination, id: this.destIdCounter++, imageUrl: destination.imageUrl ?? null };
+    const newDest: Destination = {
+      ...destination,
+      id: this.destIdCounter++,
+      imageUrl: destination.imageUrl ?? null,
+      slotRole: destination.slotRole ?? null,
+    };
     this.destinations.push(newDest);
     return newDest;
   }
