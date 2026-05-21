@@ -15,6 +15,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export type HeroPhoto = { img: string; name: string; country: string; mood: string };
 export type Step = { n: number; tag: string; title: string; desc: string; img: string };
@@ -33,9 +34,46 @@ export type LandingData = {
 };
 
 export function LandingCinematic({ data }: { data: LandingData }) {
+  const { t, lang } = useI18n();
   const [heroIdx, setHeroIdx] = useState(0);
   const [hovering, setHovering] = useState(false);
   const [finalIdx, setFinalIdx] = useState(0);
+
+  // Translate server-provided country/mood labels via i18n lookup so the same
+  // English-baked data renders in IT when needed. Falls back to the original
+  // string if no translation key matches (graceful for unknown values).
+  const tx = (prefix: string, val: string) => {
+    if (lang === "en") return val;
+    const key = `${prefix}.${val.replace(/\s+/g, "")}`;
+    const out = t(key);
+    return out === key ? val : out;
+  };
+  const tCountry = (c: string) => tx("landing.country", c);
+  const tMood = (m: string) => tx("landing.mood", m);
+  // Destination cards have compound moods like "Quiet · Volcanic" — map by
+  // canonical English value to a stable i18n key.
+  const destMoodMap: Record<string, string> = {
+    "Quiet · Volcanic":         "landing.destmood.quietVolcanic",
+    "Off-the-grid · Cultural":  "landing.destmood.offgridCultural",
+    "Wild · Solitude":          "landing.destmood.wildSolitude",
+    "Slow · Pastoral":          "landing.destmood.slowPastoral",
+    "Vibrant · Authentic":      "landing.destmood.vibrantAuthentic",
+  };
+  const tDestMood = (m: string) => {
+    if (lang === "en") return m;
+    const key = destMoodMap[m];
+    if (!key) return m;
+    const out = t(key);
+    return out === key ? m : out;
+  };
+
+  // Step labels — server provides EN text but we override with translations so
+  // the three-acts story reads natively in IT. n is 1/2/3.
+  const stepText = (n: number) => ({
+    tag: `${t("landing.how.stepLabel")} ${n}`,
+    title: t(`landing.how.step${n}.title`),
+    desc: t(`landing.how.step${n}.desc`),
+  });
 
   // Hero auto-cycle
   useEffect(() => {
@@ -118,21 +156,21 @@ export function LandingCinematic({ data }: { data: LandingData }) {
 
         <div className="lc-hero-content">
           <div className="lc-hero-left">
-            <div className="lc-hero-eyebrow"><div className="lc-eyebrow white"><span className="d" />AI-powered travel profiling</div></div>
+            <div className="lc-hero-eyebrow"><div className="lc-eyebrow white"><span className="d" />{t("landing.hero.eyebrow")}</div></div>
             <h1>
-              <span className="word w1">Travel starts</span><br />
-              <span className="word w2">with </span><span className="word w3">who you are.</span>
+              <span className="word w1">{t("landing.hero.title1")}</span><br />
+              <span className="word w2">{t("landing.hero.title2")}</span>{" "}<span className="word w3">{t("landing.hero.title3")}</span>
             </h1>
-            <p className="lc-hero-tag">Every trip starts from an emotion. MindRoute turns it into a real place — destination, itinerary, and bookings ready in under 3 minutes.</p>
+            <p className="lc-hero-tag">{t("landing.hero.tag")}</p>
             <div className="lc-hero-actions">
-              <button className="lc-btn-primary lg" onClick={data.onStart}>Discover your trip →</button>
-              <div className="lc-hero-counter"><strong>17</strong>itineraries already imagined</div>
+              <button className="lc-btn-primary lg" onClick={data.onStart}>{t("landing.hero.cta")} →</button>
+              <div className="lc-hero-counter"><strong>17</strong>{t("landing.hero.counterLabel")}</div>
             </div>
           </div>
 
           <div className="lc-hero-thumbs">
             <div className="lc-hero-thumbs-head">
-              <span>Featured destinations</span>
+              <span>{t("landing.hero.thumbsHead")}</span>
               <span className="num">{(heroIdx + 1).toString().padStart(2, "0")} / {data.heroPhotos.length.toString().padStart(2, "0")}</span>
             </div>
             {data.heroPhotos.map((p, i) => (
@@ -140,7 +178,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
                 <div className="lc-hero-thumb-img" style={{ backgroundImage: `url(${p.img})` }} />
                 <div className="lc-hero-thumb-body">
                   <div className="lc-hero-thumb-name">{p.name}</div>
-                  <div className="lc-hero-thumb-meta">{p.country} · {p.mood}</div>
+                  <div className="lc-hero-thumb-meta">{tCountry(p.country)} · {tMood(p.mood)}</div>
                 </div>
                 <div className="lc-hero-thumb-progress" key={"p-" + heroIdx + "-" + i} />
               </div>
@@ -149,7 +187,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
         </div>
 
         <div className="lc-hero-scroll">
-          <span>Scroll</span>
+          <span>{t("landing.hero.scroll")}</span>
           <span className="line" />
         </div>
       </section>
@@ -163,37 +201,40 @@ export function LandingCinematic({ data }: { data: LandingData }) {
         </div>
       </section>
 
-      {/* ③ MANIFESTO */}
-      <section className="lc-manifesto">
-        <div className="lc-manifesto-bg" style={{ backgroundImage: `url(${data.manifestoBg})` }} data-parallax="0.15" data-parallax-scroll="1" />
-        <div className="lc-manifesto-content">
-          <div className="lc-manifesto-eyebrow"><div className="lc-eyebrow white"><span className="d" />Why MindRoute</div></div>
-          <p className="lc-manifesto-quote">The destination is<br />the answer. You are<br /><em>the question.</em></p>
-          <p className="lc-manifesto-sub">Most travel planners show you options. MindRoute removes the doubt — starting from how you feel, not from a map.</p>
-        </div>
-      </section>
-
-      {/* ④ HOW IT WORKS */}
+      {/* ③ HOW IT WORKS — moved above manifesto so the value prop lands fast */}
       <section className="lc-how">
         <div className="lc-container">
           <div className="lc-how-head">
-            <div className="lc-eyebrow" style={{ justifyContent: "center" }}><span className="d" />How it works</div>
-            <h2>Your story,<br /><em>in three acts.</em></h2>
-            <p className="lc-sub">Three minutes, three steps. From the silence of Reykjavik to the heat of Marrakech — your next chapter, ready to be lived.</p>
+            <div className="lc-eyebrow" style={{ justifyContent: "center" }}><span className="d" />{t("landing.how.eyebrow")}</div>
+            <h2 dangerouslySetInnerHTML={{ __html: t("landing.how.title") }} />
+            <p className="lc-sub">{t("landing.how.sub")}</p>
           </div>
           <div className="lc-steps">
-            {data.steps.map(s => (
-              <div key={s.n} className="lc-step">
-                <div className="lc-step-img" style={{ backgroundImage: `url(${s.img})` }} />
-                <div className="lc-step-num">{s.n}</div>
-                <div className="lc-step-body">
-                  <div className="lc-step-tag">{s.tag}</div>
-                  <div className="lc-step-title">{s.title}</div>
-                  <div className="lc-step-desc">{s.desc}</div>
+            {data.steps.map(s => {
+              const st = stepText(s.n);
+              return (
+                <div key={s.n} className="lc-step">
+                  <div className="lc-step-img" style={{ backgroundImage: `url(${s.img})` }} />
+                  <div className="lc-step-num">{s.n}</div>
+                  <div className="lc-step-body">
+                    <div className="lc-step-tag">{st.tag}</div>
+                    <div className="lc-step-title">{st.title}</div>
+                    <div className="lc-step-desc">{st.desc}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+        </div>
+      </section>
+
+      {/* ④ MANIFESTO */}
+      <section className="lc-manifesto">
+        <div className="lc-manifesto-bg" style={{ backgroundImage: `url(${data.manifestoBg})` }} data-parallax="0.15" data-parallax-scroll="1" />
+        <div className="lc-manifesto-content">
+          <div className="lc-manifesto-eyebrow"><div className="lc-eyebrow white"><span className="d" />{t("landing.manifesto.eyebrow")}</div></div>
+          <p className="lc-manifesto-quote" dangerouslySetInnerHTML={{ __html: t("landing.manifesto.quote") }} />
+          <p className="lc-manifesto-sub">{t("landing.manifesto.sub")}</p>
         </div>
       </section>
 
@@ -201,18 +242,18 @@ export function LandingCinematic({ data }: { data: LandingData }) {
       <section className="lc-destinations">
         <div className="lc-container">
           <div className="lc-dest-head">
-            <div className="lc-eyebrow" style={{ justifyContent: "center" }}><span className="d" />Anywhere in the world</div>
-            <h2>From quiet to wild,<br /><em>your kind of place.</em></h2>
-            <p className="lc-sub">Five examples from real itineraries already generated. Yours will look different — chosen for you.</p>
+            <div className="lc-eyebrow" style={{ justifyContent: "center" }}><span className="d" />{t("landing.dest.eyebrow")}</div>
+            <h2 dangerouslySetInnerHTML={{ __html: t("landing.dest.title") }} />
+            <p className="lc-sub">{t("landing.dest.sub")}</p>
           </div>
           <div className="lc-dest-mosaic">
             {data.destinations.map((d, i) => (
               <div key={i} className={"lc-dest-card size-" + (d.size || "s")}>
                 <div className="lc-dest-card-img" style={{ backgroundImage: `url(${d.img})` }} />
                 <div className="lc-dest-card-body">
-                  <span className="lc-dest-card-mood">{d.mood}</span>
+                  <span className="lc-dest-card-mood">{tDestMood(d.mood)}</span>
                   <div className="lc-dest-card-name">{d.name}</div>
-                  <div className="lc-dest-card-country">{d.country}</div>
+                  <div className="lc-dest-card-country">{tCountry(d.country)}</div>
                 </div>
               </div>
             ))}
@@ -220,45 +261,45 @@ export function LandingCinematic({ data }: { data: LandingData }) {
         </div>
       </section>
 
-      {/* ⑥ PRODUCT PREVIEW — Cinematic Split (V2 only) */}
+      {/* ⑥ PRODUCT PREVIEW — Cinematic Split */}
       <section className="lc-preview">
         <div className="lc-container">
           <div className="lc-preview-head">
-            <div className="lc-eyebrow" style={{ justifyContent: "center" }}><span className="d" />What you get</div>
-            <h2>Not a list.<br /><em>A diagnosis.</em></h2>
+            <div className="lc-eyebrow" style={{ justifyContent: "center" }}><span className="d" />{t("landing.preview.eyebrow")}</div>
+            <h2 dangerouslySetInnerHTML={{ __html: t("landing.preview.title") }} />
           </div>
 
           <div className="lc-split-stage">
             <div className="lc-split-left">
-              <div className="lc-split-left-head">Your answers</div>
+              <div className="lc-split-left-head">{t("landing.preview.answers")}</div>
 
               <div className="lc-split-block">
-                <div className="lc-split-q">How do you want to feel?</div>
+                <div className="lc-split-q">{t("landing.preview.q1")}</div>
                 <div className="lc-split-options">
-                  <span className="lc-split-opt">Wild</span>
-                  <span className="lc-split-opt on">Quiet</span>
-                  <span className="lc-split-opt">Chaotic</span>
-                  <span className="lc-split-opt on">Regenerating</span>
-                  <span className="lc-split-opt">Festive</span>
+                  <span className="lc-split-opt">{t("landing.preview.q1.wild")}</span>
+                  <span className="lc-split-opt on">{t("landing.preview.q1.quiet")}</span>
+                  <span className="lc-split-opt">{t("landing.preview.q1.chaotic")}</span>
+                  <span className="lc-split-opt on">{t("landing.preview.q1.regen")}</span>
+                  <span className="lc-split-opt">{t("landing.preview.q1.festive")}</span>
                 </div>
               </div>
 
               <div className="lc-split-block">
-                <div className="lc-split-q">What do you need?</div>
+                <div className="lc-split-q">{t("landing.preview.q2")}</div>
                 <div className="lc-split-options">
-                  <span className="lc-split-opt on">Disconnect</span>
-                  <span className="lc-split-opt">Feel alive</span>
-                  <span className="lc-split-opt on">Slow down</span>
-                  <span className="lc-split-opt">Be surprised</span>
+                  <span className="lc-split-opt on">{t("landing.preview.q2.disc")}</span>
+                  <span className="lc-split-opt">{t("landing.preview.q2.alive")}</span>
+                  <span className="lc-split-opt on">{t("landing.preview.q2.slow")}</span>
+                  <span className="lc-split-opt">{t("landing.preview.q2.surp")}</span>
                 </div>
               </div>
 
               <div className="lc-split-block">
-                <div className="lc-split-q">What do you avoid?</div>
+                <div className="lc-split-q">{t("landing.preview.q3")}</div>
                 <div className="lc-split-options">
-                  <span className="lc-split-opt on">Crowded places</span>
-                  <span className="lc-split-opt">Resorts</span>
-                  <span className="lc-split-opt on">Strict schedules</span>
+                  <span className="lc-split-opt on">{t("landing.preview.q3.crowd")}</span>
+                  <span className="lc-split-opt">{t("landing.preview.q3.resort")}</span>
+                  <span className="lc-split-opt on">{t("landing.preview.q3.sched")}</span>
                 </div>
               </div>
             </div>
@@ -266,16 +307,16 @@ export function LandingCinematic({ data }: { data: LandingData }) {
             <div className="lc-split-right">
               <div className="lc-split-photo" style={{ backgroundImage: `url(${data.matchPhoto})` }} />
               <div className="lc-split-photo-overlay">
-                <div className="lc-split-tag"><span className="pulse" />Your match · Profile 1 of 3</div>
+                <div className="lc-split-tag"><span className="pulse" />{t("landing.preview.matchTag")}</div>
                 <h3 className="lc-split-name"><em>Ikaria</em></h3>
-                <div className="lc-split-country">Greece · Aegean Sea</div>
-                <p className="lc-split-quote">"You chose <em>quiet</em> and <em>disconnect</em> — signals that you need a reset, not just a vacation. Ikaria is the island where bars open at midnight and time stops making sense."</p>
+                <div className="lc-split-country">{t("landing.preview.matchCountry")}</div>
+                <p className="lc-split-quote" dangerouslySetInnerHTML={{ __html: `"${t("landing.preview.matchQuote")}"` }} />
                 <div className="lc-split-meta">
                   <div className="lc-split-match">
                     <div className="lc-split-match-pct">94<sup>%</sup></div>
-                    <div className="lc-split-match-lbl">Psychological match</div>
+                    <div className="lc-split-match-lbl">{t("landing.preview.matchLabel")}</div>
                   </div>
-                  <button className="lc-split-cta">See itinerary →</button>
+                  <button className="lc-split-cta">{t("landing.preview.matchCta")} →</button>
                 </div>
               </div>
             </div>
@@ -286,28 +327,28 @@ export function LandingCinematic({ data }: { data: LandingData }) {
       {/* ⑦ METHOD — editorial line */}
       <section className="lc-method">
         <div className="lc-container">
-          <div className="lc-eyebrow lc-method-eye"><span className="d" />The method</div>
-          <h2 className="lc-method-title">Not magic. <em>A method.</em></h2>
+          <div className="lc-eyebrow lc-method-eye"><span className="d" />{t("landing.method.eyebrow")}</div>
+          <h2 className="lc-method-title" dangerouslySetInnerHTML={{ __html: t("landing.method.title") }} />
           <div className="lc-method-line">
             <div className="lc-method-cell">
               <div className="lc-method-cell-n">7</div>
-              <div className="lc-method-cell-l">Dimensions</div>
-              <div className="lc-method-cell-d">Emotions mapped, not destinations listed.</div>
+              <div className="lc-method-cell-l">{t("landing.method.cell1.l")}</div>
+              <div className="lc-method-cell-d">{t("landing.method.cell1.d")}</div>
             </div>
             <div className="lc-method-cell">
               <div className="lc-method-cell-n">3</div>
-              <div className="lc-method-cell-l">Archetypes</div>
-              <div className="lc-method-cell-d">Quiet · Wild · Authentic.</div>
+              <div className="lc-method-cell-l">{t("landing.method.cell2.l")}</div>
+              <div className="lc-method-cell-d">{t("landing.method.cell2.d")}</div>
             </div>
             <div className="lc-method-cell">
               <div className="lc-method-cell-n">4</div>
-              <div className="lc-method-cell-l">Chapters / day</div>
-              <div className="lc-method-cell-d">Arrival, immersion, defining, departure.</div>
+              <div className="lc-method-cell-l">{t("landing.method.cell3.l")}</div>
+              <div className="lc-method-cell-d">{t("landing.method.cell3.d")}</div>
             </div>
             <div className="lc-method-cell">
               <div className="lc-method-cell-n">∞</div>
-              <div className="lc-method-cell-l">Bookings</div>
-              <div className="lc-method-cell-d">Flights, stays, experiences — one place.</div>
+              <div className="lc-method-cell-l">{t("landing.method.cell4.l")}</div>
+              <div className="lc-method-cell-d">{t("landing.method.cell4.d")}</div>
             </div>
           </div>
         </div>
@@ -333,21 +374,21 @@ export function LandingCinematic({ data }: { data: LandingData }) {
           ))}
         </div>
         <div className="lc-final-coords">
-          <strong>Now showing</strong>
+          <strong>{t("landing.final.coords")}</strong>
           <span>{data.finalPhotos[finalIdx].name} · {data.finalPhotos[finalIdx].coords}</span>
         </div>
         <div className="lc-final-content">
-          <div className="lc-eyebrow lc-final-eyebrow"><span className="d" />Your turn</div>
-          <h2 className="lc-final-quote">Stop forcing the destination.<em>Start listening.</em></h2>
-          <p className="lc-final-sub">Answer 7 questions. Get your destination, itinerary, and bookings — in under 3 minutes.</p>
+          <div className="lc-eyebrow lc-final-eyebrow"><span className="d" />{t("landing.final.eyebrow")}</div>
+          <h2 className="lc-final-quote" dangerouslySetInnerHTML={{ __html: t("landing.final.title") }} />
+          <p className="lc-final-sub">{t("landing.final.sub")}</p>
           <div className="lc-final-cta">
-            <button className="lc-btn-primary huge" onClick={data.onStart}>Discover your trip →</button>
+            <button className="lc-btn-primary huge" onClick={data.onStart}>{t("landing.final.cta")} →</button>
             <div className="lc-final-reassure">
-              <span><span className="check">✓</span> Free to start</span>
+              <span><span className="check">✓</span> {t("landing.final.reassureFree")}</span>
               <span className="sep" />
-              <span><span className="check">✓</span> Bookings integrated</span>
+              <span><span className="check">✓</span> {t("landing.final.reassureBook")}</span>
               <span className="sep" />
-              <span><span className="check">✓</span> 3 minutes</span>
+              <span><span className="check">✓</span> {t("landing.final.reassureMin")}</span>
             </div>
           </div>
         </div>
@@ -386,7 +427,7 @@ export const DEFAULT_LANDING_DATA: LandingData = {
     "Lisbon", "Kyoto", "Faroe Islands", "Oaxaca", "Sicily", "Hanoi",
     "Cairo", "Cape Town", "Lima", "Marrakech", "Samarkand", "Buenos Aires",
   ],
-  manifestoBg: u("1469854523086-cc02fe5d8800", 2000),
+  manifestoBg: u("1519681393784-d120267933ba", 2000),
   steps: [
     { n: 1, tag: "Step 1", title: "Answer 7 questions", desc: "Not about places — about you. How do you want to feel? What do you need? What do you avoid?", img: u("1455390582262-044cdead277a", 1200) },
     { n: 2, tag: "Step 2", title: "Get your match",     desc: "Three destinations chosen by feeling, not by algorithm. Each one tells you why it's yours.",   img: u("1524661135-423995f22d0b",  1200) },
@@ -396,7 +437,7 @@ export const DEFAULT_LANDING_DATA: LandingData = {
     { name: "Azzorre",    country: "Portogallo", mood: "Quiet · Volcanic",        size: "l", img: u("1586671267731-da2cf3ceeb80", 1400) },
     { name: "Samarcanda", country: "Uzbekistan", mood: "Off-the-grid · Cultural", size: "s", img: u("1605649461784-edc01e2b2f4d",  900) },
     { name: "Islanda",    country: "Iceland",    mood: "Wild · Solitude",         size: "s", img: u("1500530855697-b586d89ba3ee",  900) },
-    { name: "Alentejo",   country: "Portogallo", mood: "Slow · Pastoral",         size: "s", img: u("1568797629192-908a1c11ca80",  900) },
+    { name: "Alentejo",   country: "Portogallo", mood: "Slow · Pastoral",         size: "s", img: u("1518684079-3c830dcef090",  900) },
     { name: "Oaxaca",     country: "Messico",    mood: "Vibrant · Authentic",     size: "s", img: u("1564507592333-c60657eea523",  900) },
   ],
   matchPhoto: u("1602941525421-8f8b81d3edbb", 1400),

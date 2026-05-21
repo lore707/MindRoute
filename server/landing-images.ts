@@ -72,7 +72,7 @@ const FINAL_SLOTS: FinalSlot[] = [
   { query: "faroe islands cliffs sea grass village",  name: "Faroe Islands", coords: "62°00'N · 6°47'W" },
 ];
 
-const MANIFESTO_QUERY = "desert sunrise minimalist horizon dunes silhouette";
+const MANIFESTO_QUERY = "mountain road misty contemplative cinematic dawn";
 const MATCH_QUERY     = "ikaria greek island sunset cliffs aegean";
 
 // Default marquee — never empty.
@@ -99,7 +99,7 @@ export const FALLBACK_LANDING_SET: LandingImageSet = {
     { img: URL("1540959733332-eab4deabeeaf", 2000), name: "Tokyo",      country: "Japan",     mood: "Electric" },
   ],
   marquee: MARQUEE,
-  manifestoBg: URL("1469854523086-cc02fe5d8800", 2000),
+  manifestoBg: URL("1519681393784-d120267933ba", 2000),
   steps: [
     { n: 1, tag: "Step 1", title: "Answer 7 questions", desc: "Not about places — about you. How do you want to feel? What do you need? What do you avoid?", img: URL("1455390582262-044cdead277a", 1200) },
     { n: 2, tag: "Step 2", title: "Get your match",     desc: "Three destinations chosen by feeling, not by algorithm. Each one tells you why it's yours.", img: URL("1524661135-423995f22d0b", 1200) },
@@ -109,7 +109,7 @@ export const FALLBACK_LANDING_SET: LandingImageSet = {
     { name: "Azzorre",    country: "Portogallo",     mood: "Quiet · Volcanic",        size: "l", img: URL("1586671267731-da2cf3ceeb80", 1400) },
     { name: "Samarcanda", country: "Uzbekistan",     mood: "Off-the-grid · Cultural", size: "s", img: URL("1605649461784-edc01e2b2f4d",  900) },
     { name: "Islanda",    country: "Iceland",        mood: "Wild · Solitude",         size: "s", img: URL("1500530855697-b586d89ba3ee",  900) },
-    { name: "Alentejo",   country: "Portogallo",     mood: "Slow · Pastoral",         size: "s", img: URL("1568797629192-908a1c11ca80",  900) },
+    { name: "Alentejo",   country: "Portogallo",     mood: "Slow · Pastoral",         size: "s", img: URL("1518684079-3c830dcef090",  900) },
     { name: "Oaxaca",     country: "Messico",        mood: "Vibrant · Authentic",     size: "s", img: URL("1564507592333-c60657eea523",  900) },
   ],
   matchPhoto: URL("1602941525421-8f8b81d3edbb", 1400),
