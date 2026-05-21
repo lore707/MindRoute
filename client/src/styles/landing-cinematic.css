@@ -191,11 +191,19 @@
 .lc-split-opt{font-family:var(--lc-serif);font-size:18px;color:var(--lc-ink-faint);transition:color .2s}
 .lc-split-opt.on{color:var(--lc-accent);font-style:italic;font-size:24px;text-shadow:0 0 18px rgba(233,69,96,.4);position:relative}
 .lc-split-opt.on::after{content:"";position:absolute;bottom:-4px;left:0;right:0;height:1px;background:var(--lc-accent);opacity:.5}
-.lc-split-right{position:relative;overflow:hidden;min-height:600px}
-.lc-split-photo{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform 8s ease-out;transform:scale(1.05)}
-.lc-split-stage:hover .lc-split-photo{transform:scale(1.12)}
-.lc-split-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(10,7,16,.92) 0%,rgba(10,7,16,.25) 45%,transparent 70%)}
-.lc-split-photo-overlay{position:absolute;bottom:0;left:0;right:0;padding:40px;z-index:2}
+.lc-split-right{position:relative;overflow:hidden;min-height:600px;background:#1a0c14}
+/* Layer 0 — poster (background-image). Acts as fallback if the video doesn't
+   load and as the initial frame while it's still buffering. */
+.lc-split-photo{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;transition:transform 8s ease-out;transform:scale(1.05)}
+.lc-split-stage:hover .lc-split-photo,
+.lc-split-stage:hover .lc-split-video{transform:scale(1.08)}
+/* Layer 1 — looping video. Sits on top of the photo, fills the card via
+   object-fit:cover so it stays cinematic at any aspect ratio. */
+.lc-split-video{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;object-position:center;background:transparent;transition:transform 8s ease-out;transform:scale(1.02);pointer-events:none}
+/* Layer 2 — bottom-up gradient so the title/quote stay legible no matter
+   which frame the wave is on. */
+.lc-split-photo-fade{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(to top,rgba(10,7,16,.92) 0%,rgba(10,7,16,.25) 45%,transparent 70%)}
+.lc-split-photo-overlay{position:absolute;bottom:0;left:0;right:0;padding:40px;z-index:3}
 .lc-split-tag{display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.18);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.3);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#fff;font-weight:500;margin-bottom:20px}
 .lc-split-tag .pulse{width:6px;height:6px;border-radius:50%;background:var(--lc-accent);box-shadow:0 0 8px var(--lc-accent);animation:lc-pulse 2s ease-in-out infinite}
 @keyframes lc-pulse{0%,100%{opacity:1}50%{opacity:.4}}

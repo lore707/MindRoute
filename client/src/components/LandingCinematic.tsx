@@ -28,7 +28,8 @@ export type LandingData = {
   manifestoBg: string;              // full-bleed photo url
   steps: Step[];                    // 3 photo cards
   destinations: Destination[];      // 5 mosaic items
-  matchPhoto: string;               // photo shown in product preview
+  matchPhoto: string;               // photo shown in product preview (poster/fallback)
+  matchVideo?: string;              // optional looping video covering the photo
   finalPhotos: FinalPhoto[];        // 3-5 closing crossfade photos
   onStart?: () => void;             // CTA handler
 };
@@ -305,7 +306,28 @@ export function LandingCinematic({ data }: { data: LandingData }) {
             </div>
 
             <div className="lc-split-right">
+              {/* Layer 0 — poster: same photo used as video's loading frame; also
+                  shows through if the video URL fails. */}
               <div className="lc-split-photo" style={{ backgroundImage: `url(${data.matchPhoto})` }} />
+              {/* Layer 1 — looping ocean video. Muted+playsInline are required
+                  for autoplay on iOS/Android; preload=metadata defers payload
+                  until the section is reached. */}
+              {data.matchVideo && (
+                <video
+                  className="lc-split-video"
+                  src={data.matchVideo}
+                  poster={data.matchPhoto}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-hidden="true"
+                />
+              )}
+              {/* Layer 2 — gradient fade above the video so the bottom copy
+                  stays readable regardless of the video's current frame. */}
+              <div className="lc-split-photo-fade" />
               <div className="lc-split-photo-overlay">
                 <div className="lc-split-tag"><span className="pulse" />{t("landing.preview.matchTag")}</div>
                 <h3 className="lc-split-name"><em>Ikaria</em></h3>
@@ -441,6 +463,10 @@ export const DEFAULT_LANDING_DATA: LandingData = {
     { name: "Oaxaca",     country: "Messico",    mood: "Vibrant · Authentic",     size: "s", img: u("1564507592333-c60657eea523",  900) },
   ],
   matchPhoto: u("1602941525421-8f8b81d3edbb", 1400),
+  // Looping aerial ocean clip from Pexels CDN (free license, direct embed
+  // allowed). The CSS layers a gradient on top so subtitles stay readable.
+  // To swap: drop a .mp4 in client/public/ and change to "/your-file.mp4".
+  matchVideo: "https://videos.pexels.com/video-files/1093662/1093662-hd_1920_1080_30fps.mp4",
   finalPhotos: [
     { img: u("1505765050516-f72dcac9c60a", 2000), name: "Patagonia",     coords: "50°26'S · 73°15'W" },
     { img: u("1518710843675-2540dd79065c", 2000), name: "Iceland",       coords: "64°08'N · 21°56'W" },
