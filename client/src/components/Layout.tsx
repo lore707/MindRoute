@@ -60,9 +60,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 <div className="min-h-screen text-[var(--text-primary)] overflow-x-hidden selection:bg-primary/20 selection:text-primary-foreground font-sans transition-colors duration-300">
       <BackgroundLayers />
 
-      <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.65)", borderColor: "rgba(255,255,255,0.06)" }}>
-        <Link href="/" className="flex items-center gap-2.5 text-[var(--text-primary)] no-underline">
-          <svg className="w-9 h-9" viewBox="0 0 120 120" fill="none">
+      <nav className="fixed top-0 left-0 right-0 z-[100] px-3 py-2.5 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.65)", borderColor: "rgba(255,255,255,0.06)" }}>
+        <Link href="/" className="flex items-center gap-2 md:gap-2.5 text-[var(--text-primary)] no-underline min-h-[44px]">
+          <svg className="w-8 h-8 md:w-9 md:h-9" viewBox="0 0 120 120" fill="none">
             <defs>
               <linearGradient id="nav-lg1" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#FFADC0"/>
@@ -100,12 +100,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <circle cx="60" cy="47" r="3.8" fill="url(#nav-lc)" filter="url(#nav-lf)"/>
             <ellipse cx="58.6" cy="45.8" rx="1.4" ry="1.6" fill="rgba(255,255,255,0.7)"/>
           </svg>
-          <span className="font-serif text-[16px] md:text-[20px] tracking-[-0.3px]">
+          <span className="font-serif text-[15px] md:text-[20px] tracking-[-0.3px]">
             MindRoute
           </span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {location !== "/" && (
             <div className="hidden md:flex gap-2 mr-3">
               <div className="h-1 w-8 rounded-full bg-primary/20 data-[active=true]:bg-primary transition-colors" data-active={location === "/profiling"} />
@@ -115,7 +115,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
           <LangDropdown />
           <AuthButton />
-          <Link href="/profiling" className="text-[13px] font-medium no-underline px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center gap-1.5" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">
+          <Link href="/profiling" className="text-[13px] font-medium no-underline px-3.5 sm:px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center justify-center gap-1.5 min-h-[40px] min-w-[40px]" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">
             <Compass className="w-4 h-4 sm:hidden" />
             <span className="hidden sm:inline">{t('nav.start')}</span>
           </Link>

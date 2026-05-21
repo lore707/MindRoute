@@ -219,23 +219,151 @@
 .lc-final-coords::before{content:"";display:inline-block;width:32px;height:1px;background:rgba(255,255,255,.4);margin-bottom:8px}
 .lc-final-coords strong{font-family:var(--lc-sans);font-style:normal;font-weight:500;color:#fff;letter-spacing:.16em;font-size:11px;text-transform:uppercase}
 
-/* Responsive */
+/* ─── Responsive ─── */
 @media (max-width:980px){
-  .lc-hero-content{grid-template-columns:1fr;padding:0 24px 60px}
-  .lc-hero-thumbs{flex-direction:row;width:100%;overflow-x:auto}
-  .lc-hero-thumb{flex:0 0 180px}
-  .lc-split-stage{grid-template-columns:1fr}
+  .lc-container{padding:0 22px}
+  .lc-hero-content{grid-template-columns:1fr;padding:0 24px 56px;gap:32px}
+  .lc-hero-thumbs{flex-direction:row;width:100%;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+  .lc-hero-thumbs::-webkit-scrollbar{display:none}
+  .lc-hero-thumb{flex:0 0 180px;scroll-snap-align:start}
+  .lc-split-stage{grid-template-columns:1fr;min-height:0}
   .lc-split-left{border-right:0;border-bottom:1px solid var(--lc-stroke-strong);padding:36px 28px}
   .lc-split-right{min-height:440px}
   .lc-split-name{font-size:44px}
   .lc-split-photo-overlay{padding:28px}
   .lc-steps,.lc-dest-mosaic{grid-template-columns:1fr;grid-auto-rows:240px}
   .lc-dest-card.size-l{grid-column:span 1;grid-row:span 1}
+  .lc-dest-card.size-l .lc-dest-card-name{font-size:30px}
+  .lc-dest-card.size-l .lc-dest-card-body{padding:24px}
   .lc-final-coords{display:none}
-  .lc-final-quote{font-size:clamp(48px,12vw,84px)}
+  .lc-final-quote{font-size:clamp(44px,11vw,80px)}
 }
 @media (max-width:780px){
   .lc-method-line{grid-template-columns:repeat(2,1fr);gap:36px 0}
   .lc-method-cell{border-right:0}
   .lc-method-cell:nth-child(odd){border-right:1px solid var(--lc-stroke)}
+}
+
+/* ─── Mobile (≤640px) ─── tighter spacing, fluid type, 44px tap targets */
+@media (max-width:640px){
+  .lc-container{padding:0 18px}
+  .lc-sub{font-size:16px;margin-top:14px;line-height:1.55}
+
+  /* CTA: full-width pill, 48px tall, generous tap zone */
+  .lc-btn-primary{padding:14px 24px;font-size:14px;min-height:48px;width:auto}
+  .lc-btn-primary.lg{padding:16px 28px;font-size:14px;min-height:52px}
+  .lc-btn-primary.huge{padding:18px 32px;font-size:15px;min-height:56px;letter-spacing:.01em}
+
+  /* ① HERO */
+  .lc-hero{min-height:640px;height:100svh}
+  .lc-hero-content{padding:0 18px 36px;gap:22px}
+  .lc-hero-eyebrow{margin-bottom:14px}
+  .lc-hero h1{font-size:clamp(40px,11vw,58px);line-height:.95;margin-bottom:14px;letter-spacing:-.02em}
+  .lc-hero-tag{font-size:15px;line-height:1.5;margin-bottom:22px;max-width:none}
+  .lc-hero-actions{gap:14px;flex-direction:column;align-items:stretch}
+  .lc-hero-actions .lc-btn-primary{justify-content:center;width:100%}
+  .lc-hero-counter{padding-left:0;justify-content:center;font-size:13px}
+  .lc-hero-thumbs{gap:8px}
+  .lc-hero-thumb{flex:0 0 158px;height:60px;border-radius:10px}
+  .lc-hero-thumb-name{font-size:13px}
+  .lc-hero-thumb-meta{font-size:9.5px}
+  .lc-hero-scroll{bottom:18px;font-size:9px}
+  .lc-hero-scroll .line{height:28px}
+
+  /* ② MARQUEE */
+  .lc-marquee{padding:22px 0}
+  .lc-marquee-track{gap:30px}
+  .lc-marquee-item{font-size:17px;gap:12px}
+  .lc-marquee::before,.lc-marquee::after{width:60px}
+
+  /* ③ MANIFESTO */
+  .lc-manifesto{padding:64px 0}
+  .lc-manifesto-content{padding:0 22px}
+  .lc-manifesto-eyebrow{margin-bottom:22px}
+  .lc-manifesto-quote{font-size:clamp(30px,8.5vw,44px);line-height:1.08}
+  .lc-manifesto-sub{margin-top:20px;font-size:15px;line-height:1.55}
+
+  /* ④ HOW IT WORKS */
+  .lc-how{padding:60px 0 50px}
+  .lc-how-head{margin-bottom:36px}
+  .lc-how-head h2{font-size:clamp(32px,8vw,44px);line-height:1.08;margin-top:12px}
+  .lc-steps{gap:16px;grid-auto-rows:auto}
+  .lc-step{min-height:340px;border-radius:16px}
+  .lc-step-body{padding:24px 22px}
+  .lc-step-num{top:16px;left:16px;width:44px;height:44px;font-size:19px}
+  .lc-step-tag{font-size:9.5px;padding:5px 10px;margin-bottom:14px;letter-spacing:.14em}
+  .lc-step-title{font-size:24px;margin-bottom:8px;line-height:1.15}
+  .lc-step-desc{font-size:14px;line-height:1.55;max-width:none}
+
+  /* ⑤ DESTINATIONS */
+  .lc-destinations{padding:60px 0}
+  .lc-dest-head{margin-bottom:32px}
+  .lc-dest-head h2{font-size:clamp(32px,8vw,44px);line-height:1.08;margin-top:12px}
+  .lc-dest-mosaic{gap:14px;grid-auto-rows:200px}
+  .lc-dest-card{border-radius:16px}
+  .lc-dest-card-body{padding:18px}
+  .lc-dest-card-name{font-size:20px}
+  .lc-dest-card-country{font-size:11.5px}
+  .lc-dest-card.size-l .lc-dest-card-name{font-size:24px}
+  .lc-dest-card.size-l .lc-dest-card-body{padding:20px}
+  .lc-dest-card-mood{font-size:9.5px;padding:4px 9px}
+
+  /* ⑥ PRODUCT PREVIEW */
+  .lc-preview{padding:50px 0 44px}
+  .lc-preview-head{margin-bottom:24px}
+  .lc-preview-head h2{font-size:clamp(28px,7.5vw,38px);margin-top:10px}
+  .lc-split-stage{border-radius:18px;box-shadow:0 30px 60px -24px rgba(233,69,96,.4)}
+  .lc-split-left{padding:28px 22px}
+  .lc-split-left-head{margin-bottom:24px;font-size:9.5px}
+  .lc-split-block{margin-bottom:22px;padding-bottom:20px}
+  .lc-split-q{font-size:13px;margin-bottom:12px}
+  .lc-split-opt{font-size:16px}
+  .lc-split-opt.on{font-size:21px}
+  .lc-split-right{min-height:380px}
+  .lc-split-photo-overlay{padding:22px}
+  .lc-split-tag{font-size:9.5px;padding:6px 12px;margin-bottom:14px;letter-spacing:.16em}
+  .lc-split-name{font-size:36px;margin-bottom:6px}
+  .lc-split-country{font-size:15px;margin-bottom:16px}
+  .lc-split-quote{font-size:15px;line-height:1.5;margin-bottom:20px;padding-left:14px;max-width:none}
+  .lc-split-meta{flex-direction:column;align-items:flex-start;gap:18px;padding-top:18px}
+  .lc-split-match-pct{font-size:38px}
+  .lc-split-match-pct sup{font-size:18px}
+  .lc-split-cta{padding:12px 20px;font-size:13px;min-height:44px;align-self:stretch;justify-content:center}
+
+  /* ⑦ METHOD */
+  .lc-method{padding:56px 0 50px}
+  .lc-method-title{font-size:clamp(24px,6.5vw,34px);margin-bottom:36px;line-height:1.2}
+  .lc-method-line{gap:28px 0;max-width:460px;padding:0 6px}
+  .lc-method-cell{padding:0 14px;gap:8px}
+  .lc-method-cell-n{font-size:48px}
+  .lc-method-cell-l{font-size:10px;letter-spacing:.18em;margin-top:4px}
+  .lc-method-cell-d{font-size:12px;line-height:1.45;max-width:170px}
+
+  /* ⑧ FINAL CTA */
+  .lc-final{padding:80px 0 90px;min-height:auto}
+  .lc-final-content{padding:0 20px}
+  .lc-final-eyebrow{margin-bottom:22px}
+  .lc-final-quote{font-size:clamp(38px,10vw,60px);line-height:1;margin-bottom:22px;letter-spacing:-.025em}
+  .lc-final-quote em{margin-top:4px}
+  .lc-final-sub{font-size:16px;line-height:1.5;margin:0 auto 32px;max-width:none}
+  .lc-final-cta{gap:24px}
+  .lc-final-reassure{font-size:10px;letter-spacing:.16em;gap:10px;flex-wrap:wrap}
+  .lc-final-reassure .sep{display:none}
+  .lc-final-reassure span{padding:4px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:999px}
+  .lc-final-thumbs{bottom:22px;gap:6px}
+  .lc-final-thumb{width:36px;height:5px}
+  .lc-final-thumb.active{width:60px}
+
+  /* Disable mouse-parallax displacement on touch (it's tied to mousemove anyway,
+     but kill any cached transform that could trap content off-screen) */
+  [data-parallax]{transform:none!important}
+}
+
+/* Very small screens (≤375px / iPhone SE) — extra tightening */
+@media (max-width:375px){
+  .lc-hero h1{font-size:clamp(36px,10.5vw,48px)}
+  .lc-manifesto-quote{font-size:32px}
+  .lc-how-head h2,.lc-dest-head h2{font-size:30px}
+  .lc-final-quote{font-size:38px}
+  .lc-method-cell-n{font-size:42px}
 }
