@@ -630,17 +630,17 @@ const profilingPayload = {
   };
 
   const Nav = () => (
-    <nav className="fixed top-0 left-0 right-0 z-[100] px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-2 backdrop-blur-xl transition-colors duration-300" style={{ background: 'var(--nav-bg)', borderBottom: '1px solid var(--nav-border)' }}>
-      <Link href="/" className="flex items-center gap-2.5 no-underline text-[var(--text-primary)]" data-testid="link-home">
-        <MindRouteLogo />
-        <span className="font-serif text-[18px]">MindRoute</span>
+    <nav className="fixed top-0 left-0 right-0 z-[100] px-3 py-2.5 md:px-8 md:py-4 flex items-center justify-between gap-2 backdrop-blur-xl transition-colors duration-300" style={{ background: 'var(--nav-bg)', borderBottom: '1px solid var(--nav-border)' }}>
+      <Link href="/" className="flex items-center gap-2 md:gap-2.5 no-underline text-[var(--text-primary)] min-h-[44px]" data-testid="link-home">
+        <MindRouteLogo size={26} />
+        <span className="font-serif text-[15px] md:text-[18px]">MindRoute</span>
       </Link>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         <LangDropdown />
         <Link href="/" className="hidden sm:inline-flex px-4 py-[7px] border border-[var(--border-input)] text-[var(--text-secondary)] rounded-full text-[13px] no-underline hover:border-[#E94560] hover:text-[#E94560] transition-all bg-transparent cursor-pointer" data-testid="link-exit">
           {t('nav.saveExit')}
         </Link>
-        <Link href="/" className="sm:hidden flex items-center justify-center w-8 h-8 rounded-full border border-[var(--border-input)] text-[var(--text-secondary)] no-underline hover:border-[#E94560] hover:text-[#E94560] transition-all" data-testid="link-exit-mobile">
+        <Link href="/" className="sm:hidden flex items-center justify-center w-11 h-11 rounded-full border border-[var(--border-input)] text-[var(--text-secondary)] no-underline hover:border-[#E94560] hover:text-[#E94560] transition-all" data-testid="link-exit-mobile" aria-label="Esci">
           <ArrowLeft className="w-4 h-4" />
         </Link>
       </div>
@@ -651,7 +651,7 @@ const profilingPayload = {
     const total = questions.length || 7;
     const progress = (step / (total - 1)) * 100;
     return (
-      <div className="fixed top-[57px] left-0 right-0 z-[99] pt-8 pb-3 px-4 md:px-10"
+      <div className="fixed top-[52px] md:top-[60px] left-0 right-0 z-[99] pt-4 md:pt-8 pb-3 px-4 md:px-10"
         style={{ background: 'linear-gradient(to bottom, rgba(7,9,15,0.92) 0%, rgba(7,9,15,0.0) 100%)', backdropFilter: 'blur(0px)' }}>
         <div className="relative flex items-center gap-4 max-w-[780px] mx-auto">
 
@@ -785,7 +785,7 @@ const profilingPayload = {
           <div className="h-[320px] w-[320px] rounded-full blur-3xl opacity-80" style={{ background: theme === "dark" ? "radial-gradient(circle, rgba(233,69,96,0.28), transparent 70%)" : "radial-gradient(circle, rgba(233,69,96,0.32), transparent 70%)", animation: "splitPulse 7s ease-in-out infinite" }} />
         </div>
 
-        <div className="relative z-10 flex-1 flex flex-col items-center px-4 md:px-8 pt-[88px] pb-10 overflow-y-auto">
+        <div className="relative z-10 flex-1 flex flex-col items-center px-4 md:px-8 pt-[72px] md:pt-[88px] pb-10 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -813,7 +813,7 @@ const profilingPayload = {
               <button
                 onClick={() => choosePath('a')}
                 data-testid="button-path-a"
-                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate h-auto"
+                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[22px] md:rounded-[28px] p-5 sm:p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate h-auto min-h-[44px]"
                 style={{ boxShadow: splitCardGlow }}
               >
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: theme === "dark" ? "linear-gradient(135deg, rgba(233,69,96,0.16), transparent 45%)" : "linear-gradient(135deg, rgba(233,69,96,0.10), transparent 45%)" }} />
@@ -849,7 +849,7 @@ const profilingPayload = {
               <button
                 onClick={() => choosePath('b')}
                 data-testid="button-path-b"
-                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[28px] p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate h-auto"
+                className="relative overflow-hidden bg-[var(--surface-card)] border border-[var(--border-input)] rounded-[22px] md:rounded-[28px] p-5 sm:p-7 md:p-9 xl:p-10 text-left cursor-pointer transition-all duration-500 hover:border-[#E94560] hover:-translate-y-2 hover:scale-[1.01] group isolate h-auto min-h-[44px]"
                 style={{ boxShadow: splitCardGlow }}
               >
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: theme === "dark" ? "linear-gradient(135deg, rgba(255,255,255,0.08), transparent 46%)" : "linear-gradient(135deg, rgba(233,69,96,0.08), transparent 46%)" }} />
@@ -893,8 +893,8 @@ const profilingPayload = {
           </motion.div>
         </div>
 
-        <footer className="relative z-10 px-4 md:px-8 pb-6 md:pb-8 flex items-center justify-between gap-4 flex-wrap">
-          <span className="text-[12px] md:text-[13px] text-[var(--text-muted)] font-light italic max-w-[840px] rounded-full px-4 py-3 border border-[var(--border-input)]" style={{ background: splitQuoteBg }}>
+        <footer className="relative z-10 px-4 md:px-8 pb-6 md:pb-8 flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-[11px] md:text-[13px] text-[var(--text-muted)] font-light italic max-w-[840px] rounded-[16px] md:rounded-full px-3.5 py-2.5 md:px-4 md:py-3 border border-[var(--border-input)] leading-snug" style={{ background: splitQuoteBg }}>
             "{t('intro.quote')}"
           </span>
           <div className="hidden sm:flex items-center gap-4 text-[12px] text-[var(--text-muted)]">
@@ -950,10 +950,10 @@ const profilingPayload = {
           <div style={{ position: 'absolute', top: '50%', left: '35%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(233,69,96,0.12) 0%, transparent 70%)', filter: 'blur(40px)', animation: 'blobDrift3 22s ease-in-out infinite' }} />
         </div>
 
-        <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 88, zIndex: 1 }}>
+        <div className="relative grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] min-h-screen max-w-[1400px] mx-auto pt-[64px] md:pt-[88px]" style={{ zIndex: 1 }}>
 
           {/* MAIN FORM */}
-          <main className="relative py-10 px-6 sm:px-12 xl:px-16 pb-[120px]">
+          <main className="relative py-6 md:py-10 px-4 sm:px-12 xl:px-16 pb-[120px]">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
 
               {/* Step header */}
@@ -981,7 +981,7 @@ const profilingPayload = {
 
                     {/* Budget */}
                     <div
-                      className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]"
+                      className="rounded-[20px] md:rounded-[24px] border border-[var(--border-input)] p-4 sm:p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]"
                       style={{ background: sidePanelBg }}
                       onFocus={() => setFormFocus('budget')}
                     >
@@ -1003,7 +1003,7 @@ const profilingPayload = {
 
                     {/* Date + Durata */}
                     <div
-                      className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]"
+                      className="rounded-[20px] md:rounded-[24px] border border-[var(--border-input)] p-4 sm:p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]"
                       style={{ background: sidePanelBg }}
                       onFocus={() => setFormFocus('dates')}
                     >
@@ -1095,7 +1095,7 @@ const profilingPayload = {
 
                     {/* Partenza */}
                     <div
-                      className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]"
+                      className="rounded-[20px] md:rounded-[24px] border border-[var(--border-input)] p-4 sm:p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]"
                       style={{ background: sidePanelBg }}
                       onFocus={() => setFormFocus('departure')}
                     >
@@ -1114,7 +1114,7 @@ const profilingPayload = {
 
                 {formStep === 2 && (
                   <div className="space-y-6">
-<div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('travelStyle')}>
+<div className="rounded-[20px] md:rounded-[24px] border border-[var(--border-input)] p-4 sm:p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('travelStyle')}>
                       <div className="flex items-center gap-3 mb-5">
                         <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
                           <Compass className="w-4 h-4 text-[#E94560]" />
@@ -1130,7 +1130,7 @@ const profilingPayload = {
                         ))}
                       </div>
                     </div>
-                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('accommodation')}>
+                    <div className="rounded-[20px] md:rounded-[24px] border border-[var(--border-input)] p-4 sm:p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('accommodation')}>
                       <div className="flex items-center gap-3 mb-5">
                         <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
                           <Home className="w-4 h-4 text-[#E94560]" />
@@ -1147,7 +1147,7 @@ const profilingPayload = {
                       </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('food')}>
+                    <div className="rounded-[20px] md:rounded-[24px] border border-[var(--border-input)] p-4 sm:p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('food')}>
                       <div className="flex items-center gap-3 mb-5">
                         <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
                           <UtensilsCrossed className="w-4 h-4 text-[#E94560]" />
@@ -1164,7 +1164,7 @@ const profilingPayload = {
                       </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('effort')}>
+                    <div className="rounded-[20px] md:rounded-[24px] border border-[var(--border-input)] p-4 sm:p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('effort')}>
                       <div className="flex items-center gap-3 mb-5">
                         <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
                           <Mountain className="w-4 h-4 text-[#E94560]" />
@@ -1181,7 +1181,7 @@ const profilingPayload = {
                       </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }}>
+                    <div className="rounded-[20px] md:rounded-[24px] border border-[var(--border-input)] p-4 sm:p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }}>
                       <div className="flex items-center gap-3 mb-5">
                         <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
                           <Leaf className="w-4 h-4 text-[#E94560]" />
@@ -1198,7 +1198,7 @@ const profilingPayload = {
                       </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-[var(--border-input)] p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('constraints')}>
+                    <div className="rounded-[20px] md:rounded-[24px] border border-[var(--border-input)] p-4 sm:p-6 transition-all hover:shadow-[0_6px_28px_rgba(233,69,96,0.08)]" style={{ background: sidePanelBg }} onFocus={() => setFormFocus('constraints')}>
                       <div className="flex items-center gap-3 mb-5">
                         <div className="w-9 h-9 rounded-xl bg-[rgba(233,69,96,0.10)] border border-[rgba(233,69,96,0.15)] flex items-center justify-center shrink-0">
                           <MessageCircle className="w-4 h-4 text-[#E94560]" />
@@ -1220,19 +1220,19 @@ const profilingPayload = {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-4">
-                  <button type="button" onClick={goBack} data-testid="button-form-back"
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[var(--text-secondary)] text-[14px] bg-transparent border border-transparent cursor-pointer rounded-full hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] hover:border-[var(--border-input)] transition-all">
-                    <ArrowLeft className="w-4 h-4" /> {t('q.back')}
+                <div className="flex items-center justify-between gap-3 pt-4">
+                  <button type="button" onClick={goBack} data-testid="button-form-back" aria-label="Indietro"
+                    className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 min-h-[44px] min-w-[44px] text-[var(--text-secondary)] text-[14px] bg-transparent border border-transparent cursor-pointer rounded-full hover:text-[var(--text-primary)] hover:bg-[var(--surface-alt)] hover:border-[var(--border-input)] transition-all">
+                    <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">{t('q.back')}</span>
                   </button>
                   {formStep === 1 ? (
                     <button type="button" onClick={() => { if (!canProceedFormStep1()) { toast({ title: t('form.fillAll') || "Compila tutti i campi obbligatori", variant: "destructive" }); return; } setFormStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                      className="inline-flex items-center gap-2 px-8 py-4 bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 transition-all group">
+                      className="inline-flex items-center justify-center gap-2 flex-1 sm:flex-none px-6 sm:px-8 py-3.5 sm:py-4 min-h-[52px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 transition-all group">
                       {t('q.continue')} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                   ) : (
                     <button type="button" onClick={handleDiscoverClick} data-testid="button-submit"
-                      className="inline-flex items-center gap-2 px-8 py-4 bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 transition-all group">
+                      className="inline-flex items-center justify-center gap-2 flex-1 sm:flex-none px-6 sm:px-8 py-3.5 sm:py-4 min-h-[52px] bg-[#E94560] text-white rounded-full font-semibold text-[15px] border-none cursor-pointer shadow-[0_8px_26px_rgba(233,69,96,0.22)] hover:bg-[#D13A52] hover:-translate-y-0.5 transition-all group">
                       {t('form.discover')} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                   )}
@@ -1507,7 +1507,7 @@ const profilingPayload = {
                     type="button"
                     data-testid={`chip-${opt.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-')}`}
                     onClick={() => !isDisabled && toggleChip(opt)}
-                    className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-[18px] border-[1.5px] transition-all duration-250 select-none text-center min-h-[90px] ${
+                    className={`relative flex flex-col items-center justify-center gap-1.5 sm:gap-2 px-2.5 py-3 sm:p-4 rounded-[16px] sm:rounded-[18px] border-[1.5px] transition-all duration-250 select-none text-center min-h-[88px] ${
                       isSelected
                         ? 'border-[#E94560] bg-[rgba(233,69,96,0.12)]'
                         : isDisabled
@@ -1520,8 +1520,8 @@ const profilingPayload = {
                         <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                       </div>
                     )}
-                    <span className="text-[22px] leading-none">{emoji}</span>
-                    <span className={`text-[13px] font-semibold leading-tight ${isSelected ? 'text-[#E94560]' : 'text-white/75'}`}>{opt}</span>
+                    <span className="text-[20px] sm:text-[22px] leading-none">{emoji}</span>
+                    <span className={`text-[12px] sm:text-[13px] font-semibold leading-tight ${isSelected ? 'text-[#E94560]' : 'text-white/75'}`}>{opt}</span>
                   </button>
                 );
               })}
@@ -2189,7 +2189,7 @@ const buildDynamicProfileMessage = (): string | null => {
           </motion.div>
         )}
       </AnimatePresence>
-<div className="grid grid-cols-1 lg:grid-cols-[60px_minmax(0,1fr)_360px] min-h-screen gap-0 w-full max-w-[1600px] mx-auto px-2" style={{ paddingTop: 120 }}>
+<div className="grid grid-cols-1 lg:grid-cols-[60px_minmax(0,1fr)_360px] min-h-screen gap-0 w-full max-w-[1600px] mx-auto px-2 pt-[96px] md:pt-[120px]">
         <aside className="hidden lg:flex flex-col items-center justify-center gap-0 sticky top-[120px] h-[calc(100vh-120px)] py-10">
           {questions.map((_, i) => (
             <div key={i} className="flex flex-col items-center relative group">
@@ -2220,7 +2220,7 @@ const buildDynamicProfileMessage = (): string | null => {
             </div>
           ))}
         </aside>
-  <main className="relative py-8 px-4 pb-[120px] md:pb-[120px] pb-[100px] w-full flex items-center justify-center">
+  <main className="relative py-4 md:py-8 px-3 sm:px-4 pb-[112px] md:pb-[120px] w-full flex items-center justify-center">
    
           <AnimatePresence mode="wait">
             <motion.div
@@ -2232,10 +2232,10 @@ const buildDynamicProfileMessage = (): string | null => {
               className="relative z-20 w-full max-w-[820px]"
             >
               {/* ── HEADER EDITORIALE – testo diretto sul background ── */}
-              <div className="mb-6 px-2">
+              <div className="mb-5 md:mb-6 px-1 md:px-2">
                 {/* Kicker */}
-                <div className="flex items-center gap-3 mb-5">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-[5px] rounded-full text-[10px] font-bold uppercase tracking-[2.8px] text-[#E94560] border border-[rgba(233,69,96,0.30)]"
+                <div className="flex items-center gap-2.5 mb-4 md:mb-5 flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-[5px] rounded-full text-[10px] font-bold uppercase tracking-[2.4px] md:tracking-[2.8px] text-[#E94560] border border-[rgba(233,69,96,0.30)]"
                     style={{ background: 'rgba(233,69,96,0.08)', backdropFilter: 'blur(8px)' }}>
                     <Info className="w-2.5 h-2.5" />
                     {t('q.label')} {String(step + 1).padStart(2, '0')}
@@ -2247,7 +2247,7 @@ const buildDynamicProfileMessage = (): string | null => {
                 </div>
 
                 {/* Titolo – grande, serif, leggibile sul dark photo */}
-                <h1 className="font-serif text-[clamp(32px,4.5vw,52px)] leading-[1.08] tracking-tight mb-4 text-white"
+                <h1 className="font-serif text-[clamp(26px,7vw,52px)] leading-[1.1] tracking-tight mb-3 md:mb-4 text-white"
                   style={{ textShadow: '0 2px 24px rgba(0,0,0,0.55)' }}>
                   <span dangerouslySetInnerHTML={{
                     __html: currentQ.text.replace(/<em>/g, '<em class="italic text-[#E94560]" style="font-style:italic">')
@@ -2255,7 +2255,7 @@ const buildDynamicProfileMessage = (): string | null => {
                 </h1>
 
                 {/* Hint – corsivo, leggero */}
-                <p className="text-[15px] md:text-[16px] text-white/55 font-light italic leading-[1.85] max-w-[52ch]"
+                <p className="text-[14px] sm:text-[15px] md:text-[16px] text-white/55 font-light italic leading-[1.7] md:leading-[1.85] max-w-[52ch]"
                   style={{ textShadow: '0 1px 12px rgba(0,0,0,0.4)' }}>
                   {currentQ.hint}
                 </p>
@@ -2273,7 +2273,7 @@ const buildDynamicProfileMessage = (): string | null => {
               </div>
 
               {/* ── AREA INPUT – glass panel premium ── */}
-              <div className="rounded-[24px] p-5 md:p-6"
+              <div className="rounded-[20px] md:rounded-[24px] p-4 sm:p-5 md:p-6"
                 style={{
                   background: 'rgba(7,9,15,0.55)',
                   backdropFilter: 'blur(32px) saturate(1.8)',
@@ -2310,11 +2310,12 @@ const buildDynamicProfileMessage = (): string | null => {
               </div>
 
               {/* Mobile: bottone sticky in basso */}
-              <div className="md:hidden fixed bottom-0 left-0 right-0 z-[50] px-4 pb-6 pt-3" style={{ background: "linear-gradient(to top, rgba(10,8,20,0.98) 70%, transparent)" }}>
+              <div className="md:hidden fixed bottom-0 left-0 right-0 z-[50] px-4 pt-3" style={{ background: "linear-gradient(to top, rgba(10,8,20,0.98) 70%, transparent)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}>
                 <div className="flex items-center gap-3 max-w-[640px] mx-auto">
                   <button
                     onClick={goBack}
                     data-testid="button-back-mobile"
+                    aria-label="Indietro"
                     className="flex items-center justify-center w-12 h-12 rounded-full border border-white/15 text-white/50 bg-white/5 cursor-pointer transition-all hover:border-white/30 hover:text-white/80 flex-shrink-0"
                   >
                     <ArrowLeft className="w-5 h-5" />
@@ -2323,7 +2324,7 @@ const buildDynamicProfileMessage = (): string | null => {
                     onClick={handleNext}
                     disabled={!canContinue()}
                     data-testid="button-continue-mobile"
-                    className="flex-1 flex items-center justify-center gap-2 py-4 rounded-full font-semibold text-[16px] border-none cursor-pointer transition-all disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex-1 flex items-center justify-center gap-2 py-4 min-h-[52px] rounded-full font-semibold text-[15px] border-none cursor-pointer transition-all disabled:cursor-not-allowed disabled:opacity-40"
                     style={{
                       background: canContinue() ? '#E94560' : 'rgba(233,69,96,0.25)',
                       color: 'white',

@@ -110,17 +110,17 @@ export function RecognitionBanner({ recognition, variant, onUseProfile, onChange
           type="button"
           onClick={onUseProfile}
           data-testid="btn-recognition-use-profile"
-          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-[14px] text-white transition-all"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3.5 min-h-[48px] rounded-full font-semibold text-[14px] text-white transition-all"
           style={{ background: "#E94560", boxShadow: "0 12px 32px rgba(233,69,96,0.28)" }}
         >
           <Sparkles className="w-4 h-4" />
-          Genera 3 viaggi da questo profilo
+          <span>Genera 3 viaggi da questo profilo</span>
         </button>
         <button
           type="button"
           onClick={onChangeProfile}
           data-testid="btn-recognition-change"
-          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-[13px] text-white/70 hover:text-white transition-all"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3.5 min-h-[48px] rounded-full font-semibold text-[13px] text-white/70 hover:text-white transition-all"
           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)" }}
         >
           <RefreshCcw className="w-3.5 h-3.5" />

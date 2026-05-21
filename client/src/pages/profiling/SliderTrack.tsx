@@ -39,14 +39,17 @@ export function SliderTrack({ value, onChange }: SliderTrackProps) {
   }, [isDragging, updateFromEvent]);
 
   return (
-    <div ref={trackRef} className="relative w-full h-1.5 bg-[var(--surface-alt)] rounded-[3px] cursor-pointer" onClick={(e) => updateFromEvent(e.clientX)}>
+    <div ref={trackRef} className="relative w-full h-1.5 bg-[var(--surface-alt)] rounded-[3px] cursor-pointer touch-none" onClick={(e) => updateFromEvent(e.clientX)} style={{ touchAction: "none" }}>
       <div className="absolute left-0 top-0 h-full rounded-[3px] transition-[width] duration-150" style={{ width: `${value}%`, background: "linear-gradient(90deg, #E94560, #F06B83)" }} />
+      {/* Touch hit area — 44x44 invisible wrapper around the visible 32px handle */}
       <div
-        className="absolute top-1/2 -translate-y-1/2 w-[30px] h-[30px] bg-[var(--surface-card)] border-[3px] border-[#E94560] rounded-full cursor-grab active:cursor-grabbing active:scale-[1.15] z-[2] hover:shadow-[0_0_0_12px_rgba(233,69,96,0.08)] active:shadow-[0_0_0_18px_rgba(233,69,96,0.1)] transition-all"
+        className="absolute top-1/2 z-[2] flex items-center justify-center w-[44px] h-[44px] cursor-grab active:cursor-grabbing"
         style={{ left: `${value}%`, transform: "translate(-50%, -50%)" }}
         onMouseDown={() => setIsDragging(true)}
         onTouchStart={() => setIsDragging(true)}
-      />
+      >
+        <span className="w-[32px] h-[32px] bg-[var(--surface-card)] border-[3px] border-[#E94560] rounded-full active:scale-[1.15] hover:shadow-[0_0_0_12px_rgba(233,69,96,0.08)] active:shadow-[0_0_0_18px_rgba(233,69,96,0.1)] transition-all" />
+      </div>
     </div>
   );
 }
