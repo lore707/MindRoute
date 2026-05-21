@@ -58,14 +58,15 @@ export default function LangDropdown({ variant = "light" }: { variant?: "light" 
       <button
         onClick={() => setOpen(!open)}
         data-testid="button-lang"
-        className={`flex items-center gap-1.5 px-3 py-[6px] border rounded-full text-[12px] font-medium hover:border-[#E94560] hover:text-[#E94560] transition-all bg-transparent cursor-pointer ${
+        aria-label="Cambia lingua"
+        className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 sm:py-[6px] min-h-[40px] border rounded-full text-[12px] font-medium hover:border-[#E94560] hover:text-[#E94560] transition-all bg-transparent cursor-pointer ${
           isExplicitDark
             ? "border-white/20 text-white/70"
             : "border-[var(--border-input)] text-[var(--text-secondary)]"
         }`}
       >
         <FlagIcon code={current.code} className="w-[18px] h-[13px] rounded-[2px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.1)]" />
-        <span>{current.label}</span>
+        <span className="hidden sm:inline">{current.label}</span>
         <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
@@ -80,7 +81,7 @@ export default function LangDropdown({ variant = "light" }: { variant?: "light" 
               key={l.code}
               data-testid={`lang-option-${l.code}`}
               onClick={() => { setLang(l.code); setOpen(false); }}
-              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium transition-colors cursor-pointer border-none bg-transparent text-left ${
+              className={`w-full flex items-center gap-2.5 px-4 py-3 min-h-[44px] text-[13px] font-medium transition-colors cursor-pointer border-none bg-transparent text-left ${
                 l.code === lang
                   ? "text-[#E94560]"
                   : isExplicitDark

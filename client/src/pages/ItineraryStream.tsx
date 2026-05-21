@@ -127,35 +127,35 @@ export default function ItineraryStream() {
   return (
     <div className="min-h-screen" style={{ background: "#0a0814" }}>
       {/* Hero */}
-      <div className="relative h-[60vh] min-h-[400px] overflow-hidden">
+      <div className="relative h-[50vh] min-h-[340px] md:h-[60vh] md:min-h-[400px] overflow-hidden">
         {heroImageUrl && (
           <img src={heroImageUrl} alt={destinationName} className="absolute inset-0 w-full h-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/40 to-transparent" />
-        <div className="absolute top-8 left-6 md:left-12 z-20">
+        <div className="absolute top-20 md:top-8 left-4 md:left-12 z-20">
           <button
             onClick={() => setLocation("/destinations")}
-            className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium transition-colors bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10"
+            className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm font-medium transition-colors bg-black/30 backdrop-blur-sm px-4 py-2.5 min-h-[44px] rounded-full border border-white/10"
           >
             <ArrowLeft className="w-4 h-4" /> Indietro
           </button>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 z-10">
+        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-12 z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-4">
+            <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[2.5px] md:tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-3 md:mb-4">
               {isStreaming ? "✦ Costruendo il tuo itinerario..." : "Il tuo itinerario"}
             </span>
-            <h1 className="text-4xl md:text-6xl font-serif font-bold text-white tracking-tight leading-[1.05]">
+            <h1 className="text-[32px] sm:text-4xl md:text-6xl font-serif font-bold text-white tracking-tight leading-[1.05]">
               {destinationName}
             </h1>
             {tripSummary && (
-              <p className="text-white/60 font-serif italic text-lg mt-3 max-w-2xl">{tripSummary}</p>
+              <p className="text-white/60 font-serif italic text-[15px] md:text-lg mt-2 md:mt-3 max-w-2xl">{tripSummary}</p>
             )}
           </motion.div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-12 pb-24 pt-8">
+      <div className="max-w-4xl mx-auto px-4 md:px-12 pb-20 md:pb-24 pt-6 md:pt-8">
 
         {/* Streaming indicator */}
         {isStreaming && (
@@ -185,12 +185,12 @@ export default function ItineraryStream() {
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-10 p-6 md:p-8 rounded-[24px] relative overflow-hidden"
+              className="mb-8 md:mb-10 p-5 sm:p-6 md:p-8 rounded-[20px] md:rounded-[24px] relative overflow-hidden"
               style={{ background: "linear-gradient(135deg, rgba(233,69,96,0.08), rgba(233,69,96,0.03))", border: "1px solid rgba(233,69,96,0.2)" }}
             >
               <div className="absolute top-0 left-0 w-1 h-full bg-[#E94560] rounded-l-[24px]" />
               <p className="text-[11px] font-bold uppercase tracking-[3px] text-[#E94560] mb-3">Perché è il tuo viaggio</p>
-              <p className="font-serif italic text-xl text-white leading-relaxed">"{whyYours}"</p>
+              <p className="font-serif italic text-[17px] sm:text-xl text-white leading-relaxed">"{whyYours}"</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -323,17 +323,17 @@ export default function ItineraryStream() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-center py-12"
+              className="text-center py-10 md:py-12"
             >
-              <p className="font-serif italic text-xl md:text-2xl text-white/80 mb-8 max-w-2xl mx-auto">
+              <p className="font-serif italic text-[17px] sm:text-xl md:text-2xl text-white/80 mb-6 md:mb-8 max-w-2xl mx-auto leading-snug">
                 "{closing}"
               </p>
               {itineraryId && (
                 <button
                   onClick={() => setLocation(`/itinerary/${itineraryId}`)}
-                  className="px-8 py-4 rounded-2xl bg-[#E94560] text-white font-bold hover:bg-[#d63050] transition-all shadow-[0_4px_24px_rgba(233,69,96,0.25)]"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 min-h-[52px] rounded-2xl bg-[#E94560] text-white font-bold text-[14px] sm:text-base hover:bg-[#d63050] transition-all shadow-[0_4px_24px_rgba(233,69,96,0.25)]"
                 >
-                  Vedi itinerario completo con prenotazioni →
+                  Vedi itinerario completo →
                 </button>
               )}
             </motion.div>
