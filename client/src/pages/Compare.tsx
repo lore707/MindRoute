@@ -125,21 +125,21 @@ export default function Compare() {
   const eligibleA = useMemo(() => trips.filter(t => t.id !== bId), [trips, bId]);
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 md:px-12" style={{ background: "#0a0814" }}>
+    <div className="min-h-screen pt-20 md:pt-24 pb-12 md:pb-16 px-4 md:px-12" style={{ background: "#0a0814" }}>
       <div className="max-w-6xl mx-auto">
         {/* Back */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/my-account" className="inline-flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors">
+        <div className="flex items-center gap-4 mb-6 md:mb-8">
+          <Link href="/my-account" className="inline-flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors min-h-[44px]">
             <ArrowLeft className="w-4 h-4" /> Account
           </Link>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <div className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] uppercase text-[#E94560] mb-2">
             <GitCompare className="w-3 h-3" /> Confronta
           </div>
-          <h1 className="text-2xl md:text-3xl font-serif font-bold text-white leading-tight">Due viaggi fianco a fianco</h1>
-          <p className="text-white/40 text-sm mt-1.5">Costi, durata, energia, momenti chiave — per decidere senza pensarci troppo.</p>
+          <h1 className="text-[22px] sm:text-2xl md:text-3xl font-serif font-bold text-white leading-tight">Due viaggi fianco a fianco</h1>
+          <p className="text-white/40 text-[13px] sm:text-sm mt-1.5 leading-relaxed">Costi, durata, energia, momenti chiave — per decidere senza pensarci troppo.</p>
         </div>
 
         {tripsLoading && (
@@ -176,11 +176,11 @@ export default function Compare() {
 
         {/* Footer CTA — apri entrambi */}
         {aTrip && bTrip && (
-          <div className="mt-10 flex items-center justify-center gap-3">
+          <div className="mt-8 md:mt-10 flex items-center justify-center gap-3 flex-wrap">
             <button
               type="button"
               onClick={() => { setAId(bId); setBId(aId); }}
-              className="px-4 py-2 rounded-full text-[12px] font-semibold text-white/70 hover:text-white transition-all"
+              className="px-4 py-2.5 min-h-[44px] rounded-full text-[12px] font-semibold text-white/70 hover:text-white transition-all"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
             >
               ⇄ Inverti
@@ -188,7 +188,7 @@ export default function Compare() {
             <button
               type="button"
               onClick={() => setLocation("/my-account")}
-              className="px-4 py-2 rounded-full text-[12px] font-semibold text-white/70 hover:text-white transition-all"
+              className="px-4 py-2.5 min-h-[44px] rounded-full text-[12px] font-semibold text-white/70 hover:text-white transition-all"
               style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
             >
               Torna all'account
@@ -222,14 +222,14 @@ function CompareColumn({
       style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
     >
       {/* Picker */}
-      <div className="p-4 border-b border-white/5 flex items-center gap-3">
-        <span className="w-7 h-7 inline-flex items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: "#E94560" }}>{side}</span>
-        <div className="relative flex-1">
+      <div className="p-3 sm:p-4 border-b border-white/5 flex items-center gap-3">
+        <span className="w-8 h-8 inline-flex items-center justify-center rounded-full text-[11px] font-bold text-white shrink-0" style={{ background: "#E94560" }}>{side}</span>
+        <div className="relative flex-1 min-w-0">
           <select
             value={tripId ?? ""}
             onChange={(e) => onChange(e.target.value ? parseInt(e.target.value, 10) : null)}
-            className="w-full appearance-none pl-3 pr-9 py-2 rounded-xl text-sm text-white outline-none cursor-pointer"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
+            className="w-full appearance-none pl-3 pr-9 py-2.5 min-h-[44px] rounded-xl text-sm text-white outline-none cursor-pointer truncate"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", colorScheme: "dark" }}
           >
             <option value="">Scegli un viaggio…</option>
             {options.map(t => (
@@ -262,8 +262,8 @@ function CompareColumn({
           {/* Stats */}
           <div className="grid grid-cols-3 divide-x divide-white/5 border-b border-white/5">
             <StatTile icon={<Calendar className="w-3 h-3" />} value={String(trip.days?.length ?? 0)} label="giorni" />
-            <StatTile icon={<Clock className="w-3 h-3" />} value={cost ? cost.label : "—"} label="costo stimato" muted={!cost} />
-            <StatTile icon={<Zap className="w-3 h-3" />} value={energy !== null ? `${energy}/3` : "—"} label="energia media" muted={energy === null} />
+            <StatTile icon={<Clock className="w-3 h-3" />} value={cost ? cost.label : "—"} label="costo" muted={!cost} />
+            <StatTile icon={<Zap className="w-3 h-3" />} value={energy !== null ? `${energy}/3` : "—"} label="energia" muted={energy === null} />
           </div>
 
           {/* whyYours / manifesto */}
@@ -301,7 +301,7 @@ function CompareColumn({
                   </li>
                 ))}
               </ul>
-              <Link href={`/itinerary/${trip.id}`} className="inline-flex items-center gap-1.5 mt-4 text-[#E94560] text-[12px] font-semibold hover:underline">
+              <Link href={`/itinerary/${trip.id}`} className="inline-flex items-center gap-1.5 mt-4 px-4 py-2.5 min-h-[44px] rounded-full text-[#E94560] text-[12px] font-semibold border border-[#E94560]/30 hover:bg-[#E94560]/10 transition-all">
                 Apri itinerario <MapPin className="w-3 h-3" />
               </Link>
             </div>
@@ -314,10 +314,10 @@ function CompareColumn({
 
 function StatTile({ icon, value, label, muted }: { icon: React.ReactNode; value: string; label: string; muted?: boolean }) {
   return (
-    <div className="p-3 text-center">
+    <div className="p-2.5 sm:p-3 text-center min-w-0">
       <div className={"inline-flex items-center justify-center mb-1 " + (muted ? "text-white/20" : "text-white/40")}>{icon}</div>
-      <div className={"text-base font-serif font-bold leading-tight " + (muted ? "text-white/30" : "text-white")}>{value}</div>
-      <div className="text-[9px] text-white/40 uppercase tracking-wider mt-0.5">{label}</div>
+      <div className={"text-sm sm:text-base font-serif font-bold leading-tight truncate " + (muted ? "text-white/30" : "text-white")}>{value}</div>
+      <div className="text-[9px] text-white/40 uppercase tracking-wider mt-0.5 truncate">{label}</div>
     </div>
   );
 }
