@@ -458,7 +458,7 @@ export default function MyAccount() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.97 }}
               transition={{ duration: 0.22 }}
-              className="w-full max-w-md rounded-[24px] p-6 md:p-7"
+              className="w-full max-w-md rounded-[20px] md:rounded-[24px] p-5 md:p-7 max-h-[calc(100vh-32px)] overflow-y-auto"
               style={{ background: "#15101e", border: "1px solid rgba(255,255,255,0.08)" }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -466,7 +466,7 @@ export default function MyAccount() {
                 <div className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] uppercase text-[#E94560]">
                   <Sparkles className="w-3 h-3" /> Shortcut profilo
                 </div>
-                <button type="button" onClick={() => !fpLoading && setShowFromProfile(false)} className="text-white/40 hover:text-white">
+                <button type="button" onClick={() => !fpLoading && setShowFromProfile(false)} aria-label="Chiudi" className="flex items-center justify-center w-9 h-9 -mr-2 -mt-2 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -489,7 +489,7 @@ export default function MyAccount() {
                       key={opt.v}
                       type="button"
                       onClick={() => setFpCompanions(opt.v)}
-                      className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                      className="px-3.5 py-2 min-h-[40px] rounded-full text-[12px] font-semibold transition-all"
                       style={{
                         background: fpCompanions === opt.v ? "#E94560" : "rgba(255,255,255,0.04)",
                         color: fpCompanions === opt.v ? "white" : "rgba(255,255,255,0.6)",
@@ -547,7 +547,7 @@ export default function MyAccount() {
                       key={opt.v}
                       type="button"
                       onClick={() => setFpBudget(opt.v)}
-                      className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all"
+                      className="px-3.5 py-2 min-h-[40px] rounded-full text-[12px] font-semibold transition-all"
                       style={{
                         background: fpBudget === opt.v ? "#E94560" : "rgba(255,255,255,0.04)",
                         color: fpBudget === opt.v ? "white" : "rgba(255,255,255,0.6)",
@@ -601,7 +601,7 @@ export default function MyAccount() {
                   type="button"
                   onClick={submitFromProfile}
                   disabled={fpLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full font-semibold text-[14px] text-white transition-all disabled:opacity-50"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 min-h-[48px] rounded-full font-semibold text-[14px] text-white transition-all disabled:opacity-50"
                   style={{ background: "#E94560", boxShadow: "0 8px 24px rgba(233,69,96,0.25)" }}
                 >
                   {fpLoading ? (
