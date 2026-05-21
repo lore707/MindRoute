@@ -181,23 +181,23 @@ if (destinations.length === 0) return null;
   if (isGenerating) {
     return (
       <div className="min-h-screen" style={{ background: "#0a0814" }}>
-        <div className="relative h-[60vh] min-h-[400px] overflow-hidden">
+        <div className="relative h-[50vh] min-h-[340px] md:h-[60vh] md:min-h-[400px] overflow-hidden">
           {genHeroUrl && (
             <img src={genHeroUrl} alt={genDestName} className="absolute inset-0 w-full h-full object-cover" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0814] via-[#0a0814]/50 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 z-10">
+          <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-12 z-10">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-4">
+              <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[2.5px] md:tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-3 md:mb-4">
                 ✦ Costruendo il tuo itinerario
               </span>
-              <h1 className="text-4xl md:text-6xl font-serif font-bold text-white tracking-tight leading-[1.05]">
+              <h1 className="text-[34px] sm:text-4xl md:text-6xl font-serif font-bold text-white tracking-tight leading-[1.05]">
                 {genDestName}
               </h1>
             </motion.div>
           </div>
         </div>
-        <div className="max-w-2xl mx-auto px-6 py-12 flex flex-col items-center gap-8">
+        <div className="max-w-2xl mx-auto px-5 sm:px-6 py-8 md:py-12 flex flex-col items-center gap-6 md:gap-8">
           <motion.div
             key={genMessage}
             initial={{ opacity: 0, y: 8 }}
@@ -214,7 +214,7 @@ if (destinations.length === 0) return null;
                 />
               ))}
             </div>
-            <p className="text-white/70 font-serif italic text-lg">{genMessage}</p>
+            <p className="text-white/70 font-serif italic text-[15px] sm:text-lg text-center">{genMessage}</p>
           </motion.div>
           <div className="w-full max-w-md">
             <div className="w-full h-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
@@ -237,8 +237,8 @@ if (destinations.length === 0) return null;
 
   return (
     <div style={{ background: "#0a0814", color: "white", minHeight: "100vh" }}>
-    <div className="container max-w-7xl mx-auto px-4 md:px-6 pt-24 pb-20">
-      <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
+    <div className="container max-w-7xl mx-auto px-4 md:px-6 pt-20 md:pt-24 pb-16 md:pb-20">
+      <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -260,7 +260,8 @@ if (destinations.length === 0) return null;
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.16 }}
-          style={{ fontSize: 15, color: "rgba(255,255,255,0.55)", fontFamily: "system-ui, sans-serif", fontWeight: 300, lineHeight: 1.7 }}
+          className="text-[14px] sm:text-[15px]"
+          style={{ color: "rgba(255,255,255,0.55)", fontFamily: "system-ui, sans-serif", fontWeight: 300, lineHeight: 1.65 }}
         >
           {lang === "it"
             ? "Tre risposte diverse a chi sei. La diretta, l'angolo laterale, la sorpresa autentica."
@@ -270,7 +271,7 @@ if (destinations.length === 0) return null;
 
       <RecognitionBanner recognition={recognition} variant="compact" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-8 items-stretch">
         {destinations.map((dest, index) => (
           <motion.div
             key={dest.id}
@@ -290,17 +291,18 @@ if (destinations.length === 0) return null;
               boxShadow: selectedId === dest.id ? "0 0 0 1px rgba(233,69,96,0.3), 0 20px 50px rgba(0,0,0,0.5)" : "0 4px 24px rgba(0,0,0,0.35)",
             }}
           >
-            <div className="relative h-48 md:h-64 overflow-hidden">
+            <div className="relative h-52 sm:h-56 md:h-64 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
               <img
                 src={dest.imageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80"}
                 alt={dest.name}
+                loading="lazy"
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
-              <div className="absolute bottom-6 left-6 z-20 text-white">
+              <div className="absolute bottom-5 left-5 md:bottom-6 md:left-6 z-20 text-white pr-5">
                 {dest.slotRole && (
                   <span
-                    className="inline-block mb-2 text-[10px] font-sans font-bold uppercase tracking-[3px]"
+                    className="inline-block mb-1.5 text-[10px] font-sans font-bold uppercase tracking-[2.5px] md:tracking-[3px]"
                     style={{
                       color: dest.slotRole === "surprise" ? "#E94560" : "rgba(255,255,255,0.75)",
                     }}
@@ -311,11 +313,11 @@ if (destinations.length === 0) return null;
                     {dest.slotRole === "surprise" && t("dest.slot.surprise")}
                   </span>
                 )}
-                <h3 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">{dest.name}</h3>
+                <h3 className="text-[22px] sm:text-2xl md:text-3xl font-serif font-bold tracking-tight leading-tight">{dest.name}</h3>
               </div>
             </div>
 
-            <div className="flex-1 p-5 md:p-8 flex flex-col gap-6">
+            <div className="flex-1 p-5 md:p-8 flex flex-col gap-5 md:gap-6">
               <div className="space-y-1">
                 <h4 className="text-[10px] font-sans font-bold uppercase tracking-[2px]" style={{ color: "#E94560" }}>
                   {t("dest.why")}
@@ -344,32 +346,31 @@ if (destinations.length === 0) return null;
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="mt-16 flex justify-center"
+            className="mt-10 md:mt-16 flex justify-center"
           >
             <button
               onClick={handleContinue}
               disabled={isGenerating}
               data-testid="button-continue-dest"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto max-w-[420px] min-h-[52px] px-6 sm:px-9 py-3.5 sm:py-4 rounded-full font-semibold text-[14px] sm:text-[15px] tracking-tight transition-all"
               style={{
-                display: "inline-flex", alignItems: "center", gap: 9,
                 background: isGenerating ? "rgba(233,69,96,0.5)" : "#E94560",
-                color: "white", fontSize: 15, fontWeight: 600,
-                padding: "15px 36px", borderRadius: 50,
+                color: "white",
                 boxShadow: "0 12px 36px rgba(233,69,96,0.28)",
-                border: "none", cursor: isGenerating ? "not-allowed" : "pointer",
-                fontFamily: "system-ui, sans-serif", letterSpacing: "-0.2px",
-                transition: "all 0.25s ease",
+                border: "none",
+                cursor: isGenerating ? "not-allowed" : "pointer",
+                fontFamily: "system-ui, sans-serif",
               }}
             >
               {isGenerating ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  {lang === "it" ? "Creo il tuo itinerario..." : "Building your itinerary..."}
+                  <span className="truncate">{lang === "it" ? "Creo il tuo itinerario..." : "Building your itinerary..."}</span>
                 </>
               ) : (
                 <>
-                  {t("dest.choose")} {selectedName?.split(",")[0]}{" "}
-                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  <span className="truncate">{t("dest.choose")} {selectedName?.split(",")[0]}</span>
+                  <ArrowRight className="w-5 h-5 shrink-0 transition-transform group-hover:translate-x-1" />
                 </>
               )}
             </button>
