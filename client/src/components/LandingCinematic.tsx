@@ -248,7 +248,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
 
       {/* ④ MANIFESTO */}
       <section className="lc-manifesto">
-        <div className="lc-manifesto-bg" style={{ backgroundImage: `url(${data.manifestoBg})` }} data-parallax="0.15" data-parallax-scroll="1" />
+        <div className="lc-manifesto-bg" style={{ backgroundImage: `url(${data.manifestoBg})` }} />
         <div className="lc-manifesto-content">
           <div className="lc-manifesto-eyebrow"><div className="lc-eyebrow white"><span className="d" />{t("landing.manifesto.eyebrow")}</div></div>
           <p className="lc-manifesto-quote" dangerouslySetInnerHTML={{ __html: t("landing.manifesto.quote") }} />
