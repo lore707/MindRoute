@@ -15,6 +15,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "wouter";
 import { useI18n } from "@/lib/i18n";
 import { CURATED_DESTINATIONS_FEED, type DestinationsFeedItem } from "@shared/destinations-feed";
 
@@ -439,6 +440,46 @@ export function LandingCinematic({ data }: { data: LandingData }) {
           ))}
         </div>
       </section>
+
+      {/* ⑨ FOOTER */}
+      <footer className="lc-footer">
+        <div className="lc-footer-grid">
+          <div className="lc-footer-brand">
+            <div className="lc-footer-mark">MindRoute</div>
+            <p className="lc-footer-tagline">{t("footer.tagline")}</p>
+          </div>
+          <div className="lc-footer-col">
+            <div className="lc-footer-head">{t("footer.productHead")}</div>
+            <Link href="/profiling" className="lc-footer-link">{t("footer.productStart")}</Link>
+            <Link href="/privacy" className="lc-footer-link">{t("footer.privacy")}</Link>
+          </div>
+          <div className="lc-footer-col">
+            <div className="lc-footer-head">{t("footer.contactHead")}</div>
+            <a href="mailto:mindroutetravel@gmail.com" className="lc-footer-link">mindroutetravel@gmail.com</a>
+          </div>
+          <div className="lc-footer-col">
+            <div className="lc-footer-head">{t("footer.socialHead")}</div>
+            <a href="https://instagram.com/mindroute.travel" target="_blank" rel="noopener noreferrer" className="lc-footer-link lc-footer-social">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="2" y="2" width="20" height="20" rx="5" />
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+              </svg>
+              Instagram
+            </a>
+            <a href="https://tiktok.com/@mindroute.travel" target="_blank" rel="noopener noreferrer" className="lc-footer-link lc-footer-social">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+              </svg>
+              TikTok
+            </a>
+          </div>
+        </div>
+        <div className="lc-footer-base">
+          <span>{t("footer.copyright")}</span>
+          <span>{t("footer.affiliate")}</span>
+        </div>
+      </footer>
     </div>
   );
 }
