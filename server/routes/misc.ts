@@ -4,6 +4,23 @@ import { emaAggregate, AXIS_NAMES, type TraitVector, MAPPING_VERSION } from "@sh
 import { getTraitHeadline } from "../trait-headline";
 import { computeAccountInsights, continentOf, CONTINENT_LABEL_IT } from "../account-insights";
 import { getCachedLandingImageSet } from "../landing-images";
+import { CURATED_DESTINATIONS_FEED, type DestinationsFeedItem } from "@shared/destinations-feed";
+
+// Italian relative time for the landing strip. The product is IT-first and the
+// strings rendered here are short tokens ("2 ore fa", "ieri") so we localise on
+// the server rather than shipping a date library to the client.
+function relativeTimeIT(d: Date): string {
+  const diffMs = Date.now() - d.getTime();
+  if (diffMs < 0) return "ora";
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return "ora";
+  if (diffMin < 60) return `${diffMin} min fa`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return diffHr === 1 ? "1 ora fa" : `${diffHr} ore fa`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 1) return "ieri";
+  return `${diffDay} giorni fa`;
+}
 
 export function registerMiscRoutes(app: Express) {
   // GET /api/me/trait-history — chronological snapshots + EMA-aggregated
@@ -173,6 +190,84 @@ export function registerMiscRoutes(app: Express) {
       // Even on unhandled error, never break the landing — caller has its own
       // fallback in the client, but we still try to respond with something.
       res.status(200).json(null);
+    }
+  });
+
+  // Landing destinations feed — proof point strip. Mixes real recently-generated
+  // destinations (last 7 days, deduped by name) with the curated brand-aligned
+  // fallback so the strip is always 16-20 items and never feels empty. Real
+  // items carry a relative timestamp; curated items don't. Response is shuffled
+  // with a light front-bias on real items so they're the first thing scanned
+  // without the order being identical every load.
+  app.get("/api/destinations-feed", async (_req, res) => {
+    try {
+      const { db } = await import("../db");
+      const { recentDestinations } = await import("@shared/schema");
+      const { desc, gte } = await import("drizzle-orm");
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const rows = await db
+        .select()
+        .from(recentDestinations)
+        .where(gte(recentDestinations.createdAt, sevenDaysAgo))
+        .orderBy(desc(recentDestinations.createdAt))
+        .limit(80); // generous fetch; we dedupe + cap below
+
+      // Dedupe by destinationName, keeping the newest occurrence (rows are
+      // already desc by createdAt, so the first hit wins).
+      const seen = new Set<string>();
+      const realItems: DestinationsFeedItem[] = [];
+      for (const r of rows) {
+        const key = r.destinationName.trim().toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        realItems.push({
+          name: r.destinationName,
+          country: null, // recent_destinations doesn't store country name
+          flag: r.flag,
+          vibe: null, // no vibe persisted for real items — spec: omit, don't invent
+          isRecent: true,
+          relativeTime: relativeTimeIT(new Date(r.createdAt)),
+        });
+        if (realItems.length >= 20) break;
+      }
+
+      // If real items are sparse, top up with curated until we have 16-20.
+      // Otherwise use real-only (cap 20). Exclude curated names that overlap
+      // with real entries so we don't show the same destination twice.
+      let items: DestinationsFeedItem[];
+      if (realItems.length >= 12) {
+        items = realItems.slice(0, 20);
+      } else {
+        const realNames = new Set(realItems.map(r => r.name.trim().toLowerCase()));
+        const curatedAvailable = CURATED_DESTINATIONS_FEED.filter(
+          c => !realNames.has(c.name.trim().toLowerCase()),
+        );
+        const target = Math.min(18, realItems.length + curatedAvailable.length);
+        const needed = target - realItems.length;
+        items = [...realItems, ...curatedAvailable.slice(0, Math.max(0, needed))];
+      }
+
+      // Front-biased shuffle: real items get sort keys in [0, 0.65) with a
+      // tiny secondary by recency order; curated items get [0.30, 1.30).
+      // Sorting ascending puts real mostly first but still mixed.
+      const scored = items.map((x, i) => {
+        const k = x.isRecent
+          ? Math.random() * 0.65 + i * 0.005
+          : Math.random() * 1.0 + 0.30;
+        return { x, k };
+      });
+      scored.sort((a, b) => a.k - b.k);
+      const ordered = scored.map(s => s.x);
+
+      // Short browser cache so we don't hammer the DB on landing reloads but
+      // the strip still feels fresh within minutes of a generation.
+      res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+      res.json(ordered);
+    } catch (err) {
+      console.error("destinations-feed error:", err);
+      // Never break the landing: hand the client the curated set so it can
+      // render something instead of a black bar.
+      res.status(200).json(CURATED_DESTINATIONS_FEED);
     }
   });
 

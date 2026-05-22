@@ -16,15 +16,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { CURATED_DESTINATIONS_FEED, type DestinationsFeedItem } from "@shared/destinations-feed";
 
 export type HeroPhoto = { img: string; name: string; country: string; mood: string };
 export type Step = { n: number; tag: string; title: string; desc: string; img: string };
 export type Destination = { name: string; country: string; mood: string; size?: "l" | "s"; img: string };
 export type FinalPhoto = { img: string; name: string; coords: string };
+export type MarqueeItem = DestinationsFeedItem;
 
 export type LandingData = {
   heroPhotos: HeroPhoto[];          // 4-5 cinematic destinations
-  marquee: string[];                // destination names for ticker
+  marquee: MarqueeItem[];           // real + curated destinations for the proof-point ticker
   manifestoBg: string;              // full-bleed photo url
   steps: Step[];                    // 3 photo cards
   destinations: Destination[];      // 5 mosaic items
@@ -193,11 +195,26 @@ export function LandingCinematic({ data }: { data: LandingData }) {
         </div>
       </section>
 
-      {/* ② MARQUEE */}
+      {/* ② MARQUEE — proof-point: real recent generations + curated fallback */}
       <section className="lc-marquee">
         <div className="lc-marquee-track" data-parallax="0.1">
           {[...data.marquee, ...data.marquee].map((c, i) => (
-            <div key={i} className="lc-marquee-item"><span className="dot" />{c}</div>
+            <div key={i} className="lc-marquee-item">
+              <span className="dot" />
+              <span>
+                {c.flag ? `${c.flag} ` : ""}{c.name}
+                {c.vibe && (
+                  <span style={{ marginLeft: 8, opacity: 0.6, fontSize: "0.78em", letterSpacing: ".04em" }}>
+                    · {c.vibe}
+                  </span>
+                )}
+                {c.isRecent && c.relativeTime && (
+                  <span style={{ marginLeft: 8, color: "var(--lc-accent)", opacity: 0.78, fontSize: "0.72em", fontStyle: "normal", letterSpacing: ".06em" }}>
+                    · {c.relativeTime}
+                  </span>
+                )}
+              </span>
+            </div>
           ))}
         </div>
       </section>
@@ -444,11 +461,11 @@ export const DEFAULT_LANDING_DATA: LandingData = {
     { img: u("1523906834658-6e24ef2386f9", 2000), name: "Procida",   country: "Italy",     mood: "Authentic" },
     { img: u("1540959733332-eab4deabeeaf", 2000), name: "Tokyo",     country: "Japan",     mood: "Electric" },
   ],
-  marquee: [
-    "Tokyo", "Reykjavik", "Lofoten", "Procida", "Bali", "Patagonia",
-    "Lisbon", "Kyoto", "Faroe Islands", "Oaxaca", "Sicily", "Hanoi",
-    "Cairo", "Cape Town", "Lima", "Marrakech", "Samarkand", "Buenos Aires",
-  ],
+  // Curated, brand-aligned fallback. The server's /api/destinations-feed merges
+  // real recent generations (last 7 days) into this list when available; this
+  // array is what we show on first paint and as the silent fallback if the
+  // endpoint fails. Kept in /shared so server and client agree on the list.
+  marquee: CURATED_DESTINATIONS_FEED,
   manifestoBg: u("1519681393784-d120267933ba", 2000),
   steps: [
     { n: 1, tag: "Step 1", title: "Answer 7 questions", desc: "Not about places — about you. How do you want to feel? What do you need? What do you avoid?", img: u("1455390582262-044cdead277a", 1200) },

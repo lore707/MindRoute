@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { LandingCinematic, DEFAULT_LANDING_DATA, type LandingData } from "@/components/LandingCinematic";
+import { LandingCinematic, DEFAULT_LANDING_DATA, type LandingData, type MarqueeItem } from "@/components/LandingCinematic";
 
 export default function Landing() {
   const [, navigate] = useLocation();
@@ -12,14 +12,29 @@ export default function Landing() {
 
   useEffect(() => {
     let cancelled = false;
+    // (1) Photos. /api/landing-images still ships a legacy `marquee: string[]`
+    // which would clobber our typed MarqueeItem[]; strip it before merging so
+    // the destinations-feed fetch below stays authoritative for the strip.
     fetch("/api/landing-images")
       .then(r => r.ok ? r.json() : null)
-      .then((set: Partial<LandingData> | null) => {
+      .then((set: Partial<LandingData> & { marquee?: unknown } | null) => {
         if (cancelled || !set) return;
-        // Defensive merge: any missing key keeps the fallback value.
-        setData({ ...DEFAULT_LANDING_DATA, ...set });
+        const { marquee: _ignoredLegacyMarquee, ...rest } = set;
+        setData(prev => ({ ...prev, ...rest }));
       })
       .catch(() => { /* fallback already in state */ });
+
+    // (2) Proof-point strip. Real recent generations mixed with curated. If
+    // the endpoint fails or returns nothing, the curated default already in
+    // state stays — silent fallback, never an empty strip.
+    fetch("/api/destinations-feed")
+      .then(r => r.ok ? r.json() : null)
+      .then((items: MarqueeItem[] | null) => {
+        if (cancelled || !Array.isArray(items) || items.length === 0) return;
+        setData(prev => ({ ...prev, marquee: items }));
+      })
+      .catch(() => { /* curated default stays */ });
+
     return () => { cancelled = true; };
   }, []);
 
