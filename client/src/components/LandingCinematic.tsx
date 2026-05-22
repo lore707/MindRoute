@@ -162,8 +162,9 @@ export function LandingCinematic({ data }: { data: LandingData }) {
           <div className="lc-hero-left">
             <div className="lc-hero-eyebrow"><div className="lc-eyebrow white"><span className="d" />{t("landing.hero.eyebrow")}</div></div>
             <h1>
-              <span className="word w1">{t("landing.hero.title1")}</span>{" "}
-              <span className="word w2">{t("landing.hero.title2")}</span><br /><span className="word w3">{t("landing.hero.title3")}</span>
+              <span className="lc-hero-l1">
+                <span className="word w1">{t("landing.hero.title1")}</span>{" "}<span className="word w2">{t("landing.hero.title2")}</span>
+              </span><br /><span className="word w3">{t("landing.hero.title3")}</span>
             </h1>
             <p className="lc-hero-tag">{t("landing.hero.tag")}</p>
             <div className="lc-hero-actions">

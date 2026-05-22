@@ -92,7 +92,8 @@
 
 .lc-hero-content{position:relative;z-index:5;padding:0 64px 60px;max-width:1320px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr auto;gap:48px;align-items:end}
 .lc-hero-eyebrow{margin-bottom:22px;opacity:0;animation:lc-rise 1s cubic-bezier(.2,.7,.2,1) .1s forwards}
-.lc-hero h1{font-family:var(--lc-serif);font-size:clamp(56px,8vw,128px);font-weight:400;line-height:.92;letter-spacing:-.025em;margin-bottom:22px;color:#fff;text-shadow:0 4px 32px rgba(0,0,0,.4);text-wrap:balance;opacity:0;animation:lc-fade-in .1s ease .2s forwards}
+.lc-hero h1{font-family:var(--lc-serif);font-size:clamp(56px,8vw,128px);font-weight:400;line-height:.92;letter-spacing:-.025em;margin-bottom:22px;color:#fff;text-shadow:0 4px 32px rgba(0,0,0,.4);opacity:0;animation:lc-fade-in .1s ease .2s forwards}
+.lc-hero h1 .lc-hero-l1{white-space:nowrap}
 .lc-hero h1 .word{display:inline-block;clip-path:inset(0 100% 0 0);animation:lc-mask-reveal 1.1s cubic-bezier(.65,.05,.36,1) forwards}
 .lc-hero h1 .word.w2{animation-delay:.5s;margin-right:.32em}
 .lc-hero h1 .word.w3{animation-delay:.95s;color:var(--lc-accent);font-style:italic}
@@ -303,7 +304,12 @@
   .lc-hero{min-height:640px;height:100svh}
   .lc-hero-content{padding:0 18px 36px;gap:22px}
   .lc-hero-eyebrow{margin-bottom:14px}
-  .lc-hero h1{font-size:clamp(40px,11vw,58px);line-height:.95;margin-bottom:14px;letter-spacing:-.02em}
+  .lc-hero h1{font-size:clamp(40px,11vw,58px);line-height:.95;margin-bottom:14px;letter-spacing:-.02em;text-wrap:balance}
+  /* On narrow viewports "Travel starts with" doesn't fit on one line; release
+     the desktop nowrap so the browser can wrap it naturally instead of
+     overflowing horizontally. The <br/> after the wrapper still forces
+     "who you are." onto its own line below. */
+  .lc-hero h1 .lc-hero-l1{white-space:normal}
   .lc-hero-tag{font-size:15px;line-height:1.5;margin-bottom:22px;max-width:none}
   .lc-hero-actions{gap:14px;flex-direction:column;align-items:stretch}
   .lc-hero-actions .lc-btn-primary{justify-content:center;width:100%}
