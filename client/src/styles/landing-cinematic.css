@@ -253,7 +253,7 @@
 .lc-final-thumb.active .lc-final-thumb-fill{width:100%;transition:width 6s linear}
 .lc-final-content{position:relative;z-index:5;max-width:1200px;padding:0 32px}
 .lc-final-eyebrow{margin-bottom:32px;justify-content:center}
-.lc-final-quote{font-family:var(--lc-serif);font-size:clamp(56px,9vw,150px);font-weight:400;line-height:.94;letter-spacing:-.03em;max-width:1200px;margin:0 auto 32px;text-wrap:balance;color:#fff;text-shadow:0 4px 50px rgba(0,0,0,.55)}
+.lc-final-quote{font-family:var(--lc-serif);font-size:clamp(56px,8vw,128px);font-weight:400;line-height:.94;letter-spacing:-.025em;max-width:1200px;margin:0 auto 32px;text-wrap:balance;color:#fff;text-shadow:0 4px 50px rgba(0,0,0,.55)}
 .lc-final-quote em{font-style:italic;color:var(--lc-accent);text-shadow:0 0 60px rgba(233,69,96,.7);display:block;margin-top:6px}
 .lc-final-sub{font-family:var(--lc-serif);font-style:italic;color:rgba(255,255,255,.86);font-size:clamp(18px,1.6vw,22px);max-width:620px;margin:0 auto 48px;text-wrap:pretty;line-height:1.5}
 .lc-final-cta{display:flex;flex-direction:column;align-items:center;gap:32px}
@@ -282,7 +282,6 @@
   .lc-dest-card.size-l .lc-dest-card-name{font-size:30px}
   .lc-dest-card.size-l .lc-dest-card-body{padding:24px}
   .lc-final-coords{display:none}
-  .lc-final-quote{font-size:clamp(44px,11vw,80px)}
 }
 @media (max-width:780px){
   .lc-method-line{grid-template-columns:repeat(2,1fr);gap:36px 0}
@@ -394,7 +393,7 @@
   .lc-final{padding:80px 0 90px;min-height:auto}
   .lc-final-content{padding:0 20px}
   .lc-final-eyebrow{margin-bottom:22px}
-  .lc-final-quote{font-size:clamp(38px,10vw,60px);line-height:1;margin-bottom:22px;letter-spacing:-.025em}
+  .lc-final-quote{font-size:clamp(40px,11vw,58px);line-height:.95;margin-bottom:22px;letter-spacing:-.02em}
   .lc-final-quote em{margin-top:4px}
   .lc-final-sub{font-size:16px;line-height:1.5;margin:0 auto 32px;max-width:none}
   .lc-final-cta{gap:24px}
@@ -415,7 +414,7 @@
   .lc-hero h1{font-size:clamp(36px,10.5vw,48px)}
   .lc-manifesto-quote{font-size:32px}
   .lc-how-head h2,.lc-dest-head h2{font-size:30px}
-  .lc-final-quote{font-size:38px}
+  .lc-final-quote{font-size:clamp(36px,10.5vw,48px)}
   .lc-method-cell-n{font-size:42px}
 }
 
