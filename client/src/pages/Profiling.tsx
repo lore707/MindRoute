@@ -16,6 +16,7 @@ import { getQuestionTheme, getMultipleThemes, questionThemes } from './profiling
 import { useTraitRecognition } from "@/hooks/use-trait-recognition";
 import { RecognitionBanner } from "@/components/RecognitionBanner";
 import { FromProfileModal } from "@/components/FromProfileModal";
+import { QuizCinematic, type Answers as CinematicAnswers } from "@/components/QuizCinematic";
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
     <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85" />
@@ -70,6 +71,13 @@ export default function Profiling() {
   const [selectedPath, setSelectedPath] = useState<'a' | 'b' | null>(null);
   const [showSplit, setShowSplit] = useState(true);
   const [splitExiting, setSplitExiting] = useState(false);
+  // Path B usa il QuizCinematic per le prime 4 domande (path, region, tipo, defining moment).
+  // cinematicMode=true → renderizziamo QuizCinematic invece del vecchio quiz body.
+  // I valori vengono mappati in chipSelections/answers vecchie a fine cinematic, così
+  // buildStructuredProfileForPathB e la sidebar profile-so-far continuano a funzionare.
+  const [cinematicMode, setCinematicMode] = useState(false);
+  const [cinematicAnswers, setCinematicAnswers] = useState<CinematicAnswers>({});
+  const [cinematicStep, setCinematicStep] = useState<1 | 2 | 3 | 4>(1);
   const recognition = useTraitRecognition();
   // showRecognition gates the pre-quiz screen for returning users. Defaults to
   // true; user dismisses it via "cambia qualcosa" to fall through to the quiz.
@@ -323,6 +331,16 @@ export default function Profiling() {
 
   const choosePath = (path: 'a' | 'b') => {
     setSelectedPath(path);
+    if (path === 'b') {
+      // Apriamo il QuizCinematic con path già pre-selezionato a "intentional"
+      // (lo split ha già fatto la scelta). Q1 cinematic agisce come conferma /
+      // possibilità di passare a guided (→ branca a Path A vecchio).
+      setCinematicMode(true);
+      setCinematicAnswers({ path: 'intentional' });
+      setCinematicStep(1);
+    } else {
+      setCinematicMode(false);
+    }
     setSplitExiting(true);
     setTimeout(() => {
       setShowSplit(false);
@@ -403,6 +421,16 @@ export default function Profiling() {
   };
 
   const goToStep = (target: number) => {
+    // Path B: i primi 4 step (0..3) sono gestiti dal cinematic.
+    // Dot 0→Q2 region · dot 1→Q3 trip type · dot 2/3→Q4 defining moment.
+    if (selectedPath === 'b' && target < 4) {
+      saveCurrentAnswer();
+      const cinStep: 1 | 2 | 3 | 4 = target === 0 ? 2 : target === 1 ? 3 : 4;
+      setCinematicStep(cinStep);
+      setCinematicMode(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (target <= step) {
       saveCurrentAnswer();
       setStep(target);
@@ -419,6 +447,12 @@ export default function Profiling() {
         setFormStep(1);
         setStep(questions.length - 1);
       }
+    } else if (selectedPath === 'b' && step === 4) {
+      // Primo step dopo il cinematic (slider ritmo) — torna al cinematic Q4.
+      saveCurrentAnswer();
+      setCinematicStep(4);
+      setCinematicMode(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (step > 0) {
       saveCurrentAnswer();
       setStep(step - 1);
@@ -430,6 +464,9 @@ export default function Profiling() {
       setChipSelections({});
       setImageSelections([]);
       setSliderValue(50);
+      setCinematicMode(false);
+      setCinematicAnswers({});
+      setCinematicStep(1);
     }
   };
 
@@ -907,6 +944,95 @@ const profilingPayload = {
 
   if (showAnalyzing) {
     return <AnalyzingScreen titleHtml={t('analyze.title')} visibleTraits={visibleTraits} />;
+  }
+
+  // ─── Path B · Q1→Q4 cinematic ──────────────────────────────────────────
+  if (selectedPath === 'b' && cinematicMode && !showForm) {
+    // Mappa cinematic name → label i18n del vecchio quiz, così
+    // buildStructuredProfileForPathB normalizza correttamente e la
+    // sidebar profile mostra i label tradotti.
+    const cinematicRegionToOld: Record<string, string> = {
+      "Close to home":         t("b.q1.chips.close"),
+      "Europe":                t("b.q1.chips.europe"),
+      "Asia":                  t("b.q1.chips.asia"),
+      "Americas":              t("b.q1.chips.americas"),
+      "Africa & Middle East":  t("b.q1.chips.africa"),
+      "Oceania":               t("b.q1.chips.oceania"),
+    };
+    const cinematicTypeToOld: Record<string, string> = {
+      "Culture & history":      t("b.q2.chips.culture"),
+      "Nature & adventure":     t("b.q2.chips.nature"),
+      "Food & wine":            t("b.q2.chips.food"),
+      "Beach & relax":          t("b.q2.chips.beach"),
+      "City & nightlife":       t("b.q2.chips.city"),
+      "Off the grid":           t("b.q2.chips.offgrid"),
+      "Road trip":              t("b.q2.chips.roadtrip"),
+      "Trekking & sports":      t("b.q2.chips.trekking"),
+      "Wellness & spa":         t("b.q2.chips.wellness"),
+      "Discovery, surprise me": t("b.q2.chips.discovery"),
+    };
+    const cinematicMomentToOld: Record<string, string> = {
+      "Eating at local spots":                  t("b.q3.chip1"),
+      "Getting lost in authentic neighborhoods": t("b.q3.chip2"),
+      "Seeing iconic landmarks":                t("b.q3.chip3"),
+      "Being immersed in nature":               t("b.q3.chip4"),
+      "Living something completely new":        t("b.q3.chip5"),
+      "Photographing something extraordinary":  t("b.q3.chip6"),
+      "Finding a place I didn't know existed":  t("b.q3.chip7"),
+    };
+
+    return (
+      <>
+        <Nav />
+        <QuizCinematic
+        initialAnswers={cinematicAnswers}
+        initialStep={cinematicStep}
+        onComplete={(a) => {
+          setCinematicAnswers(a);
+          const regionLabel  = a.region   ? (cinematicRegionToOld[a.region] ?? a.region) : "";
+          const typeLabels   = (a.tripTypes ?? []).map(n => cinematicTypeToOld[n] ?? n);
+          const momentLabel  = a.defining ? (cinematicMomentToOld[a.defining] ?? a.defining) : "";
+          setChipSelections(prev => ({
+            ...prev,
+            0: regionLabel ? [regionLabel] : [],
+            1: typeLabels,
+            2: momentLabel ? [momentLabel] : [],
+          }));
+          setAnswers(prev => ({
+            ...prev,
+            0: regionLabel,
+            1: typeLabels.join(", "),
+            2: momentLabel,
+          }));
+          setCinematicMode(false);
+          // Skippa step 3 (vecchia atmosfera, ora sostituita dal defining moment cinematic)
+          // e va direttamente al ritmo (slider, step 4).
+          setStep(4);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onSelectGuided={() => {
+          // L'utente cambia idea nella Q1 cinematic e sceglie il path guided → Path A vecchio.
+          setSelectedPath('a');
+          setCinematicMode(false);
+          setCinematicAnswers({});
+          setCinematicStep(1);
+          setStep(0);
+          setAnswers({});
+          setChipSelections({});
+          setImageSelections([]);
+          setSliderValue(50);
+        }}
+        onBackFromQ1={() => {
+          // Back dalla Q1 cinematic → torna allo split intro.
+          setShowSplit(true);
+          setSelectedPath(null);
+          setCinematicMode(false);
+          setCinematicAnswers({});
+          setCinematicStep(1);
+        }}
+        />
+      </>
+    );
   }
 
   if (showForm) {

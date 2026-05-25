@@ -2,6 +2,7 @@
 @import "./styles/itinerary-cinematic.css";
 @import "./styles/account-cinematic.css";
 @import "./styles/landing-cinematic.css";
+@import "./styles/quiz-cinematic.css";
 
 @tailwind base;
 @tailwind components;
