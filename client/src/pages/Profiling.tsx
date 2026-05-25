@@ -77,7 +77,7 @@ export default function Profiling() {
   // buildStructuredProfileForPathB e la sidebar profile-so-far continuano a funzionare.
   const [cinematicMode, setCinematicMode] = useState(false);
   const [cinematicAnswers, setCinematicAnswers] = useState<CinematicAnswers>({});
-  const [cinematicStep, setCinematicStep] = useState<1 | 2 | 3 | 4>(1);
+  const [cinematicStep, setCinematicStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
   const recognition = useTraitRecognition();
   // showRecognition gates the pre-quiz screen for returning users. Defaults to
   // true; user dismisses it via "cambia qualcosa" to fall through to the quiz.
@@ -425,7 +425,7 @@ export default function Profiling() {
     // Dot 0→Q2 region · dot 1→Q3 trip type · dot 2/3→Q4 defining moment.
     if (selectedPath === 'b' && target < 4) {
       saveCurrentAnswer();
-      const cinStep: 1 | 2 | 3 | 4 = target === 0 ? 2 : target === 1 ? 3 : 4;
+      const cinStep: 1 | 2 | 3 | 4 | 5 | 6 | 7 = target === 0 ? 2 : target === 1 ? 3 : 4;
       setCinematicStep(cinStep);
       setCinematicMode(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -445,14 +445,14 @@ export default function Profiling() {
       } else {
         setShowForm(false);
         setFormStep(1);
-        setStep(questions.length - 1);
+        if (selectedPath === 'b') {
+          // Path B: il cinematic copre Q1-Q7, torna a Q7 (avoid).
+          setCinematicStep(7);
+          setCinematicMode(true);
+        } else {
+          setStep(questions.length - 1);
+        }
       }
-    } else if (selectedPath === 'b' && step === 4) {
-      // Primo step dopo il cinematic (slider ritmo) — torna al cinematic Q4.
-      saveCurrentAnswer();
-      setCinematicStep(4);
-      setCinematicMode(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (step > 0) {
       saveCurrentAnswer();
       setStep(step - 1);
@@ -980,6 +980,31 @@ const profilingPayload = {
       "Photographing something extraordinary":  t("b.q3.chip6"),
       "Finding a place I didn't know existed":  t("b.q3.chip7"),
     };
+    const cinematicEmotionToOld: Record<string, string> = {
+      "Disconnect from routine":       t("b.q6.chip1"),
+      "Regain energy and lightness":   t("b.q6.chip2"),
+      "Feel free and spontaneous":     t("b.q6.chip3"),
+      "Be amazed again":               t("b.q6.chip4"),
+      "Feel the place deeply":         t("b.q6.chip5"),
+      "Step outside my comfort zone":  t("b.q6.chip6"),
+    };
+    const cinematicAvoidToOld: Record<string, string> = {
+      "Crowded places":                  t("chips.crowded"),
+      "Touristy restaurants":            t("chips.touristy"),
+      "Resort hotels":                   t("chips.resort"),
+      "Guided tours":                    t("chips.guided"),
+      "Museums for hours":               t("chips.museums"),
+      "Nightlife and clubs":             t("chips.nightlife"),
+      "Strict schedules":                t("chips.schedules"),
+      "Long transits":                   t("chips.transits"),
+      "Early mornings":                  t("chips.mornings"),
+      "Small talk with strangers":       t("chips.smalltalk"),
+      "Too unfamiliar food":             t("chips.unfamiliarfood"),
+      "Too much walking":                t("chips.toomuchwalking"),
+      "Feeling too isolated":            t("chips.tooisolated"),
+      "Spending without clear value":    t("chips.tooexpensive"),
+      "Staying too long in one place":   t("chips.toolong"),
+    };
 
     return (
       <>
@@ -989,25 +1014,34 @@ const profilingPayload = {
         initialStep={cinematicStep}
         onComplete={(a) => {
           setCinematicAnswers(a);
-          const regionLabel  = a.region   ? (cinematicRegionToOld[a.region] ?? a.region) : "";
-          const typeLabels   = (a.tripTypes ?? []).map(n => cinematicTypeToOld[n] ?? n);
-          const momentLabel  = a.defining ? (cinematicMomentToOld[a.defining] ?? a.defining) : "";
+          const regionLabel    = a.region   ? (cinematicRegionToOld[a.region] ?? a.region) : "";
+          const typeLabels     = (a.tripTypes ?? []).map(n => cinematicTypeToOld[n] ?? n);
+          const momentLabel    = a.defining ? (cinematicMomentToOld[a.defining] ?? a.defining) : "";
+          const emotionLabels  = (a.emotionalGoals ?? []).map(n => cinematicEmotionToOld[n] ?? n);
+          const avoidLabels    = (a.avoid ?? []).map(n => cinematicAvoidToOld[n] ?? n);
+          const paceValue      = typeof a.pace === "number" ? a.pace : 50;
           setChipSelections(prev => ({
             ...prev,
             0: regionLabel ? [regionLabel] : [],
             1: typeLabels,
             2: momentLabel ? [momentLabel] : [],
+            5: emotionLabels,
+            6: avoidLabels,
           }));
+          setSliderValue(paceValue);
           setAnswers(prev => ({
             ...prev,
             0: regionLabel,
             1: typeLabels.join(", "),
             2: momentLabel,
+            4: String(paceValue),
+            5: emotionLabels.join(", "),
+            6: avoidLabels.join(", "),
           }));
           setCinematicMode(false);
-          // Skippa step 3 (vecchia atmosfera, ora sostituita dal defining moment cinematic)
-          // e va direttamente al ritmo (slider, step 4).
-          setStep(4);
+          // Cinematic copre Q1–Q7. Va dritto al form logistico.
+          setShowForm(true);
+          setFormStep(1);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onSelectGuided={() => {

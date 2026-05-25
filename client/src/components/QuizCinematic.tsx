@@ -22,9 +22,12 @@ export type Answers = {
   region?: string;
   tripTypes?: string[];
   defining?: string;
+  pace?: number;              // 0..100  (Q5)
+  emotionalGoals?: string[];  // multi 1..3 (Q6)
+  avoid?: string[];           // multi (Q7)
 };
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export interface QuizCinematicProps {
   onComplete?: (a: Answers) => void;
@@ -55,7 +58,7 @@ export function QuizCinematic({
       onSelectGuided?.();
       return;
     }
-    if (step === 4) {
+    if (step === 7) {
       onComplete?.(answers);
       return;
     }
@@ -79,6 +82,9 @@ export function QuizCinematic({
           {step === 2 && <Q2 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} />}
           {step === 3 && <Q3 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} />}
           {step === 4 && <Q4 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} />}
+          {step === 5 && <Q5 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} />}
+          {step === 6 && <Q6 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} />}
+          {step === 7 && <Q7 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} />}
         </div>
       </div>
     </div>
@@ -115,7 +121,14 @@ function HeaderStrip({ label, count, fillPct }: { label: string; count: string; 
   );
 }
 
+function paceLabel(v: number) {
+  if (v <= 33) return "Structured";
+  if (v >= 67) return "Spontaneous";
+  return "Balanced";
+}
+
 function ProfileCard({ answers, pending }: { answers: Answers; pending: string }) {
+  const avoidCount = answers.avoid?.length ?? 0;
   return (
     <div className="qc-profile-card">
       <div className="qc-profile-head">Your profile so far</div>
@@ -123,6 +136,9 @@ function ProfileCard({ answers, pending }: { answers: Answers; pending: string }
       <ProfileRow label="Q2 · where" value={answers.region ?? null} pending={pending === "Q2"} />
       <ProfileRow label="Q3 · trip type" value={answers.tripTypes?.join(" · ") ?? null} pending={pending === "Q3"} />
       <ProfileRow label="Q4 · defining moment" value={answers.defining ?? null} pending={pending === "Q4"} />
+      <ProfileRow label="Q5 · pace" value={typeof answers.pace === "number" ? `${paceLabel(answers.pace)} · ${answers.pace}/100` : null} pending={pending === "Q5"} />
+      <ProfileRow label="Q6 · emotional goals" value={answers.emotionalGoals?.join(" · ") ?? null} pending={pending === "Q6"} />
+      <ProfileRow label="Q7 · avoid" value={avoidCount ? `${avoidCount} item${avoidCount > 1 ? "s" : ""}` : null} pending={pending === "Q7"} />
     </div>
   );
 }
@@ -186,11 +202,11 @@ function Q1({ answers, setAnswers, onNext, onBack, hasBackFromQ1 }: { answers: A
 function PathCard({ kind, selected, onClick }: { kind: "guided" | "intentional"; selected: boolean; onClick: () => void }) {
   if (kind === "guided") return (
     <div className={"qc-card qc-card-guided" + (selected ? " selected" : "")} onClick={onClick}>
-      <div className="qc-card-img" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&auto=format)" }} />
+      <div className="qc-card-img" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85&auto=format)" }} />
       <div className="qc-card-collage">
-        <div className="qc-collage-frame qc-cf-1" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1539020140153-e8c237425f3a?w=400&auto=format)" }} />
-        <div className="qc-collage-frame qc-cf-2" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1518710843675-2540dd79065c?w=400&auto=format)" }} />
-        <div className="qc-collage-frame qc-cf-3" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=400&auto=format)" }} />
+        <div className="qc-collage-frame qc-cf-1" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=400&q=85&auto=format)" }} />
+        <div className="qc-collage-frame qc-cf-2" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=400&q=85&auto=format)" }} />
+        <div className="qc-collage-frame qc-cf-3" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&q=85&auto=format)" }} />
       </div>
       <div className="qc-card-num">A</div>
       <div className="qc-card-body">
@@ -206,7 +222,7 @@ function PathCard({ kind, selected, onClick }: { kind: "guided" | "intentional";
   );
   return (
     <div className={"qc-card qc-card-intentional" + (selected ? " selected" : "")} onClick={onClick}>
-      <div className="qc-card-img" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&auto=format)" }} />
+      <div className="qc-card-img" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=85&auto=format)" }} />
       <div className="qc-pin-overlay">
         <div className="qc-pin" />
         <div className="qc-pin-line" />
@@ -228,12 +244,12 @@ function PathCard({ kind, selected, onClick }: { kind: "guided" | "intentional";
 
 /* ════════════ Q2 · region ════════════ */
 const REGIONS = [
-  { id: "home", name: "Close to home", ic: "🏡", dur: "4h max · no flights", coords: "local · 1–2 timezones", img: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=1400&auto=format" },
-  { id: "europe", name: "Europe", ic: "🏰", dur: "Short haul · ~4h max", coords: "35°–70°N · 1–3h flight", img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&auto=format" },
-  { id: "asia", name: "Asia", ic: "⛩", dur: "Long haul · 8–12h", coords: "East & SE · 6–8 timezones", img: "https://images.unsplash.com/photo-1492571350019-22de08371fd3?w=1400&auto=format" },
-  { id: "americas", name: "Americas", ic: "🗽", dur: "Transcontinental · 10–14h", coords: "N & S · 4–10 timezones", img: "https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?w=1400&auto=format" },
-  { id: "africa", name: "Africa & Middle East", ic: "🌍", dur: "Medium / long · 4–10h", coords: "30°N–35°S · 2–4 timezones", img: "https://images.unsplash.com/photo-1539020140153-e8c237425f3a?w=1400&auto=format" },
-  { id: "oceania", name: "Oceania", ic: "🐨", dur: "Long haul · 20h+ w/ stops", coords: "Pacific · 10+ timezones", img: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=1400&auto=format" },
+  { id: "home",     name: "Close to home",        ic: "🏡", dur: "4h max · no flights",      coords: "local · 1–2 timezones",     img: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1400&q=85&auto=format" },
+  { id: "europe",   name: "Europe",               ic: "🏰", dur: "Short haul · ~4h max",     coords: "35°–70°N · 1–3h flight",     img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=85&auto=format" },
+  { id: "asia",     name: "Asia",                 ic: "⛩",  dur: "Long haul · 8–12h",        coords: "East & SE · 6–8 timezones", img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1400&q=85&auto=format" },
+  { id: "americas", name: "Americas",             ic: "🗽", dur: "Transcontinental · 10–14h",coords: "N & S · 4–10 timezones",    img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1400&q=85&auto=format" },
+  { id: "africa",   name: "Africa & Middle East", ic: "🌍", dur: "Medium / long · 4–10h",    coords: "30°N–35°S · 2–4 timezones", img: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=1400&q=85&auto=format" },
+  { id: "oceania",  name: "Oceania",              ic: "🐨", dur: "Long haul · 20h+ w/ stops",coords: "Pacific · 10+ timezones",   img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1400&q=85&auto=format" },
 ];
 
 function Q2({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnswers: (a: Answers) => void; onNext: () => void; onBack: () => void }) {
@@ -288,16 +304,16 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
 
 /* ════════════ Q3 · trip type ════════════ */
 const TYPES = [
-  { id: "culture", name: "Culture & history", ic: "🏛", meta: "Museums · old towns", img: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=900&auto=format" },
-  { id: "nature", name: "Nature & adventure", ic: "🌿", meta: "Hikes · open spaces", img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&auto=format" },
-  { id: "food", name: "Food & wine", ic: "🍷", meta: "Local cuisine · markets", img: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=900&auto=format" },
-  { id: "beach", name: "Beach & relax", ic: "🏖", meta: "Sea · slow days", img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&auto=format" },
-  { id: "city", name: "City & nightlife", ic: "🌃", meta: "Energy · late hours", img: "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1f?w=900&auto=format" },
-  { id: "offgrid", name: "Off the grid", ic: "⛰", meta: "Remote · disconnected", img: "https://images.unsplash.com/photo-1531168556467-80aace0d0144?w=900&auto=format" },
-  { id: "road", name: "Road trip", ic: "🚐", meta: "Drive · stops along", img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&auto=format" },
-  { id: "trekking", name: "Trekking & sports", ic: "🥾", meta: "Active · physical", img: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=900&auto=format" },
-  { id: "wellness", name: "Wellness & spa", ic: "🌸", meta: "Reset · restorative", img: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=900&auto=format" },
-  { id: "discovery", name: "Discovery, surprise me", ic: "✨", meta: "Let MindRoute pick", img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=900&auto=format" },
+  { id: "culture",   name: "Culture & history",      ic: "🏛", meta: "Museums · old towns",      img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=900&q=85&auto=format" },
+  { id: "nature",    name: "Nature & adventure",     ic: "🌿", meta: "Hikes · open spaces",      img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=900&q=85&auto=format" },
+  { id: "food",      name: "Food & wine",            ic: "🍷", meta: "Local cuisine · markets",  img: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=900&q=85&auto=format" },
+  { id: "beach",     name: "Beach & relax",          ic: "🏖", meta: "Sea · slow days",          img: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=900&q=85&auto=format" },
+  { id: "city",      name: "City & nightlife",       ic: "🌃", meta: "Energy · late hours",      img: "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=900&q=85&auto=format" },
+  { id: "offgrid",   name: "Off the grid",           ic: "⛰",  meta: "Remote · disconnected",    img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&q=85&auto=format" },
+  { id: "road",      name: "Road trip",              ic: "🚐", meta: "Drive · stops along",      img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=900&q=85&auto=format" },
+  { id: "trekking",  name: "Trekking & sports",      ic: "🥾", meta: "Active · physical",        img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=900&q=85&auto=format" },
+  { id: "wellness",  name: "Wellness & spa",         ic: "🌸", meta: "Reset · restorative",      img: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=900&q=85&auto=format" },
+  { id: "discovery", name: "Discovery, surprise me", ic: "✨", meta: "Let MindRoute pick",       img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=900&q=85&auto=format" },
 ];
 
 function Q3({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnswers: (a: Answers) => void; onNext: () => void; onBack: () => void }) {
@@ -361,13 +377,13 @@ function Q3({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
 
 /* ════════════ Q4 · defining moment ════════════ */
 const MOMENTS = [
-  { id: "food", cat: "food", ic: "🍝", name: "Eating at local spots", meta: "Where only locals eat", feel: "You want to feel like you belong, not like a tourist.", img: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1400&auto=format" },
-  { id: "explore", cat: "explore", ic: "🚶", name: "Getting lost in authentic neighborhoods", meta: "No destination, just walking", feel: "You want to feel the place living its own life, around you.", img: "https://images.unsplash.com/photo-1539020140153-e8c237425f3a?w=1400&auto=format" },
-  { id: "iconic", cat: "iconic", ic: "🏛", name: "Seeing iconic landmarks", meta: "The classic, experienced differently", feel: "You want to feel the weight of history standing in front of you.", img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&auto=format" },
-  { id: "nature", cat: "nature", ic: "🌱", name: "Being immersed in nature", meta: "A day without pavement", feel: "You want to feel small in front of something bigger than you.", img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&auto=format" },
-  { id: "new", cat: "new", ic: "✨", name: "Living something completely new", meta: "Never done before, never forgotten", feel: "You want to feel alive — the kind of memory you'll keep for years.", img: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=1400&auto=format" },
-  { id: "photo", cat: "photo", ic: "📸", name: "Photographing something extraordinary", meta: "Perfect light, perfect moment", feel: "You want one frame that tells everyone where you really were.", img: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=1400&auto=format" },
-  { id: "discover", cat: "discover", ic: "🗺", name: "Finding a place I didn't know existed", meta: "The discovery that makes the trip", feel: "You want to come back home with a secret nobody else has.", img: "https://images.unsplash.com/photo-1531168556467-80aace0d0144?w=1400&auto=format" },
+  { id: "food",     cat: "food",     ic: "🍝", name: "Eating at local spots",                  meta: "Where only locals eat",                feel: "You want to feel like you belong, not like a tourist.",              img: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1400&q=85&auto=format" },
+  { id: "explore",  cat: "explore",  ic: "🚶", name: "Getting lost in authentic neighborhoods", meta: "No destination, just walking",         feel: "You want to feel the place living its own life, around you.",       img: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1400&q=85&auto=format" },
+  { id: "iconic",   cat: "iconic",   ic: "🏛", name: "Seeing iconic landmarks",                meta: "The classic, experienced differently", feel: "You want to feel the weight of history standing in front of you.",  img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=85&auto=format" },
+  { id: "nature",   cat: "nature",   ic: "🌱", name: "Being immersed in nature",               meta: "A day without pavement",               feel: "You want to feel small in front of something bigger than you.",     img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85&auto=format" },
+  { id: "new",      cat: "new",      ic: "✨", name: "Living something completely new",        meta: "Never done before, never forgotten",   feel: "You want to feel alive — the kind of memory you'll keep for years.", img: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=1400&q=85&auto=format" },
+  { id: "photo",    cat: "photo",    ic: "📸", name: "Photographing something extraordinary",  meta: "Perfect light, perfect moment",        feel: "You want one frame that tells everyone where you really were.",     img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1400&q=85&auto=format" },
+  { id: "discover", cat: "discover", ic: "🗺", name: "Finding a place I didn't know existed",  meta: "The discovery that makes the trip",    feel: "You want to come back home with a secret nobody else has.",         img: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=1400&q=85&auto=format" },
 ];
 
 function Q4({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnswers: (a: Answers) => void; onNext: () => void; onBack: () => void }) {
@@ -416,6 +432,212 @@ function Q4({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
         </aside>
       </div>
       <FooterNav backLabel="Back to trip type" canContinue={!!sel} ctaLabel={sel ? "Continue" : "Pick a moment"} onBack={onBack} onNext={onNext} />
+    </>
+  );
+}
+
+/* ════════════ Q5 · pace ════════════ */
+const PACE_STAGES = [
+  { id: "structured",  threshold: 33, name: "Structured",  meta: "every day already mapped",       feel: "You want a clear plan so you can stop thinking and just feel.",       img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=85&auto=format" },
+  { id: "balanced",    threshold: 66, name: "Balanced",    meta: "the spine is set, the rest isn't", feel: "You want a structure to lean on and freedom to wander off it.",     img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85&auto=format" },
+  { id: "spontaneous", threshold:101, name: "Spontaneous", meta: "decide it in the morning",        feel: "You want the day to surprise you — no slot, no countdown, no map.", img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1400&q=85&auto=format" },
+];
+function paceStage(v: number) {
+  return PACE_STAGES.find(s => v <= s.threshold) ?? PACE_STAGES[1];
+}
+
+function Q5({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnswers: (a: Answers) => void; onNext: () => void; onBack: () => void }) {
+  const value = typeof answers.pace === "number" ? answers.pace : 50;
+  function setValue(v: number) { setAnswers({ ...answers, pace: Math.max(0, Math.min(100, v)) }); }
+  const stage = paceStage(value);
+  return (
+    <>
+      <BgPhotos items={PACE_STAGES} activeImg={stage.img} />
+      <div className="qc-sticky-head">
+        <HeaderStrip label="The rhythm" count="05 / 07" fillPct={70} />
+        <div className="qc-q-head">
+          <div className="qc-q-eyebrow"><strong>Question 05</strong> · the rhythm</div>
+          <h1 className="qc-q-title">How do you want<br />the days to <em>flow?</em></h1>
+          <p className="qc-q-sub">From a schedule that holds you to a sky that doesn't. There's no wrong answer — only your answer.</p>
+        </div>
+      </div>
+      <div className="qc-q-grid">
+        <div className="qc-pace-stage">
+          <div className="qc-pace-current">
+            <div className="qc-pace-label">{stage.name}</div>
+            <div className="qc-pace-meta">{stage.meta}</div>
+          </div>
+          <div className="qc-pace-slider">
+            <div className="qc-pace-track">
+              <div className="qc-pace-fill" style={{ width: `${value}%` }} />
+              <div className="qc-pace-knob" style={{ left: `${value}%` }} />
+              <input
+                type="range" min={0} max={100} value={value}
+                onChange={(e) => setValue(Number(e.target.value))}
+                className="qc-pace-input" aria-label="Trip pace"
+              />
+            </div>
+            <div className="qc-pace-stops">
+              <button className={"qc-pace-stop" + (value <= 33 ? " active" : "")}                 onClick={() => setValue(15)}><span>Structured</span><small>plan first</small></button>
+              <button className={"qc-pace-stop" + (value > 33 && value < 67 ? " active" : "")}    onClick={() => setValue(50)}><span>Balanced</span><small>spine + space</small></button>
+              <button className={"qc-pace-stop" + (value >= 67 ? " active" : "")}                 onClick={() => setValue(85)}><span>Spontaneous</span><small>decide later</small></button>
+            </div>
+          </div>
+        </div>
+        <aside className="qc-side">
+          <div className="qc-feeling-card">
+            <div className="qc-feeling-ic">✦</div>
+            <div className="qc-feeling-text">{stage.feel}</div>
+          </div>
+          <ProfileCard answers={answers} pending="Q5" />
+          <SideCard head="Why this question" icon="?"><p>Two travellers in the same place can have opposite trips. The rhythm is what makes one feel like yours.</p></SideCard>
+          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+        </aside>
+      </div>
+      <FooterNav backLabel="Back to defining moment" canContinue={true} ctaLabel="Continue" onBack={onBack} onNext={onNext} />
+    </>
+  );
+}
+
+/* ════════════ Q6 · emotional goals ════════════ */
+const EMOTIONS = [
+  { id: "disconnect", cat: "explore",  ic: "🔌", name: "Disconnect from routine",     meta: "no schedules, no notifications",        feel: "You want a real exit door from your daily mind.",                       img: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=1400&q=85&auto=format" },
+  { id: "energy",     cat: "food",     ic: "🔋", name: "Regain energy and lightness", meta: "come back changed",                    feel: "You want to land back home a little lighter than you left.",            img: "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1400&q=85&auto=format" },
+  { id: "free",       cat: "discover", ic: "🐦", name: "Feel free and spontaneous",   meta: "decide in the morning what to do",     feel: "You want days that don't ask permission from a calendar.",              img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1400&q=85&auto=format" },
+  { id: "wonder",     cat: "iconic",   ic: "👁",  name: "Be amazed again",            meta: "that feeling you've been missing",      feel: "You want something to silence the cynical voice in your head.",         img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=85&auto=format" },
+  { id: "connect",    cat: "nature",   ic: "❤️", name: "Feel the place deeply",       meta: "genuinely connect with it",            feel: "You want a place to enter you, not just pass through your camera.",     img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85&auto=format" },
+  { id: "comfort",    cat: "new",      ic: "🚀", name: "Step outside my comfort zone", meta: "push the boundary forward",            feel: "You want the version of yourself you only meet far from home.",         img: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=1400&q=85&auto=format" },
+];
+
+function Q6({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnswers: (a: Answers) => void; onNext: () => void; onBack: () => void }) {
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const selected = answers.emotionalGoals ?? [];
+  function toggle(name: string) {
+    if (selected.includes(name)) setAnswers({ ...answers, emotionalGoals: selected.filter(x => x !== name) });
+    else if (selected.length < 3) setAnswers({ ...answers, emotionalGoals: [...selected, name] });
+  }
+  const isFull = selected.length >= 3;
+  const activeId = hoverId || (selected.length ? EMOTIONS.find(e => e.name === selected[selected.length - 1])?.id : null);
+  const activeE = EMOTIONS.find(e => e.id === activeId) || EMOTIONS[0];
+  return (
+    <>
+      <BgPhotos items={EMOTIONS} activeImg={activeE.img} />
+      <div className="qc-sticky-head">
+        <HeaderStrip label="Emotional goals" count="06 / 07" fillPct={84} />
+        <div className="qc-q-head">
+          <div className="qc-q-eyebrow"><strong>Question 06</strong> · the feeling you're chasing</div>
+          <h1 className="qc-q-title">What do you want<br />to <em>feel</em> on this trip?</h1>
+          <div className="qc-q-sub">
+            Pick up to 3. This is the emotional shape of your journey.
+            <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 selected</div>
+          </div>
+        </div>
+      </div>
+      <div className="qc-q-grid">
+        <div className="qc-options">
+          {EMOTIONS.map(e => {
+            const sel = selected.includes(e.name);
+            const dis = !sel && isFull;
+            const rank = sel ? selected.indexOf(e.name) + 1 : null;
+            return (
+              <div key={e.id} data-cat={e.cat}
+                className={"qc-option" + (sel ? " selected" : "") + (dis ? " disabled" : "")}
+                onClick={() => !dis && toggle(e.name)}
+                onMouseEnter={() => setHoverId(e.id)} onMouseLeave={() => setHoverId(null)}>
+                <div className="qc-option-ic">{e.ic}</div>
+                <div className="qc-option-body">
+                  <div className="qc-option-name">{e.name}</div>
+                  <div className="qc-option-meta">{e.meta}</div>
+                </div>
+                <div className="qc-option-mark">
+                  {sel ? `#${rank}` : ""}
+                  <div className="qc-circle" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <aside className="qc-side">
+          <div className="qc-feeling-card">
+            <div className="qc-feeling-ic">✦</div>
+            <div className="qc-feeling-text">{(hoverId || selected.length > 0) ? activeE.feel : "Hover an answer to see what it really means."}</div>
+          </div>
+          <ProfileCard answers={answers} pending="Q6" />
+          <SideCard head="Why this question" icon="?"><p>Where matters less than how it makes you feel. Three emotional goals lock the destination into the right register.</p></SideCard>
+          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+        </aside>
+      </div>
+      <FooterNav backLabel="Back to rhythm" canContinue={selected.length > 0} ctaLabel={selected.length ? `Continue with ${selected.length}` : "Pick at least 1"} onBack={onBack} onNext={onNext} />
+    </>
+  );
+}
+
+/* ════════════ Q7 · avoid ════════════ */
+const AVOIDS = [
+  { id: "crowded",        cat: "explore",  ic: "👥", name: "Crowded places",                   meta: "everyone with the same camera" },
+  { id: "touristy",       cat: "food",     ic: "🍽", name: "Touristy restaurants",             meta: "menu in five languages" },
+  { id: "resort",         cat: "new",      ic: "🏨", name: "Resort hotels",                    meta: "the place stays outside the gate" },
+  { id: "guided",         cat: "iconic",   ic: "🚌", name: "Guided tours",                     meta: "earphone, headcount, no detours" },
+  { id: "museums",        cat: "iconic",   ic: "🏛", name: "Museums for hours",                meta: "marathon of plaques" },
+  { id: "nightlife",      cat: "new",      ic: "🎵", name: "Nightlife and clubs",              meta: "lights, decibels, late" },
+  { id: "schedules",      cat: "discover", ic: "📅", name: "Strict schedules",                 meta: "by-the-minute itinerary" },
+  { id: "transits",       cat: "explore",  ic: "🚆", name: "Long transits",                    meta: "more travel than trip" },
+  { id: "mornings",       cat: "discover", ic: "⏰", name: "Early mornings",                   meta: "alarms on holiday? no" },
+  { id: "smalltalk",      cat: "explore",  ic: "💬", name: "Small talk with strangers",        meta: "constant social effort" },
+  { id: "unfamiliarfood", cat: "food",     ic: "🍜", name: "Too unfamiliar food",              meta: "every meal a question mark" },
+  { id: "toomuchwalking", cat: "nature",   ic: "👟", name: "Too much walking",                 meta: "10k steps before breakfast" },
+  { id: "tooisolated",    cat: "nature",   ic: "🏝",  name: "Feeling too isolated",            meta: "no signal, no people, no help" },
+  { id: "tooexpensive",   cat: "iconic",   ic: "💸", name: "Spending without clear value",     meta: "paying for the label" },
+  { id: "toolong",        cat: "discover", ic: "⏳", name: "Staying too long in one place",    meta: "one base, zero rotation" },
+];
+
+function Q7({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnswers: (a: Answers) => void; onNext: () => void; onBack: () => void }) {
+  const selected = answers.avoid ?? [];
+  function toggle(name: string) {
+    if (selected.includes(name)) setAnswers({ ...answers, avoid: selected.filter(x => x !== name) });
+    else setAnswers({ ...answers, avoid: [...selected, name] });
+  }
+  return (
+    <>
+      <div className="qc-sticky-head">
+        <HeaderStrip label="What to avoid" count="07 / 07" fillPct={100} />
+        <div className="qc-q-head">
+          <div className="qc-q-eyebrow"><strong>Question 07</strong> · the boundaries</div>
+          <h1 className="qc-q-title">What would <em>ruin</em><br />this trip for you?</h1>
+          <div className="qc-q-sub">
+            Pick as many as you want — even none. Naming what you don't want sharpens the part you do.
+            <div className="qc-pick-counter"><strong>{selected.length}</strong> selected</div>
+          </div>
+        </div>
+      </div>
+      <div className="qc-q-grid">
+        <div className="qc-options qc-options-twocol">
+          {AVOIDS.map(a => {
+            const isSel = selected.includes(a.name);
+            return (
+              <div key={a.id} data-cat={a.cat}
+                className={"qc-option" + (isSel ? " selected" : "")}
+                onClick={() => toggle(a.name)}>
+                <div className="qc-option-ic">{a.ic}</div>
+                <div className="qc-option-body">
+                  <div className="qc-option-name">{a.name}</div>
+                  <div className="qc-option-meta">{a.meta}</div>
+                </div>
+                <div className="qc-option-mark">
+                  {isSel ? "Avoided" : ""}
+                  <div className="qc-circle" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <aside className="qc-side">
+          <ProfileCard answers={answers} pending="Q7" />
+          <SideCard head="Why this question" icon="?"><p>A trip is also defined by what's <em>not</em> in it. Knowing your no-zones is half of crafting the right yes.</p></SideCard>
+          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+        </aside>
+      </div>
+      <FooterNav backLabel="Back to emotional goals" canContinue={true} ctaLabel={selected.length ? "See my destinations →" : "Skip — see destinations"} onBack={onBack} onNext={onNext} />
     </>
   );
 }
