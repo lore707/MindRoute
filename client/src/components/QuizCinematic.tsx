@@ -160,11 +160,13 @@ function Q1({ answers, setAnswers, onNext, onBack, hasBackFromQ1 }: { answers: A
   const sel = answers.path ?? null;
   return (
     <>
-      <HeaderStrip label="The starting point" count="01 / 07" fillPct={14} />
-      <div className="qc-q-head qc-center">
-        <div className="qc-q-eyebrow"><strong>Question 01</strong> · the starting point</div>
-        <h1 className="qc-q-title">What kind of traveler<br />are you, <em>today?</em></h1>
-        <p className="qc-q-sub">Start from how you feel today. The rest of the journey will follow that direction.</p>
+      <div className="qc-sticky-head">
+        <HeaderStrip label="The starting point" count="01 / 07" fillPct={14} />
+        <div className="qc-q-head qc-center">
+          <div className="qc-q-eyebrow"><strong>Question 01</strong> · the starting point</div>
+          <h1 className="qc-q-title">What kind of traveler<br />are you, <em>today?</em></h1>
+          <p className="qc-q-sub">Start from how you feel today. The rest of the journey will follow that direction.</p>
+        </div>
       </div>
       <div className="qc-q1-cards">
         <PathCard kind="guided" selected={sel === "guided"} onClick={() => setAnswers({ ...answers, path: "guided" })} />
@@ -241,11 +243,13 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
   return (
     <>
       <BgPhotos items={REGIONS} activeImg={activeRegion.img} />
-      <HeaderStrip label="Where" count="02 / 07" fillPct={28} />
-      <div className="qc-q-head">
-        <div className="qc-q-eyebrow"><strong>Question 02</strong> · the territory</div>
-        <h1 className="qc-q-title">Where do you<br />want to <em>go?</em></h1>
-        <p className="qc-q-sub">Choose the region that feels closest to you right now. We'll narrow it down to a specific destination later.</p>
+      <div className="qc-sticky-head">
+        <HeaderStrip label="Where" count="02 / 07" fillPct={28} />
+        <div className="qc-q-head">
+          <div className="qc-q-eyebrow"><strong>Question 02</strong> · the territory</div>
+          <h1 className="qc-q-title">Where do you<br />want to <em>go?</em></h1>
+          <p className="qc-q-sub">Choose the region that feels closest to you right now. We'll narrow it down to a specific destination later.</p>
+        </div>
       </div>
       <div className="qc-q-grid">
         <div className="qc-options">
@@ -311,13 +315,15 @@ function Q3({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
   return (
     <>
       <BgPhotos items={TYPES} activeImg={activeImg} />
-      <HeaderStrip label="Trip type" count="03 / 07" fillPct={42} />
-      <div className="qc-q-head">
-        <div className="qc-q-eyebrow"><strong>Question 03</strong> · the style</div>
-        <h1 className="qc-q-title">What <em>type</em> of trip?</h1>
-        <div className="qc-q-sub">
-          Pick up to 3. The combination says more than any single label.
-          <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 selected</div>
+      <div className="qc-sticky-head">
+        <HeaderStrip label="Trip type" count="03 / 07" fillPct={42} />
+        <div className="qc-q-head">
+          <div className="qc-q-eyebrow"><strong>Question 03</strong> · the style</div>
+          <h1 className="qc-q-title">What <em>type</em> of trip?</h1>
+          <div className="qc-q-sub">
+            Pick up to 3. The combination says more than any single label.
+            <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 selected</div>
+          </div>
         </div>
       </div>
       <div className="qc-q-grid">
@@ -372,11 +378,13 @@ function Q4({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
   return (
     <>
       <BgPhotos items={MOMENTS} activeImg={activeM.img} />
-      <HeaderStrip label="Must-see & why" count="04 / 07" fillPct={56} />
-      <div className="qc-q-head">
-        <div className="qc-q-eyebrow"><strong>Question 04</strong> · the defining moment</div>
-        <h1 className="qc-q-title">What moment would make<br />this trip truly <em>special?</em></h1>
-        <p className="qc-q-sub">One feeling, one image. The combination tells us everything about what you're really chasing.</p>
+      <div className="qc-sticky-head">
+        <HeaderStrip label="Must-see & why" count="04 / 07" fillPct={56} />
+        <div className="qc-q-head">
+          <div className="qc-q-eyebrow"><strong>Question 04</strong> · the defining moment</div>
+          <h1 className="qc-q-title">What moment would make<br />this trip truly <em>special?</em></h1>
+          <p className="qc-q-sub">One feeling, one image. The combination tells us everything about what you're really chasing.</p>
+        </div>
       </div>
       <div className="qc-q-grid">
         <div className="qc-options">

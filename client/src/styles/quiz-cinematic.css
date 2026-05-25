@@ -39,6 +39,11 @@
 .qc-step-dot.done{color:var(--qc-accent);border-color:rgba(233,69,96,.5);background:rgba(233,69,96,.1)}
 .qc-step-dot.active{width:42px;height:42px;background:var(--qc-accent);color:#1a0508;border-color:var(--qc-accent);font-weight:500;font-style:normal;font-family:var(--qc-sans);box-shadow:0 0 24px rgba(233,69,96,.6),0 0 0 4px rgba(233,69,96,.15)}
 
+/* Sticky head wrapper — header strip + titolo restano fissi in alto durante lo scroll */
+.qc-sticky-head{position:sticky;top:72px;z-index:20;padding:14px 0 22px;margin:0 0 20px;background:linear-gradient(to bottom,rgba(26,14,26,.96) 0%,rgba(26,14,26,.88) 65%,rgba(26,14,26,0) 100%);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.qc-sticky-head .qc-header-strip{margin-bottom:14px}
+.qc-sticky-head .qc-q-head{margin-bottom:0}
+
 /* Header strip */
 .qc-header-strip{display:flex;align-items:center;gap:18px;color:var(--qc-ink-faint);font-size:11px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:14px}
 .qc-label{color:var(--qc-accent);font-weight:500}
@@ -210,6 +215,8 @@
 @media (max-width:900px){
   .qc-container{padding:0 24px}
   .qc-stage{padding:64px 0 80px}
+  .qc-sticky-head{top:64px;padding:12px 0 18px;margin-bottom:16px}
+  .qc-sticky-head .qc-header-strip{margin-bottom:10px}
   .qc-q-head{margin-bottom:28px}
   .qc-q-eyebrow{margin-bottom:18px;font-size:12px}
   .qc-q-title{font-size:clamp(34px,7vw,56px);line-height:1.02}
@@ -238,6 +245,8 @@
 @media (max-width:700px){
   .qc-container{padding:0 18px}
   .qc-stage{padding:56px 0 72px}
+  .qc-sticky-head{top:56px;padding:10px 0 14px;margin-bottom:14px}
+  .qc-sticky-head .qc-header-strip{margin-bottom:8px}
   .qc-q-head{margin-bottom:24px}
   .qc-q-title{font-size:clamp(30px,8vw,46px)}
   .qc-q-sub{font-size:15px;line-height:1.55}
@@ -283,6 +292,7 @@
 @media (max-width:480px){
   .qc-container{padding:0 14px}
   .qc-stage{padding:52px 0 64px}
+  .qc-sticky-head{top:52px;padding:8px 0 12px;margin-bottom:12px}
   .qc-q-head{margin-bottom:20px}
   .qc-q-title{font-size:clamp(26px,9vw,38px);letter-spacing:-.01em}
   .qc-q-sub{font-size:14px}
