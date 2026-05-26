@@ -806,9 +806,14 @@ DISTANCE_CHIP: [Path A Q7 value]
 GEO_CHIP: [Path B Q1 value]
 GEOGRAPHIC_CONSTRAINT: [precise place if user specified one]
 REJECTION_TEXT: [Path A Q6 verbatim]
-COMPANIONS: [value]
-BUDGET_TIER: [low/medium/high/unlimited]
+COMPANIONS: structured profile → logistics.companions.type; if friends/family also .adults / .children / .children_ages
+BUDGET_TIER: structured profile → logistics.budget_tier [low/medium/high/unlimited]
 TRIP_TYPE_CHIPS: [all trip type chips selected]
+WHEN/PERIOD: structured profile → logistics.when (mode + chosen months/periods/dates) — drives the SEASONALITY CHECK
+DURATION: structured profile → logistics.duration + logistics.days — drives the REACHABILITY check
+ACCOMMODATION_PREF / FOOD_PREF / EFFORT / DIET: structured profile → logistics.accommodation / logistics.food / logistics.physical_effort / logistics.diet
+
+AUTHORITATIVE SCHEMA RULE: when a "Structured profile (JSON)" is present it mirrors exactly what the user confirmed on screen, question by question, and is the COMPLETE and PRIMARY source of truth. Read EVERY top-level field AND every field inside the nested logistics object, and treat each as a HARD CONSTRAINT for destination selection (see STEP 1 → LOGISTICS CONSTRAINTS). Never drop one, never override one with a "typical traveler" assumption. If a field is absent it was not provided — do not invent it.
 
 These are the SOURCE OF TRUTH. Everything that follows derives from this list and ONLY this list. Never invent chips that aren't there. Never ignore chips that are there.
 
@@ -941,6 +946,14 @@ If math fails → REJECT the destination.
 - One week: max 9h flight.
 - 10-14 days: anywhere.
 - "Vicino a casa": ground only, NO flights.
+
+── LOGISTICS CONSTRAINTS (from logistics.* — apply to ALL 3 slots) ──
+- DIET (logistics.diet — vegan / vegetarian / gluten-free / halal / kosher): all 3 destinations MUST be able to feed this diet well every day. ELIMINATE any destination where it would be a constant struggle (e.g. strict vegan or kosher in a remote meat-only region).
+- ACCOMMODATION_PREF (logistics.accommodation): the destination must realistically offer that stay type within budget — "Boutique / Design" → a real boutique/design scene must exist; "Ostello / Capsule" → hostel infrastructure must exist; "Lusso" → genuine high-end options.
+- PHYSICAL_EFFORT (logistics.physical_effort): "Basso" → do NOT pick destinations whose whole value depends on hiking/trekking/long walking; "Alto"/"Estremo" → favor destinations with real terrain/outdoor challenge.
+- WHEN (logistics.when): use the exact months/period the user picked as the travel window for the SEASONALITY CHECK below — never a generic default.
+- GROUP (logistics.companions.adults / .children / .children_ages): group size and kids' ages refine the Companions rule — young children → short transfers, easy beaches, central stays, no high-altitude or extreme logistics.
+These do not override the geographic constraint, but within it every slot must satisfy them.
 
 ═══════════════════════════════════════
 STEP 2 — DESTINATION SELECTION ENGINE
