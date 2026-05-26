@@ -3,6 +3,7 @@
 @import "./styles/account-cinematic.css";
 @import "./styles/landing-cinematic.css";
 @import "./styles/quiz-cinematic.css";
+@import "./styles/quiz-logistics.css";
 
 @tailwind base;
 @tailwind components;

@@ -17,6 +17,7 @@ import { useTraitRecognition } from "@/hooks/use-trait-recognition";
 import { RecognitionBanner } from "@/components/RecognitionBanner";
 import { FromProfileModal } from "@/components/FromProfileModal";
 import { QuizCinematic, type Answers as CinematicAnswers } from "@/components/QuizCinematic";
+import { QuizLogistics, type LogisticsAnswers, type ProfileSummary } from "@/components/QuizLogistics";
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
     <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85" />
@@ -385,14 +386,14 @@ export default function Profiling() {
     }
   };
 
-  const startAnalyzing = () => {
+  const startAnalyzing = (formOverride?: typeof formData) => {
     analyzeTimers.current.forEach(t => clearTimeout(t));
     analyzeTimers.current = [];
     setVisibleTraits([]);
     setShowAnalyzing(true);
 
     submitMutation.reset();
-    doFinalSubmit();
+    doFinalSubmit(formOverride);
 
     analyzeTraits.forEach((trait, i) => {
       const timer = setTimeout(() => {
@@ -497,10 +498,49 @@ export default function Profiling() {
     }));
   };
 
-  const getDateString = () => {
-    if (formData.dateMode === "exact") return `${formData.dateFrom} - ${formData.dateTo}`;
-    if (formData.dateMode === "flexible-month") return formData.selectedMonths.join(", ");
-    return formData.selectedPeriods.join(", ");
+  const getDateString = (formOverride?: typeof formData) => {
+    const fd = formOverride ?? formData;
+    if (fd.dateMode === "exact") return `${fd.dateFrom} - ${fd.dateTo}`;
+    if (fd.dateMode === "flexible-month") return fd.selectedMonths.join(", ");
+    return fd.selectedPeriods.join(", ");
+  };
+
+  // QuizLogistics (Chapter II+III, Path B) → vecchio shape formData, così
+  // doFinalSubmit/buildStructuredProfileForPathB restano invariati e il
+  // matching engine continua a ricevere gli stessi valori storici.
+  const logisticsToFormData = (l: LogisticsAnswers): typeof formData => {
+    const budgetMap: Record<string, string> = { shoestring: 'low', mid: 'medium', upper: 'high', open: 'unlimited' };
+    const durMap: Record<string, string>    = { weekend: 'weekend', week: 'week', twoweek: '10-14', long: 'long' };
+    const compMap: Record<string, string>   = { solo: 'solo', partner: 'couple', friends: 'friends', family: 'family' };
+    const moveMap: Record<string, string>   = { base: 'fixed', twostops: 'two', discovery: 'discover' };
+    // sleep tier id === vecchio accommodation id (hostel/budget/mid/boutique/luxury/mix)
+    const foodMap: Record<string, string>   = { street: 'street', local: 'budget', good: 'mid', foodie: 'foodie', mix: 'mix' };
+    const dietMap: Record<string, string>   = { none: 'none', veg: 'vegetarian', vegan: 'vegan', gf: 'gluten', lactose: 'lactose', halal: 'halal', kosher: 'kosher', allergy: 'allergies' };
+    const effortToOld = (e = 2) => (e <= 1 ? 'low' : e === 2 ? 'normal' : e <= 4 ? 'high' : 'extreme');
+    const constraints = [
+      l.notes?.trim(),
+      l.openWallet ? 'budget: surprise me — hide the numbers' : '',
+    ].filter(Boolean).join(' | ');
+
+    return {
+      ...formData,
+      budget: l.budget ? budgetMap[l.budget] : '',
+      // QuizLogistics raccoglie solo i mesi → leaveDate via flexible-month
+      selectedMonths: l.months ?? [],
+      dateMode: 'flexible-month',
+      dateFrom: '',
+      dateTo: '',
+      selectedPeriods: [],
+      duration: l.duration ? durMap[l.duration] : '',
+      departure: l.city ?? '',
+      companions: l.who ? compMap[l.who] : '',
+      travelStyle: l.move ? moveMap[l.move] : '',
+      accommodation: l.sleep ?? '',
+      food: l.food ? (foodMap[l.food] ?? l.food) : '',
+      effort: effortToOld(l.effort),
+      dietary: (l.diet ?? []).map(d => dietMap[d] ?? d),
+      constraints,
+    };
   };
 
   const isDateValid = () => {
@@ -593,7 +633,8 @@ export default function Profiling() {
     };
   };
 
-  const doFinalSubmit = () => {
+  const doFinalSubmit = (formOverride?: typeof formData) => {
+    const fd = formOverride ?? formData;
     const baseAnswers = questions.map((_, i) => answers[i] || "");
     const structured = buildStructuredProfileForPathB();
     const quizAnswersArray = [`path_${selectedPath}`, ...baseAnswers];
@@ -607,23 +648,23 @@ export default function Profiling() {
     const durationMap: Record<string, number> = { "weekend": 4, "week": 7, "10-14": 12, "long": 15 };
 
     const enrichedConstraints = [
-      formData.constraints,
-      formData.accommodation ? `accommodation: ${formData.accommodation}` : '',
-      formData.food ? `food: ${formData.food}` : '',
-      formData.effort ? `effort: ${formData.effort}` : '',
-      formData.dietary.length > 0 ? `dietary: ${formData.dietary.join(', ')}` : '',
+      fd.constraints,
+      fd.accommodation ? `accommodation: ${fd.accommodation}` : '',
+      fd.food ? `food: ${fd.food}` : '',
+      fd.effort ? `effort: ${fd.effort}` : '',
+      fd.dietary.length > 0 ? `dietary: ${fd.dietary.join(', ')}` : '',
     ].filter(Boolean).join(' | ');
 
  const currentLang = localStorage.getItem("mindroute-lang") || "en";
 
 const profilingPayload = {
       answers: quizAnswersArray,
-      budget: formData.budget,
-      departure: formData.departure,
-      days: durationMap[formData.duration] || 7,
-      leaveDate: getDateString(),
-      companions: formData.companions,
-      travelStyle: formData.travelStyle,
+      budget: fd.budget,
+      departure: fd.departure,
+      days: durationMap[fd.duration] || 7,
+      leaveDate: getDateString(fd),
+      companions: fd.companions,
+      travelStyle: fd.travelStyle,
       constraints: enrichedConstraints,
       lang: currentLang,
     };
@@ -1064,6 +1105,41 @@ const profilingPayload = {
           setCinematicAnswers({});
           setCinematicStep(1);
         }}
+        />
+      </>
+    );
+  }
+
+  // Path B · logistica = QuizLogistics (Chapter II + III), in continuità col cinematic.
+  // Path A continua a usare il vecchio form a 2 step più sotto.
+  if (showForm && selectedPath === 'b') {
+    const cinPace = typeof cinematicAnswers.pace === 'number' ? cinematicAnswers.pace : 50;
+    const rhythmLabel = cinPace <= 33 ? 'Structured' : cinPace >= 67 ? 'Spontaneous' : 'Balanced';
+    const logisticsProfile: ProfileSummary = {
+      region: cinematicAnswers.region,
+      tripTypes: cinematicAnswers.tripTypes,
+      defining: cinematicAnswers.defining,
+      rhythmLabel,
+      feeling: cinematicAnswers.emotionalGoals?.[0],
+      avoidCount: cinematicAnswers.avoid?.length,
+    };
+    return (
+      <>
+        <Nav />
+        <QuizLogistics
+          profile={logisticsProfile}
+          onBack={() => {
+            // Torna al cinematic Q7 (what to avoid).
+            setShowForm(false);
+            setCinematicStep(7);
+            setCinematicMode(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onComplete={(l) => {
+            const mapped = logisticsToFormData(l);
+            setFormData(mapped);
+            startAnalyzing(mapped);
+          }}
         />
       </>
     );
