@@ -522,15 +522,16 @@ export default function Profiling() {
       l.openWallet ? 'budget: surprise me — hide the numbers' : '',
     ].filter(Boolean).join(' | ');
 
+    const whenModeMap = { dates: 'exact', month: 'flexible-month', period: 'flexible-period' } as const;
     return {
       ...formData,
       budget: l.budget ? budgetMap[l.budget] : '',
-      // QuizLogistics raccoglie solo i mesi → leaveDate via flexible-month
+      // when: una delle tre modalità → getDateString legge il campo giusto via dateMode
+      dateMode: whenModeMap[l.whenMode ?? 'month'],
+      dateFrom: l.dateFrom ?? '',
+      dateTo: l.dateTo ?? '',
       selectedMonths: l.months ?? [],
-      dateMode: 'flexible-month',
-      dateFrom: '',
-      dateTo: '',
-      selectedPeriods: [],
+      selectedPeriods: l.periods ?? [],
       duration: l.duration ? durMap[l.duration] : '',
       departure: l.city ?? '',
       companions: l.who ? compMap[l.who] : '',

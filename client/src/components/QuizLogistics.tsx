@@ -24,7 +24,10 @@ export type LogisticsAnswers = {
   budget?: "shoestring" | "mid" | "upper" | "open";
   openWallet?: boolean;
   whenMode?: "dates" | "month" | "period";
-  months?: string[];
+  months?: string[];          // whenMode === "month"
+  dateFrom?: string;          // whenMode === "dates" (ISO yyyy-mm-dd)
+  dateTo?: string;            // whenMode === "dates"
+  periods?: string[];         // whenMode === "period"
   duration?: "weekend" | "week" | "twoweek" | "long";
   who?: "solo" | "partner" | "friends" | "family";
   city?: string;
@@ -79,6 +82,14 @@ const MONTHS = [
   { nm: "Oct", season: "Autumn", c: "rgba(180,90,90,.55)" },
   { nm: "Nov", season: "Autumn", c: "rgba(150,80,100,.5)" },
   { nm: "Dec", season: "Winter", c: "rgba(110,130,180,.5)" },
+];
+
+const PERIODS = [
+  { id: "Spring",  c: "rgba(140,180,100,.9)" },
+  { id: "Summer",  c: "rgba(230,140,60,.9)" },
+  { id: "Autumn",  c: "rgba(180,90,90,.9)" },
+  { id: "Winter",  c: "rgba(94,140,182,.9)" },
+  { id: "Anytime", c: "rgba(212,168,83,.9)" },
 ];
 
 const DURATIONS = [
@@ -300,20 +311,45 @@ function ChapterFrame({
   const durObj    = DURATIONS.find((d) => d.id === answers.duration);
   const whoObj    = WHO_OPTIONS.find((w) => w.id === answers.who);
   const months    = answers.months ?? [];
+  const periods   = answers.periods ?? [];
+  const whenMode  = answers.whenMode ?? "month";
 
   function toggleMonth(m: string) {
     const set = new Set(months);
     set.has(m) ? set.delete(m) : set.add(m);
     update("months", Array.from(set));
   }
+  function togglePeriod(p: string) {
+    const set = new Set(periods);
+    set.has(p) ? set.delete(p) : set.add(p);
+    update("periods", Array.from(set));
+  }
 
-  const filled = [budgetObj, months.length > 0 ? "y" : null, durObj, whoObj, answers.city].filter(Boolean).length;
+  // "When" è soddisfatto se la modalità attiva ha dati validi (come isDateValid del vecchio form).
+  const whenFilled =
+    whenMode === "dates"  ? !!(answers.dateFrom && answers.dateTo)
+    : whenMode === "period" ? periods.length > 0
+    : months.length > 0;
+  const whenStatus =
+    whenMode === "dates"  ? (whenFilled ? "set" : "open")
+    : whenMode === "period" ? (periods.length ? `${periods.length} picked` : "open")
+    : (months.length ? `${months.length} picked` : "open");
+
+  const filled = [budgetObj, whenFilled ? "y" : null, durObj, whoObj, answers.city].filter(Boolean).length;
   const cityCode = (answers.city || "").trim().slice(0, 3).toUpperCase() || "—";
 
-  const monthsStr = useMemo(() => {
+  const fmtDate = (iso?: string) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en", { day: "2-digit", month: "short" });
+  };
+
+  const whenStr = useMemo(() => {
+    if (whenMode === "dates") return whenFilled ? `${fmtDate(answers.dateFrom)} → ${fmtDate(answers.dateTo)}` : "";
+    if (whenMode === "period") return periods.join(", ");
     const order = MONTHS.map((m) => m.nm);
     return [...months].sort((a, b) => order.indexOf(a) - order.indexOf(b)).join(", ");
-  }, [months]);
+  }, [whenMode, whenFilled, answers.dateFrom, answers.dateTo, periods, months]);
 
   const estCost = useMemo(() => {
     if (!budgetObj) return null;
@@ -366,26 +402,55 @@ function ChapterFrame({
           </Section>
 
           {/* ii — WHEN */}
-          <Section num="ii." title="When do you want to go?" hint="Tap any months that would work. Light selection is fine — we'll match seasons." status={months.length ? `${months.length} picked` : "open"} filled={months.length > 0}>
+          <Section num="ii." title="When do you want to go?" hint="Fixed dates, a flexible month, or just a season — whatever you know right now." status={whenStatus} filled={whenFilled}>
             <div className="ql-when-tabs">
               {([["dates", "Exact dates"], ["month", "Flexible month"], ["period", "Flexible period"]] as const).map(([k, l]) => (
-                <div key={k} className={"ql-when-tab " + (answers.whenMode === k ? "on" : "")} onClick={() => update("whenMode", k)}>{l}</div>
+                <div key={k} className={"ql-when-tab " + (whenMode === k ? "on" : "")} onClick={() => update("whenMode", k)}>{l}</div>
               ))}
             </div>
-            <div className="ql-month-grid">
-              {MONTHS.map((m) => (
-                <div
-                  key={m.nm}
-                  className={"ql-month " + (months.includes(m.nm) ? "on" : "")}
-                  style={{ ["--mt" as string]: `linear-gradient(160deg,${m.c},rgba(26,14,26,.85))` }}
-                  onClick={() => toggleMonth(m.nm)}
-                >
-                  <div className="ql-mcheck" />
-                  <div className="ql-mname">{m.nm}</div>
-                  <div className="ql-mseason">{m.season}</div>
-                </div>
-              ))}
-            </div>
+
+            {whenMode === "dates" && (
+              <div className="ql-when-dates">
+                <label className="ql-when-date">
+                  <span>Leaving</span>
+                  <input type="date" value={answers.dateFrom ?? ""} max={answers.dateTo || undefined} onChange={(e) => update("dateFrom", e.target.value)} />
+                </label>
+                <label className="ql-when-date">
+                  <span>Returning</span>
+                  <input type="date" value={answers.dateTo ?? ""} min={answers.dateFrom || undefined} onChange={(e) => update("dateTo", e.target.value)} />
+                </label>
+              </div>
+            )}
+
+            {whenMode === "month" && (
+              <div className="ql-month-grid">
+                {MONTHS.map((m) => (
+                  <div
+                    key={m.nm}
+                    className={"ql-month " + (months.includes(m.nm) ? "on" : "")}
+                    style={{ ["--mt" as string]: `linear-gradient(160deg,${m.c},rgba(26,14,26,.85))` }}
+                    onClick={() => toggleMonth(m.nm)}
+                  >
+                    <div className="ql-mcheck" />
+                    <div className="ql-mname">{m.nm}</div>
+                    <div className="ql-mseason">{m.season}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {whenMode === "period" && (
+              <div className="ql-period-row">
+                {PERIODS.map((p) => (
+                  <button
+                    key={p.id}
+                    className={"ql-period-chip " + (periods.includes(p.id) ? "on" : "")}
+                    style={{ ["--pc" as string]: p.c }}
+                    onClick={() => togglePeriod(p.id)}
+                  >{p.id}</button>
+                ))}
+              </div>
+            )}
           </Section>
 
           {/* iii — DURATION */}
@@ -442,7 +507,7 @@ function ChapterFrame({
         </div>
 
         <aside className="ql-side">
-          <TripCard answers={answers} profile={profile} cityCode={cityCode} monthsStr={monthsStr} durLbl={durObj?.meta ?? "—"} budgetLbl={budgetObj?.lbl ?? null} estCost={estCost} whoLbl={whoObj?.lbl ?? null} />
+          <TripCard answers={answers} profile={profile} cityCode={cityCode} whenStr={whenStr} durLbl={durObj?.meta ?? "—"} budgetLbl={budgetObj?.lbl ?? null} estCost={estCost} whoLbl={whoObj?.lbl ?? null} />
           <SideCard head={<><div className="ql-side-ic">?</div>Why these five</>}>
             <p>These are the practical anchors that turn an idea into an itinerary. We'll quote and time everything around them — and surface places that match.</p>
           </SideCard>
@@ -680,12 +745,12 @@ function TierStripList({
 }
 
 function TripCard({
-  answers, profile, cityCode, monthsStr, durLbl, budgetLbl, estCost, whoLbl,
+  answers, profile, cityCode, whenStr, durLbl, budgetLbl, estCost, whoLbl,
 }: {
   answers: LogisticsAnswers;
   profile?: ProfileSummary;
   cityCode: string;
-  monthsStr: string;
+  whenStr: string;
   durLbl: string;
   budgetLbl: string | null;
   estCost: string | null;
@@ -724,7 +789,7 @@ function TripCard({
         <Row k="Rhythm" v={profile?.rhythmLabel ?? "Flowing"} />
         <Row k="Feeling" v={profile?.feeling ?? "Feel the place"} />
         <Row k="Avoid" v={profile?.avoidCount != null ? `${profile.avoidCount} patterns` : "3 patterns"} />
-        <Row k="When" v={monthsStr || null} fallback="to be chosen" />
+        <Row k="When" v={whenStr || null} fallback="to be chosen" />
         <Row k="Company" v={whoLbl} fallback="to be chosen" />
         <Row k="Tier" v={budgetLbl} fallback="to be chosen" />
         <Row k="Length" v={durLbl !== "—" ? durLbl : null} fallback="to be chosen" />

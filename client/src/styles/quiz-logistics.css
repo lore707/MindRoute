@@ -99,6 +99,21 @@
 .ql-when-tab{padding:9px 18px;border-radius:999px;font-size:13px;color:var(--ql-ink-dim);transition:all .2s;letter-spacing:.02em;cursor:pointer}
 .ql-when-tab.on{background:var(--ql-accent);color:#1a0508;font-weight:500;box-shadow:0 6px 18px -6px rgba(233,69,96,.6)}
 .ql-when-tab:hover:not(.on){color:var(--ql-ink)}
+/* When · exact dates */
+.ql-when-dates{display:flex;gap:14px;flex-wrap:wrap}
+.ql-when-date{flex:1;min-width:170px;display:flex;flex-direction:column;gap:7px}
+.ql-when-date > span{font-family:var(--ql-sans);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ql-ink-faint)}
+.ql-when-date input{width:100%;padding:14px 18px;border:1px solid var(--ql-stroke-strong);border-radius:14px;background:rgba(26,14,26,.55);backdrop-filter:blur(12px);font-family:var(--ql-serif);font-size:16px;color:var(--ql-ink);transition:all .25s;outline:none;color-scheme:dark}
+.ql-when-date input:focus{border-color:var(--ql-accent);background:rgba(233,69,96,.06);box-shadow:0 0 0 3px rgba(233,69,96,.15)}
+.ql-when-date input::-webkit-calendar-picker-indicator{filter:invert(.7) sepia(1) saturate(4) hue-rotate(310deg);cursor:pointer}
+
+/* When · flexible period (seasons) */
+.ql-period-row{display:flex;flex-wrap:wrap;gap:9px}
+.ql-period-chip{position:relative;display:inline-flex;align-items:center;gap:11px;padding:11px 20px 11px 16px;border:1px solid var(--ql-stroke-strong);border-radius:999px;background:rgba(26,14,26,.55);backdrop-filter:blur(10px);color:var(--ql-ink);font-family:var(--ql-serif);font-size:16px;cursor:pointer;transition:all .25s;line-height:1}
+.ql-period-chip::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--pc,rgba(255,255,255,.25));box-shadow:0 0 8px var(--pc,transparent);transition:all .25s}
+.ql-period-chip:hover{border-color:rgba(233,69,96,.4);transform:translateY(-1px)}
+.ql-period-chip.on{background:linear-gradient(135deg,rgba(233,69,96,.2),rgba(122,16,32,.16));border-color:var(--ql-accent);color:#fff;box-shadow:0 0 0 1px var(--ql-accent)}
+
 .ql-month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .ql-month{position:relative;aspect-ratio:1/1;border-radius:12px;border:1px solid var(--ql-stroke-strong);background:var(--mt,linear-gradient(160deg,rgba(255,255,255,.04),rgba(26,14,26,.45)));backdrop-filter:blur(10px);cursor:pointer;transition:all .25s;display:flex;flex-direction:column;justify-content:space-between;padding:10px 12px;overflow:hidden}
 .ql-month::before{content:"";position:absolute;inset:0;background:var(--mt);opacity:.55;transition:opacity .25s;z-index:0}
