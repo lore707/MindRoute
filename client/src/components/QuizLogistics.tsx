@@ -30,6 +30,9 @@ export type LogisticsAnswers = {
   periods?: string[];         // whenMode === "period"
   duration?: "weekend" | "week" | "twoweek" | "long";
   who?: "solo" | "partner" | "friends" | "family";
+  adults?: number;            // who === "friends" | "family"
+  kids?: number;              // who === "friends" | "family"
+  kidsAges?: number[];        // età dei bambini (len === kids)
   city?: string;
   // Chapter III — Texture
   move?: "base" | "twostops" | "discovery";
@@ -96,7 +99,6 @@ const DURATIONS = [
   { id: "weekend", lbl: "Long weekend",        meta: "3–4 days",                bars: [1, 0, 0, 0, 0], mult: 0.6 },
   { id: "week",    lbl: "One week",            meta: "5–7 days",                bars: [1, 1, 0, 0, 0], mult: 1.0 },
   { id: "twoweek", lbl: "10–14 days",          meta: "two unhurried weeks",     bars: [1, 1, 1, 0, 0], mult: 1.6 },
-  { id: "long",    lbl: "More than two weeks", meta: "a slow stay",             bars: [1, 1, 1, 1, 1], mult: 2.2 },
 ];
 
 const SAVED_CITIES = ["Milan", "London", "Rome", "Paris", "New York"];
@@ -314,6 +316,33 @@ function ChapterFrame({
   const periods   = answers.periods ?? [];
   const whenMode  = answers.whenMode ?? "month";
 
+  // Composizione gruppo (solo Friends / Family)
+  const showGroup = answers.who === "friends" || answers.who === "family";
+  const adults    = answers.adults ?? 2;
+  const kids      = answers.kids ?? 0;
+  const kidsAges  = answers.kidsAges ?? [];
+
+  function pickWho(id: NonNullable<LogisticsAnswers["who"]>) {
+    update("who", id);
+    if ((id === "friends" || id === "family") && answers.adults == null) {
+      update("adults", 2);
+      update("kids", 0);
+      update("kidsAges", []);
+    }
+  }
+  function setAdults(n: number) { update("adults", Math.max(1, Math.min(12, n))); }
+  function setKids(n: number) {
+    const v = Math.max(0, Math.min(10, n));
+    update("kids", v);
+    update("kidsAges", (answers.kidsAges ?? []).slice(0, v));
+  }
+  function setKidAge(i: number, val: string) {
+    const ages = [...(answers.kidsAges ?? [])];
+    if (val === "") delete ages[i];
+    else ages[i] = Math.max(0, Math.min(17, parseInt(val, 10) || 0));
+    update("kidsAges", ages);
+  }
+
   function toggleMonth(m: string) {
     const set = new Set(months);
     set.has(m) ? set.delete(m) : set.add(m);
@@ -423,18 +452,14 @@ function ChapterFrame({
             )}
 
             {whenMode === "month" && (
-              <div className="ql-month-grid">
+              <div className="ql-month-table">
                 {MONTHS.map((m) => (
-                  <div
+                  <button
                     key={m.nm}
-                    className={"ql-month " + (months.includes(m.nm) ? "on" : "")}
-                    style={{ ["--mt" as string]: `linear-gradient(160deg,${m.c},rgba(26,14,26,.85))` }}
+                    type="button"
+                    className={"ql-month-cell " + (months.includes(m.nm) ? "on" : "")}
                     onClick={() => toggleMonth(m.nm)}
-                  >
-                    <div className="ql-mcheck" />
-                    <div className="ql-mname">{m.nm}</div>
-                    <div className="ql-mseason">{m.season}</div>
-                  </div>
+                  >{m.nm}</button>
                 ))}
               </div>
             )}
@@ -478,7 +503,7 @@ function ChapterFrame({
           <Section num="iv." title="Who are you traveling with?" hint="Changes everything about pace, places, and the way we plan." status={whoObj ? whoObj.lbl : "open"} filled={!!whoObj}>
             <div className="ql-who-row">
               {WHO_OPTIONS.map((w) => (
-                <div key={w.id} className={"ql-who " + (answers.who === w.id ? "on" : "")} onClick={() => update("who", w.id)}>
+                <div key={w.id} className={"ql-who " + (answers.who === w.id ? "on" : "")} onClick={() => pickWho(w.id)}>
                   <div className="ql-who-avatar">{w.svg}</div>
                   <div>
                     <div className="ql-who-lbl">{w.lbl}</div>
@@ -487,6 +512,47 @@ function ChapterFrame({
                 </div>
               ))}
             </div>
+
+            {showGroup && (
+              <div className="ql-group-form">
+                <div className="ql-group-head">Who's in the {answers.who === "family" ? "family" : "group"}?</div>
+                <div className="ql-group-counts">
+                  <div className="ql-group-count">
+                    <div className="ql-group-count-lbl">Adults</div>
+                    <div className="ql-stepper">
+                      <button type="button" onClick={() => setAdults(adults - 1)} disabled={adults <= 1} aria-label="Fewer adults">−</button>
+                      <span>{adults}</span>
+                      <button type="button" onClick={() => setAdults(adults + 1)} disabled={adults >= 12} aria-label="More adults">+</button>
+                    </div>
+                  </div>
+                  <div className="ql-group-count">
+                    <div className="ql-group-count-lbl">Children <small>under 18</small></div>
+                    <div className="ql-stepper">
+                      <button type="button" onClick={() => setKids(kids - 1)} disabled={kids <= 0} aria-label="Fewer children">−</button>
+                      <span>{kids}</span>
+                      <button type="button" onClick={() => setKids(kids + 1)} disabled={kids >= 10} aria-label="More children">+</button>
+                    </div>
+                  </div>
+                </div>
+                {kids > 0 && (
+                  <div className="ql-kids-ages">
+                    <div className="ql-kids-ages-lbl">Each child's age</div>
+                    <div className="ql-kids-ages-row">
+                      {Array.from({ length: kids }).map((_, i) => (
+                        <input
+                          key={i}
+                          type="number" min={0} max={17}
+                          className="ql-kid-age"
+                          placeholder="age"
+                          value={kidsAges[i] ?? ""}
+                          onChange={(e) => setKidAge(i, e.target.value)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </Section>
 
           {/* v — DEPART */}

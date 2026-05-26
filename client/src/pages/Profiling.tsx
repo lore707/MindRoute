@@ -519,9 +519,22 @@ export default function Profiling() {
     const foodMap: Record<string, string>   = { street: 'street', local: 'budget', good: 'mid', foodie: 'foodie', mix: 'mix' };
     const dietMap: Record<string, string>   = { none: 'none', veg: 'vegetarian', vegan: 'vegan', gf: 'gluten', lactose: 'lactose', halal: 'halal', kosher: 'kosher', allergy: 'allergies' };
     const effortToOld = (e = 2) => (e <= 1 ? 'low' : e === 2 ? 'normal' : e <= 4 ? 'high' : 'extreme');
+    const groupStr = (() => {
+      if (l.who !== 'friends' && l.who !== 'family') return '';
+      const a = l.adults ?? 0;
+      const k = l.kids ?? 0;
+      if (!a && !k) return '';
+      const parts = [`${a} adult${a === 1 ? '' : 's'}`];
+      if (k) {
+        const ages = (l.kidsAges ?? []).filter((x) => x != null);
+        parts.push(`${k} child${k === 1 ? '' : 'ren'}${ages.length ? ` (ages ${ages.join(', ')})` : ''}`);
+      }
+      return `group: ${parts.join(', ')}`;
+    })();
     const constraints = [
       l.notes?.trim(),
       l.openWallet ? 'budget: surprise me — hide the numbers' : '',
+      groupStr,
     ].filter(Boolean).join(' | ');
 
     const whenModeMap = { dates: 'exact', month: 'flexible-month', period: 'flexible-period' } as const;
