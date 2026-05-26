@@ -81,6 +81,10 @@ export default function Profiling() {
   const [cinematicMode, setCinematicMode] = useState(true);
   const [cinematicAnswers, setCinematicAnswers] = useState<CinematicAnswers>({});
   const [cinematicStep, setCinematicStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
+  // Risposte logistica grezze (Chapter II+III) — fonte di verità per il profilo
+  // strutturato completo letto dall'AI. Ref (non state) per leggerle in modo
+  // sincrono dentro doFinalSubmit, che parte subito dopo onComplete.
+  const logisticsRef = useRef<LogisticsAnswers | null>(null);
   const recognition = useTraitRecognition();
   // showRecognition gates the pre-quiz screen for returning users. Defaults to
   // true; user dismisses it via "cambia qualcosa" to fall through to the quiz.
@@ -649,10 +653,58 @@ export default function Profiling() {
     };
   };
 
+  // Blocco logistica strutturato: le stesse voci mostrate nei pannelli a schermo
+  // (TripCard + RecipeCard), con etichette allineate alle regole del prompt del
+  // motore di matching (STEP 1). Diventa il sotto-oggetto `logistics` del profilo
+  // strutturato → unica fonte di verità letta dall'AI in entrambe le fasi.
+  const buildLogisticsBlock = (l: LogisticsAnswers) => {
+    const budgetTierMap: Record<string, string>  = { shoestring: 'low', mid: 'medium', upper: 'high', open: 'unlimited' };
+    const budgetLabelMap: Record<string, string> = { shoestring: 'Under €500 pp', mid: '€500–€1,500 pp', upper: '€1,500–€3,000 pp', open: 'Money is not the limit' };
+    const durationLabelMap: Record<string, string> = { weekend: 'Long weekend (3–4 days)', week: 'One week (5–7 days)', twoweek: '10–14 days' };
+    const durationDaysMap: Record<string, number>  = { weekend: 4, week: 7, twoweek: 12 };
+    const moveLabelMap: Record<string, string>   = { base: 'base fissa', twostops: 'due tappe', discovery: 'scoperta' };
+    const sleepLabelMap: Record<string, string>  = { hostel: 'Ostello / Capsule', budget: 'Economico ma carino', mid: 'Comfort medio', boutique: 'Boutique / Design', luxury: 'Lusso', mix: 'Mix' };
+    const foodLabelMap: Record<string, string>   = { street: 'Street food e mercati', local: 'Mix locale economico', good: 'Qualche buon ristorante', foodie: 'Foodie', mix: 'Mix — street food quotidiano + cena speciale' };
+    const dietLabelMap: Record<string, string>   = { none: 'Nessuna restrizione', veg: 'Vegetariano', vegan: 'Vegano', gf: 'Senza glutine', lactose: 'Senza lattosio', halal: 'Halal', kosher: 'Kosher', allergy: 'Allergie specifiche' };
+    const effortLabel = (e = 2) => (e <= 1 ? 'Basso' : e === 2 ? 'Normale' : e <= 4 ? 'Alto' : 'Estremo');
+
+    const when =
+      l.whenMode === 'dates'  ? { mode: 'exact_dates', from: l.dateFrom, to: l.dateTo }
+      : l.whenMode === 'period' ? { mode: 'flexible_period', periods: l.periods ?? [] }
+      : { mode: 'flexible_month', months: l.months ?? [] };
+
+    const companions: Record<string, unknown> = { type: l.who ?? 'solo' };
+    if (l.who === 'friends' || l.who === 'family') {
+      companions.adults = l.adults ?? 2;
+      companions.children = l.kids ?? 0;
+      if ((l.kids ?? 0) > 0) companions.children_ages = (l.kidsAges ?? []).filter((a) => a != null);
+    }
+
+    return {
+      budget_tier: l.budget ? budgetTierMap[l.budget] : undefined,
+      budget_label: l.budget ? budgetLabelMap[l.budget] : undefined,
+      when,
+      duration: l.duration ? durationLabelMap[l.duration] : undefined,
+      days: l.duration ? durationDaysMap[l.duration] : undefined,
+      companions,
+      departure: l.city || undefined,
+      movement: l.move ? moveLabelMap[l.move] : undefined,
+      accommodation: l.sleep ? sleepLabelMap[l.sleep] : undefined,
+      food: l.food ? foodLabelMap[l.food] : undefined,
+      physical_effort: effortLabel(l.effort),
+      diet: (l.diet ?? []).map((d) => dietLabelMap[d] ?? d),
+      notes: l.notes?.trim() || undefined,
+    };
+  };
+
   const doFinalSubmit = (formOverride?: typeof formData) => {
     const fd = formOverride ?? formData;
     const baseAnswers = questions.map((_, i) => answers[i] || "");
-    const structured = buildStructuredProfileForPathB();
+    const structured = buildStructuredProfileForPathB() as Record<string, unknown> | null;
+    const l = logisticsRef.current;
+    // Aggancio la logistica completa al profilo strutturato → un solo schema, lo
+    // stesso che l'utente vede aggiornarsi, è quello che legge l'AI.
+    if (structured && l) structured.logistics = buildLogisticsBlock(l);
     const quizAnswersArray = [`path_${selectedPath}`, ...baseAnswers];
     if (structured) {
       try {
@@ -663,13 +715,17 @@ export default function Profiling() {
     }
     const durationMap: Record<string, number> = { "weekend": 4, "week": 7, "10-14": 12, "long": 15 };
 
-    const enrichedConstraints = [
-      fd.constraints,
-      fd.accommodation ? `accommodation: ${fd.accommodation}` : '',
-      fd.food ? `food: ${fd.food}` : '',
-      fd.effort ? `effort: ${fd.effort}` : '',
-      fd.dietary.length > 0 ? `dietary: ${fd.dietary.join(', ')}` : '',
-    ].filter(Boolean).join(' | ');
+    // Quando la logistica è già nel profilo strutturato, NON duplicarla nella
+    // stringa constraints: lì restano solo note libere + flag "hide numbers".
+    const enrichedConstraints = (structured && l)
+      ? [l.notes?.trim(), l.openWallet ? 'budget: surprise me — hide the numbers' : ''].filter(Boolean).join(' | ')
+      : [
+          fd.constraints,
+          fd.accommodation ? `accommodation: ${fd.accommodation}` : '',
+          fd.food ? `food: ${fd.food}` : '',
+          fd.effort ? `effort: ${fd.effort}` : '',
+          fd.dietary.length > 0 ? `dietary: ${fd.dietary.join(', ')}` : '',
+        ].filter(Boolean).join(' | ');
 
  const currentLang = localStorage.getItem("mindroute-lang") || "en";
 
@@ -1144,6 +1200,7 @@ const profilingPayload = {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onComplete={(l) => {
+            logisticsRef.current = l;
             const mapped = logisticsToFormData(l);
             setFormData(mapped);
             startAnalyzing(mapped);

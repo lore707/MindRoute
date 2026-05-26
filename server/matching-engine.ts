@@ -188,12 +188,17 @@ PACE_SLIDER: number 0-100 (0=structured, 100=spontaneous)
 DISTANCE_CHIP (from Path A Q7): value
 GEO_CHIP (from Path B Q1): value
 REJECTION_TEXT (from Path A Q6): text verbatim
-COMPANIONS: value
-BUDGET_TIER: low / medium / high / unlimited
-TRAVEL_STYLE: base fissa / due tappe / scoperta / not specified
-ACCOMMODATION_PREF: value
-FOOD_PREF: value
-EFFORT_LEVEL: value
+COMPANIONS: structured profile → logistics.companions.type (solo / partner / friends / family). If friends/family, also read logistics.companions.adults + .children + .children_ages and treat group size and kids' ages as HARD planning constraints (room configs, child-safe activities, dinner times).
+BUDGET_TIER: structured profile → logistics.budget_tier (low / medium / high / unlimited)
+TRAVEL_STYLE: structured profile → logistics.movement (base fissa / due tappe / scoperta) — falls back to top-level travelStyle, else not specified
+ACCOMMODATION_PREF: structured profile → logistics.accommodation
+FOOD_PREF: structured profile → logistics.food
+EFFORT_LEVEL: structured profile → logistics.physical_effort
+WHEN/PERIOD: structured profile → logistics.when (mode = exact_dates | flexible_month | flexible_period, with the chosen months/periods/dates) — authoritative travel window for the seasonality check
+DURATION: structured profile → logistics.duration + logistics.days
+DIET: structured profile → logistics.diet (array)
+
+AUTHORITATIVE SCHEMA RULE: when a "Structured profile (JSON)" is present, it is the COMPLETE and PRIMARY source of truth — it mirrors exactly what the user saw and confirmed on screen, question by question. Read EVERY key (both the top-level personality fields AND every field inside the nested logistics object) and treat each as a hard constraint. Never drop, average, or override a logistics value with a "typical traveler" assumption. If a field is absent, it was not provided — do not invent it.
 
 These extracted values are the SOURCE OF TRUTH for everything that follows. Every constraint, prohibition, and requirement derives from this list — never from general travel knowledge, never from invented preferences, never from "what most travelers want".
 
@@ -771,7 +776,7 @@ Path: ${path}
 Budget: ${budgetText}
 Departing from: ${input.departure} | Period: ${input.leaveDate} | Days: ${input.days}
 Travel companions: ${input.companions || "not specified"}
-${structuredProfileBlock ? `Structured profile:\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
+${structuredProfileBlock ? `Structured profile (AUTHORITATIVE — mirrors exactly what the user confirmed on screen, question by question. Read EVERY top-level field AND every field inside the nested "logistics" object: budget, when, duration, companions+group, departure, movement, accommodation, food, physical_effort, diet, notes. Treat each as a hard constraint; never drop or override one with a typical-traveler assumption):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 ${priorBlock}
 ${contextOverride && contextOverride.trim().length > 0 ? `
 ═══════════════════════════════════════

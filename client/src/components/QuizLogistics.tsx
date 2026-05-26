@@ -857,6 +857,9 @@ function TripCard({
         <Row k="Avoid" v={profile?.avoidCount != null ? `${profile.avoidCount} patterns` : "3 patterns"} />
         <Row k="When" v={whenStr || null} fallback="to be chosen" />
         <Row k="Company" v={whoLbl} fallback="to be chosen" />
+        {(answers.who === "friends" || answers.who === "family") && (
+          <Row k="Group" v={`${answers.adults ?? 2} adult${(answers.adults ?? 2) === 1 ? "" : "s"}${answers.kids ? ` · ${answers.kids} kid${answers.kids === 1 ? "" : "s"}` : ""}`} />
+        )}
         <Row k="Tier" v={budgetLbl} fallback="to be chosen" />
         <Row k="Length" v={durLbl !== "—" ? durLbl : null} fallback="to be chosen" />
       </div>
