@@ -44,7 +44,7 @@ export type ProfileSummary = {
   name?: string;
   region?: string;
   tripTypes?: string[];
-  defining?: string;
+  defining?: string[];
   rhythmLabel?: string;
   feeling?: string;
   avoidCount?: number;

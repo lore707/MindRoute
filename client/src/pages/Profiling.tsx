@@ -69,14 +69,16 @@ export default function Profiling() {
 
   const { questionsByPath, sliderLabels, microReactions, months, analyzeTraits } = createProfilingContent(t);
 
-  const [selectedPath, setSelectedPath] = useState<'a' | 'b' | null>(null);
-  const [showSplit, setShowSplit] = useState(true);
+  // L'ingresso è ora direttamente il QuizCinematic Q1 (scelta path): niente più
+  // overlay split separato. selectedPath parte da 'b' + cinematicMode=true; la Q1
+  // del cinematic gestisce guided→Path A (onSelectGuided) o intentional→prosegue.
+  const [selectedPath, setSelectedPath] = useState<'a' | 'b' | null>('b');
+  const [showSplit, setShowSplit] = useState(false);
   const [splitExiting, setSplitExiting] = useState(false);
-  // Path B usa il QuizCinematic per le prime 4 domande (path, region, tipo, defining moment).
   // cinematicMode=true → renderizziamo QuizCinematic invece del vecchio quiz body.
   // I valori vengono mappati in chipSelections/answers vecchie a fine cinematic, così
   // buildStructuredProfileForPathB e la sidebar profile-so-far continuano a funzionare.
-  const [cinematicMode, setCinematicMode] = useState(false);
+  const [cinematicMode, setCinematicMode] = useState(true);
   const [cinematicAnswers, setCinematicAnswers] = useState<CinematicAnswers>({});
   const [cinematicStep, setCinematicStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
   const recognition = useTraitRecognition();
@@ -458,14 +460,14 @@ export default function Profiling() {
       saveCurrentAnswer();
       setStep(step - 1);
     } else {
-      setShowSplit(true);
-      setSelectedPath(null);
+      // Inizio di Path A → torna alla domanda iniziale (cinematic Q1, scelta path).
+      setSelectedPath('b');
       setStep(0);
       setAnswers({});
       setChipSelections({});
       setImageSelections([]);
       setSliderValue(50);
-      setCinematicMode(false);
+      setCinematicMode(true);
       setCinematicAnswers({});
       setCinematicStep(1);
     }
@@ -1058,7 +1060,7 @@ const profilingPayload = {
           setCinematicAnswers(a);
           const regionLabel    = a.region   ? (cinematicRegionToOld[a.region] ?? a.region) : "";
           const typeLabels     = (a.tripTypes ?? []).map(n => cinematicTypeToOld[n] ?? n);
-          const momentLabel    = a.defining ? (cinematicMomentToOld[a.defining] ?? a.defining) : "";
+          const momentLabels   = (a.defining ?? []).map(n => cinematicMomentToOld[n] ?? n);
           const emotionLabels  = (a.emotionalGoals ?? []).map(n => cinematicEmotionToOld[n] ?? n);
           const avoidLabels    = (a.avoid ?? []).map(n => cinematicAvoidToOld[n] ?? n);
           const paceValue      = typeof a.pace === "number" ? a.pace : 50;
@@ -1066,7 +1068,7 @@ const profilingPayload = {
             ...prev,
             0: regionLabel ? [regionLabel] : [],
             1: typeLabels,
-            2: momentLabel ? [momentLabel] : [],
+            2: momentLabels,
             5: emotionLabels,
             6: avoidLabels,
           }));
@@ -1075,7 +1077,7 @@ const profilingPayload = {
             ...prev,
             0: regionLabel,
             1: typeLabels.join(", "),
-            2: momentLabel,
+            2: momentLabels.join(", "),
             4: String(paceValue),
             5: emotionLabels.join(", "),
             6: avoidLabels.join(", "),
@@ -1097,14 +1099,6 @@ const profilingPayload = {
           setChipSelections({});
           setImageSelections([]);
           setSliderValue(50);
-        }}
-        onBackFromQ1={() => {
-          // Back dalla Q1 cinematic → torna allo split intro.
-          setShowSplit(true);
-          setSelectedPath(null);
-          setCinematicMode(false);
-          setCinematicAnswers({});
-          setCinematicStep(1);
         }}
         />
       </>

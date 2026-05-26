@@ -21,7 +21,7 @@ export type Answers = {
   path?: "guided" | "intentional";
   region?: string;
   tripTypes?: string[];
-  defining?: string;
+  defining?: string[];        // multi 1..3 (Q4)
   pace?: number;              // 0..100  (Q5)
   emotionalGoals?: string[];  // multi 1..3 (Q6)
   avoid?: string[];           // multi (Q7)
@@ -135,7 +135,7 @@ function ProfileCard({ answers, pending }: { answers: Answers; pending: string }
       <ProfileRow label="Q1 · path" value={answers.path === "guided" ? "Guided discovery" : answers.path === "intentional" ? "Intentional route" : null} pending={pending === "Q1"} />
       <ProfileRow label="Q2 · where" value={answers.region ?? null} pending={pending === "Q2"} />
       <ProfileRow label="Q3 · trip type" value={answers.tripTypes?.join(" · ") ?? null} pending={pending === "Q3"} />
-      <ProfileRow label="Q4 · defining moment" value={answers.defining ?? null} pending={pending === "Q4"} />
+      <ProfileRow label="Q4 · defining moment" value={answers.defining?.join(" · ") ?? null} pending={pending === "Q4"} />
       <ProfileRow label="Q5 · pace" value={typeof answers.pace === "number" ? `${paceLabel(answers.pace)} · ${answers.pace}/100` : null} pending={pending === "Q5"} />
       <ProfileRow label="Q6 · emotional goals" value={answers.emotionalGoals?.join(" · ") ?? null} pending={pending === "Q6"} />
       <ProfileRow label="Q7 · avoid" value={avoidCount ? `${avoidCount} item${avoidCount > 1 ? "s" : ""}` : null} pending={pending === "Q7"} />
@@ -203,11 +203,6 @@ function PathCard({ kind, selected, onClick }: { kind: "guided" | "intentional";
   if (kind === "guided") return (
     <div className={"qc-card qc-card-guided" + (selected ? " selected" : "")} onClick={onClick}>
       <div className="qc-card-img" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85&auto=format)" }} />
-      <div className="qc-card-collage">
-        <div className="qc-collage-frame qc-cf-1" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=400&q=85&auto=format)" }} />
-        <div className="qc-collage-frame qc-cf-2" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=400&q=85&auto=format)" }} />
-        <div className="qc-collage-frame qc-cf-3" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&q=85&auto=format)" }} />
-      </div>
       <div className="qc-card-num">A</div>
       <div className="qc-card-body">
         <div className="qc-card-tag"><span className="dot" />Guided discovery</div>
@@ -388,8 +383,13 @@ const MOMENTS = [
 
 function Q4({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnswers: (a: Answers) => void; onNext: () => void; onBack: () => void }) {
   const [hoverId, setHoverId] = useState<string | null>(null);
-  const sel = answers.defining ?? null;
-  const activeId = hoverId || MOMENTS.find(m => m.name === sel)?.id;
+  const selected = answers.defining ?? [];
+  function toggle(name: string) {
+    if (selected.includes(name)) setAnswers({ ...answers, defining: selected.filter(x => x !== name) });
+    else if (selected.length < 3) setAnswers({ ...answers, defining: [...selected, name] });
+  }
+  const isFull = selected.length >= 3;
+  const activeId = hoverId || (selected.length ? MOMENTS.find(m => m.name === selected[selected.length - 1])?.id : null);
   const activeM = MOMENTS.find(m => m.id === activeId) || MOMENTS[3];
   return (
     <>
@@ -398,40 +398,48 @@ function Q4({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
         <HeaderStrip label="Must-see & why" count="04 / 07" fillPct={56} />
         <div className="qc-q-head">
           <div className="qc-q-eyebrow"><strong>Question 04</strong> · the defining moment</div>
-          <h1 className="qc-q-title">What moment would make<br />this trip truly <em>special?</em></h1>
-          <p className="qc-q-sub">One feeling, one image. The combination tells us everything about what you're really chasing.</p>
+          <h1 className="qc-q-title">What moments would make<br />this trip truly <em>special?</em></h1>
+          <div className="qc-q-sub">
+            Pick up to 3. The combination tells us everything about what you're really chasing.
+            <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 selected</div>
+          </div>
         </div>
       </div>
       <div className="qc-q-grid">
         <div className="qc-options">
-          {MOMENTS.map(m => (
-            <div key={m.id} data-cat={m.cat}
-              className={"qc-option" + (sel === m.name ? " selected" : "")}
-              onClick={() => setAnswers({ ...answers, defining: m.name })}
-              onMouseEnter={() => setHoverId(m.id)} onMouseLeave={() => setHoverId(null)}>
-              <div className="qc-option-ic">{m.ic}</div>
-              <div className="qc-option-body">
-                <div className="qc-option-name">{m.name}</div>
-                <div className="qc-option-meta">{m.meta}</div>
+          {MOMENTS.map(m => {
+            const sel = selected.includes(m.name);
+            const dis = !sel && isFull;
+            const rank = sel ? selected.indexOf(m.name) + 1 : null;
+            return (
+              <div key={m.id} data-cat={m.cat}
+                className={"qc-option" + (sel ? " selected" : "") + (dis ? " disabled" : "")}
+                onClick={() => !dis && toggle(m.name)}
+                onMouseEnter={() => setHoverId(m.id)} onMouseLeave={() => setHoverId(null)}>
+                <div className="qc-option-ic">{m.ic}</div>
+                <div className="qc-option-body">
+                  <div className="qc-option-name">{m.name}</div>
+                  <div className="qc-option-meta">{m.meta}</div>
+                </div>
+                <div className="qc-option-mark">
+                  {sel ? `#${rank}` : ""}
+                  <div className="qc-circle" />
+                </div>
               </div>
-              <div className="qc-option-mark">
-                {sel === m.name ? "Chosen" : ""}
-                <div className="qc-circle" />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <aside className="qc-side">
           <div className="qc-feeling-card">
             <div className="qc-feeling-ic">✦</div>
-            <div className="qc-feeling-text">{(hoverId && activeM.feel) || (sel && activeM.feel) || "Hover an answer to see what it means about you."}</div>
+            <div className="qc-feeling-text">{(hoverId || selected.length > 0) ? activeM.feel : "Hover an answer to see what it means about you."}</div>
           </div>
           <ProfileCard answers={answers} pending="Q4" />
           <SideCard head="Why this question" icon="?"><p>What feels unmissable reveals your priorities. Why that moment matters reveals the emotional reason behind the whole trip.</p></SideCard>
           <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
         </aside>
       </div>
-      <FooterNav backLabel="Back to trip type" canContinue={!!sel} ctaLabel={sel ? "Continue" : "Pick a moment"} onBack={onBack} onNext={onNext} />
+      <FooterNav backLabel="Back to trip type" canContinue={selected.length > 0} ctaLabel={selected.length ? `Continue with ${selected.length}` : "Pick at least 1"} onBack={onBack} onNext={onNext} />
     </>
   );
 }
