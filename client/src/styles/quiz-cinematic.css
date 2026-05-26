@@ -40,7 +40,7 @@
 .qc-step-dot.active{width:42px;height:42px;background:var(--qc-accent);color:#1a0508;border-color:var(--qc-accent);font-weight:500;font-style:normal;font-family:var(--qc-sans);box-shadow:0 0 24px rgba(233,69,96,.6),0 0 0 4px rgba(233,69,96,.15)}
 
 /* Sticky head wrapper — header strip + titolo restano fissi in alto durante lo scroll */
-.qc-sticky-head{position:sticky;top:72px;z-index:20;padding:14px 0 22px;margin:0 0 20px;background:linear-gradient(to bottom,rgba(26,14,26,.96) 0%,rgba(26,14,26,.88) 65%,rgba(26,14,26,0) 100%);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.qc-sticky-head{position:sticky;top:72px;z-index:20;padding:14px 0 22px;margin:0 0 20px}
 .qc-sticky-head .qc-header-strip{margin-bottom:14px}
 .qc-sticky-head .qc-q-head{margin-bottom:0}
 
