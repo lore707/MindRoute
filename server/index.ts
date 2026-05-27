@@ -119,8 +119,11 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await ensureRateLimitTable();
-  await ensureIndexes();
+  // NOTE: DB maintenance (ensureRateLimitTable/ensureIndexes) is intentionally
+  // NOT awaited here — it runs in the background after listen() so slow startup
+  // queries can never delay binding past Render's port-detection window. The
+  // rate-limiter store fails open until its table exists, so early requests are
+  // safe.
   app.use("/api", globalApiLimiter);
   await registerRoutes(httpServer, app);
 
@@ -154,5 +157,9 @@ app.use((req, res, next) => {
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
+    // Best-effort DB maintenance AFTER the port is open — never blocks binding.
+    ensureRateLimitTable()
+      .then(() => ensureIndexes())
+      .catch((e) => console.error("startup DB maintenance failed (non-fatal):", e));
   });
 })();
