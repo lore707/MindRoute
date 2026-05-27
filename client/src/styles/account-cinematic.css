@@ -12,17 +12,11 @@
   --ac-stroke:rgba(255,255,255,.07); --ac-stroke-strong:rgba(255,255,255,.14);
   --ac-serif:"Playfair Display",Georgia,serif;
   --ac-sans:"DM Sans",system-ui,sans-serif;
-  /* Atmospheric background coherent with the quiz/itinerary sections: a warmer,
-     lighter base than the old flat #0a0710 + soft accent/mauve/indigo radial
-     glows. background-attachment:fixed keeps the atmosphere consistent down the
-     long scrolling page instead of stretching the gradient over its full height. */
-  background:
-    radial-gradient(ellipse 90% 55% at 50% 0%, rgba(233,69,96,.09) 0%, transparent 55%),
-    radial-gradient(ellipse 75% 50% at 8% 18%, rgba(90,40,72,.34) 0%, transparent 58%),
-    radial-gradient(ellipse 75% 55% at 100% 36%, rgba(31,29,58,.42) 0%, transparent 60%),
-    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(122,16,32,.22) 0%, transparent 65%),
-    linear-gradient(180deg, #160c16 0%, #1d111f 45%, #160b18 100%);
-  background-attachment:fixed;
+  /* Transparent so the GLOBAL atmospheric layer (BackgroundLayers / .mr-bg-root:
+     glows + grain + stars + aurora) shows through — exactly like the itinerary
+     section. The old flat #0a0710 was covering it, which is why the account read
+     darker and flatter than the rest. */
+  background:transparent;
   color:var(--ac-ink); font-family:var(--ac-sans);
   line-height:1.6;
   padding-top:64px;
@@ -173,18 +167,9 @@
 
 /* Sezioni custom appendute fuori dal componente (saved moments, trait
    timeline, compare CTA) usano la stessa palette via questi helper. */
-/* Same fixed atmospheric gradient as .account-cinematic so the custom sections
-   below it stay visually continuous (no flat-black seam). */
-.account-cinematic-extra{
-  background:
-    radial-gradient(ellipse 90% 55% at 50% 0%, rgba(233,69,96,.09) 0%, transparent 55%),
-    radial-gradient(ellipse 75% 50% at 8% 18%, rgba(90,40,72,.34) 0%, transparent 58%),
-    radial-gradient(ellipse 75% 55% at 100% 36%, rgba(31,29,58,.42) 0%, transparent 60%),
-    radial-gradient(ellipse 90% 60% at 50% 100%, rgba(122,16,32,.22) 0%, transparent 65%),
-    linear-gradient(180deg, #160c16 0%, #1d111f 45%, #160b18 100%);
-  background-attachment:fixed;
-  color:var(--ac-ink, #f5f0ee);font-family:var(--ac-sans, "DM Sans",system-ui,sans-serif)
-}
+/* Transparent too — continuous with the global atmospheric layer (no flat-black
+   seam under the custom sections). */
+.account-cinematic-extra{background:transparent;color:var(--ac-ink, #f5f0ee);font-family:var(--ac-sans, "DM Sans",system-ui,sans-serif)}
 .account-cinematic-extra section{padding:80px 0;border-top:1px solid rgba(255,255,255,.07)}
 .account-cinematic-extra .ac-container{max-width:1280px;margin:0 auto;padding:0 32px}
 .account-cinematic-extra h2{font-family:"Playfair Display",Georgia,serif;font-size:42px;font-weight:400;line-height:1.05;letter-spacing:-.01em;margin-top:14px}

@@ -35,7 +35,7 @@ const ROUTE_MODE: Record<string, Mode> = {
   "/destinations":"map",       // Mappa: atmosfera + grana, poche stelle, no aurora
   "/profiling":   "form",      // Quiz: atmosfera + grana + stelle rarefatte
   "/itinerary":   "journey",   // Itinerario: stelle + aurora warm
-  "/my-account":  "minimal",
+  "/my-account":  "journey",   // Account: stessa atmosfera calda dell'itinerario (era "minimal", troppo spento)
   "/privacy":     "minimal",
 };
 
