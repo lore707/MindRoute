@@ -17,6 +17,7 @@ import { useTraitRecognition } from "@/hooks/use-trait-recognition";
 import { RecognitionBanner } from "@/components/RecognitionBanner";
 import { FromProfileModal } from "@/components/FromProfileModal";
 import { QuizCinematic, type Answers as CinematicAnswers } from "@/components/QuizCinematic";
+import { QuizCinematicA, type AnswersA } from "@/components/QuizCinematicA";
 import { QuizLogistics, type LogisticsAnswers, type ProfileSummary } from "@/components/QuizLogistics";
 const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
   <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
@@ -69,6 +70,17 @@ export default function Profiling() {
 
   const { questionsByPath, sliderLabels, microReactions, months, analyzeTraits } = createProfilingContent(t);
 
+  // Path A cinematic: id → label i18n (per AI/sidebar/logistica), come fa Path B in onComplete.
+  const needChipKey: Record<string, string> = {
+    disconnect: "a.q2.chip1", alive: "a.q2.chip2", slow: "a.q2.chip3", surprise: "a.q2.chip4",
+    recharge: "a.q2.chip5", change: "a.q2.chip6", celebrate: "a.q2.chip7", findself: "a.q2.chip8",
+  };
+  const vibeLabel = (id: string) => t(`a.q1.chips.${id}`);
+  const needLabel = (id: string) => t(needChipKey[id] ?? id);
+  const drainLabel = (id: string) => t(`chips.${id}`);
+  const visualLabel = (id: string) => t(`q4.${id}`);
+  const distLabel = (id: string) => t(`a.q7.chips.${id}`);
+
   // L'ingresso è ora direttamente il QuizCinematic Q1 (scelta path): niente più
   // overlay split separato. selectedPath parte da 'b' + cinematicMode=true; la Q1
   // del cinematic gestisce guided→Path A (onSelectGuided) o intentional→prosegue.
@@ -81,6 +93,9 @@ export default function Profiling() {
   const [cinematicMode, setCinematicMode] = useState(true);
   const [cinematicAnswers, setCinematicAnswers] = useState<CinematicAnswers>({});
   const [cinematicStep, setCinematicStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
+  // Path A (guided discovery) — risposte cinematic + step di rientro dalla logistica.
+  const [cinematicAnswersA, setCinematicAnswersA] = useState<AnswersA>({});
+  const [cinematicAStep, setCinematicAStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
   // Risposte logistica grezze (Chapter II+III) — fonte di verità per il profilo
   // strutturato completo letto dall'AI. Ref (non state) per leggerle in modo
   // sincrono dentro doFinalSubmit, che parte subito dopo onComplete.
@@ -295,14 +310,15 @@ export default function Profiling() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey && !showForm && !reaction && !showSplit && !showAnalyzing) {
+      // I quiz cinematic (Path A e Path B) gestiscono la navigazione internamente.
+      if (e.key === 'Enter' && !e.shiftKey && !showForm && !reaction && !showSplit && !showAnalyzing && !cinematicMode && selectedPath !== 'a') {
         e.preventDefault();
         if (canContinue()) handleNext();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [step, answers, chipSelections, imageSelections, sliderValue, showForm, reaction, showSplit, showAnalyzing]);
+  }, [step, answers, chipSelections, imageSelections, sliderValue, showForm, reaction, showSplit, showAnalyzing, cinematicMode, selectedPath]);
 
   useEffect(() => {
     return () => { analyzeTimers.current.forEach(t => clearTimeout(t)); };
@@ -1158,11 +1174,13 @@ const profilingPayload = {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onSelectGuided={() => {
-          // L'utente cambia idea nella Q1 cinematic e sceglie il path guided → Path A vecchio.
+          // L'utente sceglie "guided" nella Q1 cinematic → Path A cinematic (QuizCinematicA).
           setSelectedPath('a');
           setCinematicMode(false);
           setCinematicAnswers({});
           setCinematicStep(1);
+          setCinematicAnswersA({});
+          setCinematicAStep(1);
           setStep(0);
           setAnswers({});
           setChipSelections({});
@@ -1174,8 +1192,58 @@ const profilingPayload = {
     );
   }
 
+  // ─── Path A · Q1→Q7 cinematic (guided discovery) ───────────────────────
+  if (selectedPath === 'a' && !showForm && !showAnalyzing) {
+    return (
+      <>
+        <Nav />
+        <QuizCinematicA
+          initialAnswers={cinematicAnswersA}
+          initialStep={cinematicAStep}
+          onBackFromQ1={() => {
+            // Back dalla Q1 → torna al path picker (cinematic Q1 di Path B).
+            setSelectedPath('b');
+            setCinematicMode(true);
+            setCinematicAnswers({});
+            setCinematicStep(1);
+          }}
+          onComplete={(a) => {
+            setCinematicAnswersA(a);
+            const vibeLabels   = (a.vibes ?? []).map(vibeLabel);
+            const needLabels   = (a.needs ?? []).map(needLabel);
+            const drainLabels  = (a.drains ?? []).map(drainLabel);
+            const visualLabels = (a.visual ?? []).map(visualLabel);
+            const distLbl      = a.distance ? distLabel(a.distance) : '';
+            const chaos        = typeof a.chaos === 'number' ? a.chaos : 50;
+            const note1 = a.needsNote?.trim() ? ` | ${a.needsNote.trim()}` : '';
+            const note2 = a.drainsNote?.trim() ? ` | ${a.drainsNote.trim()}` : '';
+            setChipSelections(prev => ({
+              ...prev,
+              0: vibeLabels, 1: needLabels, 2: drainLabels, 6: distLbl ? [distLbl] : [],
+            }));
+            setSliderValue(chaos);
+            setAnswers(prev => ({
+              ...prev,
+              0: vibeLabels.join(', '),
+              1: needLabels.join(', ') + note1,
+              2: drainLabels.join(', ') + note2,
+              3: visualLabels.join(', '),
+              4: String(chaos),
+              5: a.rejection?.trim() ?? '',
+              6: distLbl,
+            }));
+            setCinematicMode(false);
+            // Cinematic copre Q1–Q7. Va dritto alla logistica (QuizLogistics).
+            setShowForm(true);
+            setFormStep(1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      </>
+    );
+  }
+
   // Path B · logistica = QuizLogistics (Chapter II + III), in continuità col cinematic.
-  // Path A continua a usare il vecchio form a 2 step più sotto.
   if (showForm && selectedPath === 'b') {
     const cinPace = typeof cinematicAnswers.pace === 'number' ? cinematicAnswers.pace : 50;
     const rhythmLabel = cinPace <= 33 ? 'Structured' : cinPace >= 67 ? 'Spontaneous' : 'Balanced';
@@ -1197,6 +1265,40 @@ const profilingPayload = {
             setShowForm(false);
             setCinematicStep(7);
             setCinematicMode(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onComplete={(l) => {
+            logisticsRef.current = l;
+            const mapped = logisticsToFormData(l);
+            setFormData(mapped);
+            startAnalyzing(mapped);
+          }}
+        />
+      </>
+    );
+  }
+
+  // Path A · logistica = QuizLogistics (come Path B). Esperienza identica end-to-end.
+  if (showForm && selectedPath === 'a') {
+    const a = cinematicAnswersA;
+    const chaos = typeof a.chaos === 'number' ? a.chaos : 50;
+    const rhythmLabel = chaos <= 33 ? 'Structured' : chaos >= 67 ? 'Spontaneous' : 'Balanced';
+    const logisticsProfileA: ProfileSummary = {
+      tripTypes: (a.vibes ?? []).map(vibeLabel),
+      defining: (a.needs ?? []).map(needLabel),
+      rhythmLabel,
+      feeling: a.needs?.[0] ? needLabel(a.needs[0]) : undefined,
+      avoidCount: a.drains?.length,
+    };
+    return (
+      <>
+        <Nav />
+        <QuizLogistics
+          profile={logisticsProfileA}
+          onBack={() => {
+            // Torna al cinematic Q7 (distance).
+            setShowForm(false);
+            setCinematicAStep(7);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onComplete={(l) => {

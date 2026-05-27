@@ -180,6 +180,20 @@
 .qc-options.qc-options-twocol .qc-option-name{font-size:16px}
 .qc-options.qc-options-twocol .qc-option-meta{font-size:11px}
 
+/* ── Text question (Path A · Q6) + inline notes ── */
+.qc-textcard{padding:34px 36px;border:1px solid var(--qc-stroke-strong);border-radius:24px;background:linear-gradient(135deg,rgba(42,20,34,.55),rgba(26,14,26,.55));backdrop-filter:blur(18px);display:flex;flex-direction:column;gap:18px}
+.qc-textarea{width:100%;min-height:200px;resize:vertical;background:rgba(0,0,0,.20);border:1px solid var(--qc-stroke-strong);border-radius:16px;padding:22px 24px;color:var(--qc-ink);font-family:var(--qc-serif);font-size:19px;line-height:1.65;outline:none;transition:border-color .25s,box-shadow .25s,background .25s}
+.qc-textarea::placeholder{color:var(--qc-ink-faint);font-style:italic}
+.qc-textarea:focus{border-color:var(--qc-accent);background:rgba(0,0,0,.28);box-shadow:0 0 0 3px rgba(233,69,96,.16)}
+.qc-textarea-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--qc-ink-faint);flex-wrap:wrap}
+.qc-optional-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:999px;border:1px solid rgba(212,168,83,.35);background:rgba(212,168,83,.10);color:var(--qc-gold);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+.qc-note{margin-top:16px;padding-top:16px;border-top:1px dashed var(--qc-stroke)}
+.qc-note-label{font-family:var(--qc-serif);font-style:italic;font-size:14px;color:var(--qc-ink-dim);margin-bottom:10px}
+.qc-note-label em{color:var(--qc-ink-faint);font-size:12px}
+.qc-note-input{width:100%;background:rgba(0,0,0,.18);border:1px solid var(--qc-stroke);border-radius:14px;padding:14px 16px;color:var(--qc-ink);font-family:var(--qc-sans);font-size:14px;outline:none;transition:border-color .25s,box-shadow .25s}
+.qc-note-input::placeholder{color:var(--qc-ink-faint)}
+.qc-note-input:focus{border-color:var(--qc-accent);box-shadow:0 0 0 3px rgba(233,69,96,.14)}
+
 /* Side panel */
 .qc-side{display:flex;flex-direction:column;gap:14px;position:sticky;top:104px}
 .qc-side-card{padding:22px 24px;border:1px solid var(--qc-stroke);border-radius:18px;background:linear-gradient(135deg,rgba(42,20,34,.4),rgba(26,14,26,.55));backdrop-filter:blur(18px)}
@@ -279,6 +293,8 @@
   .qc-pace-stops{flex-wrap:wrap;gap:6px}
   .qc-pace-stop{flex:1;min-width:90px;padding:8px 10px}
   .qc-options.qc-options-twocol{grid-template-columns:1fr;gap:8px}
+  .qc-textcard{padding:24px 22px;gap:14px}
+  .qc-textarea{min-height:170px;padding:18px 18px;font-size:17px}
   .qc-q-title{font-size:clamp(30px,8vw,46px)}
   .qc-q-sub{font-size:15px;line-height:1.55}
   .qc-q1-cards{padding:20px 0 40px;gap:18px}

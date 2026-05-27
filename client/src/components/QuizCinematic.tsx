@@ -92,11 +92,11 @@ export function QuizCinematic({
 }
 
 /* ════════════ shared bits ════════════ */
-function BgGrain() {
+export function BgGrain() {
   return <div className="qc-grain" />;
 }
 
-function StepRail({ step, onStep }: { step: Step; onStep: (n: number) => void }) {
+export function StepRail({ step, onStep }: { step: Step; onStep: (n: number) => void }) {
   return (
     <div className="qc-step-rail">
       {[1, 2, 3, 4, 5, 6, 7].map((n) => {
@@ -111,7 +111,7 @@ function StepRail({ step, onStep }: { step: Step; onStep: (n: number) => void })
   );
 }
 
-function HeaderStrip({ label, count, fillPct }: { label: string; count: string; fillPct: number }) {
+export function HeaderStrip({ label, count, fillPct }: { label: string; count: string; fillPct: number }) {
   return (
     <div className="qc-header-strip">
       <span className="qc-label">{label}</span>
@@ -153,7 +153,7 @@ function ProfileRow({ label, value, pending }: { label: string; value: string | 
   );
 }
 
-function SideCard({ head, icon, children, tone }: { head: string; icon: string; children: React.ReactNode; tone?: "default" | "privacy" }) {
+export function SideCard({ head, icon, children, tone }: { head: string; icon: string; children: React.ReactNode; tone?: "default" | "privacy" }) {
   return (
     <div className={"qc-side-card" + (tone === "privacy" ? " privacy" : "")}>
       <div className="qc-side-card-head"><div className="qc-ic">{icon}</div>{head}</div>
@@ -162,7 +162,7 @@ function SideCard({ head, icon, children, tone }: { head: string; icon: string; 
   );
 }
 
-function FooterNav({ backLabel, canContinue, ctaLabel, onBack, onNext }: { backLabel: string; canContinue: boolean; ctaLabel: string; onBack?: () => void; onNext: () => void }) {
+export function FooterNav({ backLabel, canContinue, ctaLabel, onBack, onNext }: { backLabel: string; canContinue: boolean; ctaLabel: string; onBack?: () => void; onNext: () => void }) {
   return (
     <div className="qc-nav">
       {onBack ? <button className="qc-back" onClick={onBack}>← {backLabel}</button> : <span />}
@@ -651,7 +651,7 @@ function Q7({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
 }
 
 /* ════════════ shared BgPhotos ════════════ */
-function BgPhotos({ items, activeImg }: { items: Array<{ img: string }>; activeImg: string }) {
+export function BgPhotos({ items, activeImg }: { items: Array<{ img: string }>; activeImg: string }) {
   return (
     <div className="qc-bg-stage">
       {items.map((it, i) => (
