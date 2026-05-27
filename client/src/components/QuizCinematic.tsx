@@ -645,7 +645,7 @@ function Q7({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
           <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
         </aside>
       </div>
-      <FooterNav backLabel="Back to emotional goals" canContinue={true} ctaLabel={selected.length ? "See my destinations →" : "Skip — see destinations"} onBack={onBack} onNext={onNext} />
+      <FooterNav backLabel="Back to emotional goals" canContinue={true} ctaLabel={selected.length ? "Continue" : "Skip — continue"} onBack={onBack} onNext={onNext} />
     </>
   );
 }

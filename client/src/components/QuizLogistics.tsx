@@ -406,7 +406,7 @@ function ChapterFrame({
       <div className="ql-q-grid">
         <div>
           {/* i — BUDGET */}
-          <Section num="i." title="How much do you want to spend?" hint="Per person, all in — flights, stays, food, the whole texture." status={budgetObj ? "set" : "open"} filled={!!budgetObj}>
+          <Section num="1." title="How much do you want to spend?" hint="Per person, all in — flights, stays, food, the whole texture." status={budgetObj ? "set" : "open"} filled={!!budgetObj}>
             <div className="ql-budget-scale">
               {TIERS.map((t) => (
                 <div key={t.id} className={"ql-tier " + (answers.budget === t.id ? "on" : "")} onClick={() => update("budget", t.id as LogisticsAnswers["budget"])}>
@@ -431,7 +431,7 @@ function ChapterFrame({
           </Section>
 
           {/* ii — WHEN */}
-          <Section num="ii." title="When do you want to go?" hint="Fixed dates, a flexible month, or just a season — whatever you know right now." status={whenStatus} filled={whenFilled}>
+          <Section num="2." title="When do you want to go?" hint="Fixed dates, a flexible month, or just a season — whatever you know right now." status={whenStatus} filled={whenFilled}>
             <div className="ql-when-tabs">
               {([["dates", "Exact dates"], ["month", "Flexible month"], ["period", "Flexible period"]] as const).map(([k, l]) => (
                 <div key={k} className={"ql-when-tab " + (whenMode === k ? "on" : "")} onClick={() => update("whenMode", k)}>{l}</div>
@@ -479,7 +479,7 @@ function ChapterFrame({
           </Section>
 
           {/* iii — DURATION */}
-          <Section num="iii." title="How long do you have?" hint="A weekend is its own thing. Two weeks is a different animal entirely." status={durObj ? "set" : "open"} filled={!!durObj}>
+          <Section num="3." title="How long do you have?" hint="A weekend is its own thing. Two weeks is a different animal entirely." status={durObj ? "set" : "open"} filled={!!durObj}>
             <div className="ql-dur-row">
               {DURATIONS.map((d) => (
                 <div key={d.id} className={"ql-dur " + (answers.duration === d.id ? "on" : "")} onClick={() => update("duration", d.id as LogisticsAnswers["duration"])}>
@@ -500,7 +500,7 @@ function ChapterFrame({
           </Section>
 
           {/* iv — WHO */}
-          <Section num="iv." title="Who are you traveling with?" hint="Changes everything about pace, places, and the way we plan." status={whoObj ? whoObj.lbl : "open"} filled={!!whoObj}>
+          <Section num="4." title="Who are you traveling with?" hint="Changes everything about pace, places, and the way we plan." status={whoObj ? whoObj.lbl : "open"} filled={!!whoObj}>
             <div className="ql-who-row">
               {WHO_OPTIONS.map((w) => (
                 <div key={w.id} className={"ql-who " + (answers.who === w.id ? "on" : "")} onClick={() => pickWho(w.id)}>
@@ -556,7 +556,7 @@ function ChapterFrame({
           </Section>
 
           {/* v — DEPART */}
-          <Section num="v." title="Where are you departing from?" hint="So we can price the journey honestly — and find flights you'll actually take." status={answers.city || "open"} filled={!!answers.city}>
+          <Section num="5." title="Where are you departing from?" hint="So we can price the journey honestly — and find flights you'll actually take." status={answers.city || "open"} filled={!!answers.city}>
             <input
               className="ql-depart-input"
               placeholder="e.g. Milan, London, New York…"
@@ -643,7 +643,7 @@ function ChapterTexture({
       <div className="ql-q-grid">
         <div>
           {/* i — MOVEMENT */}
-          <Section num="i." title="How do you want to move?" hint="This shapes the entire structure of your itinerary." status={moveObj?.lbl ?? "open"} filled={!!moveObj}>
+          <Section num="1." title="How do you want to move?" hint="This shapes the entire structure of your itinerary." status={moveObj?.lbl ?? "open"} filled={!!moveObj}>
             <div className="ql-move-row">
               {MOVE_OPTIONS.map((m) => (
                 <div key={m.id} className={"ql-move " + (answers.move === m.id ? "on" : "")} onClick={() => update("move", m.id as LogisticsAnswers["move"])}>
@@ -658,17 +658,17 @@ function ChapterTexture({
           </Section>
 
           {/* ii — SLEEP */}
-          <Section num="ii." title="Where do you prefer to sleep?" hint="Shapes hotel and stay recommendations. Price is per room, per night." status={sleepObj?.range ?? "open"} filled={!!sleepObj}>
+          <Section num="2." title="Where do you prefer to sleep?" hint="Shapes hotel and stay recommendations. Price is per room, per night." status={sleepObj?.range ?? "open"} filled={!!sleepObj}>
             <TierStripList items={SLEEP_TIERS} selected={answers.sleep} onPick={(id) => update("sleep", id)} gradeMax={5} />
           </Section>
 
           {/* iii — FOOD */}
-          <Section num="iii." title="How do you want to eat?" hint="Food is part of the journey. Tell us how much of one." status={foodObj?.range ?? "open"} filled={!!foodObj}>
+          <Section num="3." title="How do you want to eat?" hint="Food is part of the journey. Tell us how much of one." status={foodObj?.range ?? "open"} filled={!!foodObj}>
             <TierStripList items={FOOD_TIERS} selected={answers.food} onPick={(id) => update("food", id)} gradeMax={4} />
           </Section>
 
           {/* iv — EFFORT */}
-          <Section num="iv." title="How much physical effort?" hint="Changes the kind of days we plan — from cable-cars to multi-day treks." status={effortLbl} filled>
+          <Section num="4." title="How much physical effort?" hint="Changes the kind of days we plan — from cable-cars to multi-day treks." status={effortLbl} filled>
             <div className="ql-effort-stage">
               <div className="ql-topo">
                 <svg viewBox="0 0 600 90" preserveAspectRatio="none">
@@ -700,7 +700,7 @@ function ChapterTexture({
           </Section>
 
           {/* v — DIET */}
-          <Section num="v." title="Any dietary restrictions?" hint="So we never point you toward the wrong kind of place." status={diet.includes("none") ? "unrestricted" : diet.length ? `${diet.length} flagged` : "open"} filled={diet.length > 0}>
+          <Section num="5." title="Any dietary restrictions?" hint="So we never point you toward the wrong kind of place." status={diet.includes("none") ? "unrestricted" : diet.length ? `${diet.length} flagged` : "open"} filled={diet.length > 0}>
             <div className="ql-diet-chips">
               {DIET_OPTIONS.map((d) => (
                 <button
@@ -713,7 +713,7 @@ function ChapterTexture({
           </Section>
 
           {/* vi — NOTES */}
-          <Section num="vi." title="Anything else we should know?" hint="Accessibility, fears, special needs — or just something important to mention." status={answers.notes ? "noted" : "optional"} filled={!!answers.notes}>
+          <Section num="6." title="Anything else we should know?" hint="Accessibility, fears, special needs — or just something important to mention." status={answers.notes ? "noted" : "optional"} filled={!!answers.notes}>
             <div className="ql-notes-wrap">
               <div className="ql-notes-head">
                 <div className="ql-notes-ic">✎</div>
