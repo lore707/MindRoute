@@ -374,7 +374,7 @@ export default function MyAccount() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a0710" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#160c16" }}>
         <div className="w-8 h-8 border-2 border-[#E94560] border-t-transparent rounded-full animate-spin" />
       </div>
     );
