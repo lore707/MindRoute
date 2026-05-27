@@ -45,32 +45,34 @@ export interface QuizCinematicAProps {
 }
 
 /* ════════════ data ════════════ */
+const IMG = (id: string) => `https://images.unsplash.com/photo-${id}?w=1400&q=85&auto=format`;
+
 const VIBES = [
-  { id: "wild",         ic: "🔥", name: "Wild",          meta: "untamed, off the leash",         cat: "new" },
-  { id: "quiet",        ic: "🌙", name: "Quiet",         meta: "low volume, deep rest",          cat: "explore" },
-  { id: "chaotic",      ic: "🎲", name: "Chaotic",       meta: "messy, alive, unpredictable",    cat: "discover" },
-  { id: "intimate",     ic: "🕯", name: "Intimate",      meta: "small, close, personal",         cat: "nature" },
-  { id: "solitary",     ic: "🚶", name: "Solitary",      meta: "just you and the road",          cat: "explore" },
-  { id: "regenerating", ic: "🌱", name: "Regenerating",  meta: "come back restored",             cat: "nature" },
-  { id: "authentic",    ic: "🫀", name: "Authentic",     meta: "real over polished",             cat: "food" },
-  { id: "quietluxury",  ic: "🥂", name: "Quiet luxury",  meta: "understated, refined",           cat: "iconic" },
-  { id: "spiritual",    ic: "🕊",  name: "Spiritual",     meta: "inward, sacred, still",          cat: "iconic" },
-  { id: "festive",      ic: "🎉", name: "Festive",       meta: "music, people, celebration",     cat: "new" },
-  { id: "adventure",    ic: "⛰",  name: "Adventure",      meta: "adrenaline, the edge",           cat: "nature" },
-  { id: "romantic",     ic: "🌹", name: "Romantic",      meta: "tender, made for two",           cat: "new" },
-  { id: "cultural",     ic: "🏛", name: "Cultural",       meta: "history, art, meaning",          cat: "iconic" },
-  { id: "explorative",  ic: "🧭", name: "Explorative",   meta: "curiosity-led, no map",          cat: "discover" },
+  { id: "wild",         ic: "🔥", name: "Wild",          meta: "untamed, off the leash",         cat: "new",      img: IMG("1464822759023-fed622ff2c3b") },
+  { id: "quiet",        ic: "🌙", name: "Quiet",         meta: "low volume, deep rest",          cat: "explore",  img: IMG("1476514525535-07fb3b4ae5f1") },
+  { id: "chaotic",      ic: "🎲", name: "Chaotic",       meta: "messy, alive, unpredictable",    cat: "discover", img: IMG("1488646953014-85cb44e25828") },
+  { id: "intimate",     ic: "🕯", name: "Intimate",      meta: "small, close, personal",         cat: "nature",   img: IMG("1495474472287-4d71bcdd2085") },
+  { id: "solitary",     ic: "🚶", name: "Solitary",      meta: "just you and the road",          cat: "explore",  img: IMG("1500530855697-b586d89ba3ee") },
+  { id: "regenerating", ic: "🌱", name: "Regenerating",  meta: "come back restored",             cat: "nature",   img: IMG("1518548419970-58e3b4079ab2") },
+  { id: "authentic",    ic: "🫀", name: "Authentic",     meta: "real over polished",             cat: "food",     img: IMG("1513635269975-59663e0ac1ad") },
+  { id: "quietluxury",  ic: "🥂", name: "Quiet luxury",  meta: "understated, refined",           cat: "iconic",   img: IMG("1551632811-561732d1e306") },
+  { id: "spiritual",    ic: "🕊",  name: "Spiritual",     meta: "inward, sacred, still",          cat: "iconic",   img: IMG("1493246507139-91e8fad9978e") },
+  { id: "festive",      ic: "🎉", name: "Festive",       meta: "music, people, celebration",     cat: "new",      img: IMG("1528360983277-13d401cdc186") },
+  { id: "adventure",    ic: "⛰",  name: "Adventure",      meta: "adrenaline, the edge",           cat: "nature",   img: IMG("1506905925346-21bda4d32df4") },
+  { id: "romantic",     ic: "🌹", name: "Romantic",      meta: "tender, made for two",           cat: "new",      img: IMG("1500375592092-40eb2168fd21") },
+  { id: "cultural",     ic: "🏛", name: "Cultural",       meta: "history, art, meaning",          cat: "iconic",   img: IMG("1502602898657-3e91760cbb34") },
+  { id: "explorative",  ic: "🧭", name: "Explorative",   meta: "curiosity-led, no map",          cat: "discover", img: IMG("1467269204594-9661b134dd2b") },
 ];
 
 const NEEDS = [
-  { id: "disconnect", ic: "🔌", name: "Disconnect from routine", meta: "switch the daily mind off",       feel: "You need a real exit door from your everyday self.",          cat: "explore" },
-  { id: "alive",      ic: "⚡", name: "Feel alive again",        meta: "wake something up",               feel: "You're chasing the spark that routine has dimmed.",           cat: "new" },
-  { id: "slow",       ic: "🐌", name: "Slow down",               meta: "drop the pace, breathe",          feel: "You need permission to do less and feel more.",               cat: "nature" },
-  { id: "surprise",   ic: "✨", name: "Be surprised",            meta: "let it catch you off guard",      feel: "You want to be caught off guard by something real.",          cat: "discover" },
-  { id: "recharge",   ic: "🔋", name: "Recharge my energy",      meta: "come back with a full tank",      feel: "You want to land back home lighter than you left.",           cat: "food" },
-  { id: "change",     ic: "🔄", name: "Change something",        meta: "shift, even slightly",            feel: "Something needs to move — even a small thing.",               cat: "photo" },
-  { id: "celebrate",  ic: "🥂", name: "Celebrate",               meta: "mark the moment",                 feel: "There's a moment worth marking with a place.",                cat: "iconic" },
-  { id: "findself",   ic: "🧭", name: "Find myself",             meta: "meet who you are far from home",  feel: "You want to meet the version of you that lives far away.",    cat: "explore" },
+  { id: "disconnect", ic: "🔌", name: "Disconnect from routine", meta: "switch the daily mind off",       feel: "You need a real exit door from your everyday self.",          cat: "explore",  img: IMG("1476514525535-07fb3b4ae5f1") },
+  { id: "alive",      ic: "⚡", name: "Feel alive again",        meta: "wake something up",               feel: "You're chasing the spark that routine has dimmed.",           cat: "new",      img: IMG("1464822759023-fed622ff2c3b") },
+  { id: "slow",       ic: "🐌", name: "Slow down",               meta: "drop the pace, breathe",          feel: "You need permission to do less and feel more.",               cat: "nature",   img: IMG("1495474472287-4d71bcdd2085") },
+  { id: "surprise",   ic: "✨", name: "Be surprised",            meta: "let it catch you off guard",      feel: "You want to be caught off guard by something real.",          cat: "discover", img: IMG("1467269204594-9661b134dd2b") },
+  { id: "recharge",   ic: "🔋", name: "Recharge my energy",      meta: "come back with a full tank",      feel: "You want to land back home lighter than you left.",           cat: "food",     img: IMG("1500375592092-40eb2168fd21") },
+  { id: "change",     ic: "🔄", name: "Change something",        meta: "shift, even slightly",            feel: "Something needs to move — even a small thing.",               cat: "photo",    img: IMG("1528360983277-13d401cdc186") },
+  { id: "celebrate",  ic: "🥂", name: "Celebrate",               meta: "mark the moment",                 feel: "There's a moment worth marking with a place.",                cat: "iconic",   img: IMG("1488646953014-85cb44e25828") },
+  { id: "findself",   ic: "🧭", name: "Find myself",             meta: "meet who you are far from home",  feel: "You want to meet the version of you that lives far away.",    cat: "explore",  img: IMG("1493246507139-91e8fad9978e") },
 ];
 
 // Same 15 anti-patterns as Path B Q7 — ids match the chips.* i18n keys.
@@ -109,10 +111,10 @@ function paceStage(v: number) {
 }
 
 const DISTANCES = [
-  { id: "close",     ic: "🏡", name: "Close to home",               meta: "a few hours, no jet lag",      dur: "≤4h · no flights", cat: "explore" },
-  { id: "continent", ic: "✈️", name: "Same continent",              meta: "familiar, but elsewhere",      dur: "short haul",       cat: "iconic" },
-  { id: "far",       ic: "🌏", name: "Far away",                    meta: "another world, another clock", dur: "long haul",        cat: "new" },
-  { id: "anywhere",  ic: "🎲", name: "Anywhere, truly surprise me", meta: "maximum openness",             dur: "no limits",        cat: "discover" },
+  { id: "close",     ic: "🏡", name: "Close to home",               meta: "a few hours, no jet lag",      dur: "≤4h · no flights", cat: "explore",  img: IMG("1476514525535-07fb3b4ae5f1") },
+  { id: "continent", ic: "✈️", name: "Same continent",              meta: "familiar, but elsewhere",      dur: "short haul",       cat: "iconic",   img: IMG("1502602898657-3e91760cbb34") },
+  { id: "far",       ic: "🌏", name: "Far away",                    meta: "another world, another clock", dur: "long haul",        cat: "new",      img: IMG("1467269204594-9661b134dd2b") },
+  { id: "anywhere",  ic: "🎲", name: "Anywhere, truly surprise me", meta: "maximum openness",             dur: "no limits",        cat: "discover", img: IMG("1506905925346-21bda4d32df4") },
 ];
 
 const vibeName = (id: string) => VIBES.find((v) => v.id === id)?.name ?? id;
@@ -194,14 +196,18 @@ function Row({ label, value, pending }: { label: string; value: string | null; p
 
 /* ════════════ Q1 · style ════════════ */
 function Q1({ answers, setAnswers, onNext, onBack, hasBack }: { answers: AnswersA; setAnswers: (a: AnswersA) => void; onNext: () => void; onBack: () => void; hasBack: boolean }) {
+  const [hoverId, setHoverId] = useState<string | null>(null);
   const selected = answers.vibes ?? [];
   const isFull = selected.length >= 3;
   function toggle(id: string) {
     if (selected.includes(id)) setAnswers({ ...answers, vibes: selected.filter((x) => x !== id) });
     else if (selected.length < 3) setAnswers({ ...answers, vibes: [...selected, id] });
   }
+  const activeId = hoverId || (selected.length ? selected[selected.length - 1] : null);
+  const activeImg = useMemo(() => VIBES.find((v) => v.id === activeId)?.img || VIBES[0].img, [activeId]);
   return (
     <>
+      <BgPhotos items={VIBES} activeImg={activeImg} />
       <div className="qc-sticky-head">
         <HeaderStrip label="Your style" count="01 / 07" fillPct={14} />
         <div className="qc-q-head">
@@ -222,7 +228,8 @@ function Q1({ answers, setAnswers, onNext, onBack, hasBack }: { answers: Answers
             return (
               <div key={v.id} data-cat={v.cat}
                 className={"qc-option" + (sel ? " selected" : "") + (dis ? " disabled" : "")}
-                onClick={() => !dis && toggle(v.id)}>
+                onClick={() => !dis && toggle(v.id)}
+                onMouseEnter={() => setHoverId(v.id)} onMouseLeave={() => setHoverId(null)}>
                 <div className="qc-option-ic">{v.ic}</div>
                 <div className="qc-option-body">
                   <div className="qc-option-name">{v.name}</div>
@@ -255,8 +262,10 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
   }
   const activeId = hoverId || (selected.length ? selected[selected.length - 1] : null);
   const activeN = NEEDS.find((n) => n.id === activeId);
+  const activeImg = useMemo(() => NEEDS.find((n) => n.id === activeId)?.img || NEEDS[0].img, [activeId]);
   return (
     <>
+      <BgPhotos items={NEEDS} activeImg={activeImg} />
       <div className="qc-sticky-head">
         <HeaderStrip label="Your need" count="02 / 07" fillPct={28} />
         <div className="qc-q-head">
@@ -518,9 +527,13 @@ function Q6({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
 
 /* ════════════ Q7 · distance ════════════ */
 function Q7({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAnswers: (a: AnswersA) => void; onNext: () => void; onBack: () => void }) {
+  const [hoverId, setHoverId] = useState<string | null>(null);
   const selected = answers.distance ?? null;
+  const activeId = hoverId || selected;
+  const activeImg = useMemo(() => DISTANCES.find((d) => d.id === activeId)?.img || DISTANCES[0].img, [activeId]);
   return (
     <>
+      <BgPhotos items={DISTANCES} activeImg={activeImg} />
       <div className="qc-sticky-head">
         <HeaderStrip label="Distance" count="07 / 07" fillPct={100} />
         <div className="qc-q-head">
@@ -534,7 +547,8 @@ function Q7({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
           {DISTANCES.map((d) => (
             <div key={d.id} data-cat={d.cat}
               className={"qc-option" + (selected === d.id ? " selected" : "")}
-              onClick={() => setAnswers({ ...answers, distance: d.id })}>
+              onClick={() => setAnswers({ ...answers, distance: d.id })}
+              onMouseEnter={() => setHoverId(d.id)} onMouseLeave={() => setHoverId(null)}>
               <div className="qc-option-ic">{d.ic}</div>
               <div className="qc-option-body">
                 <div className="qc-option-name">{d.name}</div>
