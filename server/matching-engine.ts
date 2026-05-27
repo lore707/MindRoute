@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { AFFILIATES } from "./affiliate-config";
+import { getExperienceBank, formatExperienceBankBlock } from "./experience-bank";
 
 export const BUDGET_MAP: Record<string, string> = {
   "low":                        "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
@@ -158,6 +159,13 @@ export function buildPrompt(input: ProfilingInput, priorBlock = ""): string {
   const { checkin, checkout, checkinCompact, checkoutCompact } =
     buildCheckinCheckout(period, days);
 
+  // Grounding: when the destination is already chosen and we have curated real
+  // anchors for it, inject them so the model builds from verified places instead
+  // of inventing them. No curated data → empty string → unchanged behavior.
+  const destOverride = (input as any)._destinationOverride as string | undefined;
+  const bank = destOverride ? getExperienceBank(destOverride) : null;
+  const bankBlock = bank ? formatExperienceBankBlock(bank, input.lang || "en") : "";
+
   return `You are the engine of MindRoute, a psychological travel profiling platform. Your goal is not to generate a generic itinerary — it is to create the most personally resonant travel experience possible for this specific human being.
 
 ═══════════════════════════════════════
@@ -171,7 +179,7 @@ Travel style preference: ${travelStyle}
 Constraints & preferences: ${input.constraints || "none"}
 ${structuredProfileBlock ? `Structured profile (JSON):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 ${(input as any)._destinationOverride ? `\nDESTINATION ALREADY CHOSEN: ${(input as any)._destinationOverride} — generate the itinerary ONLY for this specific destination. Do not suggest alternatives.` : ''}
-${priorBlock}
+${bankBlock}${priorBlock}
 TASK: Generate exactly 1 perfectly personalized destination with a ${days}-day itinerary.
 
 ═══════════════════════════════════════
@@ -1306,6 +1314,9 @@ export async function generateItineraryStreaming(
   const lang = input.lang === 'it' ? 'Italian' : 'English';
   const { checkin, checkout } = buildCheckinCheckout(input.leaveDate, days);
 
+  const bank = getExperienceBank(destinationName);
+  const bankBlock = bank ? formatExperienceBankBlock(bank, input.lang || "en") : "";
+
   const prompt = `You are MindRoute, a psychological travel platform. Generate a ${days}-day itinerary for ${destinationName}.
 
 PROFILE:
@@ -1314,7 +1325,7 @@ From: ${input.departure} | Days: ${days} | Period: ${input.leaveDate}
 Companions: ${input.companions || "not specified"}
 Style: ${input.travelStyle || "not specified"}
 Answers: ${input.answers.slice(1).join(" | ")}
-
+${bankBlock}
 Write the itinerary in ${lang} using EXACTLY these markers:
 
 [WHY_YOURS]
@@ -1382,6 +1393,8 @@ export async function generateDayRegeneration(
   feedback: string
 ): Promise<any> {
   const lang = profilingInput?.lang || "it";
+  const bank = getExperienceBank(destinationName);
+  const bankBlock = bank ? formatExperienceBankBlock(bank, lang) : "";
   const prompt = `Sei un travel planner esperto. Devi rigenerare SOLO il giorno ${dayIndex + 1} di un itinerario a ${destinationName}.
 
 Giorno attuale:
@@ -1390,7 +1403,7 @@ Giorno attuale:
 - Pranzo: ${currentDay.lunch}
 - Pomeriggio: ${currentDay.afternoon}
 - Sera: ${currentDay.evening}
-
+${bankBlock}
 ${feedback ? `Richiesta dell'utente: ${feedback}` : "Crea una variazione interessante mantenendo lo stesso tono."}
 
 Rispondi SOLO con un oggetto JSON valido con questa struttura:
