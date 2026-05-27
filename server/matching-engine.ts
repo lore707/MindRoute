@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { AFFILIATES } from "./affiliate-config";
-import { getExperienceBank, formatExperienceBankBlock } from "./experience-bank";
+import { getExperienceBank, formatExperienceBankBlock, resolveGroundingBlock } from "./experience-bank";
 
 export const BUDGET_MAP: Record<string, string> = {
   "low":                        "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
@@ -125,7 +125,7 @@ function buildCheckinCheckout(leaveDate: string, days: number): {
   }
 }
 
-export function buildPrompt(input: ProfilingInput, priorBlock = ""): string {
+export function buildPrompt(input: ProfilingInput, priorBlock = "", groundingBlock = ""): string {
   const rawAnswers =
     input.answers[0] === "path_a" || input.answers[0] === "path_b"
       ? input.answers.slice(1)
@@ -159,12 +159,13 @@ export function buildPrompt(input: ProfilingInput, priorBlock = ""): string {
   const { checkin, checkout, checkinCompact, checkoutCompact } =
     buildCheckinCheckout(period, days);
 
-  // Grounding: when the destination is already chosen and we have curated real
-  // anchors for it, inject them so the model builds from verified places instead
-  // of inventing them. No curated data → empty string → unchanged behavior.
+  // Grounding: build the itinerary from REAL anchors instead of inventing them.
+  // Callers pass a pre-resolved block (curated premium tier OR live OSM/Wikidata for
+  // any destination). If none is passed (e.g. v2's buildPromptV2), fall back to the
+  // synchronous curated lookup. No data anywhere → empty → unchanged behavior.
   const destOverride = (input as any)._destinationOverride as string | undefined;
-  const bank = destOverride ? getExperienceBank(destOverride) : null;
-  const bankBlock = bank ? formatExperienceBankBlock(bank, input.lang || "en") : "";
+  const curatedFallback = destOverride ? getExperienceBank(destOverride) : null;
+  const bankBlock = groundingBlock || (curatedFallback ? formatExperienceBankBlock(curatedFallback, input.lang || "en") : "");
 
   return `You are the engine of MindRoute, a psychological travel profiling platform. Your goal is not to generate a generic itinerary — it is to create the most personally resonant travel experience possible for this specific human being.
 
@@ -753,7 +754,7 @@ Generate exactly ${days} days in the itinerary.
 CRITICAL: Respond ONLY with the JSON object. No text before or after. No explanations. Start with { end with }. Pure JSON only.`;
 }
 
-export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = "", contextOverride?: string): Promise<GeneratedDestination[]> {
+export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = "", contextOverride?: string, recentNames: string[] = []): Promise<GeneratedDestination[]> {
   const rawAnswers = input.answers[0] === "path_a" || input.answers[0] === "path_b"
     ? input.answers.slice(1) : input.answers;
 
@@ -776,6 +777,20 @@ export async function generateDestinationsOnly(input: ProfilingInput, priorBlock
 
   const budgetText = BUDGET_MAP[input.budget] || `budget: ${input.budget}`;
 
+  // FRESHNESS — vary results across users/sessions without sacrificing fit.
+  // The recent list is a soft nudge (a recent pick may still win SLOT 1 if it's
+  // genuinely the best match); the exploration seed only breaks ties of equal fit.
+  const explorationSeed = Math.floor(Math.random() * 100000);
+  const freshnessBlock = `
+═══════════════════════════════════════
+FRESHNESS — keep results varied across users
+═══════════════════════════════════════
+${recentNames.length ? `Recently proposed to other users (last sessions): ${recentNames.join(", ")}.
+Prefer comparably-fitting destinations the user is less likely to have just seen elsewhere. You MAY still pick one of these — but ONLY for SLOT 1 and ONLY if it is genuinely the single best match. Never fill SLOT 2 or SLOT 3 with one of them unless no equally-good alternative exists. Two different people should rarely receive an identical trio.
+` : `Avoid the most predictable, over-suggested picks for this profile when an equally-fitting, fresher alternative exists.
+`}Exploration seed: ${explorationSeed} — use this ONLY to break ties between options of genuinely EQUAL fit. Never let it override profile fit, hard constraints, or anti-patterns.
+`;
+
   const prompt = `You are the engine of MindRoute, a psychological travel profiling platform. Your task is to generate exactly 3 destinations that are deeply, precisely matched to this specific human being.
 
 USER PROFILE — READ EVERY LINE
@@ -786,6 +801,7 @@ Departing from: ${input.departure} | Period: ${input.leaveDate} | Days: ${input.
 Travel companions: ${input.companions || "not specified"}
 ${structuredProfileBlock ? `Structured profile (AUTHORITATIVE — mirrors exactly what the user confirmed on screen, question by question. Read EVERY top-level field AND every field inside the nested "logistics" object: budget, when, duration, companions+group, departure, movement, accommodation, food, physical_effort, diet, notes. Treat each as a hard constraint; never drop or override one with a typical-traveler assumption):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 ${priorBlock}
+${freshnessBlock}
 ${contextOverride && contextOverride.trim().length > 0 ? `
 ═══════════════════════════════════════
 USER CONTEXT FOR THIS TRIP — overrides historical patterns where in conflict
@@ -1242,7 +1258,8 @@ export async function generateItineraryStreamingStructured(
   const days = Math.min(input.days, 14);
   const { checkin, checkout, checkinCompact, checkoutCompact } = buildCheckinCheckout(input.leaveDate, days);
 
-  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any, priorBlock);
+  const grounding = await resolveGroundingBlock(destinationName, input.lang || "en");
+  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding);
 
   const stream = client.messages.stream({
     model: "claude-sonnet-4-6",
@@ -1314,8 +1331,7 @@ export async function generateItineraryStreaming(
   const lang = input.lang === 'it' ? 'Italian' : 'English';
   const { checkin, checkout } = buildCheckinCheckout(input.leaveDate, days);
 
-  const bank = getExperienceBank(destinationName);
-  const bankBlock = bank ? formatExperienceBankBlock(bank, input.lang || "en") : "";
+  const bankBlock = await resolveGroundingBlock(destinationName, input.lang || "en");
 
   const prompt = `You are MindRoute, a psychological travel platform. Generate a ${days}-day itinerary for ${destinationName}.
 
@@ -1393,8 +1409,7 @@ export async function generateDayRegeneration(
   feedback: string
 ): Promise<any> {
   const lang = profilingInput?.lang || "it";
-  const bank = getExperienceBank(destinationName);
-  const bankBlock = bank ? formatExperienceBankBlock(bank, lang) : "";
+  const bankBlock = await resolveGroundingBlock(destinationName, lang);
   const prompt = `Sei un travel planner esperto. Devi rigenerare SOLO il giorno ${dayIndex + 1} di un itinerario a ${destinationName}.
 
 Giorno attuale:
@@ -1435,7 +1450,8 @@ export async function generateItineraryForDestination(
   destinationName: string,
   priorBlock = ""
 ): Promise<GeneratedItinerary> {
-  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any, priorBlock);
+  const grounding = await resolveGroundingBlock(destinationName, input.lang || "en");
+  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",

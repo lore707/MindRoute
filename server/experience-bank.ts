@@ -304,3 +304,122 @@ export function formatExperienceBankBlock(bank: DestinationBank, lang: string): 
   );
   return `\n═══════════════════════════════════════\n${intro}\n═══════════════════════════════════════\n${rule}\n\n${lines.join("\n")}\n`;
 }
+
+// ─── LIVE TIER (any destination, via OpenStreetMap / Wikidata) ─────────────────
+// For destinations we haven't hand-curated, fetch REAL, notable places live so the
+// model still grounds on existing names instead of inventing them. Sources are free
+// and keyless: Nominatim (geocode) + Overpass (POIs tagged with wikidata = notable).
+// Results are cached in-memory per destination; any failure/timeout → "" (the caller
+// falls back to default behavior). Coordinates are not injected (geocoder resolves pins).
+
+interface LiveAnchor { name: string; type: ExpType | "attraction" | "museum"; notable: boolean; }
+const liveCache = new Map<string, { block: string; ts: number }>();
+const LIVE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+async function fetchWithTimeout(url: string, timeoutMs: number, init?: RequestInit): Promise<any | null> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, { ...init, signal: ctrl.signal });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function geocodeCenter(name: string): Promise<{ lat: number; lng: number } | null> {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name)}&format=json&limit=1&accept-language=en`;
+  const d = await fetchWithTimeout(url, 6000, { headers: { "User-Agent": "MindRoute/1.0 (itinerary grounding)" } });
+  if (Array.isArray(d) && d[0]) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+  return null;
+}
+
+async function fetchLiveAnchors(name: string): Promise<LiveAnchor[]> {
+  const center = await geocodeCenter(name);
+  if (!center) return [];
+  const { lat, lng } = center;
+  // Broad pull of real sights within ~14km. We do NOT require a wikidata tag (too
+  // sparse in many cities) — instead we keep all named heritage/tourism anchors and
+  // rank the wikidata/wikipedia-tagged ones first (notable, and it also pushes noise
+  // like individual zoo exhibits to the bottom where it gets cut).
+  const q = `[out:json][timeout:25];
+(
+  node(around:14000,${lat},${lng})[tourism~"^(attraction|museum|viewpoint|gallery|theme_park|artwork)$"][name];
+  way(around:14000,${lat},${lng})[tourism~"^(attraction|museum|viewpoint|gallery|theme_park)$"][name];
+  node(around:14000,${lat},${lng})[historic~"^(monument|memorial|castle|fort|ruins|archaeological_site|city_gate|tower|palace|temple|monastery|church|shrine|aqueduct)$"][name];
+  way(around:14000,${lat},${lng})[historic~"^(monument|memorial|castle|fort|ruins|archaeological_site|city_gate|tower|palace|temple|monastery|church|shrine|aqueduct)$"][name];
+  way(around:14000,${lat},${lng})[leisure=park][name][wikidata];
+);
+out center 200;`;
+  const d = await fetchWithTimeout("https://overpass-api.de/api/interpreter", 15000, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": "MindRoute/1.0 (itinerary grounding)",
+      "Accept": "application/json",
+    },
+    body: "data=" + encodeURIComponent(q),
+  });
+  const els: any[] = d?.elements;
+  if (!Array.isArray(els)) return [];
+  const seen = new Set<string>();
+  const all: LiveAnchor[] = [];
+  for (const e of els) {
+    const tags = e.tags ?? {};
+    const nm: string = (tags["name:en"] || tags.name || "").trim();
+    if (!nm || nm.length < 3 || seen.has(nm.toLowerCase())) continue;
+    seen.add(nm.toLowerCase());
+    let type: LiveAnchor["type"] = "landmark";
+    if (tags.tourism === "viewpoint") type = "viewpoint";
+    else if (tags.tourism === "museum" || tags.tourism === "gallery") type = "museum";
+    else if (tags.leisure === "park") type = "nature";
+    else if (tags.historic) type = "landmark";
+    else if (tags.tourism) type = "attraction";
+    all.push({ name: nm, type, notable: !!(tags.wikidata || tags.wikipedia) });
+  }
+  // Notable (wikidata/wikipedia) first; keep up to 16.
+  all.sort((a, b) => Number(b.notable) - Number(a.notable));
+  return all.slice(0, 16);
+}
+
+function formatLiveBlock(dest: string, anchors: LiveAnchor[], lang: string): string {
+  const intro = lang === "it"
+    ? `ANCORE LOCALI VERIFICATE — ${dest}`
+    : `VERIFIED LOCAL ANCHORS — ${dest}`;
+  const rule = lang === "it"
+    ? `Questi sono luoghi REALI ed esistenti (fonte: OpenStreetMap/Wikidata) a ${dest}. Usa i NOMI ESATTI qui sotto per gli slot mattina/pomeriggio/esperienza e i mapPoints, scegliendo quelli coerenti col profilo e sequenziandoli per zona (rispetta il limite "lunghi trasferimenti"). NON inventare landmark che non esistono. Puoi aggiungere ristoranti/caffè coerenti con FOOD_PREF e budget (non elencati qui).`
+    : `These are REAL, existing places (source: OpenStreetMap/Wikidata) in ${dest}. Use the EXACT names below for the morning/afternoon/experience slots and mapPoints, choosing those that fit the profile and sequencing by area (respect the "long transits" limit). Do NOT invent landmarks that don't exist. You MAY add restaurants/cafés matched to FOOD_PREF + budget (not listed here).`;
+  const lines = anchors.map((a) => `- ${a.name} (${a.type})`);
+  return `\n═══════════════════════════════════════\n${intro}\n═══════════════════════════════════════\n${rule}\n\n${lines.join("\n")}\n`;
+}
+
+/**
+ * Resolve a grounding block for ANY destination:
+ *   1. curated bank (premium, rich tags + why) when we have it;
+ *   2. otherwise live, real anchors from OSM/Wikidata (cached);
+ *   3. otherwise "" → caller keeps current behavior.
+ * Always safe: never throws, returns "" on failure.
+ */
+export async function resolveGroundingBlock(destinationName: string, lang: string): Promise<string> {
+  if (!destinationName) return "";
+  const curated = getExperienceBank(destinationName);
+  if (curated) return formatExperienceBankBlock(curated, lang);
+
+  const key = norm(destinationName);
+  if (!key) return "";
+  const hit = liveCache.get(key);
+  if (hit && Date.now() - hit.ts < LIVE_TTL_MS) return hit.block;
+
+  try {
+    const anchors = await fetchLiveAnchors(destinationName);
+    const block = anchors.length >= 4 ? formatLiveBlock(destinationName, anchors, lang) : "";
+    liveCache.set(key, { block, ts: Date.now() });
+    return block;
+  } catch {
+    liveCache.set(key, { block: "", ts: Date.now() });
+    return "";
+  }
+}

@@ -4,6 +4,7 @@ import { storage } from "../storage";
 import { api } from "@shared/routes";
 import { profilingLimiter } from "../rate-limiter";
 import { generateDestinationsOnly } from "../matching-engine";
+import { getRecentDestinationNames } from "../recent-destinations";
 import { fetchUnsplashHero } from "../unsplash";
 import { computeTraitVector, emaAggregate, synthesizeAnswersFromVector, MAPPING_VERSION, type TraitVector } from "@shared/traits";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
@@ -17,7 +18,8 @@ export function registerProfilingRoutes(app: Express) {
       const userIdForPrior = (req.user as any)?.id ?? null;
       const prior = await getTraitPriorForUser(userIdForPrior);
       const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
-      const destinations = await generateDestinationsOnly(input, priorBlock);
+      const recentNames = await getRecentDestinationNames();
+      const destinations = await generateDestinationsOnly(input, priorBlock, undefined, recentNames);
       await storage.clearAll();
       const createdDests = [];
       for (const dest of destinations) {
@@ -133,7 +135,8 @@ export function registerProfilingRoutes(app: Express) {
 
       const prior = await getTraitPriorForUser(user.id);
       const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
-      const destinations = await generateDestinationsOnly(input, priorBlock, contextOverride);
+      const recentNames = await getRecentDestinationNames();
+      const destinations = await generateDestinationsOnly(input, priorBlock, contextOverride, recentNames);
       await storage.clearAll();
       const createdDests = [];
       for (const dest of destinations) {
