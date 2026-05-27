@@ -16,13 +16,30 @@ const SLOT_MAPPING: Record<string, string> = {
   thefork_evening: "Sera", tripadvisor_evening: "Sera",
 };
 
+// Geocoding cache — Nominatim allows ~1 req/s and BANS abusers. Without a cache
+// we hit it for every map label on every generation. Coordinates are stable, so
+// cache hits and misses for 30 days. Also sends the required User-Agent.
+const geocodeCache = new Map<string, { v: { lat: number; lng: number } | null; ts: number }>();
+const GEOCODE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
+  const key = query.trim().toLowerCase();
+  if (!key) return null;
+  const hit = geocodeCache.get(key);
+  if (hit && Date.now() - hit.ts < GEOCODE_TTL_MS) return hit.v;
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=en`);
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=en`,
+      { headers: { "User-Agent": "MindRoute/1.0 (itinerary maps)" } },
+    );
     const d = await r.json();
-    if (d?.[0]) return { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) };
+    const v = d?.[0] ? { lat: parseFloat(d[0].lat), lng: parseFloat(d[0].lon) } : null;
+    geocodeCache.set(key, { v, ts: Date.now() });
+    return v;
+  } catch {
+    geocodeCache.set(key, { v: null, ts: Date.now() });
     return null;
-  } catch { return null; }
+  }
 }
 
 export function registerItineraryGenRoutes(app: Express) {

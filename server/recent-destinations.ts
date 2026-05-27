@@ -39,7 +39,7 @@ export async function getRecentDestinationNames(limit = 15): Promise<string[]> {
 
 export async function recordRecentDestination(destinationName: string) {
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`);
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`, { headers: { "User-Agent": "MindRoute/1.0 (recent destinations)" } });
     const d = await r.json();
     if (!d?.[0]) return;
     const { lat, lon, country_code } = d[0];

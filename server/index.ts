@@ -7,7 +7,20 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { setupAuth } from "./auth";
 import { ensureRateLimitTable, globalApiLimiter } from "./rate-limiter";
+import { pool, ensureIndexes } from "./db";
 import { createServer } from "http";
+
+// Top-level safety net: a stray unhandled rejection / uncaught exception would
+// otherwise terminate the whole process (full outage). Log loudly and keep
+// serving — uptime-first, as the product is read-mostly and route errors are
+// already handled by the Express error middleware below.
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED REJECTION (continuing):", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION (continuing):", err);
+});
+
 const app = express();
 app.set("trust proxy", 1);
 
@@ -31,7 +44,10 @@ if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
 
 app.use(session({
   store: new PgSession({
-    conString: process.env.DATABASE_URL,
+    // Reuse the single capped pool from db.ts instead of letting
+    // connect-pg-simple open its OWN pool (another default-10) — keeps total
+    // Postgres connections bounded so we don't hit the plan's connection limit.
+    pool,
     tableName: "session",
     createTableIfMissing: true,
   }),
@@ -104,6 +120,7 @@ app.use((req, res, next) => {
 
 (async () => {
   await ensureRateLimitTable();
+  await ensureIndexes();
   app.use("/api", globalApiLimiter);
   await registerRoutes(httpServer, app);
 
