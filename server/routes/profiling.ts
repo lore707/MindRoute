@@ -21,14 +21,14 @@ export function registerProfilingRoutes(app: Express) {
       const recentNames = await getRecentDestinationNames();
       const destinations = await generateDestinationsOnly(input, priorBlock, undefined, recentNames);
       await storage.clearAll();
+      // Fetch the 3 hero images in parallel (was sequential ≈ 3× the latency).
+      const heroImages = await Promise.all(destinations.map((d) => fetchUnsplashHero(d.name)));
       const createdDests = [];
-      for (const dest of destinations) {
-        const realImage = await fetchUnsplashHero(dest.name);
-        const destWithImage = {
-          ...dest,
-          imageUrl: realImage?.url ?? dest.imageUrl,
-        };
-        const created = await storage.createDestination(destWithImage);
+      for (let i = 0; i < destinations.length; i++) {
+        const created = await storage.createDestination({
+          ...destinations[i],
+          imageUrl: heroImages[i]?.url ?? destinations[i].imageUrl,
+        });
         createdDests.push(created);
       }
       await storage.saveProfilingInput(input);
@@ -138,14 +138,14 @@ export function registerProfilingRoutes(app: Express) {
       const recentNames = await getRecentDestinationNames();
       const destinations = await generateDestinationsOnly(input, priorBlock, contextOverride, recentNames);
       await storage.clearAll();
+      // Fetch the 3 hero images in parallel (was sequential ≈ 3× the latency).
+      const heroImages = await Promise.all(destinations.map((d) => fetchUnsplashHero(d.name)));
       const createdDests = [];
-      for (const dest of destinations) {
-        const realImage = await fetchUnsplashHero(dest.name);
-        const destWithImage = {
-          ...dest,
-          imageUrl: realImage?.url ?? dest.imageUrl,
-        };
-        const created = await storage.createDestination(destWithImage);
+      for (let i = 0; i < destinations.length; i++) {
+        const created = await storage.createDestination({
+          ...destinations[i],
+          imageUrl: heroImages[i]?.url ?? destinations[i].imageUrl,
+        });
         createdDests.push(created);
       }
       await storage.saveProfilingInput(input);

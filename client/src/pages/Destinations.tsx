@@ -7,6 +7,7 @@ import { type Destination } from "@shared/schema";
 import { useI18n } from "@/lib/i18n";
 import { useTraitRecognition } from "@/hooks/use-trait-recognition";
 import { RecognitionBanner } from "@/components/RecognitionBanner";
+import { unsplashSized } from "@/lib/img";
 
 export default function Destinations() {
   const { t, lang } = useI18n();
@@ -294,9 +295,10 @@ if (destinations.length === 0) return null;
             <div className="relative h-52 sm:h-56 md:h-64 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
               <img
-                src={dest.imageUrl || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80"}
+                src={unsplashSized(dest.imageUrl, 800) || "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80"}
                 alt={dest.name}
                 loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
               <div className="absolute bottom-5 left-5 md:bottom-6 md:left-6 z-20 text-white pr-5">

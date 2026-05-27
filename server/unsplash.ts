@@ -42,7 +42,12 @@ export async function fetchUnsplashHero(destinationName: string): Promise<{ url:
       const data = await res.json();
       if (data.results && data.results.length > 0) {
         const photo = data.results[0];
-        const url = photo.urls?.full ?? photo.urls?.regular ?? null;
+        // Build a right-sized hero (~1600px webp) from `raw` instead of `full`
+        // (which is multi-MB) — same photo, a fraction of the bytes.
+        const raw = photo.urls?.raw as string | undefined;
+        const url = raw
+          ? `${raw}${raw.includes("?") ? "&" : "?"}w=1600&q=80&auto=format&fit=crop`
+          : (photo.urls?.regular ?? photo.urls?.full ?? null);
         if (!url) return null;
         return {
           url,

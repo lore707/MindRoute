@@ -1,5 +1,6 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
+import { unsplashSized } from "@/lib/img";
 
 export type Highlight = { ic: string; name: string; desc: string };
 export type Day = { n: number; arc: string; title: string; sub: string; img: string };
@@ -103,7 +104,7 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
     <div className="vA stage itinerary-cinematic">
       {/* HERO */}
       <section className="hero">
-        <div className="hero-img" style={{ backgroundImage: `linear-gradient(to top, rgba(10,7,16,1) 0%, rgba(10,7,16,.4) 40%, rgba(10,7,16,.15) 70%, rgba(10,7,16,.5) 100%), url(${data.heroImg})` }} />
+        <div className="hero-img" style={{ backgroundImage: `linear-gradient(to top, rgba(10,7,16,1) 0%, rgba(10,7,16,.4) 40%, rgba(10,7,16,.15) 70%, rgba(10,7,16,.5) 100%), url(${unsplashSized(data.heroImg, 1920)})` }} />
         <div className="hero-topbar">
           {onBack ? <button className="hero-back" onClick={onBack}>← {t('itin.back')}</button> : <span />}
           <div className="hero-actions">

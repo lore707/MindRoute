@@ -18,8 +18,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useI18n } from "@/lib/i18n";
 import { setLastOpenedItinerary } from "@/lib/last-opened";
-import { pdf } from "@react-pdf/renderer";
-import { ItineraryPDF } from "@/components/ItineraryPDF";
 import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
 
 // ── URL BUILDER ───────────────────────────────────────────────────────────────
@@ -688,6 +686,12 @@ export default function Itinerary() {
       ? undefined
       : new Intl.DateTimeFormat(lang === "it" ? "it-IT" : "en-US", { month: "long", year: "numeric" }).format(createdAt);
     try {
+      // @react-pdf/renderer is ~500KB — load it (and the PDF template) only when
+      // the user actually exports, so it never weighs down the itinerary page.
+      const [{ pdf }, { ItineraryPDF }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/components/ItineraryPDF"),
+      ]);
       const blob = await pdf(<ItineraryPDF data={itinerary as any} lang={lang as "it" | "en"} monthYear={monthYear} />).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
