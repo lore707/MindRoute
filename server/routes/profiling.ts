@@ -50,6 +50,15 @@ export function registerProfilingRoutes(app: Express) {
             traits,
             source: "quiz",
             mappingVersion: MAPPING_VERSION,
+            // Persist the verbatim quiz selections so the account Ritratto can
+            // quote what the user literally chose (seek/avoid + own words).
+            rawSignal: {
+              answers: input.answers ?? [],
+              companions: input.companions ?? null,
+              budget: input.budget ?? null,
+              travelStyle: input.travelStyle ?? null,
+              constraints: input.constraints ?? null,
+            },
           });
         } catch (e) {
           // Trait snapshot is non-critical — never fail the quiz submit.
@@ -151,7 +160,11 @@ export function registerProfilingRoutes(app: Express) {
       await storage.saveProfilingInput(input);
 
       // Snapshot derivato dal vector (non dal quiz) — flag come "quiz" per
-      // compatibilità ma il signal è chiaramente l'aggregato.
+      // compatibilità ma il signal è chiaramente l'aggregato. rawSignal resta
+      // null di proposito: le answers qui sono chip sintetiche (canonical keys),
+      // non le parole reali dell'utente, quindi NON vanno mostrate verbatim nel
+      // Ritratto. Il composer legge seek/avoid solo da snapshot "quiz" con
+      // rawSignal valorizzato → questo viene correttamente ignorato.
       try {
         await storage.createTraitSnapshot({
           userId: user.id,

@@ -223,6 +223,19 @@ export const traitSnapshots = pgTable("trait_snapshots", {
   source: text("source").notNull(), // "quiz" | "pick"
   sourceItineraryId: integer("source_itinerary_id").references(() => itineraries.id),
   mappingVersion: integer("mapping_version").notNull(),
+  // Raw quiz signal that produced this snapshot — the actual chips/labels the
+  // user selected plus their structured logistics. Persisted so the account
+  // "Ritratto" can quote what the user *literally answered* (verbatim seek/avoid
+  // lists, own-words constraints) rather than only the derived trait vector.
+  // Nullable: pre-feature rows and synthetic "Genera dal profilo" snapshots
+  // (no real chips) leave it null, and the Ritratto degrades gracefully.
+  rawSignal: jsonb("raw_signal").$type<{
+    answers: string[];
+    companions: string | null;
+    budget: string | null;
+    travelStyle: string | null;
+    constraints: string | null;
+  } | null>(),
 });
 export type TraitSnapshot = typeof traitSnapshots.$inferSelect;
 export type InsertTraitSnapshot = typeof traitSnapshots.$inferInsert;

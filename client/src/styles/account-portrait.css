@@ -1,0 +1,127 @@
+/* ───────────────────────────────────────────────────────────────
+   Account Portrait — Capitolo II "Il tuo ritratto"
+   Importato da index.css. Scoped sotto `.account-cinematic`, usa le
+   variabili --ac-* già definite lì. Prefisso `.ac-pt-`.
+   ─────────────────────────────────────────────────────────────── */
+
+.account-cinematic .ac-portrait-sec{
+  padding:120px 0;
+  border-top:1px solid var(--ac-stroke);
+  background:linear-gradient(to bottom,transparent,rgba(20,30,55,.22),transparent);
+}
+
+/* chapter head */
+.account-cinematic .ac-pt-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:44px;flex-wrap:wrap}
+.account-cinematic .ac-pt-title{font-family:var(--ac-serif);font-size:clamp(34px,4vw,56px);font-weight:400;line-height:1.02;letter-spacing:-.02em;margin-top:16px;text-wrap:balance}
+.account-cinematic .ac-pt-title em{font-style:italic;color:var(--ac-accent)}
+.account-cinematic .ac-pt-sub{font-family:var(--ac-serif);font-style:italic;font-size:17px;color:var(--ac-ink-dim);max-width:430px;line-height:1.5;text-align:right;text-wrap:pretty}
+
+/* layout */
+.account-cinematic .ac-portrait-sec > .ac-container{display:flex;flex-direction:column;gap:16px}
+
+/* ① ritratto (LOUD) */
+.account-cinematic .ac-pt-card{position:relative;padding:48px 56px 38px;border:1px solid var(--ac-stroke-strong);border-radius:26px;background:linear-gradient(150deg,rgba(42,20,34,.55),rgba(20,14,24,.7));backdrop-filter:blur(20px);overflow:hidden}
+.account-cinematic .ac-pt-card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,var(--ac-accent),transparent)}
+.account-cinematic .ac-pt-card::after{content:"\201C";position:absolute;top:-22px;left:40px;font-family:var(--ac-serif);font-style:italic;font-size:170px;color:rgba(233,69,96,.09);line-height:1;pointer-events:none}
+.account-cinematic .ac-pt-mark{display:flex;align-items:center;gap:12px;font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--ac-ink-faint);margin-bottom:22px;font-weight:500;position:relative;z-index:1;flex-wrap:wrap}
+.account-cinematic .ac-pt-mark .star{color:var(--ac-accent);font-size:13px}
+.account-cinematic .ac-pt-mark .sep{width:22px;height:1px;background:rgba(233,69,96,.4)}
+.account-cinematic .ac-pt-mark .who{color:var(--ac-accent);font-family:var(--ac-serif);font-style:italic;text-transform:none;letter-spacing:.02em;font-size:13px}
+.account-cinematic .ac-pt-text{font-family:var(--ac-serif);font-size:clamp(24px,2.4vw,36px);font-weight:400;line-height:1.3;color:var(--ac-ink);letter-spacing:-.01em;text-wrap:pretty;position:relative;z-index:1;max-width:960px}
+.account-cinematic .ac-pt-text em{font-style:italic;color:var(--ac-accent)}
+.account-cinematic .ac-pt-text strong{font-weight:500;color:var(--ac-ink);font-style:normal}
+
+.account-cinematic .ac-pt-evidence{margin-top:26px;padding-top:20px;border-top:1px dashed var(--ac-stroke);position:relative;z-index:1;display:flex;align-items:flex-start;gap:14px;max-width:900px;flex-wrap:wrap}
+.account-cinematic .ac-pt-evidence .pin{font-family:var(--ac-serif);font-style:italic;font-size:11px;color:var(--ac-ink-faint);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;padding-top:3px}
+.account-cinematic .ac-pt-evidence .body{font-family:var(--ac-serif);font-style:italic;font-size:15px;color:var(--ac-ink-dim);line-height:1.55;text-wrap:pretty}
+
+.account-cinematic .ac-pt-source{margin-top:22px;display:flex;align-items:center;gap:12px;position:relative;z-index:1;color:var(--ac-ink-faint);font-family:var(--ac-serif);font-style:italic;font-size:12px}
+.account-cinematic .ac-pt-source .dot{width:6px;height:6px;border-radius:50%;background:var(--ac-gold);box-shadow:0 0 10px var(--ac-gold)}
+
+/* ② paradosso (LOUD, gold) */
+.account-cinematic .ac-pt-paradox{position:relative;padding:42px 56px 38px;border:1px solid rgba(212,168,83,.35);border-radius:26px;background:linear-gradient(160deg,rgba(212,168,83,.14),rgba(20,14,24,.68));backdrop-filter:blur(20px);overflow:hidden}
+.account-cinematic .ac-pt-paradox::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,var(--ac-gold),transparent)}
+.account-cinematic .ac-pt-paradox::after{content:"";position:absolute;bottom:-30%;right:-10%;width:55%;height:90%;border-radius:50%;background:radial-gradient(circle,rgba(212,168,83,.18),transparent 70%);pointer-events:none}
+.account-cinematic .ac-pt-paradox-mark{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--ac-gold);margin-bottom:16px;font-weight:500;position:relative;z-index:1}
+.account-cinematic .ac-pt-paradox-mark::before{content:"❋";color:var(--ac-gold);font-size:13px}
+.account-cinematic .ac-pt-paradox-text{font-family:var(--ac-serif);font-style:italic;font-size:clamp(24px,2.6vw,40px);line-height:1.14;color:var(--ac-ink);letter-spacing:-.01em;position:relative;z-index:1;text-wrap:balance;max-width:880px}
+
+/* ③ scarto rivelatore */
+.account-cinematic .ac-pt-revealed{position:relative;padding:28px 32px;border:1px solid var(--ac-stroke);border-radius:18px;background:linear-gradient(140deg,rgba(26,14,26,.45),rgba(13,7,13,.55));backdrop-filter:blur(14px)}
+.account-cinematic .ac-pt-revealed-mark{font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ac-ink-faint);font-weight:500;margin-bottom:10px}
+.account-cinematic .ac-pt-revealed-text{font-family:var(--ac-serif);font-style:italic;font-size:clamp(18px,1.8vw,24px);line-height:1.4;color:var(--ac-ink-dim);text-wrap:pretty}
+.account-cinematic .ac-pt-revealed-text em{color:var(--ac-ink-faint);font-style:italic}
+.account-cinematic .ac-pt-revealed-text strong{color:var(--ac-accent);font-weight:500;font-style:italic}
+
+/* divider */
+.account-cinematic .ac-pt-divider{display:flex;align-items:center;gap:14px;margin:14px 0 2px;color:var(--ac-ink-faint);font-family:var(--ac-serif);font-style:italic;font-size:12px;letter-spacing:.04em}
+.account-cinematic .ac-pt-divider::before,.account-cinematic .ac-pt-divider::after{content:"";flex:1;height:1px;background:linear-gradient(to right,transparent,var(--ac-stroke),transparent)}
+
+/* row: parole + evoluzione */
+.account-cinematic .ac-pt-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.account-cinematic .ac-pt-row:has(> :only-child){grid-template-columns:1fr}
+
+/* ④ le tue parole */
+.account-cinematic .ac-pt-words{position:relative;padding:24px 28px;border:1px solid var(--ac-stroke);border-radius:18px;background:linear-gradient(140deg,rgba(26,14,26,.42),rgba(13,7,13,.58));backdrop-filter:blur(14px)}
+.account-cinematic .ac-pt-words.split{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.account-cinematic .ac-pt-words-col{display:flex;flex-direction:column;gap:6px}
+.account-cinematic .ac-pt-words-mark{display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.24em;text-transform:uppercase;font-weight:500;margin-bottom:6px}
+.account-cinematic .ac-pt-words-mark .glyph{font-family:var(--ac-sans);font-size:11px;font-weight:600;width:16px;height:16px;border-radius:50%;display:grid;place-items:center}
+.account-cinematic .ac-pt-words-col.seek .ac-pt-words-mark{color:#6FB4A8}
+.account-cinematic .ac-pt-words-col.seek .ac-pt-words-mark .glyph{background:rgba(111,180,168,.16);border:1px solid rgba(111,180,168,.45);color:#6FB4A8}
+.account-cinematic .ac-pt-words-col.avoid .ac-pt-words-mark{color:rgba(233,69,96,.9)}
+.account-cinematic .ac-pt-words-col.avoid .ac-pt-words-mark .glyph{background:rgba(233,69,96,.16);border:1px solid rgba(233,69,96,.45);color:var(--ac-accent)}
+.account-cinematic .ac-pt-words-line{font-family:var(--ac-serif);font-style:italic;font-size:15px;color:var(--ac-ink-dim);line-height:1.45;padding:5px 0}
+.account-cinematic .ac-pt-words-line + .ac-pt-words-line{border-top:1px dashed rgba(255,255,255,.05)}
+.account-cinematic .ac-pt-ownwords{grid-column:1/-1;margin-top:14px;padding-top:14px;border-top:1px dashed var(--ac-stroke);display:flex;flex-direction:column;gap:4px}
+.account-cinematic .ac-pt-ownwords .q{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--ac-ink-faint);font-weight:500}
+.account-cinematic .ac-pt-ownwords .t{font-family:var(--ac-serif);font-style:italic;font-size:16px;color:var(--ac-ink);line-height:1.4}
+
+/* ⑤ evoluzione */
+.account-cinematic .ac-pt-evo{position:relative;padding:24px 28px;border:1px solid var(--ac-stroke);border-radius:18px;background:linear-gradient(140deg,rgba(212,168,83,.06),rgba(13,7,13,.55));backdrop-filter:blur(14px);display:flex;flex-direction:column;min-height:150px}
+.account-cinematic .ac-pt-evo::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:2px;background:linear-gradient(to bottom,transparent,var(--ac-gold),transparent)}
+.account-cinematic .ac-pt-evo .mark{display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--ac-gold);font-weight:500;margin-bottom:10px}
+.account-cinematic .ac-pt-evo .mark::before{content:"↗";font-size:12px}
+.account-cinematic .ac-pt-evo .line{font-family:var(--ac-serif);font-style:italic;font-size:17px;color:var(--ac-ink-dim);line-height:1.45;text-wrap:pretty;margin-bottom:16px}
+.account-cinematic .ac-pt-evo .tline{display:flex;align-items:center;gap:8px;font-family:var(--ac-serif);font-style:italic;font-size:11px;color:var(--ac-ink-faint);margin-top:auto}
+.account-cinematic .ac-pt-evo .tline .leg{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.account-cinematic .ac-pt-evo .tline .leg.now{color:var(--ac-gold)}
+.account-cinematic .ac-pt-evo .tline .dot{width:6px;height:6px;border-radius:50%;background:var(--ac-ink-faint);flex-shrink:0}
+.account-cinematic .ac-pt-evo .tline .leg.now .dot{background:var(--ac-gold);box-shadow:0 0 8px var(--ac-gold)}
+.account-cinematic .ac-pt-evo .tline .seg{flex:1;height:1px;background:linear-gradient(to right,var(--ac-ink-faint),var(--ac-gold));min-width:14px;opacity:.45}
+
+/* ⑥ DNA — 5 assi */
+.account-cinematic .ac-pt-details{display:flex;flex-direction:column;align-items:flex-start;gap:16px;padding-top:6px}
+.account-cinematic .ac-pt-toggle{display:inline-flex;align-items:center;gap:10px;font-family:var(--ac-serif);font-style:italic;font-size:13px;color:var(--ac-ink-faint);padding:9px 16px;border:1px dashed var(--ac-stroke-strong);border-radius:999px;background:transparent;letter-spacing:.02em;cursor:pointer;transition:all .25s}
+.account-cinematic .ac-pt-toggle:hover{color:var(--ac-ink);border-color:rgba(255,255,255,.3)}
+.account-cinematic .ac-pt-toggle .chev{display:inline-block;transition:transform .25s;font-style:normal}
+.account-cinematic .ac-pt-toggle.open .chev{transform:rotate(180deg)}
+.account-cinematic .ac-pt-axes{display:grid;grid-template-columns:repeat(2,1fr);gap:20px 40px;padding:28px 32px;border:1px solid var(--ac-stroke);border-radius:18px;background:rgba(13,7,13,.4);backdrop-filter:blur(10px);width:100%}
+.account-cinematic .ac-pt-axis{display:flex;flex-direction:column;gap:8px}
+.account-cinematic .ac-pt-axis.neutral{opacity:.55}
+.account-cinematic .ac-pt-axis-poles{display:flex;align-items:center;justify-content:space-between;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ac-ink-faint)}
+.account-cinematic .ac-pt-axis-poles .on{color:var(--ac-ink)}
+.account-cinematic .ac-pt-axis-track{position:relative;height:3px;border-radius:2px;background:linear-gradient(to right,rgba(255,255,255,.08),rgba(255,255,255,.16),rgba(255,255,255,.08))}
+.account-cinematic .ac-pt-axis-dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;background:var(--ac-accent);transform:translate(-50%,-50%);box-shadow:0 0 0 4px rgba(233,69,96,.16),0 0 12px rgba(233,69,96,.6)}
+.account-cinematic .ac-pt-axis-meta{font-family:var(--ac-serif);font-style:italic;font-size:12px;color:var(--ac-ink-dim);text-align:center}
+
+/* responsive */
+@media (max-width:980px){
+  .account-cinematic .ac-portrait-sec{padding:64px 0}
+  .account-cinematic .ac-pt-head{gap:18px}
+  .account-cinematic .ac-pt-sub{text-align:left}
+  .account-cinematic .ac-pt-card,.account-cinematic .ac-pt-paradox{padding:32px 26px}
+  .account-cinematic .ac-pt-row{grid-template-columns:1fr}
+  .account-cinematic .ac-pt-words.split{grid-template-columns:1fr 1fr}
+  .account-cinematic .ac-pt-axes{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  .account-cinematic .ac-portrait-sec{padding:56px 0}
+  .account-cinematic .ac-pt-title{font-size:28px}
+  .account-cinematic .ac-pt-sub{font-size:15px}
+  .account-cinematic .ac-pt-card,.account-cinematic .ac-pt-paradox{padding:26px 20px;border-radius:20px}
+  .account-cinematic .ac-pt-text{font-size:20px;line-height:1.35}
+  .account-cinematic .ac-pt-paradox-text{font-size:22px}
+  .account-cinematic .ac-pt-words.split{grid-template-columns:1fr;gap:18px}
+  .account-cinematic .ac-pt-card::after{font-size:120px;left:24px}
+}

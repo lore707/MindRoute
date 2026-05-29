@@ -13,6 +13,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useMemo, useState } from "react";
+import { AccountPortrait, type PortraitData } from "./AccountPortrait";
 
 export type Trait = { pct: string; name: string; desc: string; bar: number };
 export type ContinueItem = { title: string; quote?: string; sub?: string; date?: string; img: string; featured?: boolean; href?: string };
@@ -39,6 +40,10 @@ export type AccountData = {
   emWord?: string;             // word/phrase to italicize accent inside profileQuote
   profileByline: string;       // "Distillato dai tuoi 9 viaggi · ..."
   traits: Trait[];
+  // Capitolo II bottom-up dal real-data endpoint (/api/me/portrait). Quando
+  // presente sostituisce la vecchia sezione "profilo viaggiatore"; quando
+  // assente (anonimo / nessun segnale) si ricade sul profilo semplice.
+  portrait?: PortraitData | null;
   continueItems: ContinueItem[]; // first one is featured
   trips: Trip[];
   stats: StatCell[];           // 4 cells in the novelistic stats section
@@ -130,7 +135,15 @@ export function AccountCinematic({ data }: { data: AccountData }) {
         </div>
       </section>
 
-      {/* ② PROFILO VIAGGIATORE */}
+      {/* ② IL TUO RITRATTO (bottom-up, dati reali) — fallback al profilo
+            semplice quando l'endpoint non ha segnale. */}
+      {data.portrait?.available ? (
+        <AccountPortrait
+          data={data.portrait}
+          userName={data.userName}
+          fallbackQuote={data.profileQuote}
+        />
+      ) : (
       <section className="ac-profile">
         <div className="ac-container">
           <div className="ac-profile-grid">
@@ -160,6 +173,7 @@ export function AccountCinematic({ data }: { data: AccountData }) {
           </div>
         </div>
       </section>
+      )}
 
       {/* ③ CONTINUA */}
       {featured && (

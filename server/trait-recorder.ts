@@ -35,6 +35,17 @@ export async function recordPickSnapshot(args: {
       source: "pick",
       sourceItineraryId: itineraryId,
       mappingVersion: MAPPING_VERSION,
+      // Carry the signal that produced this pick. Genuine picks hold the real
+      // quiz selections; "Genera dal profilo" picks hold synthetic canonical
+      // keys. The Ritratto's verbatim seek/avoid reads only "quiz" snapshots,
+      // so synthetic pick signals never surface as the user's words.
+      rawSignal: {
+        answers: profilingInput.answers ?? [],
+        companions: profilingInput.companions ?? null,
+        budget: profilingInput.budget ?? null,
+        travelStyle: profilingInput.travelStyle ?? null,
+        constraints: profilingInput.constraints ?? null,
+      },
     });
   } catch (e) {
     // Trait snapshot is non-critical — never fail the itinerary generation.

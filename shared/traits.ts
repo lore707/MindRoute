@@ -254,6 +254,103 @@ function normalizeChip(label: string): string | null {
   return LABEL_TO_KEY[k] ?? null;
 }
 
+// ── Raw quiz signal → verbatim seek/avoid lists ────────────────────────────
+// The account "Ritratto" quotes what the user *literally selected*. We split
+// the answers into two buckets by which chip map a token belongs to:
+//   - ANTI_TRAITS keys  → "avoid" (cosa ti spegne)   — e.g. "programmi rigidi"
+//   - any positive map  → "seek"  (cosa cerchi)        — e.g. "autentico"
+// Labels are returned verbatim (the user's own words, capitalized) so nothing
+// is paraphrased or invented. Sliders, sentinels and free text are dropped.
+
+const AVOID_KEYS = new Set(Object.keys(ANTI_TRAITS));
+const SEEK_KEYS = new Set([
+  ...Object.keys(STYLE_TRAITS),
+  ...Object.keys(NEED_TRAITS),
+  ...Object.keys(MOMENT_TRAITS),
+  ...Object.keys(TYPE_TRAITS),
+  ...Object.keys(ATMOSPHERE_TRAITS),
+]);
+
+export interface RawSignal {
+  answers: string[];
+  companions: string | null;
+  budget: string | null;
+  travelStyle: string | null;
+  constraints: string | null;
+}
+
+function prettyLabel(token: string): string {
+  const t = token.trim().replace(/\s+/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+export function categorizeSignal(
+  signal: { answers?: string[] | null } | null | undefined,
+): { seek: string[]; avoid: string[] } {
+  const seek: string[] = [];
+  const avoid: string[] = [];
+  const seenSeek = new Set<string>();
+  const seenAvoid = new Set<string>();
+
+  for (const raw of signal?.answers ?? []) {
+    if (typeof raw !== "string") continue;
+    if (/^\s*\d{1,3}\s*($|\|)/.test(raw)) continue; // slider numeric
+    if (/^path_[ab]$/i.test(raw.trim())) continue;  // path sentinels
+
+    for (const tok of raw.split(/[,|]/).map(s => s.trim()).filter(Boolean)) {
+      const key = normalizeChip(tok);
+      if (!key) continue;
+      if (AVOID_KEYS.has(key)) {
+        if (seenAvoid.has(key)) continue;
+        seenAvoid.add(key);
+        avoid.push(prettyLabel(tok));
+      } else if (SEEK_KEYS.has(key)) {
+        if (seenSeek.has(key)) continue;
+        seenSeek.add(key);
+        seek.push(prettyLabel(tok));
+      }
+    }
+  }
+  return { seek, avoid };
+}
+
+// ── Structured axis readout ────────────────────────────────────────────────
+// Turns an aggregated TraitVector into per-axis facts for the "DNA" detail
+// panel and for feeding the Haiku narrative. value is 0-100, pole is the IT
+// label of the dominant side, magnitude flags how decisive the lean is.
+
+export type AxisMagnitude = "neutro" | "lieve" | "chiaro" | "forte";
+
+export interface AxisReadout {
+  axis: Axis;
+  value: number;        // 0-100
+  poleLeft: string;     // IT
+  poleRight: string;    // IT
+  pole: string;         // IT label of dominant side ("" when neutral)
+  magnitude: AxisMagnitude;
+}
+
+export function axisReadout(vector: TraitVector): AxisReadout[] {
+  return (Object.keys(vector) as Axis[]).map(axis => {
+    const v = vector[axis];
+    const labels = AXIS_NAMES[axis];
+    const dist = Math.abs(v - 0.5);
+    let magnitude: AxisMagnitude;
+    if (dist <= 0.10) magnitude = "neutro";
+    else if (dist > 0.30) magnitude = "forte";
+    else if (dist > 0.18) magnitude = "chiaro";
+    else magnitude = "lieve";
+    return {
+      axis,
+      value: Math.round(v * 100),
+      poleLeft: labels.it.left,
+      poleRight: labels.it.right,
+      pole: magnitude === "neutro" ? "" : (v < 0.5 ? labels.it.left : labels.it.right),
+      magnitude,
+    };
+  });
+}
+
 // ── Quiz payload shape ────────────────────────────────────────────────────
 // Loose because the quiz hands us a heterogeneous bag — answers[] mixes
 // chip-multi-selections (often comma-separated within one slot), slider

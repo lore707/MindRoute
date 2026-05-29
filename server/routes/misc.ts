@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { emaAggregate, AXIS_NAMES, type TraitVector, MAPPING_VERSION } from "@shared/traits";
 import { getTraitHeadline } from "../trait-headline";
 import { computeAccountInsights, continentOf, CONTINENT_LABEL_IT } from "../account-insights";
+import { buildPortrait } from "../portrait";
 import { getCachedLandingImageSet } from "../landing-images";
 import { CURATED_DESTINATIONS_FEED, type DestinationsFeedItem } from "@shared/destinations-feed";
 
@@ -64,6 +65,22 @@ export function registerMiscRoutes(app: Express) {
     } catch (err) {
       console.error("trait-history error:", err);
       res.status(500).json({ message: "Errore nel recupero del profilo" });
+    }
+  });
+
+  // GET /api/me/portrait — bottom-up traveller portrait, grounded in real data
+  // (verbatim seek/avoid chips, chosen destinations, revealed quiz↔pick gap,
+  // evolution) + a fact-locked Haiku narrative. Degrades to available:false for
+  // anonymous users or users with no signal yet.
+  app.get("/api/me/portrait", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const portrait = await buildPortrait(user.id);
+      res.json(portrait);
+    } catch (err) {
+      console.error("portrait error:", err);
+      res.status(500).json({ message: "Errore nel recupero del ritratto" });
     }
   });
 
