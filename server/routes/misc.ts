@@ -4,6 +4,7 @@ import { emaAggregate, AXIS_NAMES, type TraitVector, MAPPING_VERSION } from "@sh
 import { getTraitHeadline } from "../trait-headline";
 import { computeAccountInsights, continentOf, CONTINENT_LABEL_IT } from "../account-insights";
 import { buildPortrait } from "../portrait";
+import { buildAtlas } from "../atlas";
 import { getCachedLandingImageSet } from "../landing-images";
 import { CURATED_DESTINATIONS_FEED, type DestinationsFeedItem } from "@shared/destinations-feed";
 
@@ -81,6 +82,22 @@ export function registerMiscRoutes(app: Express) {
     } catch (err) {
       console.error("portrait error:", err);
       res.status(500).json({ message: "Errore nel recupero del ritratto" });
+    }
+  });
+
+  // GET /api/me/atlas — geolocated travel footprint for the account world map.
+  // Resolves a coordinate per destination (recentDestinations cache → live
+  // geocode), returns places[] + unlocated[] + stats. First load may be slower
+  // while it geocodes misses; subsequent loads hit the warm cache.
+  app.get("/api/me/atlas", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const atlas = await buildAtlas(user.id);
+      res.json(atlas);
+    } catch (err) {
+      console.error("atlas error:", err);
+      res.status(500).json({ message: "Errore nel recupero dell'atlante" });
     }
   });
 

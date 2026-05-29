@@ -14,6 +14,7 @@
 
 import { useMemo, useState } from "react";
 import { AccountPortrait, type PortraitData } from "./AccountPortrait";
+import { AccountAtlas, type AtlasData } from "./AccountAtlas";
 
 export type Trait = { pct: string; name: string; desc: string; bar: number };
 export type ContinueItem = { title: string; quote?: string; sub?: string; date?: string; img: string; featured?: boolean; href?: string };
@@ -46,9 +47,13 @@ export type AccountData = {
   portrait?: PortraitData | null;
   continueItems: ContinueItem[]; // first one is featured
   trips: Trip[];
-  stats: StatCell[];           // 4 cells in the novelistic stats section
+  stats: StatCell[];           // 4 cells in the novelistic stats section (fallback)
   statsNarrative: string;      // long sentence with possible <strong></strong> patterns via {bold: string[]}
   statsBold?: string[];        // words to wrap in <strong>
+  // Capitolo V "Atlante" — mappa Leaflet con i luoghi reali (/api/me/atlas).
+  // Quando wired sostituisce la sezione stats; atlasLoading copre il geocoding.
+  atlas?: AtlasData | null;
+  atlasLoading?: boolean;
   settings: SettingRow[];      // 3-9 settings rows
   onNewItinerary?: () => void;
   onSecondaryCta?: () => void; // bottone ghost hero (es. "Genera dal profilo" o scroll-to-collection)
@@ -270,7 +275,15 @@ export function AccountCinematic({ data }: { data: AccountData }) {
         </div>
       </section>
 
-      {/* ⑤ STATS NOVELISTIC */}
+      {/* ⑤ ATLANTE (mappa reale) — fallback alle stats novelistic se non wired */}
+      {(data.atlas !== undefined || data.atlasLoading) ? (
+        <AccountAtlas
+          data={data.atlas ?? null}
+          loading={data.atlasLoading}
+          narrative={data.statsNarrative}
+          narrativeBold={data.statsBold}
+        />
+      ) : (
       <section className="ac-stats-novel">
         <div className="ac-container">
           <div className="ac-stats-intro">
@@ -294,6 +307,7 @@ export function AccountCinematic({ data }: { data: AccountData }) {
           </div>
         </div>
       </section>
+      )}
 
       {/* ⑥ SETTINGS */}
       <section className="ac-settings">

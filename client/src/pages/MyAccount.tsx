@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Heart, GitCompare } from "lucide-react";
 import { AccountCinematic, type AccountData } from "@/components/AccountCinematic";
 import { type PortraitData } from "@/components/AccountPortrait";
+import { type AtlasData } from "@/components/AccountAtlas";
 import { deriveTraitLabels } from "@/lib/trait-labels";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 import type { TraitVector } from "@shared/traits";
@@ -93,6 +94,8 @@ export default function MyAccount() {
   const [insights, setInsights] = useState<AccountInsights | null>(null);
   const [savedMoments, setSavedMoments] = useState<SavedMoment[]>([]);
   const [portrait, setPortrait] = useState<PortraitData | null>(null);
+  const [atlas, setAtlas] = useState<AtlasData | null>(null);
+  const [atlasLoading, setAtlasLoading] = useState(true);
 
   // ── "Genera dal profilo" modal (Ondata C, esteso con defaults pre-compilati + textarea override) ──
   const [showFromProfile, setShowFromProfile] = useState(false);
@@ -157,6 +160,12 @@ export default function MyAccount() {
       .then(r => r.ok ? r.json() : null)
       .then((d: PortraitData | null) => setPortrait(d))
       .catch(() => setPortrait(null));
+
+    fetch("/api/me/atlas")
+      .then(r => r.ok ? r.json() : null)
+      .then((d: AtlasData | null) => setAtlas(d))
+      .catch(() => setAtlas(null))
+      .finally(() => setAtlasLoading(false));
   }, []);
 
   const removeSavedMoment = async (s: SavedMoment) => {
@@ -362,6 +371,8 @@ export default function MyAccount() {
     stats: novelStats,
     statsNarrative,
     statsBold,
+    atlas,
+    atlasLoading,
     settings,
     onNewItinerary: () => setLocation("/profiling"),
     onSecondaryCta: () => {
