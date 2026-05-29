@@ -1,0 +1,301 @@
+/* ───────────────────────────────────────────────────────────────
+ * account-redesign.css — Account v3 ("dossier narrativo" a 5 capitoli)
+ *
+ * Drop-in del package fornito, ma TUTTO scopato sotto `.account` per non
+ * collidere con il resto dell'app: il package originale definiva selettori
+ * globali pericolosi (.hero, .container, .section, .btn-primary, .nav, .photo,
+ * html/body reset…) che avrebbero alterato ogni pagina. Qui ogni regola vive
+ * sotto `.account`, le variabili di tema sono confinate al wrapper e i
+ * keyframes sono rinominati `acr-*` per evitare clash.
+ *
+ * Importato da index.css. Cap V (atlante) riusa il vero AccountAtlas, che
+ * porta i propri stili scoped sotto `.account-cinematic`.
+ * ─────────────────────────────────────────────────────────────── */
+
+.account{
+  --bg:#1a0e1a; --ink:#fbf5f0;
+  --ink-dim:rgba(251,245,240,.78); --ink-faint:rgba(251,245,240,.52);
+  --accent:#E94560; --accent-soft:rgba(233,69,96,.18); --accent-deep:#7A1020;
+  --gold:#D4A853;
+  --stroke:rgba(255,255,255,.08); --stroke-strong:rgba(255,255,255,.18);
+  --serif:"Playfair Display",Georgia,serif;
+  --sans:"DM Sans",system-ui,sans-serif;
+  position:relative;min-height:100vh;color:var(--ink);
+  font-family:var(--sans);line-height:1.6;background:#0d070d;overflow-x:hidden;
+}
+.account *{box-sizing:border-box}
+.account button,.account a{font:inherit;cursor:pointer;border:0;background:none;color:inherit;text-decoration:none}
+
+/* ─── Ambient cross-fade — foto reali dei viaggi dell'utente ─── */
+.account .ax-bg-stage{position:fixed;inset:0;z-index:0;overflow:hidden}
+.account .ax-bg-photo{position:absolute;inset:-3%;background-size:cover;background-position:center;opacity:0;transition:opacity 2s cubic-bezier(.4,.0,.2,1);will-change:opacity;filter:saturate(.9)}
+.account .ax-bg-photo.active{opacity:1}
+.account .ax-bg-stage::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(ellipse 80% 70% at 50% 40%,rgba(26,14,26,.55) 0%,rgba(26,14,26,.92) 70%,rgba(13,7,13,.98) 100%),
+  linear-gradient(125deg,rgba(122,16,32,.30) 0%,transparent 45%,rgba(31,29,58,.40) 100%)}
+.account .ax-grain{position:fixed;inset:0;z-index:1;opacity:.08;mix-blend-mode:overlay;pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .95  0 0 0 0 .92  0 0 0 0 .92  0 0 0 .35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+
+/* ─── Nav ─── */
+.account .nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:18px 40px;backdrop-filter:blur(18px);background:rgba(13,7,13,.45);border-bottom:1px solid var(--stroke)}
+.account .brand{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-size:20px}
+.account .blogo{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFADC0,#E94560 60%,#7A1020);box-shadow:0 0 10px rgba(233,69,96,.5)}
+.account .nav-r{display:flex;align-items:center;gap:14px;font-size:13px;color:var(--ink-dim)}
+.account .nav-bars{display:flex;gap:6px}
+.account .nav-bars span{height:3px;width:24px;border-radius:2px;background:var(--accent)}
+.account .pill{padding:7px 14px;border:1px solid var(--stroke-strong);border-radius:999px;background:rgba(255,255,255,.05);backdrop-filter:blur(8px)}
+.account .nav-profile{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border:1px solid var(--stroke-strong);border-radius:999px;background:rgba(255,255,255,.05);cursor:pointer;transition:all .25s}
+.account .nav-profile:hover{border-color:rgba(233,69,96,.4);background:rgba(233,69,96,.08)}
+.account .nav-profile .av{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#3a1e2e,#1a0e1a);border:1px solid rgba(233,69,96,.4);display:grid;place-items:center;color:var(--ink);font-size:11px;font-weight:500}
+.account .nav-profile .nm{color:var(--accent);font-weight:500;font-size:13px}
+.account .nav-cta{padding:9px 18px;border-radius:999px;border:1px solid rgba(233,69,96,.6);color:var(--accent);background:rgba(233,69,96,.12);backdrop-filter:blur(8px)}
+
+/* ─── Step rail ─── */
+.account .step-rail{position:fixed;left:32px;top:50%;transform:translateY(-50%);z-index:30;display:flex;flex-direction:column;gap:14px;align-items:center}
+.account .step-rail::before{content:"";position:absolute;left:50%;top:18px;bottom:18px;width:1px;background:linear-gradient(to bottom,transparent,rgba(255,255,255,.16) 20%,rgba(255,255,255,.16) 80%,transparent);transform:translateX(-50%);z-index:-1}
+.account .step-dot{width:34px;height:34px;border-radius:50%;background:rgba(13,7,13,.6);backdrop-filter:blur(8px);border:1px solid var(--stroke-strong);display:grid;place-items:center;color:var(--ink-faint);font-family:var(--serif);font-style:italic;font-size:13px;cursor:pointer;transition:all .3s;text-align:center;line-height:1}
+.account .step-dot:hover{color:var(--ink);border-color:rgba(255,255,255,.4)}
+.account .step-dot.active{width:42px;height:42px;background:var(--accent);color:#1a0508;border-color:var(--accent);font-weight:500;font-style:normal;font-family:var(--sans);box-shadow:0 0 24px rgba(233,69,96,.6),0 0 0 4px rgba(233,69,96,.15)}
+
+/* ─── Shared shells ─── */
+.account .stage{position:relative;z-index:5;padding-top:88px}
+.account .container{max-width:1440px;margin:0 auto;padding:0 56px 0 100px;width:100%;position:relative}
+
+.account .section{padding:90px 0 30px;position:relative}
+.account .section:last-of-type{padding-bottom:120px}
+
+.account .chapter-head{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:46px;flex-wrap:wrap}
+.account .chapter-eyebrow{display:inline-flex;align-items:center;gap:12px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);margin-bottom:18px;font-weight:500}
+.account .chapter-eyebrow::before{content:"";width:36px;height:1px;background:linear-gradient(to right,transparent,var(--accent))}
+.account .chapter-eyebrow .num{font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:.02em;font-size:15px;color:var(--accent);font-weight:400}
+.account .chapter-title{font-family:var(--serif);font-size:clamp(38px,4.5vw,64px);font-weight:400;line-height:1.0;letter-spacing:-.02em;max-width:780px;text-wrap:balance;text-shadow:0 4px 32px rgba(0,0,0,.55)}
+.account .chapter-title em{font-style:italic;color:var(--accent);text-shadow:0 0 50px rgba(233,69,96,.4)}
+.account .chapter-title em.gold{color:var(--gold);text-shadow:0 0 50px rgba(212,168,83,.35)}
+.account .chapter-sub{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--ink-dim);max-width:520px;line-height:1.5;text-wrap:pretty;text-align:right}
+
+/* ════════════════ HERO ════════════════ */
+.account .hero{position:relative;min-height:96vh;display:flex;flex-direction:column;justify-content:flex-end;padding:0 0 90px;z-index:5}
+.account .hero-photo{position:absolute;inset:0;background-size:cover;background-position:center;z-index:-1;transition:opacity 1.4s ease}
+.account .hero-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,7,13,.35) 0%,rgba(13,7,13,.65) 60%,rgba(13,7,13,.98) 100%),linear-gradient(110deg,rgba(13,7,13,.5),transparent 45%)}
+
+.account .hero-content{position:relative;z-index:2;padding:0 56px 0 100px;max-width:1440px;margin:0 auto;width:100%}
+.account .hero-eyebrow{font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink-dim);margin-bottom:14px;letter-spacing:.01em}
+.account .hero-title{font-family:var(--serif);font-size:clamp(70px,8.5vw,140px);font-weight:400;line-height:.92;letter-spacing:-.03em;margin-bottom:46px;color:var(--ink);text-shadow:0 6px 50px rgba(0,0,0,.65)}
+.account .hero-title em{font-style:italic;color:var(--gold);text-shadow:0 0 60px rgba(212,168,83,.45)}
+.account .hero-title .dot{color:var(--accent)}
+
+.account .hero-row{display:flex;align-items:center;gap:36px;flex-wrap:wrap}
+.account .hero-avatar{width:92px;height:92px;border-radius:50%;background:linear-gradient(135deg,#3a1e2e,#1a0e1a);border:1px solid rgba(233,69,96,.3);display:grid;place-items:center;font-family:var(--serif);font-size:36px;color:var(--ink);font-style:italic;backdrop-filter:blur(10px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.account .hero-stats{display:flex;gap:38px;flex-wrap:wrap;align-items:center}
+.account .hero-stat{display:flex;align-items:baseline;gap:10px;color:var(--ink-dim)}
+.account .hero-stat .n{font-family:var(--serif);font-style:italic;font-size:38px;color:var(--ink);line-height:1;letter-spacing:-.01em}
+.account .hero-stat .l{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-faint)}
+.account .hero-actions{display:flex;gap:12px;margin-left:auto;flex-wrap:wrap}
+.account .btn-primary{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:10px;padding:15px 28px;border-radius:999px;background:var(--accent);color:#1a0508;font-weight:500;font-size:14px;box-shadow:0 14px 40px -8px rgba(233,69,96,.7);transition:all .25s;letter-spacing:.02em}
+.account .btn-primary:hover{transform:translateY(-2px);box-shadow:0 20px 50px -8px rgba(233,69,96,.9)}
+.account .btn-primary::after{content:"";position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);animation:acr-shim 4s ease-in-out infinite;animation-delay:1s}
+.account .btn-ghost{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;border:1px solid var(--stroke-strong);border-radius:999px;background:rgba(13,7,13,.45);backdrop-filter:blur(10px);color:var(--ink);font-size:13px;letter-spacing:.04em;transition:all .25s}
+.account .btn-ghost:hover{border-color:rgba(233,69,96,.5);color:var(--accent)}
+@keyframes acr-shim{0%,30%{left:-120%}55%{left:140%}100%{left:140%}}
+
+/* ════════════════ Cap II — IL RITRATTO ════════════════ */
+.account .portrait{display:flex;flex-direction:column;gap:18px;max-width:1180px}
+
+.account .portrait-card{position:relative;padding:54px 64px 44px;border:1px solid var(--stroke-strong);border-radius:28px;background:linear-gradient(150deg,rgba(42,20,34,.6),rgba(26,14,26,.78));backdrop-filter:blur(22px);overflow:hidden}
+.account .portrait-card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,var(--accent),transparent)}
+.account .portrait-card::after{content:"\201C";position:absolute;top:-26px;left:42px;font-family:var(--serif);font-style:italic;font-size:180px;color:rgba(233,69,96,.10);line-height:1;pointer-events:none}
+.account .portrait-mark{display:flex;align-items:center;gap:12px;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:22px;font-weight:500;position:relative;z-index:1}
+.account .portrait-mark .star{color:var(--accent);font-size:14px}
+.account .portrait-mark .sep{width:24px;height:1px;background:rgba(233,69,96,.4)}
+.account .portrait-mark .who{color:var(--accent);font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:.02em;font-size:13px;font-weight:400}
+.account .portrait-text{font-family:var(--serif);font-size:clamp(26px,2.5vw,38px);font-weight:400;line-height:1.28;color:var(--ink);letter-spacing:-.01em;text-wrap:pretty;position:relative;z-index:1;max-width:980px}
+.account .portrait-text em{font-style:italic;color:var(--accent)}
+.account .portrait-text strong{font-weight:500;color:var(--ink);font-style:normal}
+
+.account .portrait-evidence{margin-top:26px;padding-top:20px;border-top:1px dashed var(--stroke);position:relative;z-index:1;display:flex;align-items:flex-start;gap:14px;max-width:920px}
+.account .portrait-evidence .pin{font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink-faint);letter-spacing:.16em;text-transform:uppercase;white-space:nowrap;padding-top:3px}
+.account .portrait-evidence .body{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-faint);line-height:1.55;text-wrap:pretty}
+.account .portrait-evidence .body em{color:var(--ink-dim);font-style:italic}
+
+.account .portrait-source{margin-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;position:relative;z-index:1}
+.account .portrait-source .left{display:flex;align-items:center;gap:14px;color:var(--ink-faint);font-family:var(--serif);font-style:italic;font-size:12px}
+.account .portrait-source .left .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.account .portrait-source .right{display:flex;gap:8px;align-items:center}
+.account .portrait-action{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid var(--stroke-strong);border-radius:999px;background:rgba(255,255,255,.04);font-size:11px;color:var(--ink-dim);letter-spacing:.02em;transition:all .25s}
+.account .portrait-action:hover{color:var(--ink);border-color:rgba(233,69,96,.4)}
+.account .portrait-action.refresh::before{content:"↻";font-size:13px}
+.account .portrait-action.share::before{content:"↗";font-size:13px}
+
+.account .paradox-card{position:relative;padding:48px 64px 44px;border:1px solid rgba(212,168,83,.35);border-radius:28px;background:linear-gradient(160deg,rgba(212,168,83,.16),rgba(26,14,26,.75));backdrop-filter:blur(22px);overflow:hidden}
+.account .paradox-card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent)}
+.account .paradox-card::after{content:"";position:absolute;bottom:-30%;right:-10%;width:55%;height:90%;border-radius:50%;background:radial-gradient(circle,rgba(212,168,83,.20),transparent 70%);pointer-events:none}
+.account .paradox-mark{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:18px;font-weight:500;position:relative;z-index:1}
+.account .paradox-mark::before{content:"❋";color:var(--gold);font-size:14px}
+.account .paradox-title{font-family:var(--serif);font-style:italic;font-size:clamp(28px,3vw,44px);line-height:1.1;color:var(--ink);letter-spacing:-.01em;margin-bottom:14px;position:relative;z-index:1;text-wrap:balance;max-width:880px}
+.account .paradox-title em{color:var(--gold);font-style:italic}
+.account .paradox-text{font-family:var(--serif);font-size:18px;line-height:1.55;color:var(--ink-dim);text-wrap:pretty;position:relative;z-index:1;max-width:820px}
+.account .paradox-text strong{color:var(--ink);font-weight:500;font-style:italic}
+
+.account .portrait-divider{display:flex;align-items:center;gap:14px;margin:14px 0 2px;color:var(--ink-faint);font-family:var(--serif);font-style:italic;font-size:12px;letter-spacing:.04em}
+.account .portrait-divider::before,.account .portrait-divider::after{content:"";flex:1;height:1px;background:linear-gradient(to right,transparent,var(--stroke),transparent)}
+.account .portrait-divider::after{background:linear-gradient(to left,transparent,var(--stroke),transparent)}
+
+.account .whisper-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.account .whisper-card{position:relative;padding:24px 28px 22px;border:1px solid var(--stroke);border-radius:18px;background:linear-gradient(140deg,rgba(26,14,26,.45),rgba(13,7,13,.6));backdrop-filter:blur(14px)}
+.account .whisper-card.split{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.account .whisper-col{display:flex;flex-direction:column;gap:8px}
+.account .whisper-mark{display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-faint);font-weight:500;margin-bottom:4px}
+.account .whisper-mark .glyph{font-family:var(--sans);font-size:11px;font-weight:600;width:16px;height:16px;border-radius:50%;display:grid;place-items:center}
+.account .whisper-col.avoid .whisper-mark{color:rgba(233,69,96,.85)}
+.account .whisper-col.avoid .whisper-mark .glyph{background:rgba(233,69,96,.18);border:1px solid rgba(233,69,96,.45);color:var(--accent)}
+.account .whisper-col.seek .whisper-mark{color:rgba(111,180,168,.95)}
+.account .whisper-col.seek .whisper-mark .glyph{background:rgba(111,180,168,.18);border:1px solid rgba(111,180,168,.45);color:#6FB4A8}
+.account .whisper-line{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--ink-dim);line-height:1.45;padding:5px 0;text-wrap:pretty}
+.account .whisper-line strong{color:var(--ink);font-weight:500;font-style:italic;font-family:var(--serif)}
+.account .whisper-line + .whisper-line{border-top:1px dashed rgba(255,255,255,.05)}
+
+.account .whisper-evo{position:relative;padding:24px 28px;border:1px solid var(--stroke);border-radius:18px;background:linear-gradient(140deg,rgba(212,168,83,.06),rgba(13,7,13,.55));backdrop-filter:blur(14px);display:flex;flex-direction:column;justify-content:space-between;min-height:160px}
+.account .whisper-evo::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:2px;background:linear-gradient(to bottom,transparent,var(--gold),transparent)}
+.account .whisper-evo .mark{display:flex;align-items:center;gap:8px;font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);font-weight:500;margin-bottom:8px}
+.account .whisper-evo .mark::before{content:"↗";font-size:12px}
+.account .whisper-evo .line{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-dim);line-height:1.5;text-wrap:pretty;margin-bottom:14px}
+.account .whisper-evo .line strong{color:var(--ink);font-style:italic;font-weight:500}
+.account .whisper-evo .line em.then{color:var(--ink-faint)}
+.account .whisper-evo .line em.now{color:var(--gold)}
+.account .whisper-evo .tline{display:flex;align-items:center;gap:8px;font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink-faint);margin-top:auto}
+.account .whisper-evo .tline .dot{width:6px;height:6px;border-radius:50%;background:var(--ink-faint);flex-shrink:0}
+.account .whisper-evo .tline .now .dot{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.account .whisper-evo .tline .leg{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.account .whisper-evo .tline .leg.now{color:var(--gold)}
+.account .whisper-evo .tline .seg{flex:1;height:1px;background:linear-gradient(to right,var(--ink-faint),var(--gold));min-width:14px;opacity:.4}
+
+.account .details{display:flex;flex-direction:column;align-items:flex-start;gap:14px;padding-top:8px}
+.account .details-toggle{display:inline-flex;align-items:center;gap:10px;font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink-faint);padding:8px 14px;border:1px dashed var(--stroke-strong);border-radius:999px;background:transparent;letter-spacing:.02em;transition:all .25s}
+.account .details-toggle:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+.account .details-toggle .chev{display:inline-block;transition:transform .25s;font-style:normal}
+.account .details-toggle.open .chev{transform:rotate(180deg)}
+
+.account .details-panel{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 24px;padding:24px 28px;border:1px solid var(--stroke);border-radius:18px;background:rgba(13,7,13,.4);backdrop-filter:blur(10px);width:100%;max-width:780px}
+.account .details-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.05)}
+.account .details-row .nm{font-family:var(--sans);font-size:10px;color:var(--ink-faint);letter-spacing:.18em;text-transform:uppercase}
+.account .details-row .v{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--ink-dim)}
+.account .details-row .v em{color:var(--accent);font-style:italic;font-weight:500}
+
+/* ════════════════ Cap III — Da riprendere ════════════════ */
+.account .resume-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+.account .resume-main{position:relative;border-radius:24px;overflow:hidden;border:1px solid var(--stroke-strong);min-height:520px;background:#0d070d;box-shadow:0 30px 80px -30px rgba(0,0,0,.55)}
+.account .resume-main .photo{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
+.account .resume-main .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,7,13,.15) 0%,rgba(13,7,13,.55) 50%,rgba(13,7,13,.96) 100%)}
+.account .resume-content{position:absolute;inset:0;padding:32px 36px;display:flex;flex-direction:column;z-index:2}
+.account .resume-badge{display:inline-flex;align-items:center;gap:10px;padding:7px 16px 7px 12px;border-radius:999px;background:rgba(233,69,96,.18);border:1px solid rgba(233,69,96,.5);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:500;align-self:flex-start;backdrop-filter:blur(10px)}
+.account .resume-badge .pulse{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:acr-pulse 1.4s ease-in-out infinite}
+@keyframes acr-pulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+.account .resume-foot{margin-top:auto}
+.account .resume-name{font-family:var(--serif);font-size:clamp(38px,4.2vw,58px);line-height:.98;color:#fff;letter-spacing:-.015em;margin-bottom:14px;text-wrap:balance;text-shadow:0 4px 32px rgba(0,0,0,.55)}
+.account .resume-quote{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink-dim);line-height:1.5;max-width:560px;margin-bottom:24px;text-wrap:pretty}
+.account .resume-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.account .resume-side{display:flex;flex-direction:column;gap:14px}
+.account .resume-mini{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--stroke);min-height:253px;background:#0d070d;cursor:pointer;transition:all .3s}
+.account .resume-mini:hover{border-color:rgba(233,69,96,.4);transform:translateY(-2px);box-shadow:0 18px 40px -16px rgba(0,0,0,.5)}
+.account .resume-mini .photo{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .7s ease}
+.account .resume-mini:hover .photo{transform:scale(1.05)}
+.account .resume-mini .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,7,13,.1) 0%,rgba(13,7,13,.55) 60%,rgba(13,7,13,.95) 100%)}
+.account .resume-mini .mini-content{position:absolute;inset:0;padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;z-index:2}
+.account .resume-mini .arrow{align-self:flex-end;width:34px;height:34px;border-radius:50%;background:rgba(13,7,13,.55);backdrop-filter:blur(10px);display:grid;place-items:center;color:var(--ink);transition:all .25s;border:1px solid rgba(255,255,255,.12)}
+.account .resume-mini:hover .arrow{background:var(--accent);color:#1a0508;border-color:var(--accent)}
+.account .resume-mini-meta{font-family:var(--sans);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px;font-weight:500}
+.account .resume-mini-name{font-family:var(--serif);font-size:22px;color:#fff;line-height:1.1;letter-spacing:-.01em;text-shadow:0 2px 16px rgba(0,0,0,.5)}
+
+/* ════════════════ Cap IV — Collection ════════════════ */
+.account .coll-bar{display:flex;align-items:center;gap:18px;margin-bottom:24px;flex-wrap:wrap}
+.account .coll-search{flex:1;min-width:240px;max-width:320px;position:relative}
+.account .coll-search input{width:100%;padding:11px 18px 11px 42px;border:1px solid var(--stroke-strong);border-radius:999px;background:rgba(13,7,13,.5);backdrop-filter:blur(10px);font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;transition:all .2s}
+.account .coll-search input:focus{border-color:var(--accent);background:rgba(233,69,96,.05)}
+.account .coll-search input::placeholder{color:var(--ink-faint)}
+.account .coll-search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--ink-faint)}
+.account .coll-filters{display:flex;gap:6px;padding:3px;background:rgba(13,7,13,.5);border:1px solid var(--stroke);border-radius:999px;backdrop-filter:blur(10px)}
+.account .coll-filter{padding:8px 16px;border-radius:999px;font-size:12px;color:var(--ink-dim);transition:all .2s;letter-spacing:.02em;cursor:pointer}
+.account .coll-filter.on{background:var(--accent);color:#1a0508;font-weight:500}
+.account .coll-filter:hover:not(.on){color:var(--ink)}
+
+.account .coll-tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--stroke);padding-bottom:0;flex-wrap:wrap}
+.account .coll-tab{padding:11px 18px;font-size:13px;color:var(--ink-dim);letter-spacing:.02em;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;transition:all .2s;font-family:var(--serif);font-style:italic}
+.account .coll-tab:hover{color:var(--ink)}
+.account .coll-tab.on{color:var(--accent);border-bottom-color:var(--accent);font-style:normal;font-family:var(--sans);text-transform:uppercase;letter-spacing:.18em;font-size:11px;font-weight:500}
+
+.account .coll-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.account .coll-card{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--stroke);min-height:380px;background:#0d070d;cursor:pointer;transition:all .35s}
+.account .coll-card:hover{transform:translateY(-3px);border-color:rgba(233,69,96,.4);box-shadow:0 20px 50px -16px rgba(0,0,0,.55)}
+.account .coll-card .photo{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .8s ease}
+.account .coll-card:hover .photo{transform:scale(1.04)}
+.account .coll-card .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,7,13,.05) 0%,rgba(13,7,13,.5) 55%,rgba(13,7,13,.95) 100%)}
+.account .coll-card-content{position:absolute;inset:0;padding:24px 26px;display:flex;flex-direction:column;justify-content:space-between;z-index:2}
+.account .coll-card-top{display:flex;align-items:center;justify-content:space-between;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.7);font-weight:500;gap:10px}
+.account .coll-card-top .when{display:flex;align-items:center;gap:8px}
+.account .coll-card-top .region{padding:4px 10px;border-radius:999px;background:rgba(13,7,13,.5);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12)}
+.account .coll-card-top .days{font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:.02em;color:var(--accent);font-size:13px}
+.account .coll-card-bottom .name{font-family:var(--serif);font-size:26px;color:#fff;line-height:1.1;letter-spacing:-.01em;margin-bottom:8px;text-wrap:balance;text-shadow:0 2px 20px rgba(0,0,0,.55)}
+.account .coll-card-bottom .blurb{font-family:var(--serif);font-style:italic;font-size:13px;color:rgba(255,255,255,.78);line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-wrap:pretty}
+
+.account .coll-empty{grid-column:1/-1;padding:60px 20px;text-align:center;font-family:var(--serif);font-style:italic;font-size:16px;color:var(--ink-faint)}
+.account .coll-more{display:flex;justify-content:center;margin-top:34px}
+
+/* ════════════════ Cap V — Atlas (settings rail v3) ════════════════ */
+.account .atlas-quote{margin-top:42px;text-align:center;font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink-dim);line-height:1.4;max-width:780px;margin-left:auto;margin-right:auto;text-wrap:balance}
+.account .atlas-quote em{color:var(--gold);font-style:italic}
+
+.account .settings-rail{margin:70px 0 0;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px 36px;border:1px solid var(--stroke);border-radius:20px;background:linear-gradient(135deg,rgba(26,14,26,.5),rgba(13,7,13,.7));backdrop-filter:blur(14px)}
+.account .settings-rail-text{display:flex;flex-direction:column;gap:4px}
+.account .settings-rail-text .l{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+.account .settings-rail-text .v{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--ink-dim)}
+.account .settings-rail-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ─── Settings drawer ─── */
+.account .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:60;opacity:0;pointer-events:none;transition:opacity .3s}
+.account .drawer-overlay.open{opacity:1;pointer-events:auto}
+
+.account .drawer{position:fixed;top:0;right:0;bottom:0;width:min(520px,100vw);background:linear-gradient(180deg,rgba(26,14,26,.96),rgba(13,7,13,.98));border-left:1px solid var(--stroke-strong);z-index:70;transform:translateX(100%);transition:transform .4s cubic-bezier(.2,.7,.2,1);backdrop-filter:blur(24px);overflow-y:auto}
+.account .drawer.open{transform:translateX(0)}
+.account .drawer-head{padding:30px 36px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--stroke)}
+.account .drawer-head-text{display:flex;flex-direction:column;gap:4px}
+.account .drawer-head-text .l{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.account .drawer-head-text .v{font-family:var(--serif);font-size:24px;color:var(--ink);letter-spacing:-.01em}
+.account .drawer-close{width:36px;height:36px;border-radius:50%;border:1px solid var(--stroke-strong);background:rgba(255,255,255,.04);display:grid;place-items:center;color:var(--ink);font-size:18px;transition:all .2s}
+.account .drawer-close:hover{border-color:var(--accent);color:var(--accent);background:rgba(233,69,96,.1)}
+
+.account .drawer-body{padding:24px 36px 36px;display:flex;flex-direction:column;gap:32px}
+.account .drawer-group{display:flex;flex-direction:column;gap:12px}
+.account .drawer-group-head{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-faint);font-weight:500;display:flex;align-items:center;gap:10px}
+.account .drawer-group-head::after{content:"";flex:1;height:1px;background:linear-gradient(to right,var(--stroke),transparent)}
+
+.account .drawer-row{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border:1px solid var(--stroke);border-radius:12px;background:rgba(255,255,255,.02);transition:all .2s;cursor:pointer}
+.account .drawer-row:hover{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.04)}
+.account .drawer-row .lbl{font-family:var(--serif);font-size:15px;color:var(--ink)}
+.account .drawer-row .val{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink-faint);display:flex;align-items:center;gap:8px}
+.account .drawer-row .val::after{content:"›";font-style:normal;color:var(--ink-faint);font-size:18px}
+
+.account .drawer-danger{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.account .drawer-btn-signout{flex:1;padding:13px 20px;border:1px solid var(--stroke-strong);border-radius:12px;background:rgba(255,255,255,.02);color:var(--ink-dim);font-size:13px;text-align:center;letter-spacing:.02em;transition:all .2s}
+.account .drawer-btn-signout:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+.account .drawer-btn-delete{flex:1;padding:13px 20px;border:1px solid rgba(233,69,96,.4);border-radius:12px;background:rgba(233,69,96,.06);color:var(--accent);font-size:13px;text-align:center;letter-spacing:.02em;transition:all .2s}
+.account .drawer-btn-delete:hover{background:rgba(233,69,96,.15);border-color:var(--accent)}
+
+@media (max-width:1100px){
+  .account .container{padding:0 28px}
+  .account .step-rail{display:none}
+  .account .hero-content{padding:0 28px}
+  .account .resume-grid{grid-template-columns:1fr}
+  .account .whisper-row{grid-template-columns:1fr}
+  .account .whisper-card.split{grid-template-columns:1fr}
+  .account .portrait-card,.account .paradox-card{padding:38px 32px}
+  .account .details-panel{grid-template-columns:1fr 1fr}
+  .account .coll-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:680px){
+  .account .coll-grid{grid-template-columns:1fr}
+  .account .hero-stat .n{font-size:30px}
+  .account .hero-stats{gap:24px}
+  .account .nav{padding:14px 20px}
+  .account .nav-cta{display:none}
+}

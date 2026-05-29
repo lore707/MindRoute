@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Heart, GitCompare } from "lucide-react";
-import { AccountCinematic, type AccountData } from "@/components/AccountCinematic";
+import { type AccountData } from "@/components/AccountCinematic";
+import { AccountRedesign } from "@/components/AccountRedesign";
 import { type PortraitData } from "@/components/AccountPortrait";
 import { type AtlasData } from "@/components/AccountAtlas";
 import { deriveTraitLabels } from "@/lib/trait-labels";
@@ -401,7 +402,7 @@ export default function MyAccount() {
 
   return (
     <>
-      <AccountCinematic data={accountData} />
+      <AccountRedesign data={accountData} />
 
       {/* Sezioni custom appendute dopo il design — preservano funzionalità
           non coperte dal componente cinematic (Ondata B saved moments + CTA
