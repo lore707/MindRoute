@@ -131,42 +131,65 @@ export default function MyAccount() {
   };
 
   useEffect(() => {
+    // ── Percorso critico: auth + viaggi. Sbloccano subito il render (hero +
+    // collezione). Tutto il resto è sotto la piega e viene idratato dopo, così
+    // non compete col primo paint per rete e pool DB.
     fetch("/api/auth/me")
       .then(r => r.ok ? r.json() : null)
       .then(data => setUser(data))
       .catch(() => setUser(null));
 
+    let cancelled = false;
     fetch("/api/my-trips")
       .then(r => r.ok ? r.json() : [])
-      .then(data => setTrips(Array.isArray(data) ? data : []))
-      .catch(() => setTrips([]))
-      .finally(() => setLoading(false));
+      .then(data => { if (!cancelled) setTrips(Array.isArray(data) ? data : []); })
+      .catch(() => { if (!cancelled) setTrips([]); })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
 
-    fetch("/api/me/trait-history")
-      .then(r => r.ok ? r.json() : null)
-      .then((data: TraitHistory | null) => setTraitHistory(data))
-      .catch(() => setTraitHistory(null));
+        // ── Secondari: lanciati dopo il primo paint. I più lenti (ritratto e
+        // headline via Haiku, atlante geocodato) non bloccano la pagina.
+        const loadSecondary = () => {
+          if (cancelled) return;
 
-    fetch("/api/me/account-insights")
-      .then(r => r.ok ? r.json() : null)
-      .then((data: AccountInsights | null) => setInsights(data))
-      .catch(() => setInsights(null));
+          fetch("/api/me/account-insights")
+            .then(r => r.ok ? r.json() : null)
+            .then((d: AccountInsights | null) => setInsights(d))
+            .catch(() => setInsights(null));
 
-    fetch("/api/me/saved-moments")
-      .then(r => r.ok ? r.json() : [])
-      .then((rows: SavedMoment[]) => setSavedMoments(Array.isArray(rows) ? rows : []))
-      .catch(() => setSavedMoments([]));
+          fetch("/api/me/saved-moments")
+            .then(r => r.ok ? r.json() : [])
+            .then((rows: SavedMoment[]) => setSavedMoments(Array.isArray(rows) ? rows : []))
+            .catch(() => setSavedMoments([]));
 
-    fetch("/api/me/portrait")
-      .then(r => r.ok ? r.json() : null)
-      .then((d: PortraitData | null) => setPortrait(d))
-      .catch(() => setPortrait(null));
+          fetch("/api/me/atlas")
+            .then(r => r.ok ? r.json() : null)
+            .then((d: AtlasData | null) => setAtlas(d))
+            .catch(() => setAtlas(null))
+            .finally(() => setAtlasLoading(false));
 
-    fetch("/api/me/atlas")
-      .then(r => r.ok ? r.json() : null)
-      .then((d: AtlasData | null) => setAtlas(d))
-      .catch(() => setAtlas(null))
-      .finally(() => setAtlasLoading(false));
+          fetch("/api/me/trait-history")
+            .then(r => r.ok ? r.json() : null)
+            .then((d: TraitHistory | null) => setTraitHistory(d))
+            .catch(() => setTraitHistory(null));
+
+          fetch("/api/me/portrait")
+            .then(r => r.ok ? r.json() : null)
+            .then((d: PortraitData | null) => setPortrait(d))
+            .catch(() => setPortrait(null));
+        };
+
+        // requestIdleCallback quando disponibile, altrimenti microtimeout: in
+        // entrambi i casi dopo che il browser ha dipinto hero + collezione.
+        const ric = (window as any).requestIdleCallback as
+          | ((cb: () => void, opts?: { timeout: number }) => number)
+          | undefined;
+        if (ric) ric(loadSecondary, { timeout: 800 });
+        else setTimeout(loadSecondary, 50);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   const removeSavedMoment = async (s: SavedMoment) => {

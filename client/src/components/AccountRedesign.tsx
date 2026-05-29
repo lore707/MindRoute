@@ -18,10 +18,21 @@
  * Stili in styles/account-redesign.css, scoped sotto `.account`.
  * ─────────────────────────────────────────────────────────────── */
 
-import { useEffect, useMemo, useState } from "react";
-import { AccountAtlas } from "./AccountAtlas";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
+import { unsplashSized } from "@/lib/img";
+
+// Leaflet è pesante: l'atlante è sotto la piega → lazy-load così il bundle
+// iniziale di MyAccount non trascina Leaflet e la pagina parte prima.
+const AccountAtlas = lazy(() => import("./AccountAtlas").then(m => ({ default: m.AccountAtlas })));
 import type { AccountData } from "./AccountCinematic";
 import type { PortraitData } from "./AccountPortrait";
+
+// Tetto di immagini nel crossfade ambient: con molti viaggi caricarle tutte a
+// piena risoluzione è il principale collo di bottiglia. Ne teniamo poche e
+// ridimensionate (lo sfondo è scurito/sfocato, non serve full-res).
+const AMBIENT_MAX = 5;
+// background-image helper: ridimensiona le Unsplash per lo slot reale.
+const bg = (url: string, w: number, q = 70) => `url(${unsplashSized(url, w, q)})`;
 
 const STEP_IDS = ["sec-hero", "sec-reading", "sec-resume", "sec-coll", "sec-atlas"];
 const DURATION_FILTERS = ["Tutte", "≤3 giorni", "4–7 giorni", "8+ giorni"];
@@ -223,10 +234,12 @@ export function AccountRedesign({ data }: { data: AccountData }) {
   const [search, setSearch] = useState("");
 
   // Immagini per il crossfade ambient: le cover reali dei viaggi, fallback hero.
+  // Cap a poche e ridimensionate per non scaricare 16 full-res allo start.
   const ambient = useMemo(() => {
     const imgs = data.trips.map(t => t.img).filter(Boolean);
-    const uniq = Array.from(new Set(imgs));
-    return uniq.length > 0 ? uniq : [data.heroImg];
+    const uniq = Array.from(new Set(imgs)).slice(0, AMBIENT_MAX);
+    const list = uniq.length > 0 ? uniq : [data.heroImg];
+    return list.map(src => unsplashSized(src, 1280, 55));
   }, [data.trips, data.heroImg]);
 
   // Ambient crossfade
@@ -298,7 +311,7 @@ export function AccountRedesign({ data }: { data: AccountData }) {
 
         {/* ════════ Cap I — Hero ════════ */}
         <section id="sec-hero" className="hero">
-          <div className="hero-photo" style={{ backgroundImage: `url(${data.heroImg})` }} />
+          <div className="hero-photo" style={{ backgroundImage: bg(data.heroImg, 1920) }} />
           <div className="hero-content">
             <div className="hero-eyebrow">{data.greeting ?? "Bentornato,"}</div>
             <h1 className="hero-title">{data.userName}, il tuo<br /><em>MindRoute<span className="dot">.</span></em></h1>
@@ -346,7 +359,7 @@ export function AccountRedesign({ data }: { data: AccountData }) {
 
               <div className="resume-grid">
                 <a className="resume-main" href={featured.href ?? "#"}>
-                  <div className="photo" style={{ backgroundImage: `url(${featured.img})` }} />
+                  <div className="photo" style={{ backgroundImage: bg(featured.img, 1280) }} />
                   <div className="resume-content">
                     {featured.date && <div className="resume-badge"><span className="pulse" />Ultimo aperto · {featured.date}</div>}
                     <div className="resume-foot">
@@ -363,7 +376,7 @@ export function AccountRedesign({ data }: { data: AccountData }) {
                 <div className="resume-side">
                   {sides.map((t, i) => (
                     <a key={i} className="resume-mini" href={t.href ?? "#"}>
-                      <div className="photo" style={{ backgroundImage: `url(${t.img})` }} />
+                      <div className="photo" style={{ backgroundImage: bg(t.img, 800) }} />
                       <div className="mini-content">
                         <div className="arrow">↗</div>
                         <div>
@@ -411,7 +424,7 @@ export function AccountRedesign({ data }: { data: AccountData }) {
             <div className="coll-grid">
               {filteredTrips.map((t, i) => (
                 <a key={i} className="coll-card" href={t.href ?? "#"}>
-                  <div className="photo" style={{ backgroundImage: `url(${t.img})` }} />
+                  <div className="photo" style={{ backgroundImage: bg(t.img, 800) }} />
                   <div className="coll-card-content">
                     <div className="coll-card-top">
                       <div className="when">
@@ -438,12 +451,14 @@ export function AccountRedesign({ data }: { data: AccountData }) {
         <section id="sec-atlas" className="section">
           {/* AccountAtlas porta i propri stili scoped sotto .account-cinematic */}
           <div className="account-cinematic">
-            <AccountAtlas
-              data={data.atlas ?? null}
-              loading={data.atlasLoading}
-              narrative={data.statsNarrative}
-              narrativeBold={data.statsBold}
-            />
+            <Suspense fallback={<div style={{ minHeight: 320 }} />}>
+              <AccountAtlas
+                data={data.atlas ?? null}
+                loading={data.atlasLoading}
+                narrative={data.statsNarrative}
+                narrativeBold={data.statsBold}
+              />
+            </Suspense>
           </div>
 
           <div className="container">
