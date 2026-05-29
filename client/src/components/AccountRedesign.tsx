@@ -284,18 +284,8 @@ export function AccountRedesign({ data }: { data: AccountData }) {
       </div>
       <div className="ax-grain" />
 
-      {/* Nav */}
-      <nav className="nav">
-        <a className="brand" href="/"><span className="blogo" />MindRoute</a>
-        <div className="nav-r">
-          <span className="pill">Italiano</span>
-          <button className="nav-profile" onClick={() => setDrawerOpen(true)}>
-            <span className="av">{data.avatarInitial ?? data.userName[0]}</span>
-            <span className="nm">{data.userName}</span>
-          </button>
-          <button className="nav-cta" onClick={data.onNewItinerary}>+ Nuovo itinerario</button>
-        </div>
-      </nav>
+      {/* Niente nav qui: la usa il Layout globale (fissa, in cima a ogni rotta).
+          Le impostazioni si aprono dal pulsante in fondo (settings-rail). */}
 
       {/* Step rail */}
       <div className="step-rail">
