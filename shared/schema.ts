@@ -282,3 +282,11 @@ export const session = pgTable("session", {
   sess: jsonb("sess").notNull(),
   expire: timestamp("expire", { precision: 6 }).notNull(),
 });
+// Rate limiting counters per IP/user.
+// Managed by the rate-limiter middleware, NOT by Drizzle migrations.
+// Declared here only so drizzle-kit doesn't try to drop it during db:push.
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  hits: integer("hits").notNull(),
+  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+});

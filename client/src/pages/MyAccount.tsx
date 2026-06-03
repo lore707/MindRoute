@@ -8,6 +8,7 @@ import { type PortraitData } from "@/components/AccountPortrait";
 import { type AtlasData } from "@/components/AccountAtlas";
 import { deriveTraitLabels } from "@/lib/trait-labels";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
+import { unsplashSized } from "@/lib/img";
 import type { TraitVector } from "@shared/traits";
 
 // Fallback hero per utenti senza viaggi (o se l'ultimo aperto non ha
@@ -443,7 +444,7 @@ export default function MyAccount() {
                 {savedMoments.map(s => (
                   <a key={s.id} href={`/itinerary/${s.itineraryId}`} className="ac-saved-card">
                     {s.momentSnapshot?.image_url
-                      ? <div className="ac-saved-card-img" style={{ backgroundImage: `url(${s.momentSnapshot.image_url})` }} />
+                      ? <div className="ac-saved-card-img" style={{ backgroundImage: `url(${unsplashSized(s.momentSnapshot.image_url, 480)})` }} />
                       : <div className="ac-saved-card-img" style={{ background: "linear-gradient(135deg,#1a0814,#2d0a1a)" }} />
                     }
                     <button

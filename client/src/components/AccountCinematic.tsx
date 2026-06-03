@@ -13,6 +13,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useMemo, useState } from "react";
+import { unsplashSized } from "@/lib/img";
 import { AccountPortrait, type PortraitData } from "./AccountPortrait";
 import { AccountAtlas, type AtlasData } from "./AccountAtlas";
 
@@ -70,6 +71,13 @@ export function AccountCinematic({ data }: { data: AccountData }) {
   const [continent, setContinent] = useState("Tutti");
   const [search, setSearch] = useState("");
 
+  // Right-size background-images per viewport (same rationale as the landing):
+  // these are CSS backgrounds of Unsplash photos, often stored at full res. On a
+  // phone that's why they "faticano a caricare". Cap width, smaller on mobile.
+  const isMobile = useMemo(() => typeof window !== "undefined" && window.innerWidth < 768, []);
+  const heroW = isMobile ? 900 : 1600;   // full-bleed hero
+  const cardW = isMobile ? 560 : 760;    // featured / side / mosaic cards
+
   const totalDays = useMemo(() => data.trips.reduce((acc, t) => acc + (parseInt(t.duration) || 0), 0), [data.trips]);
 
   const filtered = useMemo(() => data.trips.filter(t => {
@@ -117,7 +125,7 @@ export function AccountCinematic({ data }: { data: AccountData }) {
 
       {/* ① HERO PERSONALE */}
       <section className="ac-hero">
-        <div className="ac-hero-img" style={{ backgroundImage: `linear-gradient(to top, rgba(10,7,16,1) 0%, rgba(10,7,16,.55) 35%, rgba(10,7,16,.25) 70%, rgba(10,7,16,.55) 100%), radial-gradient(ellipse 40% 60% at 20% 50%, rgba(212,168,83,.25), transparent 70%), url(${data.heroImg})` }} />
+        <div className="ac-hero-img" style={{ backgroundImage: `linear-gradient(to top, rgba(10,7,16,1) 0%, rgba(10,7,16,.55) 35%, rgba(10,7,16,.25) 70%, rgba(10,7,16,.55) 100%), radial-gradient(ellipse 40% 60% at 20% 50%, rgba(212,168,83,.25), transparent 70%), url(${unsplashSized(data.heroImg, heroW, 72)})` }} />
         <div className="ac-hero-content">
           <div className="ac-hero-avatar">{data.avatarInitial ?? data.userName[0]}</div>
           <div>
@@ -193,7 +201,7 @@ export function AccountCinematic({ data }: { data: AccountData }) {
             </div>
             <div className="ac-continue-grid">
               <a className="ac-cont-featured" href={featured.href ?? "#"}>
-                <div className="ac-cont-featured-img" style={{ backgroundImage: `url(${featured.img})` }} />
+                <div className="ac-cont-featured-img" style={{ backgroundImage: `url(${unsplashSized(featured.img, cardW)})` }} />
                 <div className="ac-cont-featured-body">
                   {featured.date && <div className="ac-cont-featured-tag"><span className="ac-pulse" />Ultimo aperto · {featured.date}</div>}
                   <h3>{featured.title}</h3>
@@ -207,7 +215,7 @@ export function AccountCinematic({ data }: { data: AccountData }) {
               <div className="ac-cont-sides">
                 {sides.map((c, i) => (
                   <a key={i} className="ac-cont-side" href={c.href ?? "#"}>
-                    <div className="ac-cont-side-img" style={{ backgroundImage: `url(${c.img})` }} />
+                    <div className="ac-cont-side-img" style={{ backgroundImage: `url(${unsplashSized(c.img, cardW)})` }} />
                     <div className="ac-cont-side-arr">↗</div>
                     <div className="ac-cont-side-body">
                       {c.sub && <div className="ac-cont-side-eyebrow">{c.sub}</div>}
@@ -256,7 +264,7 @@ export function AccountCinematic({ data }: { data: AccountData }) {
               const size = t.size ?? MOSAIC_SIZES[i % MOSAIC_SIZES.length];
               return (
                 <a key={i} className={"ac-col-card size-" + size} href={t.href ?? "#"}>
-                  <div className="ac-col-card-img" style={{ backgroundImage: `url(${t.img})` }} />
+                  <div className="ac-col-card-img" style={{ backgroundImage: `url(${unsplashSized(t.img, cardW)})` }} />
                   <div className="ac-col-action">Apri ↗</div>
                   <div className="ac-col-card-body">
                     <div className="ac-col-card-eyebrow">

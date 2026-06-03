@@ -17,6 +17,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useI18n } from "@/lib/i18n";
+import { unsplashSized } from "@/lib/img";
 import { CURATED_DESTINATIONS_FEED, type DestinationsFeedItem } from "@shared/destinations-feed";
 
 export type HeroPhoto = { img: string; name: string; country: string; mood: string };
@@ -42,6 +43,22 @@ export function LandingCinematic({ data }: { data: LandingData }) {
   const [heroIdx, setHeroIdx] = useState(0);
   const [hovering, setHovering] = useState(false);
   const [finalIdx, setFinalIdx] = useState(0);
+
+  // Right-size every background-image to the viewport. These are CSS
+  // background-images (no srcset possible), and the stored URLs are often
+  // Unsplash `full` (multi-MB) — on a phone that stalls the page and the photo
+  // "fatica a caricare". We cap the width per slot, smaller on mobile, and let
+  // Unsplash serve webp/avif. Computed once at mount (orientation flips are rare
+  // and not worth re-fetching every background). full-bleed slots use q=70 since
+  // they always sit under a dark overlay/grain where compression is invisible.
+  const isMobile = useMemo(() => typeof window !== "undefined" && window.innerWidth < 768, []);
+  const W = useMemo(() => ({
+    full: isMobile ? 900 : 1600,   // hero / manifesto / final full-bleed
+    card: isMobile ? 560 : 780,    // dest mosaic + match photo
+    step: isMobile ? 520 : 560,    // how-it-works cards
+    thumb: 200,                    // hero thumbnail picker
+  }), [isMobile]);
+  const bgFull = (u: string) => unsplashSized(u, W.full, 70);
 
   // Translate server-provided country/mood labels via i18n lookup so the same
   // English-baked data renders in IT when needed. Falls back to the original
@@ -121,7 +138,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
   // instant. Limited to hero+final because those are the slots that auto-cycle;
   // steps/destinations are static so the browser already lazy-loads them.
   useEffect(() => {
-    const toPreload = [...data.heroPhotos.map(p => p.img), ...data.finalPhotos.map(p => p.img)];
+    const toPreload = [...data.heroPhotos.map(p => bgFull(p.img)), ...data.finalPhotos.map(p => bgFull(p.img))];
     toPreload.forEach(src => {
       const img = new Image();
       img.decoding = "async";
@@ -152,7 +169,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
       <section className="lc-hero" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
         <div className="lc-hero-bg">
           {data.heroPhotos.map((p, i) => (
-            <div key={i} className={"lc-hero-photo" + (heroIdx === i ? " active" : "")} style={{ backgroundImage: `url(${p.img})` }} />
+            <div key={i} className={"lc-hero-photo" + (heroIdx === i ? " active" : "")} style={{ backgroundImage: `url(${bgFull(p.img)})` }} />
           ))}
           <div className="lc-hero-overlay" />
           <div className="lc-hero-grain" data-parallax="0.05" />
@@ -180,7 +197,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
             </div>
             {data.heroPhotos.map((p, i) => (
               <div key={i} className={"lc-hero-thumb" + (heroIdx === i ? " active" : "")} onClick={() => setHeroIdx(i)}>
-                <div className="lc-hero-thumb-img" style={{ backgroundImage: `url(${p.img})` }} />
+                <div className="lc-hero-thumb-img" style={{ backgroundImage: `url(${unsplashSized(p.img, W.thumb)})` }} />
                 <div className="lc-hero-thumb-body">
                   <div className="lc-hero-thumb-name">{p.name}</div>
                   <div className="lc-hero-thumb-meta">{tCountry(p.country)} · {tMood(p.mood)}</div>
@@ -234,7 +251,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
               const st = stepText(s.n);
               return (
                 <div key={s.n} className="lc-step">
-                  <div className="lc-step-img" style={{ backgroundImage: `url(${s.img})` }} />
+                  <div className="lc-step-img" style={{ backgroundImage: `url(${unsplashSized(s.img, W.step)})` }} />
                   <div className="lc-step-num">{s.n}</div>
                   <div className="lc-step-body">
                     <div className="lc-step-tag">{st.tag}</div>
@@ -250,7 +267,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
 
       {/* ④ MANIFESTO */}
       <section className="lc-manifesto">
-        <div className="lc-manifesto-bg" style={{ backgroundImage: `url(${data.manifestoBg})` }} />
+        <div className="lc-manifesto-bg" style={{ backgroundImage: `url(${bgFull(data.manifestoBg)})` }} />
         <div className="lc-manifesto-content">
           <div className="lc-manifesto-eyebrow"><div className="lc-eyebrow white"><span className="d" />{t("landing.manifesto.eyebrow")}</div></div>
           <p className="lc-manifesto-quote" dangerouslySetInnerHTML={{ __html: t("landing.manifesto.quote") }} />
@@ -269,7 +286,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
           <div className="lc-dest-mosaic">
             {data.destinations.map((d, i) => (
               <div key={i} className={"lc-dest-card size-" + (d.size || "s")}>
-                <div className="lc-dest-card-img" style={{ backgroundImage: `url(${d.img})` }} />
+                <div className="lc-dest-card-img" style={{ backgroundImage: `url(${unsplashSized(d.img, W.card)})` }} />
                 <div className="lc-dest-card-body">
                   <span className="lc-dest-card-mood">{tDestMood(d.mood)}</span>
                   <div className="lc-dest-card-name">{d.name}</div>
@@ -327,7 +344,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
             <div className="lc-split-right">
               {/* Layer 0 — poster: same photo used as video's loading frame; also
                   shows through if the video URL fails. */}
-              <div className="lc-split-photo" style={{ backgroundImage: `url(${data.matchPhoto})` }} />
+              <div className="lc-split-photo" style={{ backgroundImage: `url(${unsplashSized(data.matchPhoto, W.card)})` }} />
               {/* Layer 1 — looping ocean video. Muted+playsInline are required
                   for autoplay on iOS/Android; preload=metadata defers payload
                   until the section is reached. */}
@@ -335,7 +352,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
                 <video
                   className="lc-split-video"
                   src={data.matchVideo}
-                  poster={data.matchPhoto}
+                  poster={unsplashSized(data.matchPhoto, W.card)}
                   autoPlay
                   loop
                   muted
@@ -399,7 +416,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
       <section className="lc-final">
         <div className="lc-final-bg">
           {data.finalPhotos.map((p, i) => (
-            <div key={i} className={"lc-final-photo" + (finalIdx === i ? " active" : "")} style={{ backgroundImage: `url(${p.img})` }} />
+            <div key={i} className={"lc-final-photo" + (finalIdx === i ? " active" : "")} style={{ backgroundImage: `url(${bgFull(p.img)})` }} />
           ))}
         </div>
         <div className="lc-final-light top" />

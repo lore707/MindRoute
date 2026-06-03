@@ -233,14 +233,23 @@ export function AccountRedesign({ data }: { data: AccountData }) {
   const [region, setRegion] = useState("Tutti");
   const [search, setSearch] = useState("");
 
+  // Su telefono le foto full-bleed non hanno bisogno di larghezze desktop: un
+  // hero 1920 su uno schermo da 390px è solo banda sprecata (è per questo che
+  // "faticano a caricare"). Dimezziamo le larghezze su mobile. Calcolato una
+  // volta al mount: il cambio orientamento è raro e non vale un re-fetch.
+  const isMobile = useMemo(() => typeof window !== "undefined" && window.innerWidth < 768, []);
+  const heroW = isMobile ? 900 : 1920;
+  const featW = isMobile ? 700 : 1280;
+  const cardW = isMobile ? 520 : 800;
+
   // Immagini per il crossfade ambient: le cover reali dei viaggi, fallback hero.
   // Cap a poche e ridimensionate per non scaricare 16 full-res allo start.
   const ambient = useMemo(() => {
     const imgs = data.trips.map(t => t.img).filter(Boolean);
     const uniq = Array.from(new Set(imgs)).slice(0, AMBIENT_MAX);
     const list = uniq.length > 0 ? uniq : [data.heroImg];
-    return list.map(src => unsplashSized(src, 1280, 55));
-  }, [data.trips, data.heroImg]);
+    return list.map(src => unsplashSized(src, isMobile ? 820 : 1280, 55));
+  }, [data.trips, data.heroImg, isMobile]);
 
   // Ambient crossfade
   useEffect(() => {
@@ -311,7 +320,7 @@ export function AccountRedesign({ data }: { data: AccountData }) {
 
         {/* ════════ Cap I — Hero ════════ */}
         <section id="sec-hero" className="hero">
-          <div className="hero-photo" style={{ backgroundImage: bg(data.heroImg, 1920) }} />
+          <div className="hero-photo" style={{ backgroundImage: bg(data.heroImg, heroW) }} />
           <div className="hero-content">
             <div className="hero-eyebrow">{data.greeting ?? "Bentornato,"}</div>
             <h1 className="hero-title">{data.userName}, il tuo<br /><em>MindRoute<span className="dot">.</span></em></h1>
@@ -359,7 +368,7 @@ export function AccountRedesign({ data }: { data: AccountData }) {
 
               <div className="resume-grid">
                 <a className="resume-main" href={featured.href ?? "#"}>
-                  <div className="photo" style={{ backgroundImage: bg(featured.img, 1280) }} />
+                  <div className="photo" style={{ backgroundImage: bg(featured.img, featW) }} />
                   <div className="resume-content">
                     {featured.date && <div className="resume-badge"><span className="pulse" />Ultimo aperto · {featured.date}</div>}
                     <div className="resume-foot">
@@ -376,7 +385,7 @@ export function AccountRedesign({ data }: { data: AccountData }) {
                 <div className="resume-side">
                   {sides.map((t, i) => (
                     <a key={i} className="resume-mini" href={t.href ?? "#"}>
-                      <div className="photo" style={{ backgroundImage: bg(t.img, 800) }} />
+                      <div className="photo" style={{ backgroundImage: bg(t.img, cardW) }} />
                       <div className="mini-content">
                         <div className="arrow">↗</div>
                         <div>
@@ -424,7 +433,7 @@ export function AccountRedesign({ data }: { data: AccountData }) {
             <div className="coll-grid">
               {filteredTrips.map((t, i) => (
                 <a key={i} className="coll-card" href={t.href ?? "#"}>
-                  <div className="photo" style={{ backgroundImage: bg(t.img, 800) }} />
+                  <div className="photo" style={{ backgroundImage: bg(t.img, cardW) }} />
                   <div className="coll-card-content">
                     <div className="coll-card-top">
                       <div className="when">
