@@ -122,16 +122,25 @@ function BookTab({ urls, region, destinationName, profilingInput, itineraryId }:
   const checkin = hasDate ? fmt(baseDate) : "";
   const checkout = hasDate ? fmt(coDate) : "";
   const sections = [
-    { label: "Voli", emoji: "✈️", links: [{ key: "expedia_flights", label: `Expedia Voli → ${dest}${hasDate ? " · date preimpostate" : ""}`, url: urls.expedia_flights, color: "rgba(14,165,233,0.15)", border: "rgba(14,165,233,0.35)", text: "#38bdf8" }] },
- { label: "Hotel", emoji: "🏨", links: [{ key: "hotels", label: `Hotels.com · ${dest}${hasDate ? ` · ${days} notti` : ""}`, url: urls.hotels, color: "rgba(233,69,96,0.12)", border: "rgba(233,69,96,0.35)", text: "#E94560" }, { key: "tablet_hotels", label: `Tablet Hotels · boutique a ${dest}`, url: urls.tablet_hotels, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }, { key: "expedia_packages", label: `Expedia Pacchetti · volo + hotel`, url: urls.expedia_packages, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }] },
-    ...(urls.civitatis ? [{ label: "Esperienze", emoji: "🎟", links: [{ key: "civitatis", label: `Civitatis · tour e attività a ${dest}`, url: urls.civitatis, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }, ...(urls.musement ? [{ key: "musement", label: `Musement · esperienze a ${dest}`, url: urls.musement, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] : [])] }] : []),
-    ...(urls.klook ? [{ label: "Esperienze", emoji: "🎟", links: [{ key: "klook", label: `Klook · attività a ${dest}`, url: urls.klook, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] }] : []),
-    ...(urls.viator ? [{ label: "Tour e attrazioni", emoji: "🗺", links: [{ key: "viator", label: `Viator · tour a ${dest}`, url: urls.viator, color: "rgba(99,102,241,0.12)", border: "rgba(99,102,241,0.3)", text: "#818cf8" }] }] : []),
-  { label: "Ristoranti", emoji: "🍽", links: [{ key: "tripadvisor", label: `TripAdvisor · ristoranti a ${dest}`, url: urls.tripadvisor, color: "rgba(74,222,128,0.1)", border: "rgba(74,222,128,0.25)", text: "#4ade80" }] },
-    ...(urls.flixbus ? [{ label: "Bus & Treni", emoji: "🚌", links: [{ key: "flixbus", label: `FlixBus · tratte da e per ${dest}`, url: urls.flixbus, color: "rgba(50,205,50,0.10)", border: "rgba(50,205,50,0.25)", text: "#32cd32" }] }] : []),
-    ...(urls.samboat ? [{ label: "Barche & Yacht", emoji: "⛵", links: [{ key: "samboat", label: `SamBoat · noleggio barche a ${dest}`, url: urls.samboat, color: "rgba(14,165,233,0.10)", border: "rgba(14,165,233,0.25)", text: "#0ea5e9" }] }] : []),
-    ...(urls.undercovertourist ? [{ label: "Attrazioni", emoji: "🎡", links: [{ key: "undercovertourist", label: `Undercover Tourist · biglietti`, url: urls.undercovertourist, color: "rgba(255,200,50,0.12)", border: "rgba(255,200,50,0.3)", text: "#fbbf24" }] }] : []),
+    { label: "Voli", emoji: "✈️", links: [{ key: "expedia_flights", label: `Prenota il volo · ${dest}${hasDate ? " · date pronte" : ""}`, url: urls.expedia_flights, color: "rgba(14,165,233,0.15)", border: "rgba(14,165,233,0.35)", text: "#38bdf8" }] },
+ { label: "Hotel", emoji: "🏨", links: [{ key: "hotels", label: `Prenota l'hotel · ${dest}${hasDate ? ` · ${days} notti` : ""}`, url: urls.hotels, color: "rgba(233,69,96,0.12)", border: "rgba(233,69,96,0.35)", text: "#E94560" }, { key: "tablet_hotels", label: `Prenota un boutique hotel · ${dest}`, url: urls.tablet_hotels, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }, { key: "expedia_packages", label: `Prenota volo + hotel insieme`, url: urls.expedia_packages, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }] },
+    ...(urls.civitatis ? [{ label: "Esperienze", emoji: "🎟", links: [{ key: "civitatis", label: `Prenota tour ed esperienze · ${dest}`, url: urls.civitatis, color: "rgba(251,146,60,0.12)", border: "rgba(251,146,60,0.3)", text: "#fb923c" }, ...(urls.musement ? [{ key: "musement", label: `Prenota altre esperienze · ${dest}`, url: urls.musement, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] : [])] }] : []),
+    ...(urls.klook ? [{ label: "Esperienze", emoji: "🎟", links: [{ key: "klook", label: `Prenota attività · ${dest}`, url: urls.klook, color: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)", text: "#a78bfa" }] }] : []),
+    ...(urls.viator ? [{ label: "Tour e attrazioni", emoji: "🗺", links: [{ key: "viator", label: `Prenota un tour · ${dest}`, url: urls.viator, color: "rgba(99,102,241,0.12)", border: "rgba(99,102,241,0.3)", text: "#818cf8" }] }] : []),
+  { label: "Ristoranti", emoji: "🍽", links: [{ key: "tripadvisor", label: `Prenota un tavolo · ${dest}`, url: urls.tripadvisor, color: "rgba(74,222,128,0.1)", border: "rgba(74,222,128,0.25)", text: "#4ade80" }] },
+    ...(urls.flixbus ? [{ label: "Bus & Treni", emoji: "🚌", links: [{ key: "flixbus", label: `Prenota bus e treni · ${dest}`, url: urls.flixbus, color: "rgba(50,205,50,0.10)", border: "rgba(50,205,50,0.25)", text: "#32cd32" }] }] : []),
+    ...(urls.samboat ? [{ label: "Barche & Yacht", emoji: "⛵", links: [{ key: "samboat", label: `Noleggia una barca · ${dest}`, url: urls.samboat, color: "rgba(14,165,233,0.10)", border: "rgba(14,165,233,0.25)", text: "#0ea5e9" }] }] : []),
+    ...(urls.undercovertourist ? [{ label: "Attrazioni", emoji: "🎡", links: [{ key: "undercovertourist", label: `Prenota i biglietti attrazioni`, url: urls.undercovertourist, color: "rgba(255,200,50,0.12)", border: "rgba(255,200,50,0.3)", text: "#fbbf24" }] }] : []),
   ];
+  // Booking link per checklist row → turns the passive "what have you booked"
+  // list into an actionable one (a "Prenota →" link next to each open item).
+  const checklistUrl: Record<string, string | undefined> = {
+    flight: urls.expedia_flights,
+    hotel: urls.hotels,
+    experience: urls.civitatis || urls.musement || urls.klook || urls.viator,
+    restaurant: urls.tripadvisor,
+    transfer: urls.flixbus || urls.samboat || urls.expedia_cars,
+  };
   return (
     <div style={{ padding: "16px 14px 24px" }}>
       <div style={{ marginBottom: 20 }}>
@@ -168,15 +177,26 @@ function BookTab({ urls, region, destinationName, profilingInput, itineraryId }:
           <div style={{ height: "100%", background: checkedCount === total ? "#4ade80" : "#E94560", width: `${(checkedCount / total) * 100}%`, borderRadius: 2, transition: "width 0.4s ease" }} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {items.map(item => (
-            <button key={item.id} onClick={() => toggle(item.id)}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: item.checked ? "rgba(74,222,128,0.08)" : "rgba(255,255,255,0.03)", border: `1px solid ${item.checked ? "rgba(74,222,128,0.25)" : "rgba(255,255,255,0.07)"}`, cursor: "pointer", transition: "all 0.2s", textAlign: "left" }}>
-              <div style={{ width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${item.checked ? "#4ade80" : "rgba(255,255,255,0.2)"}`, background: item.checked ? "#4ade80" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
-                {item.checked && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#0a0814" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+          {items.map(item => {
+            const bookUrl = checklistUrl[item.id];
+            return (
+              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button onClick={() => toggle(item.id)}
+                  style={{ flex: 1, display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: item.checked ? "rgba(74,222,128,0.08)" : "rgba(255,255,255,0.03)", border: `1px solid ${item.checked ? "rgba(74,222,128,0.25)" : "rgba(255,255,255,0.07)"}`, cursor: "pointer", transition: "all 0.2s", textAlign: "left" }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${item.checked ? "#4ade80" : "rgba(255,255,255,0.2)"}`, background: item.checked ? "#4ade80" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
+                    {item.checked && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#0a0814" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                  <span style={{ fontSize: 13, color: item.checked ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.7)", textDecoration: item.checked ? "line-through" : "none", transition: "all 0.2s" }}>{item.label}</span>
+                </button>
+                {!item.checked && bookUrl && (
+                  <a href={bookUrl} target="_blank" rel="noopener noreferrer"
+                    style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: "#E94560", textDecoration: "none", padding: "9px 13px", borderRadius: 999, border: "1px solid rgba(233,69,96,0.35)", background: "rgba(233,69,96,0.08)", whiteSpace: "nowrap" }}>
+                    Prenota →
+                  </a>
+                )}
               </div>
-              <span style={{ fontSize: 13, color: item.checked ? "rgba(255,255,255,0.45)" : "rgba(255,255,255,0.7)", textDecoration: item.checked ? "line-through" : "none", transition: "all 0.2s" }}>{item.label}</span>
-            </button>
-          ))}
+            );
+          })}
         </div>
         {checkedCount === total && total > 0 && (
           <div style={{ marginTop: 14, padding: "12px 14px", borderRadius: 10, background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)", fontSize: 12, color: "#4ade80", fontWeight: 600, textAlign: "center" }}>
@@ -331,13 +351,54 @@ function firstSentence(s: string, maxWords = 14): string {
   return title.trim().replace(/[.!?—]+$/, "");
 }
 
-function buildMoments(day: any, t: (k: string) => string): CinMoment[] {
+// ── BOOKING LABELS (action + object) ──────────────────────────────────────────
+// Maps an affiliate link key to a verb i18n key, then pairs it with the real
+// place name so the CTA reads "Prenota un tavolo · Taverna Aktaion" instead of a
+// bare "Prenota". The name comes from the model-provided affiliateLabels; for
+// flight/hotel we fall back to the destination city when no name is given.
+function bookVerbKey(linkKey: string): string {
+  const k = linkKey.toLowerCase();
+  if (k.startsWith("expedia_flights")) return "itin.cin.book.flight";
+  if (k.startsWith("hotels") || k.includes("hotel")) return "itin.cin.book.hotel";
+  if (k.startsWith("tripadvisor")) return "itin.cin.book.table";
+  if (k.startsWith("flixbus")) return "itin.cin.book.bus";
+  if (k.startsWith("samboat")) return "itin.cin.book.boat";
+  if (k.startsWith("expedia_cars")) return "itin.cin.book.car";
+  if (k.startsWith("viator")) return "itin.cin.book.tour";
+  return "itin.cin.book.experience"; // civitatis / musement / klook / undercovertourist
+}
+function bookLabel(linkKey: string, labels: Record<string, string>, destCity: string, t: (k: string) => string): string {
+  const verb = t(bookVerbKey(linkKey));
+  let name = (labels?.[linkKey] ?? "").trim();
+  if (!name && (linkKey.startsWith("expedia_flights") || linkKey.startsWith("hotels"))) name = destCity;
+  return name ? `${verb} · ${name}` : verb;
+}
+function fmtBookPrice(min?: number, max?: number): string | undefined {
+  const lo = typeof min === "number" ? min : undefined;
+  const hi = typeof max === "number" ? max : undefined;
+  if (lo == null && hi == null) return undefined;
+  if (lo != null && hi != null && hi > lo) return `€${lo}–${hi}`;
+  return `~€${lo ?? hi}`;
+}
+
+type FallbackUrls = { flight?: string; hotel?: string; table?: string; experience?: string };
+
+function buildMoments(
+  day: any,
+  t: (k: string) => string,
+  opts: { destCity: string; dayIndex: number; dayCount: number; fallback: FallbackUrls },
+): CinMoment[] {
+  const { destCity, dayIndex, dayCount, fallback } = opts;
+  const isFirst = dayIndex === 0;
+  const isLast = dayIndex === dayCount - 1;
   const slots = [
     { key: "morning", label: t('itin.morning'), ic: "🌅" },
     { key: "lunch", label: t('itin.lunch'), ic: "🍽" },
     { key: "afternoon", label: t('itin.afternoon'), ic: "☀️" },
     { key: "evening", label: t('itin.evening'), ic: "🌙" },
   ];
+  const links = day.affiliateLinks ?? {};
+  const labels = day.affiliateLabels ?? {};
   const moments: CinMoment[] = [];
   for (const s of slots) {
     const text = day?.[s.key];
@@ -345,10 +406,31 @@ function buildMoments(day: any, t: (k: string) => string): CinMoment[] {
     const title = firstSentence(text);
     const remainder = text.slice(title.length).replace(/^[\s.!?—]+/, "").trim();
     const desc = remainder || text;
-    const links = day.affiliateLinks ?? {};
-    const linkKey = Object.keys(links).find(k => k.endsWith(`_${s.key}`) && !k.includes("_place_"));
-    const ctaUrl = linkKey ? links[linkKey] : undefined;
-    moments.push({ t: s.label, ic: s.ic, title, desc, cta: ctaUrl ? t('itin.cin.book') : undefined, ctaUrl });
+
+    // 1) An explicit per-slot affiliate link always wins.
+    let linkKey: string | undefined = Object.keys(links).find(k => k.endsWith(`_${s.key}`) && !k.includes("_place_"));
+    let ctaUrl: string | undefined = linkKey ? links[linkKey] : undefined;
+
+    // 2) Coverage fallback — every bookable slot gets a sensible link, so the
+    //    user is never left without a way to book. Day 1 morning = flight,
+    //    Day 1 afternoon = hotel check-in, last-day afternoon = return flight,
+    //    last-day evening (arrival home) = nothing; meals → table, rest →
+    //    experiences.
+    if (!ctaUrl) {
+      if (isFirst && s.key === "morning") { linkKey = "expedia_flights"; ctaUrl = fallback.flight; }
+      else if (isFirst && s.key === "afternoon") { linkKey = "hotels"; ctaUrl = fallback.hotel; }
+      else if (isLast && s.key === "afternoon") { linkKey = "expedia_flights"; ctaUrl = fallback.flight; }
+      else if (isLast && s.key === "evening") { linkKey = undefined; ctaUrl = undefined; }
+      else if (s.key === "lunch" || s.key === "evening") { linkKey = "tripadvisor"; ctaUrl = fallback.table; }
+      else { linkKey = "civitatis"; ctaUrl = fallback.experience; }
+    }
+
+    const cta = ctaUrl && linkKey ? bookLabel(linkKey, labels, destCity, t) : undefined;
+    moments.push({
+      t: s.label, ic: s.ic, title, desc,
+      cta, ctaUrl,
+      ctaStatus: ctaUrl ? "bookable_now" : undefined,
+    });
   }
   return moments;
 }
@@ -365,7 +447,16 @@ const MOMENT_TYPE_ICONS: Record<string, string> = {
   view: "🌅",
   rest: "☕",
 };
-function buildMomentsV2(day: any, t: (k: string) => string): CinMoment[] {
+const MOMENT_TYPE_VERB: Record<string, string> = {
+  transport: "itin.cin.book.flight",
+  accommodation: "itin.cin.book.hotel",
+  food: "itin.cin.book.table",
+  experience: "itin.cin.book.experience",
+  view: "itin.cin.book.experience",
+  walk: "itin.cin.book.experience",
+  rest: "itin.cin.book.experience",
+};
+function buildMomentsV2(day: any, t: (k: string) => string, opts: { destCity: string }): CinMoment[] {
   const moments: any[] = Array.isArray(day?.moments) ? day.moments : [];
   const slotLabel = (timeLabel: string): string => {
     switch (timeLabel) {
@@ -381,14 +472,25 @@ function buildMomentsV2(day: any, t: (k: string) => string): CinMoment[] {
     const title = m.title_evocative || m.title_operational || "";
     const desc = m.description || m.why_this || "";
     const booking = m.booking;
-    const bookable = booking && (booking.status === "bookable_now" || booking.status === "reserve_recommended");
+    const bookable = !!(booking && booking.affiliate_url &&
+      (booking.status === "bookable_now" || booking.status === "reserve_recommended"));
+    // Action+object label: prefer the model's display_label, else derive a
+    // specific one from the moment type + place name ("Prenota un tavolo · X").
+    const derivedLabel = () => {
+      const verb = t(MOMENT_TYPE_VERB[m.type] ?? "itin.cin.book");
+      const name = (m.location_name ?? "").trim()
+        || ((m.type === "transport" || m.type === "accommodation") ? opts.destCity : "");
+      return name ? `${verb} · ${name}` : verb;
+    };
     return {
       t: slotLabel(m.time_label),
       ic: MOMENT_TYPE_ICONS[m.type] ?? "✦",
       title,
       desc,
-      cta: bookable ? (booking.display_label || t('itin.cin.book')) : undefined,
+      cta: bookable ? ((booking.display_label ?? "").trim() || derivedLabel()) : undefined,
       ctaUrl: bookable ? booking.affiliate_url : undefined,
+      ctaPrice: bookable ? fmtBookPrice(m.cost_min, m.cost_max) : undefined,
+      ctaStatus: bookable ? booking.status : undefined,
       // Pass-through dei campi v2 necessari al bookmark (Ondata B).
       id: m.id,
       type: m.type,
@@ -399,7 +501,7 @@ function buildMomentsV2(day: any, t: (k: string) => string): CinMoment[] {
   });
 }
 
-function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang: "en" | "it"): ItineraryData {
+function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang: "en" | "it", affiliateUrls: Record<string, string> = {}): ItineraryData {
   const isV2 = itinerary?.schemaVersion === 2;
   const tripMeta = itinerary?.tripMeta ?? null;
 
@@ -407,6 +509,15 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
   const parts = destinationFull.split(",").map((s: string) => s.trim()).filter(Boolean);
   const destinationCity = parts[0] ?? destinationFull;
   const country = itinerary?.country ?? parts.slice(1).join(", ");
+
+  // Category links used to guarantee booking coverage on v1 slots that the model
+  // left without a per-slot affiliate link.
+  const fallback: FallbackUrls = {
+    flight: affiliateUrls.expedia_flights,
+    hotel: affiliateUrls.hotels,
+    table: affiliateUrls.tripadvisor,
+    experience: affiliateUrls.civitatis || affiliateUrls.musement || affiliateUrls.klook || affiliateUrls.viator || affiliateUrls.tripadvisor,
+  };
 
   const days = (itinerary?.days ?? []) as any[];
   const dayCount = days.length;
@@ -449,7 +560,9 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
   for (let i = 0; i < days.length; i++) {
     const d = days[i];
     const key = (isV2 ? d.day_number : d.dayNumber) ?? i + 1;
-    momentsByDay[key] = isV2 ? buildMomentsV2(d, t) : buildMoments(d, t);
+    momentsByDay[key] = isV2
+      ? buildMomentsV2(d, t, { destCity: destinationCity })
+      : buildMoments(d, t, { destCity: destinationCity, dayIndex: i, dayCount, fallback });
   }
 
   // map_points: v2 keeps them at the top level inside tripMeta (lat/lng), v1
@@ -714,7 +827,7 @@ export default function Itinerary() {
   const displayDays = editMode ? editedDays : (itinerary?.days ?? []);
 
   if (!editMode) {
-    const cinematicData = mapItineraryToCinematic(itinerary, t, lang);
+    const cinematicData = mapItineraryToCinematic(itinerary, t, lang, affiliateUrls);
 
     // Trip-at-a-glance chip strip — duration, budget total (if parseable),
     // and travel period (if profiling gave us a leaveDate). Each chip is

@@ -37,6 +37,7 @@ const bookingProviderSchema = z.enum([
   "skyscanner", "trainline", "flixbus", "booking", "getyourguide",
   "viator", "civitatis", "musement", "klook", "samboat",
   "thefork", "expedia_cars", "welcome_pickups", "direct", "none",
+  "expedia", "hotels", "tablet_hotels", "tripadvisor",
 ]) satisfies z.ZodType<BookingProvider>;
 
 const energyLevelSchema = z.enum(["low", "medium", "high"]) satisfies z.ZodType<EnergyLevel>;
@@ -224,9 +225,21 @@ detail. Apply the following rules strictly.
    - status = "reserve_recommended" → recommend reservation but walk-in is possible
      (popular restaurants, museums with timed entry).
    - status = "walk_in" → no booking needed, info only (free viewpoint, public beach).
+   - COVERAGE: every moment that is NOT walk_in MUST carry a "booking" object with a
+     valid affiliate_url. If something can be reserved, it must have a link — never
+     leave a bookable moment without one.
    - For walk_in moments, OMIT the booking object entirely (do not include provider="none").
-   - affiliate_url must be a real, well-formed URL. Use the affiliate templates
-     defined earlier in the prompt. Never invent provider URLs.
+   - affiliate_url — USE ONLY the affiliate link templates defined earlier in this
+     prompt (Expedia, Hotels.com, Tablet Hotels, Civitatis, Musement, Klook, Viator,
+     TripAdvisor, FlixBus, SamBoat). NEVER use skyscanner.com, booking.com,
+     getyourguide.com, airbnb.com or any other non-affiliate URL — those earn nothing.
+     Match the template to the moment: transport→Expedia flights (or FlixBus/SamBoat
+     for ground/sea), accommodation→Hotels.com/Tablet Hotels, food→TripAdvisor,
+     experience/tour/view→Civitatis/Musement (Europe) · Klook (Asia) · Viator (rest).
+   - display_label — write an ACTION + OBJECT label in the response language, naming
+     the real place: e.g. "Prenota il volo per Lisbona", "Prenota un tavolo · Taverna
+     Aktaion", "Prenota l'esperienza · Tour della Medina", "Prenota l'hotel · Riad
+     Dar Anika". Never a bare "Prenota"/"Book" and never "Find flights"/"Click here".
 
 7. COSTS
    - cost_bookable_total per day = sum of cost_max for all moments with
@@ -303,9 +316,9 @@ Exactly ${days} days in the "days" array.
           "image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop",
           "image_alt": "Aircraft above clouds",
           "booking": {
-            "provider": "skyscanner",
-            "affiliate_url": "https://www.skyscanner.it/transport/voli/mxp/hba/",
-            "display_label": "Find flights",
+            "provider": "expedia",
+            "affiliate_url": "https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3AMXP%2Cto%3AHBA%2Cdeparture%3A20260710%2F1&passengers=adults%3A1&trip=roundtrip&mode=search",
+            "display_label": "Prenota il volo per Hobart",
             "status": "bookable_now"
           },
           "description": "Two long legs with one layover in Sydney. Aim for an evening MXP departure if you want to land fresh.",
@@ -330,9 +343,9 @@ Exactly ${days} days in the "days" array.
           "image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop",
           "image_alt": "Guesthouse exterior at dusk",
           "booking": {
-            "provider": "booking",
-            "affiliate_url": "https://www.booking.com/hotel/au/the-nook-hobart.html",
-            "display_label": "Reserve room",
+            "provider": "hotels",
+            "affiliate_url": "https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=Hobart&q-check-in=2026-07-10&q-check-out=2026-07-17",
+            "display_label": "Prenota l'hotel · The Nook Guesthouse",
             "status": "bookable_now"
           },
           "description": "Drop bags, take a short walk to the harbour even if it's late — first sense of the place matters.",

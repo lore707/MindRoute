@@ -76,7 +76,9 @@ export type BookingStatus =
 export type BookingProvider =
   | "skyscanner" | "trainline" | "flixbus" | "booking" | "getyourguide"
   | "viator" | "civitatis" | "musement" | "klook" | "samboat"
-  | "thefork" | "expedia_cars" | "welcome_pickups" | "direct" | "none";
+  | "thefork" | "expedia_cars" | "welcome_pickups" | "direct" | "none"
+  // Monetized affiliate partners the v2 prompt is instructed to prefer.
+  | "expedia" | "hotels" | "tablet_hotels" | "tripadvisor";
 
 export type EnergyLevel = "low" | "medium" | "high";
 

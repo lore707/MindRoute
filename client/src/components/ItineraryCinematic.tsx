@@ -11,6 +11,10 @@ export type Moment = {
   desc: string;
   cta?: string;
   ctaUrl?: string;
+  /** Optional price string shown inside the booking button ("~€95", "€80–120"). */
+  ctaPrice?: string;
+  /** Booking urgency — drives the small hint above the button. */
+  ctaStatus?: "bookable_now" | "reserve_recommended";
   // v2 only — usato per il bookmark trasversale (Ondata B). Assente nei v1.
   id?: string;
   type?: string;
@@ -268,12 +272,17 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
                       })()}
                     </div>
                     <p className="detail-desc">{currentMoment.desc}</p>
-                    {currentMoment.cta && (
-                      currentMoment.ctaUrl ? (
-                        <a className="book-btn" href={currentMoment.ctaUrl} target="_blank" rel="noopener noreferrer">{currentMoment.cta} →</a>
-                      ) : (
-                        <button className="book-btn">{currentMoment.cta} →</button>
-                      )
+                    {currentMoment.cta && currentMoment.ctaUrl && (
+                      <div className="book-row">
+                        {currentMoment.ctaStatus === "reserve_recommended" && (
+                          <span className="book-status">{t('itin.cin.book.reserveHint')}</span>
+                        )}
+                        <a className="book-btn" href={currentMoment.ctaUrl} target="_blank" rel="noopener noreferrer">
+                          <span className="book-btn-label">{currentMoment.cta}</span>
+                          {currentMoment.ctaPrice && <span className="book-btn-price">{currentMoment.ctaPrice}</span>}
+                          <span className="book-btn-arrow">→</span>
+                        </a>
+                      </div>
                     )}
                   </>
                 )}
@@ -377,16 +386,23 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
       </section>
       )}
 
-      {/* MOBILE STICKY BOTTOM — persistent PDF action; shown only after hero on
-          small screens (display:none above 720px via CSS). */}
-      {onSavePdf && (
+      {/* MOBILE STICKY BOTTOM — persistent primary booking CTA + PDF; shown only
+          after hero on small screens (display:none above 720px via CSS). */}
+      {(onSavePdf || bookingSection) && (
         <div className={"ic-mobile-bottombar" + (scrolled ? " visible" : "")}>
-          <button className="ic-mobile-bottombar-btn" onClick={onSavePdf}>
-            <span className="ic-mobile-bottombar-label">{t('itin.pdf')}</span>
-            <span className="ic-mobile-bottombar-counter">
-              {t('itin.cin.dayLabel')} {activeDay}/{data.days.length}
-            </span>
-          </button>
+          {bookingSection && activeTab !== "booking" && (
+            <button className="ic-mobile-book" onClick={() => selectTab("booking")}>
+              {t('itin.cin.book.cta')} <span className="ic-mobile-book-arrow">→</span>
+            </button>
+          )}
+          {onSavePdf && (
+            <button className={"ic-mobile-bottombar-btn" + (bookingSection && activeTab !== "booking" ? " secondary" : "")} onClick={onSavePdf}>
+              <span className="ic-mobile-bottombar-label">{t('itin.pdf')}</span>
+              <span className="ic-mobile-bottombar-counter">
+                {t('itin.cin.dayLabel')} {activeDay}/{data.days.length}
+              </span>
+            </button>
+          )}
         </div>
       )}
     </div>
