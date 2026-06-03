@@ -754,6 +754,59 @@ Generate exactly ${days} days in the itinerary.
 CRITICAL: Respond ONLY with the JSON object. No text before or after. No explanations. Start with { end with }. Pure JSON only.`;
 }
 
+/**
+ * Split the itinerary prompt into a STATIC methodology spine and the DYNAMIC,
+ * per-request remainder, for Anthropic prompt caching.
+ *
+ * - system  → intro line + STEP 0–7 (the methodology). Zero interpolation, so it
+ *   is byte-identical across every itinerary request → the cached prefix actually
+ *   hits and we stop re-billing the bulk of the prompt on each generation.
+ * - user    → USER PROFILE + TASK + the MANDATORY SPECIFIC NAMES section (dates,
+ *   affiliate links, output schema). All per-request data lives here, never in the
+ *   cached prefix.
+ *
+ * We derive the split by slicing `buildPrompt`'s output at stable section markers —
+ * the same marker-slicing approach `buildPromptV2` already relies on — so `buildPrompt`
+ * stays the single source of truth (no duplicated prompt text) and is left untouched.
+ * If a marker ever drifts, we degrade gracefully to a single uncached `user` prompt,
+ * which is functionally identical to the previous (pre-caching) behavior.
+ */
+export function buildCachedPromptParts(
+  input: ProfilingInput,
+  priorBlock = "",
+  groundingBlock = "",
+): { system: string; user: string } {
+  const full = buildPrompt(input, priorBlock, groundingBlock);
+
+  // Index of the ═══ border line that sits directly above a section title.
+  const headerStart = (title: string): number => {
+    const t = full.indexOf(title);
+    if (t === -1) return -1;
+    const titleLineStart = full.lastIndexOf("\n", t) + 1;
+    return full.lastIndexOf("\n", titleLineStart - 2) + 1;
+  };
+
+  const idxProfile = headerStart("USER PROFILE — READ EVERY LINE CAREFULLY");
+  const idxStep = headerStart("STEP 0 — EXTRACT CHIPS");
+  const idxMandatory = headerStart("MANDATORY SPECIFIC NAMES");
+
+  // Markers must appear in order; otherwise the template has drifted — fall back
+  // to a single uncached user prompt rather than risk a malformed split.
+  if (idxProfile < 0 || idxStep <= idxProfile || idxMandatory <= idxStep) {
+    return { system: "", user: full };
+  }
+
+  const intro = full.slice(0, idxProfile);                // static: role line
+  const profile = full.slice(idxProfile, idxStep);        // dynamic: USER PROFILE + TASK
+  const methodology = full.slice(idxStep, idxMandatory);  // static: STEP 0–7
+  const mandatory = full.slice(idxMandatory);             // dynamic: names, dates, links, JSON
+
+  return {
+    system: (intro + methodology).trimEnd(),
+    user: (profile + mandatory).trimEnd(),
+  };
+}
+
 export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = "", contextOverride?: string, recentNames: string[] = []): Promise<GeneratedDestination[]> {
   const rawAnswers = input.answers[0] === "path_a" || input.answers[0] === "path_b"
     ? input.answers.slice(1) : input.answers;
@@ -1259,12 +1312,15 @@ export async function generateItineraryStreamingStructured(
   const { checkin, checkout, checkinCompact, checkoutCompact } = buildCheckinCheckout(input.leaveDate, days);
 
   const grounding = await resolveGroundingBlock(destinationName, input.lang || "en");
-  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding);
+  const { system, user } = buildCachedPromptParts({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding);
 
   const stream = client.messages.stream({
     model: "claude-sonnet-4-6",
     max_tokens: 20000,
-    messages: [{ role: "user", content: prompt }],
+    ...(system
+      ? { system: [{ type: "text" as const, text: system, cache_control: { type: "ephemeral" as const } }] }
+      : {}),
+    messages: [{ role: "user", content: user }],
   });
 
   let buffer = "";
@@ -1451,12 +1507,15 @@ export async function generateItineraryForDestination(
   priorBlock = ""
 ): Promise<GeneratedItinerary> {
   const grounding = await resolveGroundingBlock(destinationName, input.lang || "en");
-  const prompt = buildPrompt({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding);
+  const { system, user } = buildCachedPromptParts({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 20000,
-    messages: [{ role: "user", content: prompt }],
+    ...(system
+      ? { system: [{ type: "text" as const, text: system, cache_control: { type: "ephemeral" as const } }] }
+      : {}),
+    messages: [{ role: "user", content: user }],
   });
 
   const responseText = message.content
