@@ -12,9 +12,7 @@ import { buildPrompt, client, type ProfilingInput } from "./matching-engine";
 import type {
   MomentType,
   BookingStatus,
-  BookingProvider,
   EnergyLevel,
-  TransportMode,
   WeatherCondition,
   DayV2,
   MomentV2,
@@ -33,32 +31,26 @@ const bookingStatusSchema = z.enum([
   "bookable_now", "reserve_recommended", "walk_in",
 ]) satisfies z.ZodType<BookingStatus>;
 
-const bookingProviderSchema = z.enum([
-  "skyscanner", "trainline", "flixbus", "booking", "getyourguide",
-  "viator", "civitatis", "musement", "klook", "samboat",
-  "thefork", "expedia_cars", "welcome_pickups", "direct", "none",
-  "expedia", "hotels", "tablet_hotels", "tripadvisor",
-]) satisfies z.ZodType<BookingProvider>;
-
 const energyLevelSchema = z.enum(["low", "medium", "high"]) satisfies z.ZodType<EnergyLevel>;
-
-const transportModeSchema = z.enum([
-  "walk", "taxi", "metro", "bus", "train", "ferry", "drive", "flight",
-]) satisfies z.ZodType<TransportMode>;
 
 const weatherConditionSchema = z.enum([
   "sunny", "cloudy", "rain", "mixed", "snow",
 ]) satisfies z.ZodType<WeatherCondition>;
 
 const bookingInfoV2Schema = z.object({
-  provider: bookingProviderSchema,
+  // Free string — provider names are too varied/localized to enumerate without
+  // failing valid itineraries ("tripadvisor", "trenitalia", "liberty lines",
+  // "hotels.com"). The affiliate steer lives in the prompt, not in validation.
+  provider: z.string(),
   affiliate_url: z.string(),
   display_label: z.string(),
   status: bookingStatusSchema,
 });
 
 const transportToNextV2Schema = z.object({
-  mode: transportModeSchema,
+  // Free string — Claude localizes/combines modes ("a piedi", "bici", "aliscafo",
+  // "bici → a piedi"); enumerating them rigidly only triggers costly 500s.
+  mode: z.string(),
   duration_min: z.number(),
   cost_estimate: z.string().optional(),
   note: z.string().optional(),
@@ -74,7 +66,12 @@ const momentV2Schema: z.ZodType<MomentV2> = z.object({
   type: momentTypeSchema,
   title_evocative: z.string(),
   title_operational: z.string(),
-  time_label: z.enum(["morning", "lunch", "afternoon", "evening", "night"]),
+  // English canonical + Italian equivalents Claude emits when lang="it", so a
+  // localized label never fails the whole itinerary (and the costly retry).
+  time_label: z.enum([
+    "morning", "lunch", "afternoon", "evening", "night",
+    "mattina", "mezzogiorno", "pomeriggio", "sera", "notte",
+  ]),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
   duration_min: z.number().optional(),
@@ -236,6 +233,9 @@ detail. Apply the following rules strictly.
      Match the template to the moment: transport→Expedia flights (or FlixBus/SamBoat
      for ground/sea), accommodation→Hotels.com/Tablet Hotels, food→TripAdvisor,
      experience/tour/view→Civitatis/Musement (Europe) · Klook (Asia) · Viator (rest).
+   - provider — one of: expedia, hotels, tablet_hotels, civitatis, musement, klook,
+     viator, tripadvisor, flixbus, samboat, trainline, expedia_cars, welcome_pickups,
+     direct. Never use skyscanner, getyourguide, or booking.com as providers.
    - display_label — write an ACTION + OBJECT label in the response language, naming
      the real place: e.g. "Prenota il volo per Lisbona", "Prenota un tavolo · Taverna
      Aktaion", "Prenota l'esperienza · Tour della Medina", "Prenota l'hotel · Riad

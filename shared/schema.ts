@@ -89,14 +89,20 @@ export type WeatherCondition =
   | "sunny" | "cloudy" | "rain" | "mixed" | "snow";
 
 export interface BookingInfoV2 {
-  provider: BookingProvider;
+  // Free string: Claude returns provider names too varied to enumerate reliably
+  // ("tripadvisor", "trenitalia", "liberty lines", "hotels.com"). Validated loosely
+  // so a localized/unknown provider never fails the whole itinerary. See BookingProvider
+  // for the canonical affiliate set the v2 prompt steers toward.
+  provider: string;
   affiliate_url: string;
   display_label: string;
   status: BookingStatus;
 }
 
 export interface TransportToNextV2 {
-  mode: TransportMode;
+  // Free string for the same reason as provider — Claude localizes/combines modes
+  // ("a piedi", "bici", "aliscafo", "bici → a piedi"); too open to enumerate.
+  mode: string;
   duration_min: number;
   cost_estimate?: string;
   note?: string;
@@ -112,7 +118,10 @@ export interface MomentV2 {
   type: MomentType;
   title_evocative: string;
   title_operational: string;
-  time_label: "morning" | "lunch" | "afternoon" | "evening" | "night";
+  // English canonical + Italian equivalents Claude emits when lang="it".
+  time_label:
+    | "morning" | "lunch" | "afternoon" | "evening" | "night"
+    | "mattina" | "mezzogiorno" | "pomeriggio" | "sera" | "notte";
   start_time?: string;
   end_time?: string;
   duration_min?: number;
