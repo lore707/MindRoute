@@ -36,6 +36,8 @@ export type ItineraryData = {
   momentsByDay: Record<number, Moment[]>;
   closingQuote: string;
   mapPoints?: Array<{ x: number; y: number; label: string }>;
+  // Grounded spatial read computed from the geocoded points (not model-claimed).
+  geometry?: { spanKm: number; walkMinutes: number; walkable: boolean };
 };
 
 export type ItineraryCinematicProps = {
@@ -62,7 +64,7 @@ export type ItineraryCinematicProps = {
 type TabId = "itinerary" | "practical" | "booking";
 
 export function ItineraryCinematic({ data, tripGlance, practicalSection, bookingSection, onSavePdf, onStartOver, onBack, onEdit, extraSections, itineraryId, savedMomentIds, onToggleSaved }: ItineraryCinematicProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [activeDay, setActiveDay] = useState(data.days[0]?.n ?? 1);
   const [activeMoment, setActiveMoment] = useState(0);
   const [scrolled, setScrolled] = useState(false);
@@ -313,6 +315,21 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
                 <p style={{ color: "var(--ic-ink-dim)", fontSize: 15, lineHeight: 1.7, maxWidth: 420 }}>
                   {t('itin.cin.geographyDesc')}
                 </p>
+                {data.geometry && (() => {
+                  const g = data.geometry;
+                  const km = g.spanKm < 10
+                    ? g.spanKm.toFixed(1).replace(".", lang === "it" ? "," : ".")
+                    : String(Math.round(g.spanKm));
+                  const line = (g.walkable
+                    ? t('itin.cin.geo.compact').replace("{km}", km).replace("{min}", String(g.walkMinutes))
+                    : t('itin.cin.geo.spread').replace("{km}", km));
+                  return (
+                    <p style={{ marginTop: 14, color: "var(--ic-ink-faint)", fontSize: 13, lineHeight: 1.6, maxWidth: 420, display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ color: "var(--ic-accent, #E94560)", fontWeight: 700, flexShrink: 0 }}>◷</span>
+                      <span>{line}</span>
+                    </p>
+                  );
+                })()}
               </div>
               <div className="map-vis">
                 <svg viewBox="0 0 400 400">

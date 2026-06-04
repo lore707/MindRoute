@@ -447,6 +447,8 @@ const translations: Record<string, Record<Lang, string>> = {
   "itin.cin.geographyTitlePre": { en: "Where you'll", it: "Dove" },
   "itin.cin.geographyTitleEm": { en: "walk", it: "camminerai" },
   "itin.cin.geographyDesc": { en: "Small enough that nothing feels far, big enough that every corner has a different mood.", it: "Abbastanza raccolto perché niente sembri lontano, abbastanza vario perché ogni angolo abbia un'atmosfera diversa." },
+  "itin.cin.geo.compact": { en: "Your stops sit within ~{km} km — most of it walkable (~{min} min on foot across the trip).", it: "Le tue tappe stanno in ~{km} km — quasi tutto a piedi (~{min} min di camminate in tutto il viaggio)." },
+  "itin.cin.geo.spread": { en: "Your stops span ~{km} km — plan a few short hops between areas.", it: "Le tue tappe coprono ~{km} km — metti in conto qualche breve spostamento tra le zone." },
   "itin.cin.edit": { en: "Edit", it: "Modifica" },
   "itin.cin.book": { en: "Book", it: "Prenota" },
   // Action+object booking verbs — paired with the real place name to form

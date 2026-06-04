@@ -351,6 +351,35 @@ function firstSentence(s: string, maxWords = 14): string {
   return title.trim().replace(/[.!?—]+$/, "");
 }
 
+// ── GROUNDED GEOMETRY ─────────────────────────────────────────────────────────
+// Real spatial read computed from the already-geocoded map points (Nominatim
+// lat/lng) — NOT trusted from the model. Straight-line haversine × 1.3 routing
+// factor at 4.5 km/h gives a directionally honest walking estimate; we round it
+// generously and only frame stops as "walkable" when their span is small.
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const la1 = (a.lat * Math.PI) / 180;
+  const la2 = (b.lat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function computeGeometry(points: { lat: number; lng: number }[]): { spanKm: number; walkMinutes: number; walkable: boolean } | undefined {
+  if (points.length < 2) return undefined;
+  let span = 0;
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i + 1; j < points.length; j++) {
+      span = Math.max(span, haversineKm(points[i], points[j]));
+    }
+  }
+  // Path length follows insertion order (day → within-day slot), ~the trip route.
+  let path = 0;
+  for (let i = 1; i < points.length; i++) path += haversineKm(points[i - 1], points[i]);
+  const walkMinutes = Math.round(((path * 1.3) / 4.5) * 60 / 5) * 5;
+  return { spanKm: span, walkMinutes, walkable: span <= 2.5 };
+}
+
 // ── BOOKING LABELS (action + object) ──────────────────────────────────────────
 // Maps an affiliate link key to a verb i18n key, then pairs it with the real
 // place name so the CTA reads "Prenota un tavolo · Taverna Aktaion" instead of a
@@ -372,6 +401,23 @@ function bookLabel(linkKey: string, labels: Record<string, string>, destCity: st
   let name = (labels?.[linkKey] ?? "").trim();
   if (!name && (linkKey.startsWith("expedia_flights") || linkKey.startsWith("hotels"))) name = destCity;
   return name ? `${verb} · ${name}` : verb;
+}
+// Honest booking urgency per link type. We do NOT claim "bookable now" on links
+// that are really category/search pages or walk-in realities: a restaurant table
+// (tripadvisor is reviews, not instant-confirm) and popular tours are honestly
+// "worth booking ahead", not "book this exact slot now". Flights/hotels/transport
+// links land on a real booking flow → bookable_now. This surfaces the honest
+// reserve hint (which also adds gentle scarcity framing → converts better) instead
+// of an implicit, falsifiable "book now" on a search link.
+function bookStatusFor(linkKey: string): "bookable_now" | "reserve_recommended" {
+  const k = linkKey.toLowerCase();
+  if (k.startsWith("expedia_flights") || k.startsWith("hotels") || k.includes("hotel")
+    || k.startsWith("flixbus") || k.startsWith("samboat") || k.startsWith("expedia_cars")) {
+    return "bookable_now";
+  }
+  // tripadvisor (table) + experience family (civitatis/musement/klook/viator/
+  // undercovertourist) + tour → reserve_recommended.
+  return "reserve_recommended";
 }
 function fmtBookPrice(min?: number, max?: number): string | undefined {
   const lo = typeof min === "number" ? min : undefined;
@@ -429,7 +475,7 @@ function buildMoments(
     moments.push({
       t: s.label, ic: s.ic, title, desc,
       cta, ctaUrl,
-      ctaStatus: ctaUrl ? "bookable_now" : undefined,
+      ctaStatus: ctaUrl && linkKey ? bookStatusFor(linkKey) : undefined,
     });
   }
   return moments;
@@ -589,6 +635,7 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
       }
     }
   }
+  const geometry = computeGeometry(allPoints);
   if (allPoints.length > 0) {
     const lats = allPoints.map(p => p.lat);
     const lngs = allPoints.map(p => p.lng);
@@ -616,6 +663,7 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
     momentsByDay,
     closingQuote: itinerary?.closingMessage ?? "",
     mapPoints,
+    geometry,
   };
 }
 
