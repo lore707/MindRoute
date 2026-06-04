@@ -104,6 +104,21 @@ function bilingualHandler(windowMs: number) {
 
 const passthrough = (_req: Request, _res: Response, next: NextFunction) => next();
 
+// Owner bypass — the project owner's account skips every rate limit so it can be
+// tested on production without burning the 3/day quota. Protection for real users
+// stays intact. Configurable via OWNER_EMAILS (comma-separated, case-insensitive);
+// defaults to the solo dev's Google account.
+const OWNER_EMAILS = new Set(
+  (process.env.OWNER_EMAILS ?? "lorenzo.defi33@gmail.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+function isOwner(req: Request): boolean {
+  const email = (req as any).user?.email;
+  return typeof email === "string" && OWNER_EMAILS.has(email.toLowerCase());
+}
+
 // ── LIMITERS ──────────────────────────────────────────────────────────────────
 
 /**
@@ -118,6 +133,7 @@ export const profilingLimiter = IS_DEV
       keyGenerator: makeKeyGenerator("profiling"),
       store: new PgStore(DAY_MS),
       handler: bilingualHandler(DAY_MS),
+      skip: isOwner,
       standardHeaders: "draft-7",
       legacyHeaders: false,
     });
@@ -134,6 +150,7 @@ export const itineraryLimiter = IS_DEV
       keyGenerator: makeKeyGenerator("itinerary"),
       store: new PgStore(DAY_MS),
       handler: bilingualHandler(DAY_MS),
+      skip: isOwner,
       standardHeaders: "draft-7",
       legacyHeaders: false,
     });
@@ -153,5 +170,5 @@ export const globalApiLimiter = IS_DEV
       handler: bilingualHandler(HOUR_MS),
       standardHeaders: "draft-7",
       legacyHeaders: false,
-      skip: (req: Request) => req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS",
+      skip: (req: Request) => isOwner(req) || req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS",
     });
