@@ -38,8 +38,6 @@ export type ItineraryData = {
   mapPoints?: Array<{ x: number; y: number; label: string }>;
   // Grounded spatial read computed from the geocoded points (not model-claimed).
   geometry?: { spanKm: number; walkMinutes: number; walkable: boolean };
-  // Real opening/price facts from Google Places — present only when provisioned.
-  groundedPlaces?: Array<{ label: string; priceLevel?: number; openNow?: boolean }>;
 };
 
 export type ItineraryCinematicProps = {
@@ -333,42 +331,18 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
                   );
                 })()}
               </div>
-              <div className="map-col">
-                <div className="map-vis">
-                  <svg viewBox="0 0 400 400">
-                    {data.mapPoints.length > 1 && (
-                      <path className="map-line" d={data.mapPoints.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ")} />
-                    )}
-                    {data.mapPoints.map((p, i) => (
-                      <g key={i}>
-                        <ellipse cx={p.x} cy={p.y} rx={6} ry={6} className="map-pin" />
-                        <text x={p.x + 14} y={p.y + 5} fill="rgba(245,240,238,.6)" fontSize="11" fontFamily="serif" fontStyle="italic">{p.label}</text>
-                      </g>
-                    ))}
-                  </svg>
-                </div>
-                {/* Verified facts (Google Places). Renders only when grounding was
-                    provisioned — no key → empty → nothing shown, never a guess. */}
-                {data.groundedPlaces && data.groundedPlaces.length > 0 && (
-                  <div className="map-verified">
-                    <div className="map-verified-head">{t('itin.cin.geo.verified')}</div>
-                    {data.groundedPlaces.map((g, i) => (
-                      <div key={i} className="map-verified-row">
-                        <span className="map-verified-name">{g.label}</span>
-                        <span className="map-verified-facts">
-                          {g.openNow != null && (
-                            <span style={{ color: g.openNow ? "#4ade80" : "rgba(245,240,238,.45)" }}>
-                              {g.openNow ? t('itin.cin.geo.openNow') : t('itin.cin.geo.closedNow')}
-                            </span>
-                          )}
-                          {typeof g.priceLevel === "number" && g.priceLevel > 0 && (
-                            <span style={{ marginLeft: 8, color: "rgba(245,240,238,.5)" }}>{"€".repeat(g.priceLevel)}</span>
-                          )}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <div className="map-vis">
+                <svg viewBox="0 0 400 400">
+                  {data.mapPoints.length > 1 && (
+                    <path className="map-line" d={data.mapPoints.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(" ")} />
+                  )}
+                  {data.mapPoints.map((p, i) => (
+                    <g key={i}>
+                      <ellipse cx={p.x} cy={p.y} rx={6} ry={6} className="map-pin" />
+                      <text x={p.x + 14} y={p.y + 5} fill="rgba(245,240,238,.6)" fontSize="11" fontFamily="serif" fontStyle="italic">{p.label}</text>
+                    </g>
+                  ))}
+                </svg>
               </div>
             </div>
           </div>

@@ -449,9 +449,6 @@ const translations: Record<string, Record<Lang, string>> = {
   "itin.cin.geographyDesc": { en: "Small enough that nothing feels far, big enough that every corner has a different mood.", it: "Abbastanza raccolto perché niente sembri lontano, abbastanza vario perché ogni angolo abbia un'atmosfera diversa." },
   "itin.cin.geo.compact": { en: "Your stops sit within ~{km} km — most of it walkable (~{min} min on foot across the trip).", it: "Le tue tappe stanno in ~{km} km — quasi tutto a piedi (~{min} min di camminate in tutto il viaggio)." },
   "itin.cin.geo.spread": { en: "Your stops span ~{km} km — plan a few short hops between areas.", it: "Le tue tappe coprono ~{km} km — metti in conto qualche breve spostamento tra le zone." },
-  "itin.cin.geo.verified": { en: "Verified · live hours & prices", it: "Verificato · orari e prezzi live" },
-  "itin.cin.geo.openNow": { en: "open now", it: "aperto ora" },
-  "itin.cin.geo.closedNow": { en: "closed now", it: "chiuso ora" },
   "itin.cin.edit": { en: "Edit", it: "Modifica" },
   "itin.cin.book": { en: "Book", it: "Prenota" },
   // Action+object booking verbs — paired with the real place name to form

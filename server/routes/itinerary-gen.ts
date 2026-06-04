@@ -6,19 +6,6 @@ import { fetchUnsplashHero, fetchDayImageWithFallback, mapWithConcurrency } from
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
-import { groundPlace, placesEnabled } from "../places";
-
-// Attach real opening-hours/price-level to geocoded points when Google Places is
-// provisioned. Dormant (no-op) without GOOGLE_PLACES_API_KEY — the points pass
-// through untouched and the UI shows only the model's qualitative text. We ground
-// the same named places we already geocoded, so no extra place resolution.
-async function groundMapPoints<T extends { label: string }>(points: T[], city: string): Promise<T[]> {
-  if (!placesEnabled() || points.length === 0) return points;
-  return Promise.all(points.map(async (p) => {
-    const g = await groundPlace(`${p.label} ${city}`);
-    return g ? { ...p, grounding: g } : p;
-  }));
-}
 
 const SLOT_MAPPING: Record<string, string> = {
   getyourguide_morning: "Mattina", klook_morning: "Mattina", viator_morning: "Mattina",
@@ -461,7 +448,7 @@ export function registerItineraryGenRoutes(app: Express) {
           return coords ? { label: c.name, slot: c.slot, dayNum: c.dayNum, lat: coords.lat, lng: coords.lng } : null;
         })
       );
-      const globalMapPoints = await groundMapPoints(geocodeResults.filter(Boolean) as any[], city);
+      const globalMapPoints = geocodeResults.filter(Boolean) as any[];
 
       const heroUrlStream = heroImage?.url ?? null;
       const daysWithExtras = await mapWithConcurrency(itinerary.days || [], 3, async (day: any) => {
