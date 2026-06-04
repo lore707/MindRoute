@@ -464,7 +464,7 @@ DAY 1 — DEPARTURE & ARRIVAL:
 - evening: First gentle dinner. Named restaurant. ~€X/pp. Sensory first contact with destination. Include tripadvisor link.
 
 DAYS 2-3 — IMMERSION:
-- morning: Named activity/place + best arrival time. Affiliate link.
+- morning: Named activity/place + qualitative best time of day (e.g. "presto", "a metà mattina") — never an invented clock time. Affiliate link.
 - lunch: Named restaurant + neighborhood + ~€X/pp. Affiliate link.
 - afternoon: Named activity different character from morning. Affiliate link.
 - evening: Named dinner + atmosphere + ~€X/pp. Affiliate link.
@@ -480,7 +480,7 @@ DAY 6 — DECELERATION:
 - evening: Penultimate dinner. Special but not the peak.
 
 DAY LAST — EMOTIONAL CLOSURE & DEPARTURE:
-- morning: Final experience before departure. Specific place + time ("alle 7, prima dei bagagli").
+- morning: Final experience before departure. Specific place + qualitative timing ("all'alba, prima dei bagagli") — never an invented exact hour.
 - lunch: Last meal. Named café or bar. "L'ultimo caffè a [NAME] prima dell'aeroporto."
 - afternoon: Full return journey. "Transfer [hotel] → aeroporto [IATA], [method], ~[duration], ~€[cost]/pp. Volo [dest IATA] → [home IATA], ~[duration], atterraggio [time range]." Skyscanner link.
 - evening: Arrival home. "[City] con [emotional souvenir — not a physical object]." No affiliate link needed.
@@ -493,8 +493,8 @@ MANDATORY SLOT RULES — every day, every slot:
 - Every afternoon: ≥1 affiliate link (activity, hotel, or return flight last day)
 - Every evening: ≥1 affiliate link (restaurant or tripadvisor fallback, exception: home arrival)
 - Every slot: max 3 sentences. S1 = what. S2 = how it feels/looks/smells. S3 = practical detail or cost.
-- Time hints when relevant: "arriva alle 8 prima delle folle", "golden hour alle 19:30"
-- Costs always shown: ~€X/pp for every transport, activity, restaurant
+- Time hints ONLY qualitative — you do NOT know real opening hours. Use "presto, prima delle folle", "a metà mattina", "verso il tramonto", "all'ora di pranzo". NEVER invent exact opening hours ("aperto 9-17") or precise clock times ("alle 19:30", "arriva alle 8"). Sunrise/sunset framing ("all'alba", "al tramonto") is fine; exact minutes are not.
+- Costs shown as honest ballpark ranges with ~: "~€15–25/pp". NEVER a false-precise single figure ("€17/pp"). For transport between locations the ~duration is an estimate, never claimed to the minute.
 - Logistical transitions ARE experiences: "40 min di taxi lungo la costa, finestre aperte, odore di sale" — never "transfer to hotel"
 
 ═══════════════════════════════════════
@@ -573,6 +573,14 @@ Before finalizing, verify every item on this list:
       - it satisfies ZERO dominant chips AND it doesn't solve a logistical need (transport between zones, check-in, return flight) → replace with one that satisfies at least 1 dominant chip
       - it violates ANY dominant chip or any anti-pattern chip → replace
     Re-run the grid after replacement. Only emit JSON when every element passes. "Interesting", "famous", or "well-rated" are NOT chips — they do not count as justification.
+
+16. HONEST PRECISION GATE (internal, mandatory before emitting JSON):
+    You have NO access to live opening hours, exact prices, or to-the-minute transit. A falsifiable wrong fact ("aperto 9-17", "€17/pp", "8 minuti a piedi", "alle 19:30") breaks trust on the spot — it is WORSE than honest vagueness. Scan every slot and REWRITE any false-precise claim into an honest form:
+      - exact opening/closing or clock time → qualitative ("vai presto", "verso il tramonto", "a metà pomeriggio")
+      - single-figure price → ballpark range with ~ ("~€15–25/pp")
+      - to-the-minute walking/transit between intra-city stops → "a pochi minuti a piedi", "una breve passeggiata" (the app computes real walking distance separately — do NOT state minutes)
+      - inter-city transport keeps a ~approximate duration, never claimed exact.
+    Only specifics you are genuinely confident are stable (a place's name, that a market runs in the morning, that a viewpoint faces west for sunset) may stay. When unsure, choose the vaguer honest phrasing.
 
 ═══════════════════════════════════════
 MANDATORY SPECIFIC NAMES

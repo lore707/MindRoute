@@ -614,7 +614,7 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
   // map_points: v2 keeps them at the top level inside tripMeta (lat/lng), v1
   // attaches them per-day. Both get projected into the cinematic's 60–340 box.
   let mapPoints: ItineraryData["mapPoints"];
-  const allPoints: { lat: number; lng: number; label: string }[] = [];
+  const allPoints: { lat: number; lng: number; label: string; grounding?: any }[] = [];
   const seen = new Set<string>();
   if (isV2 && Array.isArray(tripMeta?.map_points)) {
     for (const p of tripMeta.map_points as any[]) {
@@ -622,7 +622,7 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
       const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
       if (seen.has(k)) continue;
       seen.add(k);
-      allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "" });
+      allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "", grounding: p.grounding });
     }
   } else {
     for (const d of days) {
@@ -631,10 +631,20 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
         const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
         if (seen.has(k)) continue;
         seen.add(k);
-        allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "" });
+        allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "", grounding: p.grounding });
       }
     }
   }
+
+  // Verified facts (Google Places) — present ONLY when grounding was provisioned.
+  // Without a key this is always empty and nothing renders → no hallucinated hours.
+  const groundedPlaces = allPoints
+    .filter(p => p.grounding && (p.grounding.openNow != null || typeof p.grounding.priceLevel === "number"))
+    .map(p => ({
+      label: p.grounding.name ?? p.label,
+      priceLevel: typeof p.grounding.priceLevel === "number" ? p.grounding.priceLevel : undefined,
+      openNow: typeof p.grounding.openNow === "boolean" ? p.grounding.openNow : undefined,
+    }));
   const geometry = computeGeometry(allPoints);
   if (allPoints.length > 0) {
     const lats = allPoints.map(p => p.lat);
@@ -664,6 +674,7 @@ function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang:
     closingQuote: itinerary?.closingMessage ?? "",
     mapPoints,
     geometry,
+    groundedPlaces: groundedPlaces.length > 0 ? groundedPlaces : undefined,
   };
 }
 
