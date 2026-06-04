@@ -176,7 +176,11 @@ export function registerProfilingRoutes(app: Express) {
         console.warn("[traits] from-profile snapshot failed:", e);
       }
 
-      res.json(createdDests);
+      // Return the input too: the client must seed sessionStorage with BOTH the
+      // fresh destinations and the synthesized input, exactly like the quiz flow
+      // does. Without this the Destinations page reads stale/empty sessionStorage
+      // (from a previous quiz) and generation fails or uses the wrong destination.
+      res.json({ destinations: createdDests, input });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({

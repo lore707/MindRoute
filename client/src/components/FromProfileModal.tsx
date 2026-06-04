@@ -83,6 +83,16 @@ export function FromProfileModal({ open, onClose, snapshotCount }: FromProfileMo
         const j = await res.json().catch(() => ({ message: "Errore" }));
         throw new Error(j.message ?? "Errore");
       }
+      // Seed sessionStorage with the fresh destinations + input, exactly like the
+      // quiz flow — otherwise Destinations reads stale/empty data and generation
+      // fails or targets the wrong destination.
+      const data = await res.json();
+      if (Array.isArray(data?.destinations)) {
+        sessionStorage.setItem("mind_destinations", JSON.stringify(data.destinations));
+      }
+      if (data?.input) {
+        sessionStorage.setItem("mind_profiling_input", JSON.stringify(data.input));
+      }
       onClose();
       setLocation("/destinations");
     } catch (e: any) {

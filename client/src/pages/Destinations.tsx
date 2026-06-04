@@ -14,6 +14,7 @@ export default function Destinations() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 const [isGenerating, setIsGenerating] = useState(false);
+  const [genError, setGenError] = useState("");
   const [genMessage, setGenMessage] = useState("");
   const [genHeroUrl, setGenHeroUrl] = useState("");
   const [genDestName, setGenDestName] = useState("");
@@ -51,11 +52,21 @@ const handleContinue = async () => {
     const selectedDest = destinations.find((d) => d.id === selectedId);
     if (!selectedDest) return;
 
+    setGenError("");
     try {
+      // sessionStorage is the fast path; if it's missing (e.g. arrived via
+      // "genera dal profilo" in a fresh tab), fall back to the server, which is
+      // the source of truth for the saved profiling input.
+      let profilingInput: any = null;
       const storedInput = sessionStorage.getItem("mind_profiling_input");
-      if (!storedInput) throw new Error("Profiling input non trovato");
+      if (storedInput) {
+        profilingInput = JSON.parse(storedInput);
+      } else {
+        const r = await fetch("/api/profiling/input");
+        if (r.ok) profilingInput = await r.json();
+      }
+      if (!profilingInput) throw new Error(lang === "it" ? "Profilo non trovato. Rifai il quiz." : "Profile not found. Retake the quiz.");
 
-      const profilingInput = JSON.parse(storedInput);
       const currentLang = localStorage.getItem("mindroute-lang") || "en";
       const inputWithLang = { ...profilingInput, lang: currentLang };
 
@@ -173,6 +184,7 @@ const handleContinue = async () => {
     } catch (err) {
       console.error(err);
       setIsGenerating(false);
+      setGenError(err instanceof Error && err.message ? err.message : (lang === "it" ? "Errore nella generazione. Riprova." : "Generation failed. Try again."));
     }
   };
   const selectedName = destinations.find((d) => d.id === selectedId)?.name;
@@ -181,7 +193,7 @@ if (destinations.length === 0) return null;
 
   if (isGenerating) {
     return (
-      <div className="min-h-screen" style={{ background: "#0a0814" }}>
+      <div className="min-h-screen" style={{ background: "transparent" }}>
         <div className="relative h-[50vh] min-h-[340px] md:h-[60vh] md:min-h-[400px] overflow-hidden">
           {genHeroUrl && (
             <img src={genHeroUrl} alt={genDestName} className="absolute inset-0 w-full h-full object-cover" />
@@ -237,7 +249,7 @@ if (destinations.length === 0) return null;
   }
 
   return (
-    <div style={{ background: "#0a0814", color: "white", minHeight: "100vh" }}>
+    <div style={{ background: "transparent", color: "white", minHeight: "100vh" }}>
     <div className="container max-w-7xl mx-auto px-4 md:px-6 pt-20 md:pt-24 pb-16 md:pb-20">
       <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
         <motion.p
@@ -379,6 +391,18 @@ if (destinations.length === 0) return null;
           </motion.div>
         )}
       </AnimatePresence>
+
+      {genError && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-4 text-center text-[13px]"
+          style={{ color: "#E94560" }}
+          data-testid="text-gen-error"
+        >
+          {genError}
+        </motion.p>
+      )}
     </div>
     </div>
   );
