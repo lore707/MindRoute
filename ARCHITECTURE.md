@@ -18,7 +18,7 @@ Landing → Profiling (7Q) → Destinations (pick 1 of 3) → Itinerary (cinemat
 | 2. Pick destination | `client/src/pages/Destinations.tsx` | `POST /api/itinerary/generate-stream` (SSE) | `itineraries` (with days, mapPoints, dayImageUrl, hero) |
 | 3. View itinerary | `client/src/pages/Itinerary.tsx` | `GET /api/itinerary/:destinationId` | — |
 | 3b. Stream narrative | `client/src/pages/ItineraryStream.tsx` | `POST /api/itinerary/stream-narrative` (SSE) | Placeholder, then background fills `itineraries` |
-| 4. Download PDF | `client/src/components/ItineraryPDF.tsx` (rendered client-side via `@react-pdf/renderer`) | — | — |
+| 4. Save PDF | `client/src/components/ItineraryPrint.tsx` (HTML printed via browser `window.print()` in an isolated window) | — | — |
 
 **Main user path** is `generate-stream` (step 2). `stream-narrative` is the "ChatGPT-style live text" alternative entry. Both end up with the same `itineraries` row shape.
 
@@ -56,8 +56,8 @@ When adding a new endpoint: pick the matching route module, don't add it to `ser
 | `client/src/pages/Destinations.tsx` | Shows 3 candidates, kicks off generate-stream |
 | `client/src/pages/Itinerary.tsx` | Renders the finished itinerary (cinematic) |
 | `client/src/pages/ItineraryStream.tsx` | ChatGPT-style streaming entry |
-| `client/src/components/ItineraryCinematic.tsx` | Cinematic web layout |
-| `client/src/components/ItineraryPDF.tsx` | `@react-pdf/renderer` document — A4 editorial PDF |
+| `client/src/components/ItineraryCinematic.tsx` | Cinematic web layout (legacy; live layout is `ItineraryRedesign.tsx`) |
+| `client/src/components/ItineraryPrint.tsx` | HTML A4 magazine layout, browser-printed to PDF |
 | `client/src/components/WorldMap.tsx` | Leaflet map for itinerary |
 | `client/src/lib/i18n.tsx` | `t()` + EN/IT key dictionary |
 | `client/src/styles/itinerary-cinematic.css` | Cinematic page styles |
@@ -111,19 +111,13 @@ Each stage retries 429/5xx with 1s/2s/4s exponential backoff. Logs `[unsplash]` 
 
 ## PDF pipeline
 
-The PDF is generated **client-side** by `@react-pdf/renderer` reading directly from the `itineraries` row. Triggered by the user clicking download on the cinematic page.
+The PDF keepsake is an **HTML/CSS magazine layout printed by the browser** (no `@react-pdf/renderer`). `handleSavePdf` in `Itinerary.tsx` renders `client/src/components/ItineraryPrint.tsx` to static markup (`react-dom/server`), opens an **isolated `window.open` document**, injects `client/src/styles/itinerary-pdf.css` (imported with Vite `?inline`) + Google Fonts, and calls `window.print()`. The user picks "Save as PDF" (margins: none). The separate window keeps the template's global CSS (`*`, `body`, `@page`) from touching the app.
 
-**Font invariants** (in `client/src/components/ItineraryPDF.tsx`):
-- Fonts are bundled as static assets via Vite `?url` imports from `@fontsource/playfair-display` and `@fontsource/dm-sans`. Never load fonts from CDN — the race condition with PDF rendering causes glyph fallback (Helvetica) and baseline shifts on Italian accents.
-- Subset is `latin` (covers Latin-1 Supplement + General Punctuation — i.e., Italian accents, em-dash, smart quotes, ellipsis).
+**Why isolated window**: the print stylesheet is intentionally global (resets, `@page`, `@media print`). Importing it into the SPA would clobber the app, so it's injected only into the throwaway print window.
 
-**Layout invariants**:
-- Atomic rows (moment, arcDay, practicalRow, gettingStep, closingCtaRow, highlightRow) carry `wrap={false}` so they're never split mid-row across pages.
-- Practical sub-section eyebrows use `minPresenceAhead={60}` to prevent orphan headers when content pushes to the next page.
-- Don't nest `<Text fontSize:N>` inside `<Text fontSize:M>` where N >> M — there's no CSS float, so the parent's first line inflates and the rest squashes. (This is why the Day-1 drop-cap was removed.)
-- Footer uses `<Text render={({ pageNumber, totalPages }) => ...}>` for accurate paging — never compute a JS estimate.
+**Data-driven + honest**: `ItineraryPrint` is fed `ItineraryData` (from `mapItineraryToCinematic`) + the raw `itineraries` row (budget/gettingThere/packingList parsed inline) + affiliate URLs. It does **not** use `useI18n` (no provider in `renderToStaticMarkup`) — language comes via a `lang` prop, and the cinematic strings are already localized. Per the honesty policy it omits anything not in the data: no minute-level times, no phone numbers, no per-day "why" beyond `day.sub`. Sections degrade gracefully when a field is missing.
 
-**Typography pipeline**: `typo()` in the same file normalizes ASCII punctuation in long-form text only (`...` → `…`, `--` → `—`, `"..."` → smart quotes). Labels and metadata stay literal.
+**Edits flow through**: because `mapItineraryToCinematic` → `buildMoments` prefers `day.editedMoments`, "Modalità Cura" edits saved to the DB appear in the PDF too.
 
 ---
 
@@ -169,5 +163,5 @@ When fixing image-pipeline bugs, update **all four** endpoints unless the fix is
 - **Editing schema → forgetting `npm run db:push`**: changes won't apply in dev DB.
 - **Adding to `server/routes.ts` instead of a per-domain module**: route file will grow again, defeating the split.
 - **Returning the LLM's `dayImageUrl` instead of fetching from Unsplash**: that's the bug from `3e2736a` — never do it.
-- **Putting fonts on a CDN in `ItineraryPDF.tsx`**: triggers race condition with PDF render. Always bundle.
+- **Importing `itinerary-pdf.css` normally** (not `?inline`): its global resets (`*`, `body`, `@page`) clobber the whole app. It must only be injected into the isolated print window.
 - **Using `Promise.all` on per-day Unsplash fetches**: triggers 429 burst. Use `mapWithConcurrency(..., 3, ...)`.

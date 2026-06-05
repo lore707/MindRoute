@@ -853,27 +853,40 @@ export default function Itinerary() {
  const handleSavePdf = async () => {
     if (!itinerary) return;
     const dest = itinerary.destinationName ?? "Destination";
-    const safeName = dest.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const createdAt = (itinerary as any).createdAt ? new Date((itinerary as any).createdAt) : new Date();
-    const monthYear = isNaN(createdAt.getTime())
-      ? undefined
-      : new Intl.DateTimeFormat(lang === "it" ? "it-IT" : "en-US", { month: "long", year: "numeric" }).format(createdAt);
     try {
-      // @react-pdf/renderer is ~500KB — load it (and the PDF template) only when
-      // the user actually exports, so it never weighs down the itinerary page.
-      const [{ pdf }, { ItineraryPDF }] = await Promise.all([
-        import("@react-pdf/renderer"),
-        import("@/components/ItineraryPDF"),
+      // Keepsake stampabile (HTML/CSS stile rivista): lo rendiamo in una finestra
+      // isolata e lasciamo che sia il browser a produrre il PDF (Cmd/Ctrl+P →
+      // Salva come PDF). La finestra è separata, così il CSS globale del template
+      // non tocca l'app. renderToStaticMarkup + il template caricati on-demand.
+      const [{ renderToStaticMarkup }, { ItineraryPrint }, cssMod] = await Promise.all([
+        import("react-dom/server"),
+        import("@/components/ItineraryPrint"),
+        import("@/styles/itinerary-pdf.css?inline"),
       ]);
-      const blob = await pdf(<ItineraryPDF data={itinerary as any} lang={lang as "it" | "en"} monthYear={monthYear} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `MindRoute-${safeName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const pdfCss = (cssMod as any).default as string;
+      const region = detectRegion(dest);
+      const topLinks = itinerary.topAffiliateLinks ?? {};
+      const profilingInput = (itinerary as any).profilingInput ?? null;
+      const affiliateUrls = buildAffiliateUrls(dest, profilingInput, region, topLinks);
+      const data = mapItineraryToCinematic(itinerary, t, lang, affiliateUrls);
+      const html = renderToStaticMarkup(
+        <ItineraryPrint data={data} itinerary={itinerary} affiliateUrls={affiliateUrls} profilingInput={profilingInput} lang={lang as "it" | "en"} />
+      );
+      const w = window.open("", "_blank");
+      if (!w) { window.alert(lang === "it" ? "Abilita i popup per salvare il PDF" : "Allow pop-ups to save the PDF"); return; }
+      w.document.open();
+      w.document.write(
+        `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">` +
+        `<title>MindRoute · ${dest}</title>` +
+        `<link rel="preconnect" href="https://fonts.googleapis.com">` +
+        `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>` +
+        `<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">` +
+        `<style>${pdfCss}</style></head><body>${html}</body></html>`
+      );
+      w.document.close();
+      w.focus();
+      // Lascia caricare font e immagini di sfondo prima di aprire il dialog.
+      w.onload = () => setTimeout(() => { try { w.print(); } catch { /* ignore */ } }, 500);
     } catch (err) {
       console.error("PDF generation failed:", err);
       window.alert(lang === "it" ? "Errore nella generazione del PDF" : "PDF generation failed");
