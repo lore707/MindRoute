@@ -853,11 +853,16 @@ export default function Itinerary() {
  const handleSavePdf = async () => {
     if (!itinerary) return;
     const dest = itinerary.destinationName ?? "Destination";
+    // IMPORTANTE: apri la finestra SUBITO, nello stesso tick del click. Se la
+    // aprissimo dopo gli await (import dinamici) il browser la tratterebbe come
+    // non-user-gesture e bloccherebbe il popup. Mostriamo un placeholder e poi
+    // ci scriviamo dentro il documento finale.
+    const w = window.open("", "_blank");
+    if (!w) { window.alert(lang === "it" ? "Abilita i popup per questo sito per salvare il PDF" : "Allow pop-ups for this site to save the PDF"); return; }
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>MindRoute</title></head><body style="font-family:system-ui;background:#140a14;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><p>${lang === "it" ? "Preparo il tuo PDF…" : "Preparing your PDF…"}</p></body></html>`);
     try {
-      // Keepsake stampabile (HTML/CSS stile rivista): lo rendiamo in una finestra
-      // isolata e lasciamo che sia il browser a produrre il PDF (Cmd/Ctrl+P →
-      // Salva come PDF). La finestra è separata, così il CSS globale del template
-      // non tocca l'app. renderToStaticMarkup + il template caricati on-demand.
+      // Keepsake stampabile (HTML/CSS stile rivista): renderToStaticMarkup +
+      // template caricati on-demand, poi iniettati nella finestra già aperta.
       const [{ renderToStaticMarkup }, { ItineraryPrint }, cssMod] = await Promise.all([
         import("react-dom/server"),
         import("@/components/ItineraryPrint"),
@@ -872,8 +877,9 @@ export default function Itinerary() {
       const html = renderToStaticMarkup(
         <ItineraryPrint data={data} itinerary={itinerary} affiliateUrls={affiliateUrls} profilingInput={profilingInput} lang={lang as "it" | "en"} />
       );
-      const w = window.open("", "_blank");
-      if (!w) { window.alert(lang === "it" ? "Abilita i popup per salvare il PDF" : "Allow pop-ups to save the PDF"); return; }
+      // Lo script in coda al body attende load + un attimo per font/immagini,
+      // poi apre il dialog di stampa (più affidabile di w.onload dall'esterno).
+      const printScript = `<script>window.addEventListener("load",function(){setTimeout(function(){window.focus();window.print();},600);});<\/script>`;
       w.document.open();
       w.document.write(
         `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">` +
@@ -881,14 +887,12 @@ export default function Itinerary() {
         `<link rel="preconnect" href="https://fonts.googleapis.com">` +
         `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>` +
         `<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">` +
-        `<style>${pdfCss}</style></head><body>${html}</body></html>`
+        `<style>${pdfCss}</style></head><body>${html}${printScript}</body></html>`
       );
       w.document.close();
-      w.focus();
-      // Lascia caricare font e immagini di sfondo prima di aprire il dialog.
-      w.onload = () => setTimeout(() => { try { w.print(); } catch { /* ignore */ } }, 500);
     } catch (err) {
       console.error("PDF generation failed:", err);
+      try { w.close(); } catch { /* ignore */ }
       window.alert(lang === "it" ? "Errore nella generazione del PDF" : "PDF generation failed");
     }
   };
