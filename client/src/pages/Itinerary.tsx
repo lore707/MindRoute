@@ -19,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useI18n } from "@/lib/i18n";
 import { setLastOpenedItinerary } from "@/lib/last-opened";
 import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
+import { ItineraryRedesign } from "@/components/ItineraryRedesign";
 
 // ── URL BUILDER ───────────────────────────────────────────────────────────────
 function buildAffiliateUrls(destinationName: string, profilingInput: any, region: string, topLinks: Record<string, string>): Record<string, string> {
@@ -926,15 +927,14 @@ export default function Itinerary() {
 
     return (
       <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
-        <ItineraryCinematic
+        <ItineraryRedesign
           data={cinematicData}
-          tripGlance={tripGlance}
-          practicalSection={<OverviewTab itinerary={itinerary} />}
-          bookingSection={<BookTab urls={affiliateUrls} region={region} destinationName={itinerary.destinationName ?? ""} profilingInput={profilingInput} itineraryId={itinerary.id} />}
+          itinerary={itinerary}
+          affiliateUrls={affiliateUrls}
+          profilingInput={profilingInput}
           onSavePdf={handleSavePdf}
           onStartOver={() => setLocation("/")}
           onBack={() => setLocation("/destinations")}
-          onEdit={itinerary.schemaVersion === 2 ? undefined : enterEditMode}
           itineraryId={itinerary.id}
           savedMomentIds={savedMomentIds}
           onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
