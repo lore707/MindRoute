@@ -436,6 +436,17 @@ function buildMoments(
   opts: { destCity: string; dayIndex: number; dayCount: number; fallback: FallbackUrls },
 ): CinMoment[] {
   const { destCity, dayIndex, dayCount, fallback } = opts;
+  // "Modalità Cura": se l'utente ha personalizzato il giorno, gli edit sono
+  // salvati come editedMoments (fedeltà piena) — preferiscili alla derivazione
+  // dai 4 slot. I 4 slot restano scritti (raggruppati) come fallback per PDF e
+  // altri lettori, ma qui editedMoments è la verità.
+  if (Array.isArray(day?.editedMoments) && day.editedMoments.length) {
+    return day.editedMoments.map((m: any): CinMoment => ({
+      t: m.t ?? "", ic: m.ic ?? "📍", title: m.title ?? "", desc: m.desc ?? "",
+      cta: m.cta, ctaUrl: m.ctaUrl, ctaPrice: m.ctaPrice, ctaStatus: m.ctaStatus,
+      locationName: m.locationName, imageUrl: m.imageUrl, id: m.id, type: m.type,
+    }));
+  }
   const isFirst = dayIndex === 0;
   const isLast = dayIndex === dayCount - 1;
   const slots = [
@@ -938,6 +949,15 @@ export default function Itinerary() {
           itineraryId={itinerary.id}
           savedMomentIds={savedMomentIds}
           onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
+          onSaveDays={async (newDays) => {
+            const res = await fetch(`/api/itinerary/${itinerary.id}/edit`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ days: newDays }),
+            });
+            if (!res.ok) throw new Error("save failed");
+            await refetch();
+          }}
         />
       </div>
     );

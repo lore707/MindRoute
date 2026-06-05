@@ -27,6 +27,9 @@ type Props = {
   itineraryId?: number;
   savedMomentIds?: Set<string>;
   onToggleSaved?: (momentId: string, moment: Moment) => void;
+  /** Persiste gli edit della Modalità Cura nel DB (PATCH days) e fa refetch.
+   *  Riceve l'array `days` già serializzato (slot v1 raggruppati + editedMoments). */
+  onSaveDays?: (days: any[]) => Promise<void> | void;
 };
 
 const SEG_COLORS = ["#E94560", "#D4A853", "#6FB4A8", "#9D7EBC", "#5E8CB6", "#C77B5A"];
@@ -54,7 +57,7 @@ function ProgressRing({ pct }: { pct: number }) {
 
 export function ItineraryRedesign({
   data, itinerary, affiliateUrls, profilingInput,
-  onSavePdf, onStartOver, onBack, itineraryId, savedMomentIds, onToggleSaved,
+  onSavePdf, onStartOver, onBack, itineraryId, savedMomentIds, onToggleSaved, onSaveDays,
 }: Props) {
   const { t, lang } = useI18n();
   const days = data.days;
@@ -69,29 +72,22 @@ export function ItineraryRedesign({
   // ── Modalità Cura: editing dei momenti del giorno ──────────────────────────
   // Le "voci" editabili sono i Moment dentro momentsByDay. Niente orario al
   // minuto inventato: la fascia (t) si sceglie da una lista, titolo/descrizione
-  // sono testo libero. Persistenza per-itinerario in localStorage (overlay
-  // personale sopra i dati generati); "ripristina giorno" torna al baseline.
-  const momentsKey = itineraryId ? `mindroute_moments_${itineraryId}` : null;
+  // sono testo libero. Alla chiusura ("Fine"/"Ho finito") gli edit si salvano
+  // nel DB via onSaveDays (PATCH days) → refetch → riflessi anche nel PDF.
   const [editing, setEditing] = useState(false);
-  const [momentsByDay, setMomentsByDay] = useState<Record<number, Moment[]>>(() => {
-    if (momentsKey) {
-      try { const s = localStorage.getItem(momentsKey); if (s) return JSON.parse(s); } catch { /* ignore */ }
-    }
-    return data.momentsByDay;
-  });
+  const [saving, setSaving] = useState(false);
+  const [momentsByDay, setMomentsByDay] = useState<Record<number, Moment[]>>(data.momentsByDay);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
 
+  // Re-sincronizza dal server dopo un refetch (l'itinerario cambia identità solo
+  // su (re)fetch; durante l'editing non cambia, quindi non sovrascrive gli edit).
+  useEffect(() => { setMomentsByDay(data.momentsByDay); /* eslint-disable-next-line */ }, [itinerary]);
+
   const slotLabels = useMemo(() => [t("itin.morning"), t("itin.lunch"), t("itin.afternoon"), t("itin.evening")], [t]);
 
-  const commitMoments = (updater: (prev: Record<number, Moment[]>) => Record<number, Moment[]>) =>
-    setMomentsByDay(prev => {
-      const next = updater(prev);
-      if (momentsKey) { try { localStorage.setItem(momentsKey, JSON.stringify(next)); } catch { /* ignore */ } }
-      return next;
-    });
   const patchDayMoments = (dayN: number, fn: (ms: Moment[]) => Moment[]) =>
-    commitMoments(prev => ({ ...prev, [dayN]: fn(prev[dayN] ?? []) }));
+    setMomentsByDay(prev => ({ ...prev, [dayN]: fn(prev[dayN] ?? []) }));
   const updateMoment = (dayN: number, i: number, patch: Partial<Moment>) =>
     patchDayMoments(dayN, ms => ms.map((m, j) => j === i ? { ...m, ...patch } : m));
   const removeMoment = (dayN: number, i: number) =>
@@ -101,11 +97,48 @@ export function ItineraryRedesign({
   const moveMoment = (dayN: number, from: number, to: number) =>
     patchDayMoments(dayN, ms => { const a = [...ms]; const [m] = a.splice(from, 1); a.splice(to, 0, m); return a; });
   const resetDay = (dayN: number) =>
-    commitMoments(prev => ({ ...prev, [dayN]: JSON.parse(JSON.stringify(data.momentsByDay[dayN] ?? [])) }));
+    setMomentsByDay(prev => ({ ...prev, [dayN]: JSON.parse(JSON.stringify(data.momentsByDay[dayN] ?? [])) }));
 
   const commitDrag = () => {
     if (dragIdx != null && overIdx != null && dragIdx !== overIdx && openDay != null) moveMoment(openDay, dragIdx, overIdx);
     setDragIdx(null); setOverIdx(null);
+  };
+
+  // Serializza gli edit nel formato `days` del DB: per i giorni toccati scrive
+  // sia i 4 slot v1 raggruppati per fascia (fallback per PDF/mapper/AI-regen)
+  // sia editedMoments (fedeltà piena). I giorni non toccati passano invariati.
+  const serializeDays = (): any[] => {
+    const labelToKey: Record<string, string> = {
+      [t("itin.morning")]: "morning", [t("itin.lunch")]: "lunch",
+      [t("itin.afternoon")]: "afternoon", [t("itin.evening")]: "evening",
+    };
+    return (itinerary?.days ?? []).map((day: any, i: number) => {
+      const dayN = day.dayNumber ?? i + 1;
+      const edited = momentsByDay[dayN];
+      const baseline = data.momentsByDay[dayN];
+      if (!edited || JSON.stringify(edited) === JSON.stringify(baseline)) return day;
+      const next: any = { ...day, morning: "", lunch: "", afternoon: "", evening: "" };
+      next.editedMoments = edited.map(m => ({
+        t: m.t, ic: m.ic, title: m.title, desc: m.desc,
+        cta: m.cta, ctaUrl: m.ctaUrl, ctaPrice: m.ctaPrice, ctaStatus: m.ctaStatus,
+        locationName: m.locationName, imageUrl: m.imageUrl, id: m.id, type: m.type,
+      }));
+      for (const m of edited) {
+        const key = labelToKey[m.t] ?? "afternoon";
+        const text = [m.title, m.desc].filter(Boolean).join(m.title && m.desc ? ". " : "");
+        next[key] = next[key] ? `${next[key]} ${text}` : text;
+      }
+      return next;
+    });
+  };
+
+  const finishEditing = async () => {
+    if (onSaveDays) {
+      setSaving(true);
+      try { await onSaveDays(serializeDays()); } catch { /* il parent gestisce l'errore */ }
+      setSaving(false);
+    }
+    setEditing(false);
   };
 
   const moments = momentsByDay[activeDay] ?? [];
@@ -314,8 +347,8 @@ export function ItineraryRedesign({
           </div>
         </div>
         <div className="cmd-r">
-          <button className={"cmd-edit" + (editing ? " on" : "")} onClick={toggleEdit}>
-            <span className="pen">✎</span>{editing ? (lang === "it" ? "Fine" : "Done") : (lang === "it" ? "Personalizza" : "Customize")}
+          <button className={"cmd-edit" + (editing ? " on" : "")} onClick={editing ? finishEditing : toggleEdit} disabled={saving}>
+            <span className="pen">✎</span>{saving ? (lang === "it" ? "Salvo…" : "Saving…") : editing ? (lang === "it" ? "Fine" : "Done") : (lang === "it" ? "Personalizza" : "Customize")}
           </button>
           {checklist.length > 0 && (
             <div className="cmd-progress">
@@ -335,7 +368,7 @@ export function ItineraryRedesign({
               ? <>Stai <strong>personalizzando</strong> il tuo itinerario — apri un giorno, modifica le tappe, trascina per riordinare, aggiungi o togli. Tutto si salva da solo.</>
               : <>You're <strong>customizing</strong> your itinerary — open a day, edit stops, drag to reorder, add or remove. Everything saves itself.</>}
           </span>
-          <button onClick={() => setEditing(false)}>{lang === "it" ? "Ho finito" : "I'm done"}</button>
+          <button onClick={finishEditing} disabled={saving}>{saving ? (lang === "it" ? "Salvo…" : "Saving…") : (lang === "it" ? "Ho finito" : "I'm done")}</button>
         </div>
       )}
 

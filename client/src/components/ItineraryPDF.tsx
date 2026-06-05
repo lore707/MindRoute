@@ -334,13 +334,21 @@ export function ItineraryPDF({ data, lang = "en", monthYear }: Props) {
   }
 
   days.forEach((d, i) => {
-    const slots: Array<[string, string | undefined]> = [
-      [L.morning, d.morning],
-      [L.lunch, d.lunch],
-      [L.afternoon, d.afternoon],
-      [L.evening, d.evening],
-    ];
-    const visibleSlots = slots.filter(([, text]) => !!text && text.trim().length > 2);
+    // Edits made in "Modalità Cura" are persisted both as the legacy 4 slots
+    // (grouped by fascia) and as a higher-fidelity `editedMoments` list. Prefer
+    // the latter when present so add/remove/reorder survive into the PDF.
+    const edited = (d as any).editedMoments;
+    const visibleSlots: Array<[string, string]> = Array.isArray(edited) && edited.length
+      ? edited
+          .map((m: any): [string, string] => [m.t ?? "", [m.title, m.desc].filter(Boolean).join(m.title && m.desc ? ". " : "")])
+          .filter(([, text]: [string, string]) => text.trim().length > 2)
+      : ([
+          [L.morning, d.morning],
+          [L.lunch, d.lunch],
+          [L.afternoon, d.afternoon],
+          [L.evening, d.evening],
+        ] as Array<[string, string | undefined]>)
+          .filter(([, text]) => !!text && text.trim().length > 2) as Array<[string, string]>;
     pages.push(
       <Page key={`day-${i}`} size="A4" style={s.page}>
         {d.dayImageUrl ? <Image src={d.dayImageUrl} style={s.dayImage} /> : null}
