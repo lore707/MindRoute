@@ -66,7 +66,49 @@ export function ItineraryRedesign({
   const [activeJump, setActiveJump] = useState("arc");
   const [booked, setBooked] = useState<Set<string>>(new Set());
 
-  const moments = data.momentsByDay[activeDay] ?? [];
+  // ── Modalità Cura: editing dei momenti del giorno ──────────────────────────
+  // Le "voci" editabili sono i Moment dentro momentsByDay. Niente orario al
+  // minuto inventato: la fascia (t) si sceglie da una lista, titolo/descrizione
+  // sono testo libero. Persistenza per-itinerario in localStorage (overlay
+  // personale sopra i dati generati); "ripristina giorno" torna al baseline.
+  const momentsKey = itineraryId ? `mindroute_moments_${itineraryId}` : null;
+  const [editing, setEditing] = useState(false);
+  const [momentsByDay, setMomentsByDay] = useState<Record<number, Moment[]>>(() => {
+    if (momentsKey) {
+      try { const s = localStorage.getItem(momentsKey); if (s) return JSON.parse(s); } catch { /* ignore */ }
+    }
+    return data.momentsByDay;
+  });
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const slotLabels = useMemo(() => [t("itin.morning"), t("itin.lunch"), t("itin.afternoon"), t("itin.evening")], [t]);
+
+  const commitMoments = (updater: (prev: Record<number, Moment[]>) => Record<number, Moment[]>) =>
+    setMomentsByDay(prev => {
+      const next = updater(prev);
+      if (momentsKey) { try { localStorage.setItem(momentsKey, JSON.stringify(next)); } catch { /* ignore */ } }
+      return next;
+    });
+  const patchDayMoments = (dayN: number, fn: (ms: Moment[]) => Moment[]) =>
+    commitMoments(prev => ({ ...prev, [dayN]: fn(prev[dayN] ?? []) }));
+  const updateMoment = (dayN: number, i: number, patch: Partial<Moment>) =>
+    patchDayMoments(dayN, ms => ms.map((m, j) => j === i ? { ...m, ...patch } : m));
+  const removeMoment = (dayN: number, i: number) =>
+    patchDayMoments(dayN, ms => ms.filter((_, j) => j !== i));
+  const addMoment = (dayN: number) =>
+    patchDayMoments(dayN, ms => [...ms, { t: slotLabels[2], ic: "📍", title: lang === "it" ? "Nuova tappa" : "New stop", desc: "" }]);
+  const moveMoment = (dayN: number, from: number, to: number) =>
+    patchDayMoments(dayN, ms => { const a = [...ms]; const [m] = a.splice(from, 1); a.splice(to, 0, m); return a; });
+  const resetDay = (dayN: number) =>
+    commitMoments(prev => ({ ...prev, [dayN]: JSON.parse(JSON.stringify(data.momentsByDay[dayN] ?? [])) }));
+
+  const commitDrag = () => {
+    if (dragIdx != null && overIdx != null && dragIdx !== overIdx && openDay != null) moveMoment(openDay, dragIdx, overIdx);
+    setDragIdx(null); setOverIdx(null);
+  };
+
+  const moments = momentsByDay[activeDay] ?? [];
   const focus = moments[activeMoment] ?? moments[0];
   const ambientIdx = Math.max(0, days.findIndex(d => d.n === activeDay));
 
@@ -188,9 +230,20 @@ export function ItineraryRedesign({
     if (el) window.scrollTo({ top: el.offsetTop - 70, behavior: "smooth" });
   };
 
+  const toggleEdit = () => setEditing(e => {
+    const nv = !e;
+    if (nv) {
+      const target = openDay ?? activeDay ?? days[0]?.n ?? 1;
+      setActiveDay(target); setOpenDay(target); setActiveMoment(0);
+      setTimeout(() => scrollTo("arc"), 60);
+    }
+    return nv;
+  });
+
   const gotoDay = (n: number) => {
     if (n < 1 || n > dayCount) return;
     setActiveDay(n); setOpenDay(n); setActiveMoment(0);
+    setDragIdx(null); setOverIdx(null);
   };
   const toggleDay = (n: number) => {
     setActiveDay(n); setActiveMoment(0);
@@ -261,6 +314,9 @@ export function ItineraryRedesign({
           </div>
         </div>
         <div className="cmd-r">
+          <button className={"cmd-edit" + (editing ? " on" : "")} onClick={toggleEdit}>
+            <span className="pen">✎</span>{editing ? (lang === "it" ? "Fine" : "Done") : (lang === "it" ? "Personalizza" : "Customize")}
+          </button>
           {checklist.length > 0 && (
             <div className="cmd-progress">
               <ProgressRing pct={booked.size / checklist.length} />
@@ -270,6 +326,18 @@ export function ItineraryRedesign({
           <button className="btn-book" onClick={() => scrollTo("prenota")}>{lang === "it" ? "Prenota tutto →" : "Book everything →"}</button>
         </div>
       </div>
+
+      {editing && (
+        <div className="edit-ribbon">
+          <span className="dot" />
+          <span>
+            {lang === "it"
+              ? <>Stai <strong>personalizzando</strong> il tuo itinerario — apri un giorno, modifica le tappe, trascina per riordinare, aggiungi o togli. Tutto si salva da solo.</>
+              : <>You're <strong>customizing</strong> your itinerary — open a day, edit stops, drag to reorder, add or remove. Everything saves itself.</>}
+          </span>
+          <button onClick={() => setEditing(false)}>{lang === "it" ? "Ho finito" : "I'm done"}</button>
+        </div>
+      )}
 
       <div className="ivr-stage">
         {/* WHY */}
@@ -372,20 +440,56 @@ export function ItineraryRedesign({
           </div>
 
           {openDayObj && (() => {
-            const dMoments = data.momentsByDay[openDayObj.n] ?? [];
+            const dMoments = momentsByDay[openDayObj.n] ?? [];
             const f = dMoments[activeMoment] ?? dMoments[0];
             return (
               <div className="day-detail">
                 <div className="dd-top">
-                  <div className="dd-timeline">
+                  <div className={"dd-timeline" + (editing ? " editing" : "")}>
                     <div className="dd-tl-kick">{t("itin.cin.dayLabel")} {openDayObj.n} · {openDayObj.arc}</div>
                     {dMoments.map((m, i) => (
-                      <div key={i} className={"dd-slot" + (activeMoment === i ? " on" : "")} onClick={() => setActiveMoment(i)}>
+                      <div
+                        key={i}
+                        className={"dd-slot"
+                          + (!editing && activeMoment === i ? " on" : "")
+                          + (dragIdx === i ? " dragging" : "")
+                          + (overIdx === i && dragIdx !== i ? " drop-target" : "")}
+                        draggable={editing}
+                        onDragStart={editing ? () => setDragIdx(i) : undefined}
+                        onDragOver={editing ? (e) => { e.preventDefault(); setOverIdx(i); } : undefined}
+                        onDragEnd={editing ? commitDrag : undefined}
+                        onClick={editing ? undefined : () => setActiveMoment(i)}
+                      >
+                        {editing && <div className="drag" title={lang === "it" ? "Trascina per riordinare" : "Drag to reorder"}>⠿</div>}
                         <div className="dot" />
-                        <div className="when">{m.t}</div>
-                        <div className="what">{m.title.split(",")[0]}</div>
+                        {editing ? (
+                          <div className="slot-edit">
+                            <select className="se-when" value={m.t} onChange={(e) => updateMoment(openDayObj.n, i, { t: e.target.value })}>
+                              {(slotLabels.includes(m.t) ? slotLabels : [m.t, ...slotLabels]).map(w => <option key={w} value={w}>{w}</option>)}
+                            </select>
+                            <input className="se-what" value={m.title} onChange={(e) => updateMoment(openDayObj.n, i, { title: e.target.value })} placeholder={lang === "it" ? "Cosa fai…" : "What you do…"} />
+                            <textarea className="se-desc" value={m.desc} onChange={(e) => updateMoment(openDayObj.n, i, { desc: e.target.value })} placeholder={lang === "it" ? "Dettagli (facoltativo)" : "Details (optional)"} rows={2} />
+                            <div className="slot-tools">
+                              <button className="del" onClick={() => removeMoment(openDayObj.n, i)}>× {lang === "it" ? "Togli" : "Remove"}</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="when">{m.t}</div>
+                            <div className="what">{m.title.split(",")[0]}</div>
+                          </>
+                        )}
                       </div>
                     ))}
+                    {editing && (
+                      <>
+                        <button className="slot-add" onClick={() => addMoment(openDayObj.n)}>+ {lang === "it" ? "Aggiungi una tappa" : "Add a stop"}</button>
+                        <div className="tl-foot">
+                          <span className="cnt">{dMoments.length} {lang === "it" ? "tappe" : "stops"}</span>
+                          <button className="reset" onClick={() => resetDay(openDayObj.n)}>↺ {lang === "it" ? "Ripristina giorno" : "Reset day"}</button>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {f && (

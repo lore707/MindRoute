@@ -253,3 +253,39 @@
 @media (max-width:560px){
   .ivr .arc-rail{grid-template-columns:1fr!important}
 }
+
+/* ── Modalità Cura (edit) ── */
+.ivr .cmd-edit{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:999px;border:1px solid var(--stroke-strong);background:rgba(0,0,0,.3);color:var(--ink-dim);font-size:12px;letter-spacing:.04em;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ivr .cmd-edit:hover{color:var(--ink);border-color:rgba(255,255,255,.35)}
+.ivr .cmd-edit .pen{font-size:13px}
+.ivr .cmd-edit.on{background:rgba(233,69,96,.16);border-color:var(--accent);color:#fff}
+.ivr .cmd-edit.on .pen{color:var(--accent)}
+
+.ivr .edit-ribbon{position:sticky;top:55px;z-index:39;display:flex;align-items:center;justify-content:center;gap:11px;padding:10px 18px;background:linear-gradient(90deg,rgba(233,69,96,.94),rgba(178,42,64,.94));backdrop-filter:blur(10px);color:#fff;font-size:12.5px;letter-spacing:.01em;text-align:center;flex-wrap:wrap}
+.ivr .edit-ribbon .dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:ivrcdpulse 1.6s ease-in-out infinite}
+.ivr .edit-ribbon strong{font-weight:600}
+.ivr .edit-ribbon button{padding:5px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.55);color:#fff;background:rgba(255,255,255,.14);font-size:11px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;font-weight:500}
+.ivr .edit-ribbon button:hover{background:rgba(255,255,255,.26)}
+
+.ivr .dd-timeline.editing .dd-slot{cursor:default;padding-left:34px}
+.ivr .dd-slot .drag{position:absolute;left:2px;top:1px;width:20px;cursor:grab;color:var(--ink-faint);font-size:15px;line-height:1}
+.ivr .dd-slot .drag:active{cursor:grabbing}
+.ivr .dd-timeline.editing .dd-slot .dot{left:24px}
+.ivr .dd-slot.dragging{opacity:.35}
+.ivr .dd-slot.drop-target::after{content:"";position:absolute;left:34px;right:0;top:-7px;height:2px;background:var(--accent);border-radius:2px;box-shadow:0 0 8px var(--accent)}
+.ivr .slot-edit{display:flex;flex-direction:column;gap:6px;margin-top:1px}
+.ivr .slot-edit select,.ivr .slot-edit input,.ivr .slot-edit textarea{font-family:var(--serif);background:rgba(255,255,255,.05);border:1px solid var(--stroke-strong);border-radius:8px;color:var(--ink);padding:6px 10px;outline:none;transition:all .2s;width:100%;resize:vertical}
+.ivr .slot-edit select:focus,.ivr .slot-edit input:focus,.ivr .slot-edit textarea:focus{border-color:var(--accent);background:rgba(233,69,96,.08)}
+.ivr .slot-edit .se-when{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);width:auto}
+.ivr .slot-edit .se-what{font-size:15px}
+.ivr .slot-edit .se-desc{font-style:italic;font-size:12px;color:var(--ink-dim);line-height:1.4}
+.ivr .slot-tools{display:flex;gap:6px;margin-top:2px}
+.ivr .slot-tools button{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:8px;border:1px solid var(--stroke-strong);background:rgba(0,0,0,.25);color:var(--ink-dim);font-size:10.5px;letter-spacing:.04em;cursor:pointer;transition:all .2s}
+.ivr .slot-tools .del:hover{border-color:#e0556a;color:#ff8095;background:rgba(233,69,96,.1)}
+
+.ivr .slot-add{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:10px 14px;border:1px dashed var(--stroke-strong);border-radius:10px;background:transparent;color:var(--ink-dim);font-size:12px;cursor:pointer;width:100%;transition:all .2s}
+.ivr .slot-add:hover{border-color:var(--accent);color:var(--accent);background:rgba(233,69,96,.05)}
+.ivr .tl-foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:14px;border-top:1px solid var(--stroke)}
+.ivr .tl-foot .cnt{font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink-faint)}
+.ivr .tl-foot .reset{font-size:11px;color:var(--ink-faint);cursor:pointer;letter-spacing:.04em;border:0;border-bottom:1px dashed var(--stroke-strong);padding-bottom:1px;background:none}
+.ivr .tl-foot .reset:hover{color:var(--ink-dim)}
