@@ -30,6 +30,8 @@ type Props = {
   /** Persiste gli edit della Modalità Cura nel DB (PATCH days) e fa refetch.
    *  Riceve l'array `days` già serializzato (slot v1 raggruppati + editedMoments). */
   onSaveDays?: (days: any[]) => Promise<void> | void;
+  /** Vista pubblica condivisa: nasconde editing/personalizzazione. */
+  readOnly?: boolean;
 };
 
 const SEG_COLORS = ["#E94560", "#D4A853", "#6FB4A8", "#9D7EBC", "#5E8CB6", "#C77B5A"];
@@ -57,7 +59,7 @@ function ProgressRing({ pct }: { pct: number }) {
 
 export function ItineraryRedesign({
   data, itinerary, affiliateUrls, profilingInput,
-  onSavePdf, onStartOver, onBack, itineraryId, savedMomentIds, onToggleSaved, onSaveDays,
+  onSavePdf, onStartOver, onBack, itineraryId, savedMomentIds, onToggleSaved, onSaveDays, readOnly,
 }: Props) {
   const { t, lang } = useI18n();
   const days = data.days;
@@ -76,6 +78,7 @@ export function ItineraryRedesign({
   // nel DB via onSaveDays (PATCH days) → refetch → riflessi anche nel PDF.
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [momentsByDay, setMomentsByDay] = useState<Record<number, Moment[]>>(data.momentsByDay);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
@@ -139,6 +142,23 @@ export function ItineraryRedesign({
       setSaving(false);
     }
     setEditing(false);
+  };
+
+  // Condivisione: in vista privata chiede al server il link pubblico /i/:token,
+  // in vista già pubblica usa l'URL corrente. navigator.share su mobile,
+  // fallback copia-link su desktop.
+  const handleShare = async () => {
+    let url = window.location.href;
+    if (!readOnly && itineraryId) {
+      try {
+        const r = await fetch(`/api/itinerary/${itineraryId}/share`, { method: "POST" });
+        if (r.ok) url = (await r.json()).url || url;
+      } catch { /* fallback all'URL corrente */ }
+    }
+    try {
+      if (navigator.share) { await navigator.share({ title: data.destination, url }); return; }
+    } catch { return; /* condivisione annullata */ }
+    try { await navigator.clipboard?.writeText(url); setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); } catch { /* ignore */ }
   };
 
   const moments = momentsByDay[activeDay] ?? [];
@@ -347,9 +367,11 @@ export function ItineraryRedesign({
           </div>
         </div>
         <div className="cmd-r">
-          <button className={"cmd-edit" + (editing ? " on" : "")} onClick={editing ? finishEditing : toggleEdit} disabled={saving}>
-            <span className="pen">✎</span>{saving ? (lang === "it" ? "Salvo…" : "Saving…") : editing ? (lang === "it" ? "Fine" : "Done") : (lang === "it" ? "Personalizza" : "Customize")}
-          </button>
+          {!readOnly && (
+            <button className={"cmd-edit" + (editing ? " on" : "")} onClick={editing ? finishEditing : toggleEdit} disabled={saving}>
+              <span className="pen">✎</span>{saving ? (lang === "it" ? "Salvo…" : "Saving…") : editing ? (lang === "it" ? "Fine" : "Done") : (lang === "it" ? "Personalizza" : "Customize")}
+            </button>
+          )}
           {checklist.length > 0 && (
             <div className="cmd-progress">
               <ProgressRing pct={booked.size / checklist.length} />
@@ -717,8 +739,8 @@ export function ItineraryRedesign({
               <span className="ic">⎓</span><span className="t">{lang === "it" ? "Salva PDF" : "Save PDF"}</span><span className="s">{lang === "it" ? "offline, in tasca" : "offline, in pocket"}</span>
             </button>
           )}
-          <button className="kit-btn" onClick={() => { if (navigator.share) navigator.share({ title: data.destination, url: window.location.href }).catch(() => {}); else navigator.clipboard?.writeText(window.location.href); }}>
-            <span className="ic">↗</span><span className="t">{lang === "it" ? "Condividi" : "Share"}</span><span className="s">{lang === "it" ? "con chi viene" : "with who's coming"}</span>
+          <button className="kit-btn" onClick={handleShare}>
+            <span className="ic">↗</span><span className="t">{linkCopied ? (lang === "it" ? "Link copiato ✓" : "Link copied ✓") : (lang === "it" ? "Condividi" : "Share")}</span><span className="s">{lang === "it" ? "con chi viene" : "with who's coming"}</span>
           </button>
           {onStartOver && (
             <button className="kit-btn" onClick={onStartOver}>

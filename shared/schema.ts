@@ -52,6 +52,9 @@ export const itineraries = pgTable("itineraries", {
   // column: em_word, travel_dates, total_cost_bookable, total_cost_onsite,
   // total_cost_range, map_points. Null for v1 rows.
   tripMeta: jsonb("trip_meta").$type<TripMetaV2 | null>(),
+  // Token opaco per la condivisione pubblica read-only (/i/:token). Generato
+  // al primo "Condividi"; null finché non si condivide. Unique.
+  publicToken: text("public_token").unique(),
 });
 
 // ── v2 — moment-based itinerary types ──────────────────────────────────────

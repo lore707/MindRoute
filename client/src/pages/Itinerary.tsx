@@ -22,7 +22,7 @@ import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight,
 import { ItineraryRedesign } from "@/components/ItineraryRedesign";
 
 // ── URL BUILDER ───────────────────────────────────────────────────────────────
-function buildAffiliateUrls(destinationName: string, profilingInput: any, region: string, topLinks: Record<string, string>): Record<string, string> {
+export function buildAffiliateUrls(destinationName: string, profilingInput: any, region: string, topLinks: Record<string, string>): Record<string, string> {
   const dest = destinationName.split(",")[0].trim();
   const destEncoded = encodeURIComponent(destinationName);
   const destSlug = dest.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -71,7 +71,7 @@ result.tablet_hotels = topLinks.tablet_hotels ?? `https://www.kqzyfj.com/click-1
   return result;
 }
 
-function detectRegion(name: string): string {
+export function detectRegion(name: string): string {
   const n = name.toLowerCase();
   if (/grecia|greece|creta|crete|cipro|cyprus|malta|croazia|croatia|montenegro|albania|turchia|turkey/.test(n)) return "mediterranean";
   if (/india|mumbai|delhi|bangalore|chennai|kolkata|jaipur|goa/.test(n)) return "india";
@@ -559,7 +559,7 @@ function buildMomentsV2(day: any, t: (k: string) => string, opts: { destCity: st
   });
 }
 
-function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang: "en" | "it", affiliateUrls: Record<string, string> = {}): ItineraryData {
+export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string, lang: "en" | "it", affiliateUrls: Record<string, string> = {}): ItineraryData {
   const isV2 = itinerary?.schemaVersion === 2;
   const tripMeta = itinerary?.tripMeta ?? null;
 

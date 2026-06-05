@@ -10,6 +10,8 @@ export interface IStorage {
   saveProfilingInput(input: any): Promise<void>;
   getProfilingInput(): Promise<any | undefined>;
   getItineraryById(id: number): Promise<Itinerary | undefined>;
+  getItineraryByPublicToken(token: string): Promise<Itinerary | undefined>;
+  setItineraryPublicToken(id: number, token: string): Promise<void>;
  updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
   getUserItineraries(userId: number): Promise<any[]>;
   createTraitSnapshot(snapshot: InsertTraitSnapshot): Promise<TraitSnapshot>;
@@ -70,6 +72,15 @@ export class MemoryStorage implements IStorage {
 
   async getItineraryById(id: number): Promise<Itinerary | undefined> {
     return this.itineraries.find(i => i.id === id);
+  }
+
+  async getItineraryByPublicToken(token: string): Promise<Itinerary | undefined> {
+    return this.itineraries.find(i => (i as any).publicToken === token);
+  }
+
+  async setItineraryPublicToken(id: number, token: string): Promise<void> {
+    const idx = this.itineraries.findIndex(i => i.id === id);
+    if (idx >= 0) this.itineraries[idx] = { ...this.itineraries[idx], publicToken: token } as Itinerary;
   }
 
 async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {

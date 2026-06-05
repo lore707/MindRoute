@@ -21,6 +21,7 @@ const Privacy = lazy(() => import("@/pages/Privacy"));
 const MyAccount = lazy(() => import("@/pages/MyAccount"));
 const ItineraryStream = lazy(() => import("@/pages/ItineraryStream"));
 const Compare = lazy(() => import("@/pages/Compare"));
+const SharedItinerary = lazy(() => import("@/pages/SharedItinerary"));
 
 // Lightweight, theme-matching fallback — avoids a white flash while a route
 // chunk loads. Kept minimal so it never competes with the page that follows.
@@ -49,6 +50,7 @@ function Router() {
           <Route path="/profiling" component={Profiling} />
           <Route path="/destinations" component={Destinations} />
           <Route path="/itinerary/:id" component={Itinerary} />
+          <Route path="/i/:token" component={SharedItinerary} />
           <Route path="/privacy" component={Privacy} />
           <Route path="/itinerary/stream/:id" component={ItineraryStream} />
           <Route path="/my-account" component={MyAccount} />

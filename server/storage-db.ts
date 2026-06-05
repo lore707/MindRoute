@@ -34,6 +34,15 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async getItineraryByPublicToken(token: string): Promise<Itinerary | undefined> {
+    const result = await db.select().from(itineraries).where(eq(itineraries.publicToken, token));
+    return result[0];
+  }
+
+  async setItineraryPublicToken(id: number, token: string): Promise<void> {
+    await db.update(itineraries).set({ publicToken: token }).where(eq(itineraries.id, id));
+  }
+
   async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     await db.update(itineraries).set({ days: updatedDays }).where(eq(itineraries.id, id));
   }
