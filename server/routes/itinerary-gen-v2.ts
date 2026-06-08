@@ -17,6 +17,7 @@ import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2 } from "../../shared/schema";
+import { requireAuth } from "../auth";
 
 async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
   try {
@@ -185,7 +186,7 @@ function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: num
 }
 
 export function registerItineraryGenV2Routes(app: Express) {
-  app.post("/api/itinerary/generate-v2", itineraryLimiter, async (req, res) => {
+  app.post("/api/itinerary/generate-v2", requireAuth, itineraryLimiter, async (req, res) => {
     try {
       const { input, destinationName, destinationId } = req.body;
       if (!input || !destinationName || !destinationId) {

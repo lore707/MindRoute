@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Layout } from "@/components/Layout";
+import { RequireAuth } from "@/components/RequireAuth";
 import { CookieBanner } from "@/components/CookieBanner";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
@@ -47,12 +48,18 @@ function Router() {
       <Suspense fallback={<PageFallback />}>
         <Switch>
           <Route path="/" component={Landing} />
-          <Route path="/profiling" component={Profiling} />
-          <Route path="/destinations" component={Destinations} />
+          <Route path="/profiling">
+            <RequireAuth><Profiling /></RequireAuth>
+          </Route>
+          <Route path="/destinations">
+            <RequireAuth><Destinations /></RequireAuth>
+          </Route>
           <Route path="/itinerary/:id" component={Itinerary} />
           <Route path="/i/:token" component={SharedItinerary} />
           <Route path="/privacy" component={Privacy} />
-          <Route path="/itinerary/stream/:id" component={ItineraryStream} />
+          <Route path="/itinerary/stream/:id">
+            <RequireAuth><ItineraryStream /></RequireAuth>
+          </Route>
           <Route path="/my-account" component={MyAccount} />
           <Route path="/compare" component={Compare} />
           <Route component={NotFound} />

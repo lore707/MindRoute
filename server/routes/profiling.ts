@@ -9,10 +9,12 @@ import { fetchUnsplashHero } from "../unsplash";
 import { computeTraitVector, emaAggregate, synthesizeAnswersFromVector, MAPPING_VERSION, type TraitVector } from "@shared/traits";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import { computeProfileDefaults } from "../profile-defaults";
+import { requireAuth } from "../auth";
 
 export function registerProfilingRoutes(app: Express) {
-  // STEP 1 — Genera 3 destinazioni leggere dal profiling
-  app.post(api.profiling.submit.path, profilingLimiter, async (req, res) => {
+  // STEP 1 — Genera 3 destinazioni leggere dal profiling.
+  // Richiede login: il quiz non è disponibile agli anonimi.
+  app.post(api.profiling.submit.path, requireAuth, profilingLimiter, async (req, res) => {
     try {
       const input = api.profiling.submit.input.parse(req.body);
       const userIdForPrior = (req.user as any)?.id ?? null;

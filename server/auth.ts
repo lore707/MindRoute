@@ -5,6 +5,14 @@ import { db } from "./db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
+// Gate condiviso: blocca le funzioni che richiedono un account (quiz +
+// generazione itinerario). Passport popola req.user dalla sessione; se manca
+// l'utente è anonimo e rispondiamo 401 così il client può mandare al login.
+export function requireAuth(req: any, res: any, next: any) {
+  if (req.user) return next();
+  return res.status(401).json({ message: "Devi accedere per usare questa funzione." });
+}
+
 const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minuti
   max: 20,
