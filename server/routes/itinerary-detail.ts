@@ -137,6 +137,32 @@ export function registerItineraryDetailRoutes(app: Express) {
     }
   });
 
+  // Card OG brandizzata (PNG 1200×630) per la vista condivisa.
+  // og:image punta qui; i crawler social la scaricano come anteprima.
+  app.get("/og/itinerary/:token/og.png", async (req, res) => {
+    try {
+      const itin = await storage.getItineraryByPublicToken(String(req.params.token));
+      if (!itin) return res.status(404).end();
+      const dest = (itin as any).destinationName ?? "MindRoute";
+      const days = Array.isArray((itin as any).days) ? (itin as any).days.length : 0;
+      const subline = ((itin as any).whyYours ?? (itin as any).tripSummary ?? "").toString();
+      const heroImageUrl = (itin as any).heroImageUrl ?? (itin as any).imageUrl ?? null;
+      const { renderItineraryOgPng } = await import("../og-card");
+      const png = await renderItineraryOgPng({
+        cacheKey: `${req.params.token}|${heroImageUrl ?? ""}`,
+        destination: dest, days, subline, heroImageUrl,
+      });
+      res
+        .status(200)
+        .set("Content-Type", "image/png")
+        .set("Cache-Control", "public, max-age=86400, s-maxage=86400")
+        .send(png);
+    } catch (err) {
+      console.error("Errore render OG card:", err);
+      res.status(500).end();
+    }
+  });
+
   // Pagina condivisa /i/:token — serve l'index.html con i meta OG iniettati
   // (i crawler social non eseguono JS). Solo in produzione: in dev lasciamo
   // che sia Vite a servire la SPA (next()).
@@ -153,19 +179,25 @@ export function registerItineraryDetailRoutes(app: Express) {
           .toString().replace(/\s+/g, " ").trim().slice(0, 180);
         const days = Array.isArray((itin as any).days) ? (itin as any).days.length : 0;
         const title = `${dest}${days ? ` · ${days} ${days === 1 ? "giorno" : "giorni"}` : ""} — MindRoute`;
-        const img = (itin as any).heroImageUrl ?? (itin as any).imageUrl ?? "";
-        const url = `${base}/i/${escapeHtml(String(req.params.token))}`;
+        // Branded card (foto + titolo + giorni + logo) renderizzata server-side.
+        // Fallback alla foto hero grezza se l'utente ha un'immagine ma vogliamo
+        // comunque popolare twitter:image quando la card non esiste.
+        const token = String(req.params.token);
+        const img = `${base}/og/itinerary/${escapeHtml(token)}/og.png`;
+        const url = `${base}/i/${escapeHtml(token)}`;
         const og = [
           `<meta property="og:type" content="article" />`,
           `<meta property="og:site_name" content="MindRoute" />`,
           `<meta property="og:title" content="${escapeHtml(title)}" />`,
           desc ? `<meta property="og:description" content="${escapeHtml(desc)}" />` : "",
-          img ? `<meta property="og:image" content="${escapeHtml(img)}" />` : "",
+          `<meta property="og:image" content="${img}" />`,
+          `<meta property="og:image:width" content="1200" />`,
+          `<meta property="og:image:height" content="630" />`,
           `<meta property="og:url" content="${url}" />`,
           `<meta name="twitter:card" content="summary_large_image" />`,
           `<meta name="twitter:title" content="${escapeHtml(title)}" />`,
           desc ? `<meta name="twitter:description" content="${escapeHtml(desc)}" />` : "",
-          img ? `<meta name="twitter:image" content="${escapeHtml(img)}" />` : "",
+          `<meta name="twitter:image" content="${img}" />`,
           `<meta name="description" content="${escapeHtml(desc || `Il tuo viaggio a ${dest}, costruito su di te.`)}" />`,
           `<title>${escapeHtml(title)}</title>`,
         ].filter(Boolean).join("\n    ");
