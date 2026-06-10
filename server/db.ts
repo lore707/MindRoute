@@ -1,5 +1,6 @@
-// Database wiring is prepared here, but the current runtime still uses
-// server/storage.ts. Keep this file as the future integration point for Drizzle.
+// Drizzle DB wiring. When DATABASE_URL is set, storage.ts selects
+// DatabaseStorage (backed by this pool); otherwise it falls back to the
+// in-memory MemoryStorage for local/dev without a database.
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";

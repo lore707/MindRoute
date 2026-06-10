@@ -5,17 +5,31 @@ import fs from "fs";
 import path from "path";
 import { storage } from "../storage";
 import { api } from "@shared/routes";
+import { requireAuth } from "../auth";
+import { itineraryLimiter } from "../rate-limiter";
 
 function escapeHtml(s: string): string {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// Ownership gate: un itinerario appartiene a un utente (itin.userId). Solo il
+// proprietario può leggerlo/modificarlo via gli endpoint by-id. Le righe legacy
+// senza userId (pre-auth) restano accessibili per non rompere viaggi storici;
+// la condivisione pubblica passa SOLO da /api/share/:token (read-only, no PII).
+function ownsItinerary(itin: any, req: any): boolean {
+  const uid = (req.user as any)?.id;
+  return itin.userId == null || itin.userId === uid;
+}
+
 export function registerItineraryDetailRoutes(app: Express) {
   // Aggiorna mapPoints
-  app.patch("/api/itinerary/:id/mappoints", async (req, res) => {
+  app.patch("/api/itinerary/:id/mappoints", requireAuth, async (req, res) => {
     try {
       const id = z.coerce.number().parse(req.params.id);
       const { mapPoints } = req.body;
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Not found" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
       await storage.updateItineraryMapPoints(id, mapPoints);
       res.json({ ok: true });
     } catch (err) {
@@ -25,11 +39,12 @@ export function registerItineraryDetailRoutes(app: Express) {
 
   // Polling mapPoints — used by the client to know when the background
   // enrichment is done so it can re-render the map.
-  app.get("/api/itinerary/:id/mappoints", async (req, res) => {
+  app.get("/api/itinerary/:id/mappoints", requireAuth, async (req, res) => {
     try {
       const id = z.coerce.number().parse(req.params.id);
       const itinerary = await storage.getItineraryById(id);
       if (!itinerary) return res.status(404).json({ message: "Not found" });
+      if (!ownsItinerary(itinerary, req)) return res.status(403).json({ message: "Non autorizzato" });
       const hasPoints = itinerary.days?.some((d: any) => d.mapPoints?.length > 0);
       res.json({ ready: hasPoints, days: hasPoints ? itinerary.days : null });
     } catch (err) {
@@ -38,7 +53,7 @@ export function registerItineraryDetailRoutes(app: Express) {
   });
 
   // Recupera itinerario per id diretto o per destinationId (fallback)
-  app.get(api.itinerary.get.path, async (req, res) => {
+  app.get(api.itinerary.get.path, requireAuth, async (req, res) => {
     try {
       const destId = z.coerce.number().parse(req.params.destinationId);
       let itinerary = await storage.getItineraryById(destId);
@@ -48,6 +63,7 @@ export function registerItineraryDetailRoutes(app: Express) {
       if (!itinerary) {
         return res.status(404).json({ message: 'Itinerary not found' });
       }
+      if (!ownsItinerary(itinerary, req)) return res.status(403).json({ message: "Non autorizzato" });
       const profilingInput = await storage.getProfilingInput();
       res.json({ ...itinerary, profilingInput: profilingInput ?? null });
     } catch (err) {
@@ -59,12 +75,13 @@ export function registerItineraryDetailRoutes(app: Express) {
   });
 
   // Rigenera un singolo giorno con feedback utente
-  app.post("/api/itinerary/:id/regenerate-day", async (req, res) => {
+  app.post("/api/itinerary/:id/regenerate-day", requireAuth, itineraryLimiter, async (req, res) => {
     try {
       const itinId = z.coerce.number().parse(req.params.id);
       const { dayIndex, feedback } = req.body;
       const itin = await storage.getItineraryById(itinId);
       if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
       // v2 itineraries use the moment-based shape; the v1 day-regen prompt
       // would corrupt the days[] structure. Reject explicitly until v2 has
       // its own regen path.
@@ -93,11 +110,14 @@ export function registerItineraryDetailRoutes(app: Express) {
   });
 
   // Modifica manuale di un itinerario (drag-drop dei giorni, ecc.)
-  app.patch("/api/itinerary/:id/edit", async (req, res) => {
+  app.patch("/api/itinerary/:id/edit", requireAuth, async (req, res) => {
     try {
       const itinId = z.coerce.number().parse(req.params.id);
       const { days } = req.body;
       if (!Array.isArray(days)) return res.status(400).json({ message: "days required" });
+      const itin = await storage.getItineraryById(itinId);
+      if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
       await storage.updateItineraryMapPoints(itinId, days);
       res.json({ ok: true });
     } catch (err) {
@@ -107,11 +127,12 @@ export function registerItineraryDetailRoutes(app: Express) {
 
   // ── Condivisione pubblica ────────────────────────────────────────────────
   // Genera (o riusa) il token opaco e restituisce l'URL pubblico assoluto.
-  app.post("/api/itinerary/:id/share", async (req, res) => {
+  app.post("/api/itinerary/:id/share", requireAuth, async (req, res) => {
     try {
       const id = z.coerce.number().parse(req.params.id);
       const itin = await storage.getItineraryById(id);
       if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
       let token = (itin as any).publicToken as string | null;
       if (!token) {
         token = randomBytes(9).toString("base64url"); // 12 char url-safe

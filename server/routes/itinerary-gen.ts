@@ -171,7 +171,7 @@ export function registerItineraryGenRoutes(app: Express) {
   });
 
   // STEP 3d — Streaming strutturato progressivo (giorni appaiono uno alla volta)
-  app.post("/api/itinerary/stream-structured", requireAuth, async (req, res) => {
+  app.post("/api/itinerary/stream-structured", requireAuth, itineraryLimiter, async (req, res) => {
     const { input, destinationName, destinationId, whyYours } = req.body;
     if (!input || !destinationName || !destinationId) {
       return res.status(400).json({ message: "Missing fields" });
@@ -237,7 +237,7 @@ export function registerItineraryGenRoutes(app: Express) {
   // Saves a placeholder immediately with the raw narrative, then runs the
   // structured generation + image/geocode pipeline in the background and
   // updates the same row when done.
-  app.post("/api/itinerary/stream-narrative", requireAuth, async (req, res) => {
+  app.post("/api/itinerary/stream-narrative", requireAuth, itineraryLimiter, async (req, res) => {
     const { input, destinationName, destinationId, whyYours } = req.body;
     if (!input || !destinationName || !destinationId) {
       return res.status(400).json({ message: "Missing fields" });
