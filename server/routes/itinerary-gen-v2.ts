@@ -148,7 +148,7 @@ async function enrichItineraryV2(rough: ItineraryV2, destinationName: string): P
 
 // ── Persistence: map ItineraryV2 → DB row (schemaVersion=2) ───────────────
 
-function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: number | null): any {
+function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: number | null, profilingInput: any): any {
   const tripMeta: TripMetaV2 = {
     em_word: v2.em_word,
     travel_dates: v2.travel_dates,
@@ -182,6 +182,7 @@ function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: num
     schemaVersion: 2,
     country: v2.country,
     tripMeta,
+    profilingInput,
   };
 }
 
@@ -200,7 +201,7 @@ export function registerItineraryGenV2Routes(app: Express) {
       const enriched = await enrichItineraryV2(rough, destinationName);
 
       const userId = (req.user as any)?.id ?? null;
-      const insertRow = itineraryV2ToInsert(enriched, destinationId, userId);
+      const insertRow = itineraryV2ToInsert(enriched, destinationId, userId, input);
       const saved = await storage.createItinerary(insertRow);
 
       recordRecentDestination(destinationName).catch(() => {});

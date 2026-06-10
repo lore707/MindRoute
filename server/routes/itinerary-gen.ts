@@ -159,6 +159,7 @@ export function registerItineraryGenRoutes(app: Express) {
         heroPhotographer: heroImage?.photographer ?? null,
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,
         userId,
+        profilingInput: input,
         createdAt: new Date().toISOString(),
       });
       recordRecentDestination(destinationName);
@@ -222,6 +223,7 @@ export function registerItineraryGenRoutes(app: Express) {
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,
         topAffiliateLinks: metaData?.topAffiliateLinks ?? null,
         userId,
+        profilingInput: input,
         createdAt: new Date().toISOString(),
       } as any);
 
@@ -277,6 +279,7 @@ export function registerItineraryGenRoutes(app: Express) {
           gettingThere: "",
           closingMessage: "",
           userId,
+          profilingInput: input,
           createdAt: new Date().toISOString(),
           rawNarrative: fullText,
         } as any);
@@ -473,6 +476,7 @@ export function registerItineraryGenRoutes(app: Express) {
         heroPhotographer: heroImage?.photographer ?? null,
         heroPhotographerUrl: heroImage?.photographerUrl ?? null,
         userId,
+        profilingInput: input,
         createdAt: new Date().toISOString(),
       });
 

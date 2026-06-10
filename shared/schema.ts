@@ -55,6 +55,11 @@ export const itineraries = pgTable("itineraries", {
   // Token opaco per la condivisione pubblica read-only (/i/:token). Generato
   // al primo "Condividi"; null finché non si condivide. Unique.
   publicToken: text("public_token").unique(),
+  // Snapshot del profiling input che ha generato QUESTO itinerario. Persistito
+  // per-itinerario così le letture (GET, regenerate-day) non dipendono più dallo
+  // slot globale profiling_inputs (race cross-utente). Nullable: le righe legacy
+  // ricadono sul fallback globale. MAI esposto nella condivisione pubblica.
+  profilingInput: jsonb("profiling_input").$type<any>(),
 });
 
 // ── v2 — moment-based itinerary types ──────────────────────────────────────

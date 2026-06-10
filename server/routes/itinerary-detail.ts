@@ -64,7 +64,9 @@ export function registerItineraryDetailRoutes(app: Express) {
         return res.status(404).json({ message: 'Itinerary not found' });
       }
       if (!ownsItinerary(itinerary, req)) return res.status(403).json({ message: "Non autorizzato" });
-      const profilingInput = await storage.getProfilingInput();
+      // Preferisci il profiling persistito sull'itinerario; fallback al globale
+      // solo per le righe legacy che non l'hanno (pre-feature).
+      const profilingInput = (itinerary as any).profilingInput ?? await storage.getProfilingInput();
       res.json({ ...itinerary, profilingInput: profilingInput ?? null });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -88,7 +90,7 @@ export function registerItineraryDetailRoutes(app: Express) {
       if ((itin as any).schemaVersion === 2) {
         return res.status(400).json({ message: "Regenerate-day not yet supported for v2 itineraries" });
       }
-      const profilingInput = await storage.getProfilingInput();
+      const profilingInput = (itin as any).profilingInput ?? await storage.getProfilingInput();
       const dayToRegen = (itin as any).days?.[dayIndex];
       if (!dayToRegen) return res.status(400).json({ message: "Giorno non trovato" });
       const { generateDayRegeneration } = await import("../matching-engine");
@@ -151,7 +153,9 @@ export function registerItineraryDetailRoutes(app: Express) {
       const token = String(req.params.token);
       const itin = await storage.getItineraryByPublicToken(token);
       if (!itin) return res.status(404).json({ message: "Non trovato" });
-      const { userId, ...safe } = itin as any;
+      // Read-only pubblico: niente PII. Oltre a userId, strippiamo anche il
+      // profilingInput (risposte del quiz) ora che è persistito sulla riga.
+      const { userId, profilingInput, ...safe } = itin as any;
       res.json(safe);
     } catch (err) {
       res.status(500).json({ message: "Errore" });
