@@ -6,3 +6,4 @@ vite.config.ts.*
 *.tar.gz
 content-factory/out/
 .env
+HE-Lead-Events-Agent/
