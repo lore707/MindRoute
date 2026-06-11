@@ -132,12 +132,25 @@ GROUNDING: nessun luogo necessario — non nominare luoghi specifici.
 ${STYLE_RULES}`;
 }
 
+// Best-effort repair of the JSON glitches the model produces more often:
+// trailing comma before } o ], and \' (escape valido in JS ma non in JSON).
+function repairJson(raw: string): string {
+  return raw
+    .replace(/,\s*([}\]])/g, "$1")
+    .replace(/\\'/g, "'");
+}
+
 function extractJson(text: string): CopyResult {
   const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1) throw new Error(`Copywriter: nessun JSON nella risposta:\n${text.slice(0, 400)}`);
-  return JSON.parse(cleaned.slice(start, end + 1)) as CopyResult;
+  const raw = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(raw) as CopyResult;
+  } catch {
+    return JSON.parse(repairJson(raw)) as CopyResult;
+  }
 }
 
 const EXPECTED_KIND: Record<Pillar, "place" | "statement"> = {
@@ -158,7 +171,11 @@ function validateCopy(copy: CopyResult, pillar: Pillar): string | null {
   for (let i = 0; i < copy.slides.length; i++) {
     const s = copy.slides[i] as unknown as Record<string, unknown>;
     const dump = () => `slide[${i}] = ${JSON.stringify(copy.slides[i])}`;
-    if (s.kind !== expected) {
+    if (s.kind === undefined) {
+      // Il modello a volte omette kind: se i campi sotto sono coerenti col
+      // pilastro la slide è buona, quindi assumiamo il kind atteso.
+      s.kind = expected;
+    } else if (s.kind !== expected) {
       return `kind "${s.kind}" invece di "${expected}" (pilastro ${pillar}) — ${dump()}`;
     }
     if (expected === "place") {
@@ -178,8 +195,9 @@ export async function writeCopy(plan: Plan): Promise<CopyResult> {
   const client = new Anthropic(); // ANTHROPIC_API_KEY dall'ambiente
   const prompt = buildPrompt(plan);
 
+  const MAX_ATTEMPTS = 3; // 1 tentativo + 2 retry
   let problem = "";
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const res = await client.messages.create({
       model: MODEL,
       max_tokens: 3000,
@@ -187,7 +205,17 @@ export async function writeCopy(plan: Plan): Promise<CopyResult> {
       messages: [{ role: "user", content: prompt }],
     });
     const text = res.content.filter(b => b.type === "text").map(b => (b as { text: string }).text).join("");
-    const copy = extractJson(text);
+
+    let copy: CopyResult;
+    try {
+      copy = extractJson(text);
+    } catch (err) {
+      problem = err instanceof SyntaxError
+        ? `JSON malformato: ${err.message}`
+        : (err as Error).message;
+      if (attempt < MAX_ATTEMPTS) console.warn(`[copywriter] ${problem} — retry ${attempt}/${MAX_ATTEMPTS - 1}`);
+      continue;
+    }
 
     problem = validateCopy(copy, plan.pillar) ?? "";
     if (!problem) {
@@ -195,7 +223,7 @@ export async function writeCopy(plan: Plan): Promise<CopyResult> {
       copy.hashtags = (copy.hashtags ?? []).map(h => (h.startsWith("#") ? h : `#${h}`));
       return copy;
     }
-    if (attempt === 1) console.warn(`[copywriter] copy invalida (${problem}) — retry`);
+    if (attempt < MAX_ATTEMPTS) console.warn(`[copywriter] copy invalida (${problem}) — retry ${attempt}/${MAX_ATTEMPTS - 1}`);
   }
-  throw new Error(`Copywriter: copy invalida dopo retry — ${problem}`);
+  throw new Error(`Copywriter: copy invalida dopo ${MAX_ATTEMPTS - 1} retry — ${problem}`);
 }
