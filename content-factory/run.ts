@@ -126,6 +126,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error("[factory] ERRORE:", err instanceof Error ? err.message : err);
+  console.error("[factory] ERRORE:", err);
   process.exit(1);
 });

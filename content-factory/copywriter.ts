@@ -5,7 +5,7 @@
  * block, same anti-slop philosophy as itinerary generation.
  */
 import Anthropic from "@anthropic-ai/sdk";
-import { PERSONAS, type Plan } from "./planner";
+import { PERSONAS, type Plan, type Pillar } from "./planner";
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -140,22 +140,62 @@ function extractJson(text: string): CopyResult {
   return JSON.parse(cleaned.slice(start, end + 1)) as CopyResult;
 }
 
+const EXPECTED_KIND: Record<Pillar, "place" | "statement"> = {
+  "tre-posti": "place",
+  "deep-dive": "place",
+  "itinerario-30s": "place",
+  "quiz-bait": "statement",
+};
+
+// Hard guards so a sloppy generation can't break the renderer: every slide
+// must have the kind the pillar expects and all its required fields.
+// Returns null if valid, otherwise a message with a dump of the bad slide.
+function validateCopy(copy: CopyResult, pillar: Pillar): string | null {
+  if (!copy.cover?.title || !Array.isArray(copy.slides) || copy.slides.length < 3) {
+    return `JSON incompleto (slides=${Array.isArray(copy.slides) ? copy.slides.length : 0})`;
+  }
+  const expected = EXPECTED_KIND[pillar];
+  for (let i = 0; i < copy.slides.length; i++) {
+    const s = copy.slides[i] as unknown as Record<string, unknown>;
+    const dump = () => `slide[${i}] = ${JSON.stringify(copy.slides[i])}`;
+    if (s.kind !== expected) {
+      return `kind "${s.kind}" invece di "${expected}" (pilastro ${pillar}) — ${dump()}`;
+    }
+    if (expected === "place") {
+      for (const field of ["index", "title", "area", "body", "imageQuery"]) {
+        if (typeof s[field] !== "string" || !s[field]) return `campo place "${field}" mancante — ${dump()}`;
+      }
+      if (!Array.isArray(s.chips)) s.chips = [];
+    } else {
+      if (typeof s.text !== "string" || !s.text) return `campo statement "text" mancante — ${dump()}`;
+      if (s.theme !== "cream" && s.theme !== "ink") s.theme = i % 2 === 0 ? "cream" : "ink";
+    }
+  }
+  return null;
+}
+
 export async function writeCopy(plan: Plan): Promise<CopyResult> {
   const client = new Anthropic(); // ANTHROPIC_API_KEY dall'ambiente
-  const res = await client.messages.create({
-    model: MODEL,
-    max_tokens: 3000,
-    temperature: 0.8,
-    messages: [{ role: "user", content: buildPrompt(plan) }],
-  });
-  const text = res.content.filter(b => b.type === "text").map(b => (b as { text: string }).text).join("");
-  const copy = extractJson(text);
+  const prompt = buildPrompt(plan);
 
-  // Hard guards so a sloppy generation can't break the renderer.
-  if (!copy.cover?.title || !Array.isArray(copy.slides) || copy.slides.length < 3) {
-    throw new Error(`Copywriter: JSON incompleto (slides=${copy.slides?.length ?? 0})`);
+  let problem = "";
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const res = await client.messages.create({
+      model: MODEL,
+      max_tokens: 3000,
+      temperature: 0.8,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = res.content.filter(b => b.type === "text").map(b => (b as { text: string }).text).join("");
+    const copy = extractJson(text);
+
+    problem = validateCopy(copy, plan.pillar) ?? "";
+    if (!problem) {
+      copy.slug = (copy.slug || "contenuto").toLowerCase().replace(/[^a-z0-9-]+/g, "-").slice(0, 40);
+      copy.hashtags = (copy.hashtags ?? []).map(h => (h.startsWith("#") ? h : `#${h}`));
+      return copy;
+    }
+    if (attempt === 1) console.warn(`[copywriter] copy invalida (${problem}) — retry`);
   }
-  copy.slug = (copy.slug || "contenuto").toLowerCase().replace(/[^a-z0-9-]+/g, "-").slice(0, 40);
-  copy.hashtags = (copy.hashtags ?? []).map(h => (h.startsWith("#") ? h : `#${h}`));
-  return copy;
+  throw new Error(`Copywriter: copy invalida dopo retry — ${problem}`);
 }

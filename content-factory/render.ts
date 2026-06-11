@@ -178,19 +178,22 @@ function statementTree(s: Extract<SlideSpec, { layout: "statement" }>) {
   const dark = s.theme === "ink";
   const bg = dark ? BRAND.ink : BRAND.cream;
   const fg = dark ? BRAND.white : BRAND.ink;
-  const textSize = s.text.length > 130 ? 56 : s.text.length > 80 ? 64 : 76;
+  // Fallback difensivi: una copy malformata non deve mai far crashare il render.
+  const text = s.text ?? "";
+  const rawAccent = s.accent ?? null;
+  const textSize = text.length > 130 ? 56 : text.length > 80 ? 64 : 76;
 
   // satori non supporta span inline multipli dentro un blocco di testo: si
   // renderizza parola-per-parola in un flex row con wrap, colorando di corallo
   // corsivo le parole che cadono dentro la sottostringa accent.
-  const accent = s.accent && s.text.includes(s.accent) ? s.accent : null;
-  const accentStart = accent ? s.text.indexOf(accent) : -1;
+  const accent = rawAccent && text.includes(rawAccent) ? rawAccent : null;
+  const accentStart = accent ? text.indexOf(accent) : -1;
   const accentEnd = accent ? accentStart + accent.length : -1;
   const wordGap = Math.round(textSize * 0.26);
 
   let cursor = 0;
-  const textChildren = s.text.split(/\s+/).filter(Boolean).map(word => {
-    const start = s.text.indexOf(word, cursor);
+  const textChildren = text.split(/\s+/).filter(Boolean).map(word => {
+    const start = text.indexOf(word, cursor);
     cursor = start + word.length;
     // Test di sovrapposizione, non di contenimento: "silenzio," deve colorarsi
     // anche se la virgola sfora la fine dell'accent.
