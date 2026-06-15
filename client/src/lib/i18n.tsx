@@ -12,6 +12,15 @@ type Lang = "en" | "it";
 const translations: Record<string, Record<Lang, string>> = {
   "nav.start": { en: "Start your journey", it: "Inizia il viaggio" },
   "nav.howItWorks": { en: "How it works", it: "Come funziona" },
+
+  // Travel companion (Fase 1)
+  "companion.open": { en: "Open your travel companion", it: "Apri il compagno di viaggio" },
+  "companion.close": { en: "Close", it: "Chiudi" },
+  "companion.title": { en: "Travel companion", it: "Compagno di viaggio" },
+  "companion.greeting": { en: "I know your trip and what you love. Ask me anything — what to do today, where to eat nearby, how to tweak a day.", it: "Conosco il tuo viaggio e cosa ami. Chiedimi qualsiasi cosa — cosa fare oggi, dove mangiare lì vicino, come modificare un giorno." },
+  "companion.placeholder": { en: "Ask your companion…", it: "Chiedi al compagno…" },
+  "companion.send": { en: "Send", it: "Invia" },
+  "companion.error": { en: "Something went wrong. Try again in a moment.", it: "Qualcosa è andato storto. Riprova tra un attimo." },
   "nav.saveExit": { en: "Save & exit", it: "Salva ed esci" },
   "nav.about": { en: "About", it: "Chi siamo" },
   "nav.privacy": { en: "Privacy", it: "Privacy" },

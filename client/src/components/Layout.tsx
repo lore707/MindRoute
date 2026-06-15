@@ -5,6 +5,7 @@ import LangDropdown from "@/components/LangDropdown";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/components/ThemeProvider";
 import { BackgroundLayers } from "@/components/BackgroundLayers";
+import { CompanionDock } from "@/components/CompanionDock";
 import { SectionProvider } from "@/lib/sectionContext";
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
@@ -143,6 +144,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </motion.main>
       </AnimatePresence>
+
+      <CompanionDock />
     </div>
     </SectionProvider>
   );

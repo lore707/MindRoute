@@ -4,6 +4,7 @@ import { registerProfilingRoutes } from "./routes/profiling";
 import { registerItineraryGenRoutes } from "./routes/itinerary-gen";
 import { registerItineraryGenV2Routes } from "./routes/itinerary-gen-v2";
 import { registerItineraryDetailRoutes } from "./routes/itinerary-detail";
+import { registerCompanionRoutes } from "./routes/companion";
 import { registerMiscRoutes } from "./routes/misc";
 
 export async function registerRoutes(
@@ -14,6 +15,7 @@ export async function registerRoutes(
   registerItineraryGenRoutes(app);
   registerItineraryGenV2Routes(app);
   registerItineraryDetailRoutes(app);
+  registerCompanionRoutes(app);
   registerMiscRoutes(app);
   return httpServer;
 }

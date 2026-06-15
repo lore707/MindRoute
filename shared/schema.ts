@@ -281,6 +281,32 @@ export const savedMoments = pgTable("saved_moments", {
 export type SavedMoment = typeof savedMoments.$inferSelect;
 export type InsertSavedMoment = typeof savedMoments.$inferInsert;
 
+// ── Travel companion chat (Fase 1) ─────────────────────────────────────────
+// A conversation is the persistent "storico" of the companion. Anchored to an
+// itinerary (itineraryId) = the companion of THAT trip; the natural 1:1 we
+// look up by (userId, itineraryId). itineraryId nullable leaves room for a
+// future general/planning thread.
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  itineraryId: integer("itinerary_id").references(() => itineraries.id),
+  title: text("title"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastMessageAt: timestamp("last_message_at").defaultNow().notNull(),
+});
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversation = typeof conversations.$inferInsert;
+
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => conversations.id),
+  role: text("role").notNull(), // "user" | "assistant"
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;
+
 export const profilingRequestSchema = z.object({
   answers: z.array(z.string()),
   days: z.number(),

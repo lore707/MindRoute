@@ -1,4 +1,4 @@
-import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment } from "@shared/schema";
+import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment, Conversation, InsertConversation, ChatMessage, InsertChatMessage } from "@shared/schema";
 
 export interface IStorage {
   getDestinations(): Promise<Destination[]>;
@@ -19,6 +19,13 @@ export interface IStorage {
   getSavedMoments(userId: number): Promise<SavedMoment[]>;
   createSavedMoment(row: InsertSavedMoment): Promise<SavedMoment>;
   deleteSavedMoment(userId: number, itineraryId: number, momentId: string): Promise<void>;
+  // Travel companion chat
+  getConversationForItinerary(userId: number, itineraryId: number): Promise<Conversation | undefined>;
+  getConversationsForUser(userId: number): Promise<Conversation[]>;
+  createConversation(row: InsertConversation): Promise<Conversation>;
+  touchConversation(id: number): Promise<void>;
+  getMessages(conversationId: number): Promise<ChatMessage[]>;
+  addMessage(row: InsertChatMessage): Promise<ChatMessage>;
 }
 
 export class MemoryStorage implements IStorage {
@@ -133,6 +140,50 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     this.savedMoments = this.savedMoments.filter(s =>
       !(s.userId === userId && s.itineraryId === itineraryId && s.momentId === momentId)
     );
+  }
+
+  private conversations: Conversation[] = [];
+  private conversationIdCounter = 1;
+  private chatMessages: ChatMessage[] = [];
+  private chatMessageIdCounter = 1;
+  async getConversationForItinerary(userId: number, itineraryId: number): Promise<Conversation | undefined> {
+    return this.conversations.find(c => c.userId === userId && c.itineraryId === itineraryId);
+  }
+  async getConversationsForUser(userId: number): Promise<Conversation[]> {
+    return this.conversations
+      .filter(c => c.userId === userId)
+      .sort((a, b) => +b.lastMessageAt - +a.lastMessageAt);
+  }
+  async createConversation(row: InsertConversation): Promise<Conversation> {
+    const now = new Date();
+    const conv: Conversation = {
+      ...row,
+      id: this.conversationIdCounter++,
+      createdAt: now,
+      lastMessageAt: now,
+      title: row.title ?? null,
+      itineraryId: row.itineraryId ?? null,
+    } as Conversation;
+    this.conversations.push(conv);
+    return conv;
+  }
+  async touchConversation(id: number): Promise<void> {
+    const idx = this.conversations.findIndex(c => c.id === id);
+    if (idx >= 0) this.conversations[idx] = { ...this.conversations[idx], lastMessageAt: new Date() };
+  }
+  async getMessages(conversationId: number): Promise<ChatMessage[]> {
+    return this.chatMessages
+      .filter(m => m.conversationId === conversationId)
+      .sort((a, b) => +a.createdAt - +b.createdAt);
+  }
+  async addMessage(row: InsertChatMessage): Promise<ChatMessage> {
+    const msg: ChatMessage = {
+      id: this.chatMessageIdCounter++,
+      createdAt: new Date(),
+      ...row,
+    } as ChatMessage;
+    this.chatMessages.push(msg);
+    return msg;
   }
 }
 import { DatabaseStorage } from "./storage-db";

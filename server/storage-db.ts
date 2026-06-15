@@ -1,8 +1,8 @@
 import { db } from "./db";
-import { destinations, itineraries, profilingInputs, traitSnapshots, savedMoments } from "@shared/schema";
+import { destinations, itineraries, profilingInputs, traitSnapshots, savedMoments, conversations, chatMessages } from "@shared/schema";
 import { eq, desc, asc, and } from "drizzle-orm";
 import type { IStorage } from "./storage";
-import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment } from "@shared/schema";
+import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment, Conversation, InsertConversation, ChatMessage, InsertChatMessage } from "@shared/schema";
 
 export class DatabaseStorage implements IStorage {
   async getDestinations(): Promise<Destination[]> {
@@ -94,5 +94,39 @@ async getProfilingInput(): Promise<any | undefined> {
       eq(savedMoments.itineraryId, itineraryId),
       eq(savedMoments.momentId, momentId),
     ));
+  }
+
+  async getConversationForItinerary(userId: number, itineraryId: number): Promise<Conversation | undefined> {
+    const result = await db.select().from(conversations).where(and(
+      eq(conversations.userId, userId),
+      eq(conversations.itineraryId, itineraryId),
+    )).limit(1);
+    return result[0];
+  }
+
+  async getConversationsForUser(userId: number): Promise<Conversation[]> {
+    return await db.select().from(conversations)
+      .where(eq(conversations.userId, userId))
+      .orderBy(desc(conversations.lastMessageAt));
+  }
+
+  async createConversation(row: InsertConversation): Promise<Conversation> {
+    const result = await db.insert(conversations).values(row).returning();
+    return result[0];
+  }
+
+  async touchConversation(id: number): Promise<void> {
+    await db.update(conversations).set({ lastMessageAt: new Date() }).where(eq(conversations.id, id));
+  }
+
+  async getMessages(conversationId: number): Promise<ChatMessage[]> {
+    return await db.select().from(chatMessages)
+      .where(eq(chatMessages.conversationId, conversationId))
+      .orderBy(asc(chatMessages.createdAt));
+  }
+
+  async addMessage(row: InsertChatMessage): Promise<ChatMessage> {
+    const result = await db.insert(chatMessages).values(row).returning();
+    return result[0];
   }
 }
