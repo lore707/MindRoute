@@ -8,7 +8,7 @@ import { useI18n } from "@/lib/i18n";
 // di mostrare schermate vuote/azioni che fallirebbero agli anonimi.
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const { lang } = useI18n();
+  const { t } = useI18n();
 
   if (loading) {
     return (
@@ -25,23 +25,20 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (!user) {
     const returnTo =
       typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
-    const it = lang === "it";
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
         <h1 className="text-2xl sm:text-3xl font-semibold mb-3 text-foreground">
-          {it ? "Accedi per continuare" : "Sign in to continue"}
+          {t("res.auth.title")}
         </h1>
         <p className="text-sm text-muted-foreground max-w-md mb-8">
-          {it
-            ? "Per fare il quiz e generare il tuo itinerario serve un account. Bastano pochi secondi con Google."
-            : "You need an account to take the quiz and generate your itinerary. It takes seconds with Google."}
+          {t("res.auth.desc")}
         </p>
         <a
           href={`/auth/google?returnTo=${encodeURIComponent(returnTo)}`}
           className="inline-flex items-center gap-2 rounded-full bg-[#E94560] px-6 py-3 text-white text-sm font-medium hover:opacity-90 transition-opacity"
         >
           <User className="w-4 h-4" />
-          {it ? "Accedi con Google" : "Sign in with Google"}
+          {t("res.auth.cta")}
         </a>
       </div>
     );

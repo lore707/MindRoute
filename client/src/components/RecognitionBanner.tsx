@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, RefreshCcw, Sparkles } from "lucide-react";
 import type { TraitRecognition } from "@/hooks/use-trait-recognition";
+import { useI18n } from "@/lib/i18n";
 
 interface RecognitionBannerProps {
   recognition: TraitRecognition;
@@ -20,6 +21,7 @@ interface RecognitionBannerProps {
  * gate, but skipping the wrapper avoids empty animation containers.
  */
 export function RecognitionBanner({ recognition, variant, onUseProfile, onChangeProfile }: RecognitionBannerProps) {
+  const { t } = useI18n();
   if (!recognition.canShow) return null;
 
   if (variant === "compact") {
@@ -38,7 +40,7 @@ export function RecognitionBanner({ recognition, variant, onUseProfile, onChange
         <div className="flex items-center gap-2 mb-1.5">
           <Sparkles className="w-3 h-3 text-[#E94560]" />
           <span className="text-[10px] font-bold uppercase tracking-[3px] text-[#E94560]">
-            Ti ho riconosciuto
+            {t("rec.eyebrow")}
           </span>
         </div>
         {recognition.headline && (
@@ -76,7 +78,7 @@ export function RecognitionBanner({ recognition, variant, onUseProfile, onChange
       >
         <Sparkles className="w-3.5 h-3.5 text-[#E94560]" />
         <span className="text-[10px] font-bold uppercase tracking-[3.5px] text-[#E94560]">
-          Ti ho riconosciuto
+          {t("rec.eyebrow")}
         </span>
       </motion.div>
 
@@ -86,7 +88,7 @@ export function RecognitionBanner({ recognition, variant, onUseProfile, onChange
         </h2>
       ) : (
         <h2 className="font-serif text-[24px] md:text-[30px] text-white leading-tight mb-4">
-          So già che viaggiatore sei.
+          {t("rec.fallbackHeadline")}
         </h2>
       )}
 
@@ -102,7 +104,7 @@ export function RecognitionBanner({ recognition, variant, onUseProfile, onChange
       )}
 
       <p className="text-[13px] text-white/45 font-sans mb-7 max-w-md mx-auto leading-relaxed">
-        Distillato dai tuoi {recognition.snapshotCount} viaggi precedenti. Puoi partire da qui — o rifare il quiz se stavolta vuoi qualcosa di diverso.
+        {t("rec.desc").replace("{n}", String(recognition.snapshotCount))}
       </p>
 
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
@@ -114,7 +116,7 @@ export function RecognitionBanner({ recognition, variant, onUseProfile, onChange
           style={{ background: "#E94560", boxShadow: "0 12px 32px rgba(233,69,96,0.28)" }}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Genera 3 viaggi da questo profilo</span>
+          <span>{t("rec.cta.use")}</span>
         </button>
         <button
           type="button"
@@ -124,7 +126,7 @@ export function RecognitionBanner({ recognition, variant, onUseProfile, onChange
           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)" }}
         >
           <RefreshCcw className="w-3.5 h-3.5" />
-          Voglio cambiare qualcosa
+          {t("rec.cta.change")}
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>

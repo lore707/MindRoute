@@ -1,9 +1,17 @@
 ﻿import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { quizADict } from "./i18n-dict/quizA";
+import { quizBDict } from "./i18n-dict/quizB";
+import { logisticsDict } from "./i18n-dict/logistics";
+import { accountDict } from "./i18n-dict/account";
+import { accountCinDict } from "./i18n-dict/accountCin";
+import { residualDict } from "./i18n-dict/residual";
+import { miscDict } from "./i18n-dict/misc";
 
 type Lang = "en" | "it";
 
 const translations: Record<string, Record<Lang, string>> = {
   "nav.start": { en: "Start your journey", it: "Inizia il viaggio" },
+  "nav.howItWorks": { en: "How it works", it: "Come funziona" },
   "nav.saveExit": { en: "Save & exit", it: "Salva ed esci" },
   "nav.about": { en: "About", it: "Chi siamo" },
   "nav.privacy": { en: "Privacy", it: "Privacy" },
@@ -494,6 +502,9 @@ const translations: Record<string, Record<Lang, string>> = {
   "landing.hero.tag":          { en: "Every trip starts from an emotion. MindRoute turns it into a real place: destination, itinerary and bookings ready in under 3 minutes.", it: "Ogni viaggio nasce da un'emozione. MindRoute la trasforma in un luogo reale: destinazione, itinerario e prenotazioni pronti in meno di 3 minuti." },
   "landing.hero.cta":          { en: "Discover your trip", it: "Scopri il tuo viaggio" },
   "landing.hero.counterLabel": { en: "itineraries already imagined", it: "itinerari già immaginati" },
+  "landing.hero.point1":       { en: "Answer 7 questions about you, not about places", it: "Rispondi a 7 domande su di te, non sui luoghi" },
+  "landing.hero.point2":       { en: "Get 3 destinations chosen by feeling", it: "Ricevi 3 destinazioni scelte per come ti senti" },
+  "landing.hero.point3":       { en: "A day-by-day itinerary, ready to book", it: "Un itinerario giorno per giorno, pronto da prenotare" },
   "landing.hero.thumbsHead":   { en: "Featured destinations", it: "Destinazioni in evidenza" },
   "landing.hero.scroll":       { en: "Scroll", it: "Scorri" },
 
@@ -581,6 +592,21 @@ const translations: Record<string, Record<Lang, string>> = {
   "landing.destmood.slowPastoral":    { en: "Slow · Pastoral", it: "Lento · Pastorale" },
   "landing.destmood.vibrantAuthentic":{ en: "Vibrant · Authentic", it: "Vibrante · Autentico" },
 };
+
+// Per-feature dictionaries extracted to ./i18n-dict to keep this file from
+// growing without bound. Each uses a unique prefix (qa. qb. ql. acct. acin.
+// res. and the misc namespaces cmp./fpm./rec./stream./nf.) so there are no
+// collisions with the keys above; merged here so t() resolves them.
+Object.assign(
+  translations,
+  quizADict,
+  quizBDict,
+  logisticsDict,
+  accountDict,
+  accountCinDict,
+  residualDict,
+  miscDict,
+);
 
 interface I18nContextType {
   lang: Lang;

@@ -38,8 +38,14 @@ export type LandingData = {
   onStart?: () => void;             // CTA handler
 };
 
-export function LandingCinematic({ data }: { data: LandingData }) {
+export function LandingCinematic({ data, mode = "landing" }: { data: LandingData; mode?: "landing" | "how" }) {
   const { t, lang } = useI18n();
+  // `landing` = slim app-entry: hero + proof marquee only. `how` = the editorial
+  // story (how it works, manifesto, destinations, preview, method, closing CTA)
+  // that lives at /come-funziona behind the nav. Both share this component so
+  // the cinematic helpers (parallax, image sizing, i18n label maps) and the
+  // footer are defined once.
+  const isLanding = mode === "landing";
   const [heroIdx, setHeroIdx] = useState(0);
   const [hovering, setHovering] = useState(false);
   const [finalIdx, setFinalIdx] = useState(0);
@@ -165,6 +171,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
   return (
     <div className="landing-cinematic">
 
+      {isLanding && (<>
       {/* ① HERO */}
       <section className="lc-hero" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
         <div className="lc-hero-bg">
@@ -188,6 +195,11 @@ export function LandingCinematic({ data }: { data: LandingData }) {
               <button className="lc-btn-primary lg" onClick={data.onStart}>{t("landing.hero.cta")} →</button>
               <div className="lc-hero-counter"><strong>17</strong>{t("landing.hero.counterLabel")}</div>
             </div>
+            <ul className="lc-hero-points">
+              <li>{t("landing.hero.point1")}</li>
+              <li>{t("landing.hero.point2")}</li>
+              <li>{t("landing.hero.point3")}</li>
+            </ul>
           </div>
 
           <div className="lc-hero-thumbs">
@@ -237,7 +249,9 @@ export function LandingCinematic({ data }: { data: LandingData }) {
           ))}
         </div>
       </section>
+      </>)}
 
+      {!isLanding && (<>
       {/* ③ HOW IT WORKS — moved above manifesto so the value prop lands fast */}
       <section className="lc-how">
         <div className="lc-container">
@@ -458,6 +472,7 @@ export function LandingCinematic({ data }: { data: LandingData }) {
           ))}
         </div>
       </section>
+      </>)}
 
       {/* ⑨ FOOTER */}
       <footer className="lc-footer">

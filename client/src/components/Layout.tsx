@@ -12,6 +12,7 @@ import { User } from "lucide-react";
 function AuthButton() {
   const [user, setUser] = useState<any>(null);
   const [currentPath, setCurrentPath] = useState("/");
+  const { t } = useI18n();
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -45,7 +46,7 @@ function AuthButton() {
       style={{ color: "#E94560" }}
     >
       <User className="w-4 h-4" />
-      <span className="hidden sm:inline">Accedi</span>
+      <span className="hidden sm:inline">{t("res.layout.signIn")}</span>
     </a>
   );
 }
@@ -113,6 +114,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="h-1 w-8 rounded-full bg-primary/20 data-[active=true]:bg-primary transition-colors" data-active={location.startsWith("/itinerary")} />
             </div>
           )}
+          <Link
+            href="/come-funziona"
+            className="text-[12px] md:text-[13px] font-medium no-underline transition-colors hover:opacity-80 px-1.5 sm:px-2 min-h-[40px] flex items-center"
+            style={{ color: "var(--text-primary)", opacity: location === "/come-funziona" ? 1 : 0.72 }}
+            data-testid="link-nav-how"
+          >
+            {t("nav.howItWorks")}
+          </Link>
           <LangDropdown />
           <AuthButton />
           <Link href="/profiling" className="text-[13px] font-medium no-underline px-3.5 sm:px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center justify-center gap-1.5 min-h-[40px] min-w-[40px]" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">

@@ -23,6 +23,7 @@ const MyAccount = lazy(() => import("@/pages/MyAccount"));
 const ItineraryStream = lazy(() => import("@/pages/ItineraryStream"));
 const Compare = lazy(() => import("@/pages/Compare"));
 const SharedItinerary = lazy(() => import("@/pages/SharedItinerary"));
+const HowItWorks = lazy(() => import("@/pages/HowItWorks"));
 
 // Lightweight, theme-matching fallback — avoids a white flash while a route
 // chunk loads. Kept minimal so it never competes with the page that follows.
@@ -48,6 +49,7 @@ function Router() {
       <Suspense fallback={<PageFallback />}>
         <Switch>
           <Route path="/" component={Landing} />
+          <Route path="/come-funziona" component={HowItWorks} />
           <Route path="/profiling">
             <RequireAuth><Profiling /></RequireAuth>
           </Route>

@@ -14,6 +14,7 @@
 
 import { useMemo, useState } from "react";
 import { unsplashSized } from "@/lib/img";
+import { useI18n } from "@/lib/i18n";
 import { AccountPortrait, type PortraitData } from "./AccountPortrait";
 import { AccountAtlas, type AtlasData } from "./AccountAtlas";
 
@@ -66,9 +67,40 @@ export type AccountData = {
 const DEFAULT_GREETING = "Bentornato,";
 const MOSAIC_SIZES: Array<"l" | "m" | "s"> = ["l", "m", "s", "m", "s", "l", "m", "s"];
 
+// Duration / region filter keys (language-neutral, stored in state)
+type DurFilter = "all" | "short" | "medium" | "long";
+type RegFilter = "all" | "europe" | "asia" | "africa" | "americas" | "oceania";
+
+// Continent value stored on Trip objects (server-side, always Italian)
+const CONTINENT_VALUES: Record<Exclude<RegFilter, "all">, string> = {
+  europe:   "Europa",
+  asia:     "Asia",
+  africa:   "Africa",
+  americas: "Americhe",
+  oceania:  "Oceania",
+};
+
 export function AccountCinematic({ data }: { data: AccountData }) {
-  const [filter, setFilter] = useState("Tutte");
-  const [continent, setContinent] = useState("Tutti");
+  const { t } = useI18n();
+
+  const DUR_FILTERS: Array<{ key: DurFilter; label: string }> = [
+    { key: "all",    label: t("acin.filter.all")    },
+    { key: "short",  label: t("acin.filter.short")  },
+    { key: "medium", label: t("acin.filter.medium") },
+    { key: "long",   label: t("acin.filter.long")   },
+  ];
+
+  const REG_FILTERS: Array<{ key: RegFilter; label: string }> = [
+    { key: "all",      label: t("acin.region.all")      },
+    { key: "europe",   label: t("acin.region.europe")   },
+    { key: "asia",     label: t("acin.region.asia")     },
+    { key: "africa",   label: t("acin.region.africa")   },
+    { key: "americas", label: t("acin.region.americas") },
+    { key: "oceania",  label: t("acin.region.oceania")  },
+  ];
+
+  const [filter, setFilter] = useState<DurFilter>("all");
+  const [continent, setContinent] = useState<RegFilter>("all");
   const [search, setSearch] = useState("");
 
   // Right-size background-images per viewport (same rationale as the landing):
@@ -78,17 +110,20 @@ export function AccountCinematic({ data }: { data: AccountData }) {
   const heroW = isMobile ? 900 : 1600;   // full-bleed hero
   const cardW = isMobile ? 560 : 760;    // featured / side / mosaic cards
 
-  const totalDays = useMemo(() => data.trips.reduce((acc, t) => acc + (parseInt(t.duration) || 0), 0), [data.trips]);
+  const totalDays = useMemo(() => data.trips.reduce((acc, trip) => acc + (parseInt(trip.duration) || 0), 0), [data.trips]);
 
-  const filtered = useMemo(() => data.trips.filter(t => {
-    const dur = parseInt(t.duration);
-    if (filter === "≤3 giorni" && dur > 3) return false;
-    if (filter === "4–7 giorni" && (dur < 4 || dur > 7)) return false;
-    if (filter === "8+ giorni" && dur < 8) return false;
-    if (continent !== "Tutti" && t.continent !== continent) return false;
-    if (search && !t.dest.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  }), [data.trips, filter, continent, search]);
+  const filtered = useMemo(() => {
+    const continentVal = continent !== "all" ? CONTINENT_VALUES[continent] : null;
+    return data.trips.filter(trip => {
+      const dur = parseInt(trip.duration);
+      if (filter === "short"  && dur > 3) return false;
+      if (filter === "medium" && (dur < 4 || dur > 7)) return false;
+      if (filter === "long"   && dur < 8) return false;
+      if (continentVal && trip.continent !== continentVal) return false;
+      if (search && !trip.dest.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [data.trips, filter, continent, search]);
 
   const featured = data.continueItems[0];
   const sides = data.continueItems.slice(1, 3);
@@ -130,7 +165,7 @@ export function AccountCinematic({ data }: { data: AccountData }) {
           <div className="ac-hero-avatar">{data.avatarInitial ?? data.userName[0]}</div>
           <div>
             <div className="ac-hero-greeting">{data.greeting ?? DEFAULT_GREETING}</div>
-            <h1>{data.userName}, il tuo<br /><em>MindRoute</em>.</h1>
+            <h1>{data.userName}{t("acin.hero.titlePre")}<br /><em>{t("acin.hero.titleEm")}</em></h1>
             <div className="ac-hero-stats-inline">
               {data.heroStats.map((s, i) => (
                 <span key={i} style={{ display: "inline-flex", alignItems: "center" }}>
@@ -141,8 +176,8 @@ export function AccountCinematic({ data }: { data: AccountData }) {
               ))}
             </div>
             <div className="ac-hero-actions">
-              <button className="ac-btn-primary" onClick={data.onNewItinerary}>+ Nuovo itinerario</button>
-              <button className="ac-btn-ghost" onClick={data.onSecondaryCta}>{data.secondaryCtaLabel ?? "↓ Continua a esplorare"}</button>
+              <button className="ac-btn-primary" onClick={data.onNewItinerary}>{t("acct.hero.newItin")}</button>
+              <button className="ac-btn-ghost" onClick={data.onSecondaryCta}>{data.secondaryCtaLabel ?? t("acct.cta.exploreMore")}</button>
             </div>
           </div>
         </div>
@@ -161,7 +196,7 @@ export function AccountCinematic({ data }: { data: AccountData }) {
         <div className="ac-container">
           <div className="ac-profile-grid">
             <div>
-              <div className="ac-eyebrow"><span className="d" />Il tuo profilo viaggiatore</div>
+              <div className="ac-eyebrow"><span className="d" />{t("acin.profile.eyebrow")}</div>
               <p className="ac-profile-quote">{profileQuoteNode}</p>
               <div className="ac-profile-byline">
                 <div className="ac-profile-byline-ic" />
@@ -169,16 +204,16 @@ export function AccountCinematic({ data }: { data: AccountData }) {
               </div>
             </div>
             <div>
-              <div className="ac-traits-head">I tuoi quattro tratti</div>
+              <div className="ac-traits-head">{t("acin.profile.traitsHead")}</div>
               <div className="ac-traits">
-                {data.traits.map((t, i) => (
+                {data.traits.map((tr, i) => (
                   <div key={i} className="ac-trait">
-                    <div className="ac-trait-pct">{t.pct}</div>
+                    <div className="ac-trait-pct">{tr.pct}</div>
                     <div>
-                      <div className="ac-trait-name">{t.name}</div>
-                      <div className="ac-trait-desc">{t.desc}</div>
+                      <div className="ac-trait-name">{tr.name}</div>
+                      <div className="ac-trait-desc">{tr.desc}</div>
                     </div>
-                    <div className="ac-trait-bar"><div className="ac-trait-bar-fill" style={{ width: t.bar + "%" }} /></div>
+                    <div className="ac-trait-bar"><div className="ac-trait-bar-fill" style={{ width: tr.bar + "%" }} /></div>
                   </div>
                 ))}
               </div>
@@ -194,21 +229,30 @@ export function AccountCinematic({ data }: { data: AccountData }) {
           <div className="ac-container">
             <div className="ac-continue-head">
               <div>
-                <div className="ac-eyebrow"><span className="d" />Da riprendere</div>
-                <h2>{data.continueItems.length > 1 ? `${data.continueItems.length} viaggi ti aspettano` : "Un viaggio ti aspetta"}<br /><em>a metà strada</em>.</h2>
+                <div className="ac-eyebrow"><span className="d" />{t("acin.cap3.eyebrow")}</div>
+                <h2>
+                  {data.continueItems.length > 1
+                    ? t("acin.cap3.title.many").replace("{n}", String(data.continueItems.length))
+                    : t("acin.cap3.title.one")}
+                  <br /><em>{t("acin.cap3.titleEm")}</em>
+                </h2>
               </div>
-              <p className="ac-continue-sub">"Ti eri fermato. La storia non è finita."</p>
+              <p className="ac-continue-sub">{t("acin.cap3.sub")}</p>
             </div>
             <div className="ac-continue-grid">
               <a className="ac-cont-featured" href={featured.href ?? "#"}>
                 <div className="ac-cont-featured-img" style={{ backgroundImage: `url(${unsplashSized(featured.img, cardW)})` }} />
                 <div className="ac-cont-featured-body">
-                  {featured.date && <div className="ac-cont-featured-tag"><span className="ac-pulse" />Ultimo aperto · {featured.date}</div>}
+                  {featured.date && (
+                    <div className="ac-cont-featured-tag">
+                      <span className="ac-pulse" />{t("acin.cap3.lastOpened").replace("{date}", featured.date)}
+                    </div>
+                  )}
                   <h3>{featured.title}</h3>
                   {featured.quote && <p className="ac-cont-featured-quote">"{featured.quote}"</p>}
                   <div className="ac-cont-featured-actions">
-                    <span className="ac-btn-primary">Riprendi il viaggio →</span>
-                    <span className="ac-btn-ghost">Esplora un altro</span>
+                    <span className="ac-btn-primary">{t("acin.cap3.resume")}</span>
+                    <span className="ac-btn-ghost">{t("acin.cap3.exploreOther")}</span>
                   </div>
                 </div>
               </a>
@@ -234,50 +278,69 @@ export function AccountCinematic({ data }: { data: AccountData }) {
         <div className="ac-container">
           <div className="ac-col-head">
             <div>
-              <div className="ac-eyebrow"><span className="d" />La tua collezione</div>
-              <h2>I miei <em>viaggi</em>.</h2>
+              <div className="ac-eyebrow"><span className="d" />{t("acin.cap4.eyebrow")}</div>
+              <h2 dangerouslySetInnerHTML={{ __html: t("acct.cap4.title") }} />
             </div>
-            <div className="ac-col-head-meta"><strong>{data.trips.length}</strong>itinerari · oltre {totalDays} giorni di sogno</div>
+            <div className="ac-col-head-meta">
+              <strong>{data.trips.length}</strong>{" "}
+              {t("acin.cap4.itineraries")} {t("acin.cap4.subDays").replace("{n}", String(totalDays))}
+            </div>
           </div>
 
           <div className="ac-col-filters">
             <div className="ac-col-search">
               <span>⌕</span>
-              <input placeholder="Cerca destinazione…" value={search} onChange={e => setSearch(e.target.value)} />
+              <input
+                placeholder={t("acin.cap4.searchPlaceholder")}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
             </div>
             <div className="ac-col-divider" />
             <div className="ac-col-tags">
-              {["Tutte", "≤3 giorni", "4–7 giorni", "8+ giorni"].map(f => (
-                <button key={f} className={"ac-col-tag" + (filter === f ? " active" : "")} onClick={() => setFilter(f)}>{f}</button>
+              {DUR_FILTERS.map(f => (
+                <button
+                  key={f.key}
+                  className={"ac-col-tag" + (filter === f.key ? " active" : "")}
+                  onClick={() => setFilter(f.key)}
+                >
+                  {f.label}
+                </button>
               ))}
             </div>
             <div className="ac-col-divider" />
             <div className="ac-col-tags">
-              {["Tutti", "Europa", "Asia", "Africa", "Americhe", "Oceania"].map(c => (
-                <button key={c} className={"ac-col-tag" + (continent === c ? " active" : "")} onClick={() => setContinent(c)}>{c}</button>
+              {REG_FILTERS.map(r => (
+                <button
+                  key={r.key}
+                  className={"ac-col-tag" + (continent === r.key ? " active" : "")}
+                  onClick={() => setContinent(r.key)}
+                >
+                  {r.label}
+                </button>
               ))}
             </div>
           </div>
 
           <div className="ac-col-mosaic">
-            {filtered.map((t, i) => {
-              const size = t.size ?? MOSAIC_SIZES[i % MOSAIC_SIZES.length];
+            {filtered.map((trip, i) => {
+              const size = trip.size ?? MOSAIC_SIZES[i % MOSAIC_SIZES.length];
               return (
-                <a key={i} className={"ac-col-card size-" + size} href={t.href ?? "#"}>
-                  <div className="ac-col-card-img" style={{ backgroundImage: `url(${unsplashSized(t.img, cardW)})` }} />
-                  <div className="ac-col-action">Apri ↗</div>
+                <a key={i} className={"ac-col-card size-" + size} href={trip.href ?? "#"}>
+                  <div className="ac-col-card-img" style={{ backgroundImage: `url(${unsplashSized(trip.img, cardW)})` }} />
+                  <div className="ac-col-action">{t("acin.cap4.cardOpen")}</div>
                   <div className="ac-col-card-body">
                     <div className="ac-col-card-eyebrow">
-                      <span>{t.date}</span><span>·</span><span>{t.continent}</span><span className="duration">{t.duration}</span>
+                      <span>{trip.date}</span><span>·</span><span>{trip.continent}</span><span className="duration">{trip.duration}</span>
                     </div>
-                    <div className="ac-col-card-title">{t.dest}</div>
-                    <div className="ac-col-card-quote">"{t.quote}"</div>
+                    <div className="ac-col-card-title">{trip.dest}</div>
+                    <div className="ac-col-card-quote">"{trip.quote}"</div>
                   </div>
                 </a>
               );
             })}
             {filtered.length === 0 && (
-              <div className="ac-col-empty">Nessun viaggio corrisponde ai filtri attivi.</div>
+              <div className="ac-col-empty">{t("acin.cap4.empty")}</div>
             )}
           </div>
         </div>
@@ -295,9 +358,9 @@ export function AccountCinematic({ data }: { data: AccountData }) {
       <section className="ac-stats-novel">
         <div className="ac-container">
           <div className="ac-stats-intro">
-            <div className="ac-eyebrow gold"><span className="d" />Il tuo viaggiatore in numeri</div>
-            <h2>{totalDays} giorni passati <em>altrove</em>.</h2>
-            <p className="ac-stats-sub">Una storia raccontata dalle mappe che hai aperto.</p>
+            <div className="ac-eyebrow gold"><span className="d" />{t("acin.stats.eyebrow")}</div>
+            <h2 dangerouslySetInnerHTML={{ __html: t("acin.stats.title").replace("{n}", String(totalDays)) }} />
+            <p className="ac-stats-sub">{t("acin.stats.sub")}</p>
           </div>
 
           <div className="ac-stats-novel-grid">
@@ -320,7 +383,7 @@ export function AccountCinematic({ data }: { data: AccountData }) {
       {/* ⑥ SETTINGS */}
       <section className="ac-settings">
         <div className="ac-container">
-          <div className="ac-eyebrow" style={{ marginBottom: 32 }}><span className="d" />Impostazioni</div>
+          <div className="ac-eyebrow" style={{ marginBottom: 32 }}><span className="d" />{t("acin.settings.eyebrow")}</div>
           <div className="ac-settings-grid">
             {data.settings.map((s, i) => (
               <a key={i} className="ac-set-row" href={s.href ?? "#"}>
@@ -329,15 +392,15 @@ export function AccountCinematic({ data }: { data: AccountData }) {
               </a>
             ))}
             <a className="ac-set-row" href={"mailto:" + data.email}>
-              <span className="ac-set-label">Email</span>
+              <span className="ac-set-label">{t("acin.settings.emailLabel")}</span>
               <span className="ac-set-value">{data.email}</span>
             </a>
           </div>
           <div className="ac-danger-row">
-            <div className="ac-danger-left">Tutto pronto. Quando vuoi, puoi uscire o chiudere l'account.</div>
+            <div className="ac-danger-left">{t("acin.settings.dangerText")}</div>
             <div className="ac-danger-actions">
-              <button className="ac-danger-btn logout" onClick={data.onLogout}>↗ Esci</button>
-              <button className="ac-danger-btn delete" onClick={data.onDelete}>Elimina account</button>
+              <button className="ac-danger-btn logout" onClick={data.onLogout}>{t("acin.settings.logout")}</button>
+              <button className="ac-danger-btn delete" onClick={data.onDelete}>{t("acin.settings.delete")}</button>
             </div>
           </div>
         </div>

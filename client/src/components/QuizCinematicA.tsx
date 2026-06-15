@@ -10,8 +10,10 @@
  *
  *   Q1 style · Q2 need · Q3 drains · Q4 visual pull · Q5 chaos · Q6 identity filter (text) · Q7 distance
  *
- * UI is English-only to stay coherent with QuizCinematic. Selections are emitted
- * as stable IDs; Profiling.tsx maps them to i18n labels for the matching engine.
+ * All user-visible strings are resolved via useI18n(). Keys live in:
+ *   - client/src/lib/i18n-dict/quizA.ts  (prefix "qa.")
+ *   - client/src/lib/i18n.tsx             (existing keys reused via id)
+ * Selections emitted in onComplete are stable IDs — unchanged.
  *
  * Props
  *   - onComplete(answers)   → all 7 answers collected
@@ -21,6 +23,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useMemo, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { BgGrain, StepRail, HeaderStrip, SideCard, FooterNav, BgPhotos } from "./QuizCinematic";
 
 export type AnswersA = {
@@ -47,85 +50,91 @@ export interface QuizCinematicAProps {
 /* ════════════ data ════════════ */
 const IMG = (id: string) => `https://images.unsplash.com/photo-${id}?w=1400&q=85&auto=format`;
 
+/* Static data keeps only ids, emoji, img, cat.
+ * All human-readable text (name, meta, feel) is resolved at render time
+ * via t() so the component stays language-agnostic. */
+
 const VIBES = [
-  { id: "wild",         ic: "🔥", name: "Wild",          meta: "untamed, off the leash",         cat: "new",      img: IMG("1464822759023-fed622ff2c3b") },
-  { id: "quiet",        ic: "🌙", name: "Quiet",         meta: "low volume, deep rest",          cat: "explore",  img: IMG("1476514525535-07fb3b4ae5f1") },
-  { id: "chaotic",      ic: "🎲", name: "Chaotic",       meta: "messy, alive, unpredictable",    cat: "discover", img: IMG("1488646953014-85cb44e25828") },
-  { id: "intimate",     ic: "🕯", name: "Intimate",      meta: "small, close, personal",         cat: "nature",   img: IMG("1495474472287-4d71bcdd2085") },
-  { id: "solitary",     ic: "🚶", name: "Solitary",      meta: "just you and the road",          cat: "explore",  img: IMG("1500530855697-b586d89ba3ee") },
-  { id: "regenerating", ic: "🌱", name: "Regenerating",  meta: "come back restored",             cat: "nature",   img: IMG("1518548419970-58e3b4079ab2") },
-  { id: "authentic",    ic: "🫀", name: "Authentic",     meta: "real over polished",             cat: "food",     img: IMG("1513635269975-59663e0ac1ad") },
-  { id: "quietluxury",  ic: "🥂", name: "Quiet luxury",  meta: "understated, refined",           cat: "iconic",   img: IMG("1551632811-561732d1e306") },
-  { id: "spiritual",    ic: "🕊",  name: "Spiritual",     meta: "inward, sacred, still",          cat: "iconic",   img: IMG("1493246507139-91e8fad9978e") },
-  { id: "festive",      ic: "🎉", name: "Festive",       meta: "music, people, celebration",     cat: "new",      img: IMG("1528360983277-13d401cdc186") },
-  { id: "adventure",    ic: "⛰",  name: "Adventure",      meta: "adrenaline, the edge",           cat: "nature",   img: IMG("1506905925346-21bda4d32df4") },
-  { id: "romantic",     ic: "🌹", name: "Romantic",      meta: "tender, made for two",           cat: "new",      img: IMG("1500375592092-40eb2168fd21") },
-  { id: "cultural",     ic: "🏛", name: "Cultural",       meta: "history, art, meaning",          cat: "iconic",   img: IMG("1502602898657-3e91760cbb34") },
-  { id: "explorative",  ic: "🧭", name: "Explorative",   meta: "curiosity-led, no map",          cat: "discover", img: IMG("1467269204594-9661b134dd2b") },
+  { id: "wild",         ic: "🔥", cat: "new",      img: IMG("1464822759023-fed622ff2c3b") },
+  { id: "quiet",        ic: "🌙", cat: "explore",  img: IMG("1476514525535-07fb3b4ae5f1") },
+  { id: "chaotic",      ic: "🎲", cat: "discover", img: IMG("1488646953014-85cb44e25828") },
+  { id: "intimate",     ic: "🕯", cat: "nature",   img: IMG("1495474472287-4d71bcdd2085") },
+  { id: "solitary",     ic: "🚶", cat: "explore",  img: IMG("1500530855697-b586d89ba3ee") },
+  { id: "regenerating", ic: "🌱", cat: "nature",   img: IMG("1518548419970-58e3b4079ab2") },
+  { id: "authentic",    ic: "🫀", cat: "food",     img: IMG("1513635269975-59663e0ac1ad") },
+  { id: "quietluxury",  ic: "🥂", cat: "iconic",   img: IMG("1551632811-561732d1e306") },
+  { id: "spiritual",    ic: "🕊",  cat: "iconic",   img: IMG("1493246507139-91e8fad9978e") },
+  { id: "festive",      ic: "🎉", cat: "new",      img: IMG("1528360983277-13d401cdc186") },
+  { id: "adventure",    ic: "⛰",  cat: "nature",   img: IMG("1506905925346-21bda4d32df4") },
+  { id: "romantic",     ic: "🌹", cat: "new",      img: IMG("1500375592092-40eb2168fd21") },
+  { id: "cultural",     ic: "🏛", cat: "iconic",   img: IMG("1502602898657-3e91760cbb34") },
+  { id: "explorative",  ic: "🧭", cat: "discover", img: IMG("1467269204594-9661b134dd2b") },
 ];
 
 const NEEDS = [
-  { id: "disconnect", ic: "🔌", name: "Disconnect from routine", meta: "switch the daily mind off",       feel: "You need a real exit door from your everyday self.",          cat: "explore",  img: IMG("1476514525535-07fb3b4ae5f1") },
-  { id: "alive",      ic: "⚡", name: "Feel alive again",        meta: "wake something up",               feel: "You're chasing the spark that routine has dimmed.",           cat: "new",      img: IMG("1464822759023-fed622ff2c3b") },
-  { id: "slow",       ic: "🐌", name: "Slow down",               meta: "drop the pace, breathe",          feel: "You need permission to do less and feel more.",               cat: "nature",   img: IMG("1495474472287-4d71bcdd2085") },
-  { id: "surprise",   ic: "✨", name: "Be surprised",            meta: "let it catch you off guard",      feel: "You want to be caught off guard by something real.",          cat: "discover", img: IMG("1467269204594-9661b134dd2b") },
-  { id: "recharge",   ic: "🔋", name: "Recharge my energy",      meta: "come back with a full tank",      feel: "You want to land back home lighter than you left.",           cat: "food",     img: IMG("1500375592092-40eb2168fd21") },
-  { id: "change",     ic: "🔄", name: "Change something",        meta: "shift, even slightly",            feel: "Something needs to move — even a small thing.",               cat: "photo",    img: IMG("1528360983277-13d401cdc186") },
-  { id: "celebrate",  ic: "🥂", name: "Celebrate",               meta: "mark the moment",                 feel: "There's a moment worth marking with a place.",                cat: "iconic",   img: IMG("1488646953014-85cb44e25828") },
-  { id: "findself",   ic: "🧭", name: "Find myself",             meta: "meet who you are far from home",  feel: "You want to meet the version of you that lives far away.",    cat: "explore",  img: IMG("1493246507139-91e8fad9978e") },
+  { id: "disconnect", ic: "🔌", cat: "explore",  img: IMG("1476514525535-07fb3b4ae5f1") },
+  { id: "alive",      ic: "⚡", cat: "new",      img: IMG("1464822759023-fed622ff2c3b") },
+  { id: "slow",       ic: "🐌", cat: "nature",   img: IMG("1495474472287-4d71bcdd2085") },
+  { id: "surprise",   ic: "✨", cat: "discover", img: IMG("1467269204594-9661b134dd2b") },
+  { id: "recharge",   ic: "🔋", cat: "food",     img: IMG("1500375592092-40eb2168fd21") },
+  { id: "change",     ic: "🔄", cat: "photo",    img: IMG("1528360983277-13d401cdc186") },
+  { id: "celebrate",  ic: "🥂", cat: "iconic",   img: IMG("1488646953014-85cb44e25828") },
+  { id: "findself",   ic: "🧭", cat: "explore",  img: IMG("1493246507139-91e8fad9978e") },
 ];
 
-// Same 15 anti-patterns as Path B Q7 — ids match the chips.* i18n keys.
+/* Drain ids match the chips.* keys in i18n.tsx */
 const DRAINS = [
-  { id: "crowded",        ic: "👥", name: "Crowded places",                meta: "everyone with the same camera",   cat: "explore" },
-  { id: "touristy",       ic: "🍽", name: "Touristy restaurants",          meta: "menu in five languages",          cat: "food" },
-  { id: "resort",         ic: "🏨", name: "Resort hotels",                 meta: "the place stays outside the gate",cat: "new" },
-  { id: "guided",         ic: "🚌", name: "Guided tours",                  meta: "earphone, headcount, no detours", cat: "iconic" },
-  { id: "museums",        ic: "🏛", name: "Museums for hours",             meta: "marathon of plaques",             cat: "iconic" },
-  { id: "nightlife",      ic: "🎵", name: "Nightlife and clubs",           meta: "lights, decibels, late",          cat: "new" },
-  { id: "schedules",      ic: "📅", name: "Strict schedules",              meta: "by-the-minute itinerary",         cat: "discover" },
-  { id: "transits",       ic: "🚆", name: "Long transits",                 meta: "more travel than trip",           cat: "explore" },
-  { id: "mornings",       ic: "⏰", name: "Early mornings",                meta: "alarms on holiday? no",           cat: "discover" },
-  { id: "smalltalk",      ic: "💬", name: "Small talk with strangers",     meta: "constant social effort",          cat: "explore" },
-  { id: "unfamiliarfood", ic: "🍜", name: "Too unfamiliar food",           meta: "every meal a question mark",      cat: "food" },
-  { id: "toomuchwalking", ic: "👟", name: "Too much walking",              meta: "10k steps before breakfast",      cat: "nature" },
-  { id: "tooisolated",    ic: "🏝",  name: "Feeling too isolated",          meta: "no signal, no people, no help",   cat: "nature" },
-  { id: "tooexpensive",   ic: "💸", name: "Spending without clear value",  meta: "paying for the label",            cat: "iconic" },
-  { id: "toolong",        ic: "⏳", name: "Staying too long in one place",  meta: "one base, zero rotation",         cat: "discover" },
+  { id: "crowded",        ic: "👥", cat: "explore" },
+  { id: "touristy",       ic: "🍽", cat: "food" },
+  { id: "resort",         ic: "🏨", cat: "new" },
+  { id: "guided",         ic: "🚌", cat: "iconic" },
+  { id: "museums",        ic: "🏛", cat: "iconic" },
+  { id: "nightlife",      ic: "🎵", cat: "new" },
+  { id: "schedules",      ic: "📅", cat: "discover" },
+  { id: "transits",       ic: "🚆", cat: "explore" },
+  { id: "mornings",       ic: "⏰", cat: "discover" },
+  { id: "smalltalk",      ic: "💬", cat: "explore" },
+  { id: "unfamiliarfood", ic: "🍜", cat: "food" },
+  { id: "toomuchwalking", ic: "👟", cat: "nature" },
+  { id: "tooisolated",    ic: "🏝",  cat: "nature" },
+  { id: "tooexpensive",   ic: "💸", cat: "iconic" },
+  { id: "toolong",        ic: "⏳", cat: "discover" },
 ];
 
 const VISUALS = [
-  { id: "medina", name: "Ancient medina alley",   sub: "Warm stone, spice air, labyrinth calm",  img: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=1400&q=85&auto=format" },
-  { id: "nordic", name: "Nordic cliffs & silence", sub: "Edge of the world, raw nature, solitude", img: "https://images.unsplash.com/photo-1511497584788-876760111969?w=1400&q=85&auto=format" },
-  { id: "temple", name: "Temple at dusk",          sub: "Golden light, ancient ritual, inner quiet", img: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1400&q=85&auto=format" },
-  { id: "desert", name: "Empty desert road",       sub: "Infinite horizon, freedom, no one watching", img: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1400&q=85&auto=format" },
+  { id: "medina", img: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=1400&q=85&auto=format" },
+  { id: "nordic", img: "https://images.unsplash.com/photo-1511497584788-876760111969?w=1400&q=85&auto=format" },
+  { id: "temple", img: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1400&q=85&auto=format" },
+  { id: "desert", img: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1400&q=85&auto=format" },
 ];
 
 const PACE_STAGES = [
-  { id: "structured",  threshold: 33,  name: "Structured",  meta: "every day already mapped",        feel: "You want a clear plan so you can stop thinking and just feel.",       img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=85&auto=format" },
-  { id: "balanced",    threshold: 66,  name: "Balanced",    meta: "the spine is set, the rest isn't", feel: "You want a structure to lean on and freedom to wander off it.",      img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85&auto=format" },
-  { id: "spontaneous", threshold: 101, name: "Spontaneous", meta: "decide it in the morning",        feel: "You want the day to surprise you — no slot, no countdown, no map.",  img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1400&q=85&auto=format" },
+  { id: "structured",  threshold: 33,  img: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=85&auto=format" },
+  { id: "balanced",    threshold: 66,  img: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85&auto=format" },
+  { id: "spontaneous", threshold: 101, img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1400&q=85&auto=format" },
 ];
 function paceStage(v: number) {
   return PACE_STAGES.find((s) => v <= s.threshold) ?? PACE_STAGES[1];
 }
 
 const DISTANCES = [
-  { id: "close",     ic: "🏡", name: "Close to home",               meta: "a few hours, no jet lag",      dur: "≤4h · no flights", cat: "explore",  img: IMG("1476514525535-07fb3b4ae5f1") },
-  { id: "continent", ic: "✈️", name: "Same continent",              meta: "familiar, but elsewhere",      dur: "short haul",       cat: "iconic",   img: IMG("1502602898657-3e91760cbb34") },
-  { id: "far",       ic: "🌏", name: "Far away",                    meta: "another world, another clock", dur: "long haul",        cat: "new",      img: IMG("1467269204594-9661b134dd2b") },
-  { id: "anywhere",  ic: "🎲", name: "Anywhere, truly surprise me", meta: "maximum openness",             dur: "no limits",        cat: "discover", img: IMG("1506905925346-21bda4d32df4") },
+  { id: "close",     ic: "🏡", cat: "explore",  img: IMG("1476514525535-07fb3b4ae5f1") },
+  { id: "continent", ic: "✈️", cat: "iconic",   img: IMG("1502602898657-3e91760cbb34") },
+  { id: "far",       ic: "🌏", cat: "new",      img: IMG("1467269204594-9661b134dd2b") },
+  { id: "anywhere",  ic: "🎲", cat: "discover", img: IMG("1506905925346-21bda4d32df4") },
 ];
 
-const vibeName = (id: string) => VIBES.find((v) => v.id === id)?.name ?? id;
-const needName = (id: string) => NEEDS.find((n) => n.id === id)?.name ?? id;
-const visualName = (id: string) => VISUALS.find((v) => v.id === id)?.name ?? id;
-const distanceName = (id: string) => DISTANCES.find((d) => d.id === id)?.name ?? id;
-function chaosLabel(v: number) {
-  if (v <= 33) return "Structured";
-  if (v >= 67) return "Spontaneous";
-  return "Balanced";
-}
+/* need id → a.q2.chip* key (order matches NEEDS array / i18n.tsx) */
+const NEED_CHIP_KEYS: Record<string, string> = {
+  disconnect: "a.q2.chip1",
+  alive:      "a.q2.chip2",
+  slow:       "a.q2.chip3",
+  surprise:   "a.q2.chip4",
+  recharge:   "a.q2.chip5",
+  change:     "a.q2.chip6",
+  celebrate:  "a.q2.chip7",
+  findself:   "a.q2.chip8",
+};
 
 /* ════════════ shell ════════════ */
 export function QuizCinematicA({
@@ -167,35 +176,54 @@ export function QuizCinematicA({
 
 /* ════════════ profile-so-far ════════════ */
 function ProfileCardA({ answers, pending }: { answers: AnswersA; pending: string }) {
+  const { t } = useI18n();
   const vibes = answers.vibes ?? [];
   const needs = answers.needs ?? [];
   const drains = answers.drains ?? [];
   const visual = answers.visual ?? [];
+
+  const vibeName = (id: string) => t(`a.q1.chips.${id}`);
+  const needName = (id: string) => t(NEED_CHIP_KEYS[id] ?? id);
+  const visualName = (id: string) => t(`q4.${id}`);
+  const distanceName = (id: string) => t(`a.q7.chips.${id}`);
+  function chaosLabel(v: number) {
+    if (v <= 33) return t("qa.pace.structured.name");
+    if (v >= 67) return t("qa.pace.spontaneous.name");
+    return t("qa.pace.balanced.name");
+  }
+
+  const drainCount = drains.length;
+  const drainValue = drainCount
+    ? `${drainCount} ${drainCount > 1 ? t("qa.profile.patterns.pl") : t("qa.profile.patterns")}`
+    : null;
+
   return (
     <div className="qc-profile-card">
-      <div className="qc-profile-head">Your profile so far</div>
-      <Row label="Q1 · style"   value={vibes.length ? vibes.map(vibeName).join(" · ") : null}   pending={pending === "Q1"} />
-      <Row label="Q2 · need"    value={needs.length ? needs.map(needName).join(" · ") : null}   pending={pending === "Q2"} />
-      <Row label="Q3 · drains"  value={drains.length ? `${drains.length} pattern${drains.length > 1 ? "s" : ""}` : null} pending={pending === "Q3"} />
-      <Row label="Q4 · visual"  value={visual.length ? visual.map(visualName).join(" · ") : null} pending={pending === "Q4"} />
-      <Row label="Q5 · chaos"   value={typeof answers.chaos === "number" ? `${chaosLabel(answers.chaos)} · ${answers.chaos}/100` : null} pending={pending === "Q5"} />
-      <Row label="Q6 · filter"  value={answers.rejection?.trim() ? "noted" : null} pending={pending === "Q6"} />
-      <Row label="Q7 · distance" value={answers.distance ? distanceName(answers.distance) : null} pending={pending === "Q7"} />
+      <div className="qc-profile-head">{t("sidebar.profileSoFar")}</div>
+      <ProfileRow label={t("qa.profile.q1")} value={vibes.length ? vibes.map(vibeName).join(" · ") : null}   pending={pending === "Q1"} awaiting={t("qa.profile.awaiting")} />
+      <ProfileRow label={t("qa.profile.q2")} value={needs.length ? needs.map(needName).join(" · ") : null}   pending={pending === "Q2"} awaiting={t("qa.profile.awaiting")} />
+      <ProfileRow label={t("qa.profile.q3")} value={drainValue} pending={pending === "Q3"} awaiting={t("qa.profile.awaiting")} />
+      <ProfileRow label={t("qa.profile.q4")} value={visual.length ? visual.map(visualName).join(" · ") : null} pending={pending === "Q4"} awaiting={t("qa.profile.awaiting")} />
+      <ProfileRow label={t("qa.profile.q5")} value={typeof answers.chaos === "number" ? `${chaosLabel(answers.chaos)} · ${answers.chaos}/100` : null} pending={pending === "Q5"} awaiting={t("qa.profile.awaiting")} />
+      <ProfileRow label={t("qa.profile.q6")} value={answers.rejection?.trim() ? t("qa.profile.noted") : null} pending={pending === "Q6"} awaiting={t("qa.profile.awaiting")} />
+      <ProfileRow label={t("qa.profile.q7")} value={answers.distance ? distanceName(answers.distance) : null} pending={pending === "Q7"} awaiting={t("qa.profile.awaiting")} />
     </div>
   );
 }
-function Row({ label, value, pending }: { label: string; value: string | null; pending: boolean }) {
+
+function ProfileRow({ label, value, pending, awaiting }: { label: string; value: string | null; pending: boolean; awaiting: string }) {
   if (!pending && !value) return null;
   return (
     <div className={"qc-profile-row" + (pending ? " pending" : "")}>
       <div className="qc-profile-row-l">{label}</div>
-      <div className="qc-profile-row-v">{value ?? "awaiting your choice…"}</div>
+      <div className="qc-profile-row-v">{value ?? awaiting}</div>
     </div>
   );
 }
 
 /* ════════════ Q1 · style ════════════ */
 function Q1({ answers, setAnswers, onNext, onBack, hasBack }: { answers: AnswersA; setAnswers: (a: AnswersA) => void; onNext: () => void; onBack: () => void; hasBack: boolean }) {
+  const { t } = useI18n();
   const [hoverId, setHoverId] = useState<string | null>(null);
   const selected = answers.vibes ?? [];
   const isFull = selected.length >= 3;
@@ -205,17 +233,20 @@ function Q1({ answers, setAnswers, onNext, onBack, hasBack }: { answers: Answers
   }
   const activeId = hoverId || (selected.length ? selected[selected.length - 1] : null);
   const activeImg = useMemo(() => VIBES.find((v) => v.id === activeId)?.img || VIBES[0].img, [activeId]);
+  const ctaLabel = selected.length
+    ? t("qa.q1.cta.full").replace("{n}", String(selected.length))
+    : t("qa.q1.cta.empty");
   return (
     <>
       <BgPhotos items={VIBES} activeImg={activeImg} />
       <div className="qc-sticky-head">
-        <HeaderStrip label="Your style" count="01 / 07" fillPct={14} />
+        <HeaderStrip label={t("section.a.style")} count="01 / 07" fillPct={14} />
         <div className="qc-q-head">
-          <div className="qc-q-eyebrow"><strong>Question 01</strong> · the colour of the trip</div>
-          <h1 className="qc-q-title">3 words for your<br /><em>dream trip</em></h1>
+          <div className="qc-q-eyebrow"><strong>{t("q.label")} 01</strong> · {t("qa.q1.eyebrow")}</div>
+          <h1 className="qc-q-title" dangerouslySetInnerHTML={{ __html: t("a.q1.text") }} />
           <div className="qc-q-sub">
-            Pick up to 3. The combination reveals who you are far more than any single one.
-            <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 selected</div>
+            {t("qa.q1.sub")}
+            <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 {t("qa.q1.counter")}</div>
           </div>
         </div>
       </div>
@@ -232,8 +263,8 @@ function Q1({ answers, setAnswers, onNext, onBack, hasBack }: { answers: Answers
                 onMouseEnter={() => setHoverId(v.id)} onMouseLeave={() => setHoverId(null)}>
                 <div className="qc-option-ic">{v.ic}</div>
                 <div className="qc-option-body">
-                  <div className="qc-option-name">{v.name}</div>
-                  <div className="qc-option-meta">{v.meta}</div>
+                  <div className="qc-option-name">{t(`a.q1.chips.${v.id}`)}</div>
+                  <div className="qc-option-meta">{t(`qa.vibe.${v.id}.meta`)}</div>
                 </div>
                 <div className="qc-option-mark">{sel ? `#${rank}` : ""}<div className="qc-circle" /></div>
               </div>
@@ -242,17 +273,18 @@ function Q1({ answers, setAnswers, onNext, onBack, hasBack }: { answers: Answers
         </div>
         <aside className="qc-side">
           <ProfileCardA answers={answers} pending="Q1" />
-          <SideCard head="Why this question" icon="?"><p>The three words together tell us much more than one choice ever could. This is where your way of travelling starts to show.</p></SideCard>
-          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+          <SideCard head={t("qa.side.whyHead")} icon="?"><p>{t("a.q1.why")}</p></SideCard>
+          <SideCard head={t("qa.side.privacyHead")} icon="✓" tone="privacy"><p>{t("sidebar.privacy")}</p></SideCard>
         </aside>
       </div>
-      <FooterNav backLabel="Back" canContinue={selected.length > 0} ctaLabel={selected.length ? `Continue with ${selected.length}` : "Pick at least 1"} onBack={hasBack ? onBack : undefined} onNext={onNext} />
+      <FooterNav backLabel={t("q.back")} canContinue={selected.length > 0} ctaLabel={ctaLabel} onBack={hasBack ? onBack : undefined} onNext={onNext} />
     </>
   );
 }
 
 /* ════════════ Q2 · need ════════════ */
 function Q2({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAnswers: (a: AnswersA) => void; onNext: () => void; onBack: () => void }) {
+  const { t } = useI18n();
   const [hoverId, setHoverId] = useState<string | null>(null);
   const selected = answers.needs ?? [];
   const isFull = selected.length >= 3;
@@ -261,19 +293,21 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
     else if (selected.length < 3) setAnswers({ ...answers, needs: [...selected, id] });
   }
   const activeId = hoverId || (selected.length ? selected[selected.length - 1] : null);
-  const activeN = NEEDS.find((n) => n.id === activeId);
   const activeImg = useMemo(() => NEEDS.find((n) => n.id === activeId)?.img || NEEDS[0].img, [activeId]);
+  const ctaLabel = selected.length
+    ? t("qa.q2.cta.full").replace("{n}", String(selected.length))
+    : t("qa.q2.cta.empty");
   return (
     <>
       <BgPhotos items={NEEDS} activeImg={activeImg} />
       <div className="qc-sticky-head">
-        <HeaderStrip label="Your need" count="02 / 07" fillPct={28} />
+        <HeaderStrip label={t("section.a.need")} count="02 / 07" fillPct={28} />
         <div className="qc-q-head">
-          <div className="qc-q-eyebrow"><strong>Question 02</strong> · the real compass</div>
-          <h1 className="qc-q-title">What do you<br /><em>need</em> right now?</h1>
+          <div className="qc-q-eyebrow"><strong>{t("q.label")} 02</strong> · {t("qa.q2.eyebrow")}</div>
+          <h1 className="qc-q-title" dangerouslySetInnerHTML={{ __html: t("a.q2.text") }} />
           <div className="qc-q-sub">
-            Not what you want to do — what you need to feel. Pick up to 3.
-            <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 selected</div>
+            {t("qa.q2.sub")}
+            <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 {t("qa.q2.counter")}</div>
           </div>
         </div>
       </div>
@@ -291,8 +325,8 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
                   onMouseEnter={() => setHoverId(n.id)} onMouseLeave={() => setHoverId(null)}>
                   <div className="qc-option-ic">{n.ic}</div>
                   <div className="qc-option-body">
-                    <div className="qc-option-name">{n.name}</div>
-                    <div className="qc-option-meta">{n.meta}</div>
+                    <div className="qc-option-name">{t(NEED_CHIP_KEYS[n.id] ?? n.id)}</div>
+                    <div className="qc-option-meta">{t(`qa.need.${n.id}.meta`)}</div>
                   </div>
                   <div className="qc-option-mark">{sel ? `#${rank}` : ""}<div className="qc-circle" /></div>
                 </div>
@@ -300,29 +334,32 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
             })}
           </div>
           <div className="qc-note">
-            <div className="qc-note-label">Want to tell us more? <em>(optional)</em></div>
+            <div className="qc-note-label">{t("qa.q2.note.label")} <em>{t("qa.q2.note.optional")}</em></div>
             <input className="qc-note-input" type="text" value={answers.needsNote ?? ""}
               onChange={(e) => setAnswers({ ...answers, needsNote: e.target.value })}
-              placeholder="In your own words — the life behind the need…" />
+              placeholder={t("qa.q2.note.placeholder")} />
           </div>
         </div>
         <aside className="qc-side">
           <div className="qc-feeling-card">
             <div className="qc-feeling-ic">✦</div>
-            <div className="qc-feeling-text">{activeN ? activeN.feel : "Hover an answer to see what it means about you."}</div>
+            <div className="qc-feeling-text">
+              {activeId ? t(`qa.need.${activeId}.feel`) : t("qa.q2.feel.default")}
+            </div>
           </div>
           <ProfileCardA answers={answers} pending="Q2" />
-          <SideCard head="Why this question" icon="?"><p>The gap between how you're living now and what you need is the real compass — it tells us not just where to send you, but why that trip makes sense right now.</p></SideCard>
-          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+          <SideCard head={t("qa.side.whyHead")} icon="?"><p>{t("a.q2.why")}</p></SideCard>
+          <SideCard head={t("qa.side.privacyHead")} icon="✓" tone="privacy"><p>{t("sidebar.privacy")}</p></SideCard>
         </aside>
       </div>
-      <FooterNav backLabel="Back to your style" canContinue={selected.length > 0} ctaLabel={selected.length ? `Continue with ${selected.length}` : "Pick at least 1"} onBack={onBack} onNext={onNext} />
+      <FooterNav backLabel={t("qa.q2.back")} canContinue={selected.length > 0} ctaLabel={ctaLabel} onBack={onBack} onNext={onNext} />
     </>
   );
 }
 
 /* ════════════ Q3 · drains ════════════ */
 function Q3({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAnswers: (a: AnswersA) => void; onNext: () => void; onBack: () => void }) {
+  const { t } = useI18n();
   const selected = answers.drains ?? [];
   function toggle(id: string) {
     if (selected.includes(id)) setAnswers({ ...answers, drains: selected.filter((x) => x !== id) });
@@ -331,13 +368,13 @@ function Q3({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
   return (
     <>
       <div className="qc-sticky-head">
-        <HeaderStrip label="Drains" count="03 / 07" fillPct={42} />
+        <HeaderStrip label={t("section.a.drains")} count="03 / 07" fillPct={42} />
         <div className="qc-q-head">
-          <div className="qc-q-eyebrow"><strong>Question 03</strong> · the boundaries</div>
-          <h1 className="qc-q-title">What <em>drains you</em><br />when you travel?</h1>
+          <div className="qc-q-eyebrow"><strong>{t("q.label")} 03</strong> · {t("qa.q3.eyebrow")}</div>
+          <h1 className="qc-q-title" dangerouslySetInnerHTML={{ __html: t("a.q3.text") }} />
           <div className="qc-q-sub">
-            What you reject says more than what you want. Pick as many as you feel — even none.
-            <div className="qc-pick-counter"><strong>{selected.length}</strong> selected</div>
+            {t("qa.q3.sub")}
+            <div className="qc-pick-counter"><strong>{selected.length}</strong> {t("qa.q3.counter")}</div>
           </div>
         </div>
       </div>
@@ -352,34 +389,35 @@ function Q3({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
                   onClick={() => toggle(d.id)}>
                   <div className="qc-option-ic">{d.ic}</div>
                   <div className="qc-option-body">
-                    <div className="qc-option-name">{d.name}</div>
-                    <div className="qc-option-meta">{d.meta}</div>
+                    <div className="qc-option-name">{t(`chips.${d.id}`)}</div>
+                    <div className="qc-option-meta">{t(`qa.drain.${d.id}.meta`)}</div>
                   </div>
-                  <div className="qc-option-mark">{sel ? "Drains" : ""}<div className="qc-circle" /></div>
+                  <div className="qc-option-mark">{sel ? t("qa.q3.mark.drain") : ""}<div className="qc-circle" /></div>
                 </div>
               );
             })}
           </div>
           <div className="qc-note">
-            <div className="qc-note-label">Anything else that kills the vibe? <em>(optional)</em></div>
+            <div className="qc-note-label">{t("qa.q3.note.label")} <em>{t("qa.q3.note.optional")}</em></div>
             <input className="qc-note-input" type="text" value={answers.drainsNote ?? ""}
               onChange={(e) => setAnswers({ ...answers, drainsNote: e.target.value })}
-              placeholder="Something specific that ruins a trip for you…" />
+              placeholder={t("qa.q3.note.placeholder")} />
           </div>
         </div>
         <aside className="qc-side">
           <ProfileCardA answers={answers} pending="Q3" />
-          <SideCard head="Why this question" icon="?"><p>Anti-patterns are identity markers. The combinations define the hard boundaries of your trip — what it can never be.</p></SideCard>
-          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+          <SideCard head={t("qa.side.whyHead")} icon="?"><p>{t("qa.q3.side.why")}</p></SideCard>
+          <SideCard head={t("qa.side.privacyHead")} icon="✓" tone="privacy"><p>{t("sidebar.privacy")}</p></SideCard>
         </aside>
       </div>
-      <FooterNav backLabel="Back to your need" canContinue={true} ctaLabel={selected.length ? "Continue" : "Skip — continue"} onBack={onBack} onNext={onNext} />
+      <FooterNav backLabel={t("qa.q3.back")} canContinue={true} ctaLabel={selected.length ? t("qa.q3.cta.has") : t("qa.q3.cta.none")} onBack={onBack} onNext={onNext} />
     </>
   );
 }
 
 /* ════════════ Q4 · visual pull ════════════ */
 function Q4({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAnswers: (a: AnswersA) => void; onNext: () => void; onBack: () => void }) {
+  const { t } = useI18n();
   const [hoverId, setHoverId] = useState<string | null>(null);
   const selected = answers.visual ?? [];
   const isFull = selected.length >= 2;
@@ -389,17 +427,20 @@ function Q4({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
   }
   const activeId = hoverId || (selected.length ? selected[selected.length - 1] : null);
   const activeImg = useMemo(() => VISUALS.find((v) => v.id === activeId)?.img || VISUALS[0].img, [activeId]);
+  const ctaLabel = selected.length
+    ? t("qa.q4.cta.full").replace("{n}", String(selected.length))
+    : t("qa.q4.cta.empty");
   return (
     <>
       <BgPhotos items={VISUALS} activeImg={activeImg} />
       <div className="qc-sticky-head">
-        <HeaderStrip label="Visual pull" count="04 / 07" fillPct={56} />
+        <HeaderStrip label={t("section.a.visual")} count="04 / 07" fillPct={56} />
         <div className="qc-q-head">
-          <div className="qc-q-eyebrow"><strong>Question 04</strong> · the visual instinct</div>
-          <h1 className="qc-q-title">Which of these<br /><em>pulls you in?</em></h1>
+          <div className="qc-q-eyebrow"><strong>{t("q.label")} 04</strong> · {t("qa.q4.eyebrow")}</div>
+          <h1 className="qc-q-title" dangerouslySetInnerHTML={{ __html: t("a.q4.text") }} />
           <div className="qc-q-sub">
-            Don't think. Just feel. Pick up to 2.
-            <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/2 selected</div>
+            {t("a.q4.hint")}
+            <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/2 {t("qa.q4.counter")}</div>
           </div>
         </div>
       </div>
@@ -417,8 +458,8 @@ function Q4({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
                 <div className="qc-tcard-img" style={{ backgroundImage: `url(${v.img})` }} />
                 {sel && <div className="qc-tcard-num">{rank}</div>}
                 <div className="qc-tcard-body">
-                  <div className="qc-tcard-name">{v.name}</div>
-                  <div className="qc-tcard-meta">{v.sub}</div>
+                  <div className="qc-tcard-name">{t(`q4.${v.id}`)}</div>
+                  <div className="qc-tcard-meta">{t(`q4.${v.id}.sub`)}</div>
                 </div>
               </div>
             );
@@ -426,17 +467,18 @@ function Q4({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
         </div>
         <aside className="qc-side">
           <ProfileCardA answers={answers} pending="Q4" />
-          <SideCard head="Why this question" icon="?"><p>Visual attraction bypasses rational filters. The image you choose reveals your aesthetic soul before words get involved.</p></SideCard>
-          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+          <SideCard head={t("qa.side.whyHead")} icon="?"><p>{t("qa.q4.side.why")}</p></SideCard>
+          <SideCard head={t("qa.side.privacyHead")} icon="✓" tone="privacy"><p>{t("sidebar.privacy")}</p></SideCard>
         </aside>
       </div>
-      <FooterNav backLabel="Back to drains" canContinue={selected.length > 0} ctaLabel={selected.length ? `Continue with ${selected.length}` : "Pick at least 1"} onBack={onBack} onNext={onNext} />
+      <FooterNav backLabel={t("qa.q4.back")} canContinue={selected.length > 0} ctaLabel={ctaLabel} onBack={onBack} onNext={onNext} />
     </>
   );
 }
 
 /* ════════════ Q5 · chaos ════════════ */
 function Q5({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAnswers: (a: AnswersA) => void; onNext: () => void; onBack: () => void }) {
+  const { t } = useI18n();
   const value = typeof answers.chaos === "number" ? answers.chaos : 50;
   function setValue(v: number) { setAnswers({ ...answers, chaos: Math.max(0, Math.min(100, v)) }); }
   const stage = paceStage(value);
@@ -444,18 +486,18 @@ function Q5({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
     <>
       <BgPhotos items={PACE_STAGES} activeImg={stage.img} />
       <div className="qc-sticky-head">
-        <HeaderStrip label="Chaos level" count="05 / 07" fillPct={70} />
+        <HeaderStrip label={t("section.a.chaos")} count="05 / 07" fillPct={70} />
         <div className="qc-q-head">
-          <div className="qc-q-eyebrow"><strong>Question 05</strong> · structure & chaos</div>
-          <h1 className="qc-q-title">Where do you fall between<br /><em>structure and chaos?</em></h1>
-          <p className="qc-q-sub">Your relationship with the unexpected changes the kind of trip that nourishes you instead of draining you.</p>
+          <div className="qc-q-eyebrow"><strong>{t("q.label")} 05</strong> · {t("qa.q5.eyebrow")}</div>
+          <h1 className="qc-q-title" dangerouslySetInnerHTML={{ __html: t("a.q5.text") }} />
+          <p className="qc-q-sub">{t("qa.q5.sub")}</p>
         </div>
       </div>
       <div className="qc-q-grid">
         <div className="qc-pace-stage">
           <div className="qc-pace-current">
-            <div className="qc-pace-label">{stage.name}</div>
-            <div className="qc-pace-meta">{stage.meta}</div>
+            <div className="qc-pace-label">{t(`qa.pace.${stage.id}.name`)}</div>
+            <div className="qc-pace-meta">{t(`qa.pace.${stage.id}.meta`)}</div>
           </div>
           <div className="qc-pace-slider">
             <div className="qc-pace-track">
@@ -463,42 +505,55 @@ function Q5({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
               <div className="qc-pace-knob" style={{ left: `${value}%` }} />
               <input type="range" min={0} max={100} value={value}
                 onChange={(e) => setValue(Number(e.target.value))}
-                className="qc-pace-input" aria-label="Chaos level" />
+                className="qc-pace-input" aria-label={t("qa.q5.eyebrow")} />
             </div>
             <div className="qc-pace-stops">
-              <button className={"qc-pace-stop" + (value <= 33 ? " active" : "")} onClick={() => setValue(15)}><span>Structured</span><small>plan first</small></button>
-              <button className={"qc-pace-stop" + (value > 33 && value < 67 ? " active" : "")} onClick={() => setValue(50)}><span>Balanced</span><small>spine + space</small></button>
-              <button className={"qc-pace-stop" + (value >= 67 ? " active" : "")} onClick={() => setValue(85)}><span>Spontaneous</span><small>figure it out there</small></button>
+              <button className={"qc-pace-stop" + (value <= 33 ? " active" : "")} onClick={() => setValue(15)}>
+                <span>{t("qa.q5.btn.structured.label")}</span>
+                <small>{t("qa.q5.btn.structured.small")}</small>
+              </button>
+              <button className={"qc-pace-stop" + (value > 33 && value < 67 ? " active" : "")} onClick={() => setValue(50)}>
+                <span>{t("qa.q5.btn.balanced.label")}</span>
+                <small>{t("qa.q5.btn.balanced.small")}</small>
+              </button>
+              <button className={"qc-pace-stop" + (value >= 67 ? " active" : "")} onClick={() => setValue(85)}>
+                <span>{t("qa.q5.btn.spontaneous.label")}</span>
+                <small>{t("qa.q5.btn.spontaneous.small")}</small>
+              </button>
             </div>
           </div>
         </div>
         <aside className="qc-side">
           <div className="qc-feeling-card">
             <div className="qc-feeling-ic">✦</div>
-            <div className="qc-feeling-text">{stage.feel}</div>
+            <div className="qc-feeling-text">{t(`qa.pace.${stage.id}.feel`)}</div>
           </div>
           <ProfileCardA answers={answers} pending="Q5" />
-          <SideCard head="Why this question" icon="?"><p>Two travellers in the same place can have opposite trips. Your tolerance for chaos is what makes one of them feel like yours.</p></SideCard>
-          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+          <SideCard head={t("qa.side.whyHead")} icon="?"><p>{t("qa.q5.side.why")}</p></SideCard>
+          <SideCard head={t("qa.side.privacyHead")} icon="✓" tone="privacy"><p>{t("sidebar.privacy")}</p></SideCard>
         </aside>
       </div>
-      <FooterNav backLabel="Back to visual pull" canContinue={true} ctaLabel="Continue" onBack={onBack} onNext={onNext} />
+      <FooterNav backLabel={t("qa.q5.back")} canContinue={true} ctaLabel={t("qa.q5.cta")} onBack={onBack} onNext={onNext} />
     </>
   );
 }
 
 /* ════════════ Q6 · identity filter (text) ════════════ */
 function Q6({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAnswers: (a: AnswersA) => void; onNext: () => void; onBack: () => void }) {
+  const { t } = useI18n();
   const value = answers.rejection ?? "";
   const words = value.trim() ? value.trim().split(/\s+/).length : 0;
+  const wordLabel = words
+    ? `${words} ${words > 1 ? t("qa.q6.words") : t("qa.q6.word")}`
+    : t("qa.q6.your.words");
   return (
     <>
       <div className="qc-sticky-head">
-        <HeaderStrip label="Identity filter" count="06 / 07" fillPct={84} />
+        <HeaderStrip label={t("section.a.rejection")} count="06 / 07" fillPct={84} />
         <div className="qc-q-head">
-          <div className="qc-q-eyebrow"><strong>Question 06</strong> · what you reject</div>
-          <h1 className="qc-q-title">A place everyone loves<br />but that <em>does nothing for you?</em></h1>
-          <p className="qc-q-sub">No wrong answers. Even "I don't know" tells us something about you.</p>
+          <div className="qc-q-eyebrow"><strong>{t("q.label")} 06</strong> · {t("qa.q6.eyebrow")}</div>
+          <h1 className="qc-q-title" dangerouslySetInnerHTML={{ __html: t("a.q6.text") }} />
+          <p className="qc-q-sub">{t("qa.q6.sub")}</p>
         </div>
       </div>
       <div className="qc-q-grid">
@@ -507,26 +562,27 @@ function Q6({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
             className="qc-textarea"
             value={value}
             onChange={(e) => setAnswers({ ...answers, rejection: e.target.value })}
-            placeholder={'E.g. The Maldives — too perfect, too still. Or New York — never felt the pull. Or Barcelona in summer — too chaotic for me.'}
+            placeholder={t("a.q6.placeholder")}
           />
           <div className="qc-textarea-foot">
-            <span className="qc-optional-pill">✦ Optional · skip if nothing comes to mind</span>
-            <span>{words ? `${words} word${words > 1 ? "s" : ""}` : "your words"}</span>
+            <span className="qc-optional-pill">{t("qa.q6.optional.pill")}</span>
+            <span>{wordLabel}</span>
           </div>
         </div>
         <aside className="qc-side">
           <ProfileCardA answers={answers} pending="Q6" />
-          <SideCard head="Why this question" icon="?"><p>What you reject defines you almost as much as what you desire. It's a direct way to learn what could never feel like the right trip for you.</p></SideCard>
-          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+          <SideCard head={t("qa.side.whyHead")} icon="?"><p>{t("qa.q6.side.why")}</p></SideCard>
+          <SideCard head={t("qa.side.privacyHead")} icon="✓" tone="privacy"><p>{t("sidebar.privacy")}</p></SideCard>
         </aside>
       </div>
-      <FooterNav backLabel="Back to chaos level" canContinue={true} ctaLabel={value.trim() ? "Continue" : "Skip — continue"} onBack={onBack} onNext={onNext} />
+      <FooterNav backLabel={t("qa.q6.back")} canContinue={true} ctaLabel={value.trim() ? t("qa.q6.cta.has") : t("qa.q6.cta.none")} onBack={onBack} onNext={onNext} />
     </>
   );
 }
 
 /* ════════════ Q7 · distance ════════════ */
 function Q7({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAnswers: (a: AnswersA) => void; onNext: () => void; onBack: () => void }) {
+  const { t } = useI18n();
   const [hoverId, setHoverId] = useState<string | null>(null);
   const selected = answers.distance ?? null;
   const activeId = hoverId || selected;
@@ -535,11 +591,11 @@ function Q7({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
     <>
       <BgPhotos items={DISTANCES} activeImg={activeImg} />
       <div className="qc-sticky-head">
-        <HeaderStrip label="Distance" count="07 / 07" fillPct={100} />
+        <HeaderStrip label={t("section.a.distance")} count="07 / 07" fillPct={100} />
         <div className="qc-q-head">
-          <div className="qc-q-eyebrow"><strong>Question 07</strong> · comfort & rupture</div>
-          <h1 className="qc-q-title">How <em>far</em><br />do you want to go?</h1>
-          <p className="qc-q-sub">Close is comfort. Far is transformation. "Anywhere" is maximum openness — let us surprise you.</p>
+          <div className="qc-q-eyebrow"><strong>{t("q.label")} 07</strong> · {t("qa.q7.eyebrow")}</div>
+          <h1 className="qc-q-title" dangerouslySetInnerHTML={{ __html: t("a.q7.text") }} />
+          <p className="qc-q-sub">{t("qa.q7.sub")}</p>
         </div>
       </div>
       <div className="qc-q-grid">
@@ -551,20 +607,20 @@ function Q7({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
               onMouseEnter={() => setHoverId(d.id)} onMouseLeave={() => setHoverId(null)}>
               <div className="qc-option-ic">{d.ic}</div>
               <div className="qc-option-body">
-                <div className="qc-option-name">{d.name}</div>
-                <div className="qc-option-meta">{d.meta}</div>
+                <div className="qc-option-name">{t(`a.q7.chips.${d.id}`)}</div>
+                <div className="qc-option-meta">{t(`qa.dist.${d.id}.meta`)}</div>
               </div>
-              <div className="qc-option-dur">{d.dur}</div>
+              <div className="qc-option-dur">{t(`qa.dist.${d.id}.dur`)}</div>
             </div>
           ))}
         </div>
         <aside className="qc-side">
           <ProfileCardA answers={answers} pending="Q7" />
-          <SideCard head="Why this question" icon="?"><p>Distance reveals your comfort zone and your desire for rupture. It's the last constraint we need before we start matching places to you.</p></SideCard>
-          <SideCard head="Privacy" icon="✓" tone="privacy"><p>Your answers shape your destinations. Never stored, never shared.</p></SideCard>
+          <SideCard head={t("qa.side.whyHead")} icon="?"><p>{t("qa.q7.side.why")}</p></SideCard>
+          <SideCard head={t("qa.side.privacyHead")} icon="✓" tone="privacy"><p>{t("sidebar.privacy")}</p></SideCard>
         </aside>
       </div>
-      <FooterNav backLabel="Back to identity filter" canContinue={!!selected} ctaLabel={selected ? "Continue" : "Choose a distance"} onBack={onBack} onNext={onNext} />
+      <FooterNav backLabel={t("qa.q7.back")} canContinue={!!selected} ctaLabel={selected ? t("qa.q7.cta.has") : t("qa.q7.cta.none")} onBack={onBack} onNext={onNext} />
     </>
   );
 }
