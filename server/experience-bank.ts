@@ -396,6 +396,102 @@ function formatLiveBlock(dest: string, anchors: LiveAnchor[], lang: string): str
   return `\n═══════════════════════════════════════\n${intro}\n═══════════════════════════════════════\n${rule}\n\n${lines.join("\n")}\n`;
 }
 
+// ─── "NEAR ME NOW" (companion, Fase 2) ────────────────────────────────────────
+// Real places around a live coordinate (browser geolocation), for the travel
+// companion's find_nearby tool. Same free/keyless source as the live tier
+// (Overpass), but anchored to the user's actual position and a tight radius so
+// "what's around me now" returns walkable, real options. Optional `category`
+// narrows the query (food / museum / viewpoint / park / landmark). Never throws.
+export interface NearbyPlace { name: string; type: string; distance_m: number | null; }
+
+function categoryFilters(category?: string): string[] {
+  const c = (category ?? "").toLowerCase();
+  if (/food|eat|restaurant|cafe|caff|mangiare|ristorant|bar|drink/.test(c)) {
+    return [
+      `node(around:RADIUS,LAT,LNG)[amenity~"^(restaurant|cafe|bar|pub|fast_food|ice_cream)$"][name];`,
+    ];
+  }
+  if (/museum|gallery|museo|arte/.test(c)) {
+    return [`node(around:RADIUS,LAT,LNG)[tourism~"^(museum|gallery)$"][name];`,
+            `way(around:RADIUS,LAT,LNG)[tourism~"^(museum|gallery)$"][name];`];
+  }
+  if (/view|panoram|viewpoint/.test(c)) {
+    return [`node(around:RADIUS,LAT,LNG)[tourism=viewpoint][name];`];
+  }
+  if (/park|nature|verde|giardin|garden/.test(c)) {
+    return [`way(around:RADIUS,LAT,LNG)[leisure~"^(park|garden)$"][name];`,
+            `node(around:RADIUS,LAT,LNG)[leisure~"^(park|garden)$"][name];`];
+  }
+  // default: notable sights / landmarks / attractions
+  return [
+    `node(around:RADIUS,LAT,LNG)[tourism~"^(attraction|museum|viewpoint|gallery)$"][name];`,
+    `way(around:RADIUS,LAT,LNG)[tourism~"^(attraction|museum|viewpoint|gallery)$"][name];`,
+    `node(around:RADIUS,LAT,LNG)[historic][name];`,
+    `way(around:RADIUS,LAT,LNG)[historic][name];`,
+  ];
+}
+
+function haversineM(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371000;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s)));
+}
+
+export async function fetchNearbyAnchors(
+  lat: number,
+  lng: number,
+  category?: string,
+): Promise<NearbyPlace[]> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+  const radius = 1800; // ~20 min walk
+  const clauses = categoryFilters(category)
+    .map((c) => c.replace(/RADIUS/g, String(radius)).replace(/LAT/g, String(lat)).replace(/LNG/g, String(lng)))
+    .join("\n  ");
+  const q = `[out:json][timeout:20];\n(\n  ${clauses}\n);\nout center 60;`;
+  const d = await fetchWithTimeout("https://overpass-api.de/api/interpreter", 12000, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": "MindRoute/1.0 (companion nearby)",
+      "Accept": "application/json",
+    },
+    body: "data=" + encodeURIComponent(q),
+  });
+  const els: any[] = d?.elements;
+  if (!Array.isArray(els)) return [];
+  const seen = new Set<string>();
+  const out: NearbyPlace[] = [];
+  for (const e of els) {
+    const tags = e.tags ?? {};
+    const nm: string = (tags["name:en"] || tags.name || "").trim();
+    if (!nm || nm.length < 3 || seen.has(nm.toLowerCase())) continue;
+    seen.add(nm.toLowerCase());
+    const plat = e.lat ?? e.center?.lat;
+    const plng = e.lon ?? e.center?.lon;
+    const dist = typeof plat === "number" && typeof plng === "number" ? haversineM(lat, lng, plat, plng) : null;
+    let type = "place";
+    if (tags.amenity) type = tags.amenity;
+    else if (tags.tourism) type = tags.tourism;
+    else if (tags.leisure) type = tags.leisure;
+    else if (tags.historic) type = "landmark";
+    const notable = !!(tags.wikidata || tags.wikipedia);
+    out.push({ name: nm, type, distance_m: dist });
+    (out[out.length - 1] as any)._notable = notable;
+  }
+  // Closest first, but bubble notable ones up a little.
+  out.sort((a, b) => {
+    const an = (a as any)._notable ? 1 : 0;
+    const bn = (b as any)._notable ? 1 : 0;
+    if (an !== bn) return bn - an;
+    return (a.distance_m ?? 9e9) - (b.distance_m ?? 9e9);
+  });
+  return out.slice(0, 12).map(({ name, type, distance_m }) => ({ name, type, distance_m }));
+}
+
 /**
  * Resolve a grounding block for ANY destination:
  *   1. curated bank (premium, rich tags + why) when we have it;

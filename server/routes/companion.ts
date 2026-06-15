@@ -9,7 +9,7 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
-import { buildCompanionSystem, streamCompanionReply, type ChatTurn } from "../companion";
+import { buildCompanionSystem, runCompanionAgent, type ChatTurn, type CompanionToolContext } from "../companion";
 
 // Same ownership rule as itinerary-detail: owner-only, legacy null-owner rows
 // stay open so historic trips keep working.
@@ -49,6 +49,12 @@ export function registerCompanionRoutes(app: Express) {
     const parsedId = z.coerce.number().safeParse(req.params.id);
     const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
     const lang: "en" | "it" = req.body?.lang === "it" ? "it" : "en";
+    // Optional live position from the browser, for the find_nearby tool.
+    const rawCoords = req.body?.coords;
+    const coords =
+      rawCoords && Number.isFinite(rawCoords.lat) && Number.isFinite(rawCoords.lng)
+        ? { lat: Number(rawCoords.lat), lng: Number(rawCoords.lng) }
+        : null;
     if (!parsedId.success || !message) {
       return res.status(400).json({ message: "message richiesto" });
     }
@@ -85,17 +91,31 @@ export function registerCompanionRoutes(app: Express) {
         .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
       const userName = (req.user as any)?.name ?? null;
-      const system = await buildCompanionSystem({ itinerary: itin, userId, userName, lang });
+      const system = await buildCompanionSystem({ itinerary: itin, userId, userName, lang, coords });
 
       // Persist the user turn before streaming so it isn't lost on disconnect.
       await storage.addMessage({ conversationId, role: "user", content: message });
       send("start", { conversationId });
 
-      const full = await streamCompanionReply({
+      const ctx: CompanionToolContext = {
+        itinerary: itin,
+        userId,
+        coords,
+        lang,
+        saveMoment: (row) => storage.createSavedMoment(row).then(() => undefined),
+        alreadySaved: async (uid, itinId2, momentId) => {
+          const saved = await storage.getSavedMoments(uid);
+          return saved.some((s) => s.itineraryId === itinId2 && s.momentId === momentId);
+        },
+      };
+
+      const full = await runCompanionAgent({
         system,
         history,
         message,
+        ctx,
         onChunk: (text) => send("chunk", { text }),
+        onTool: (ev) => send("tool", ev),
       });
 
       await storage.addMessage({ conversationId, role: "assistant", content: full });

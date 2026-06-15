@@ -4,7 +4,7 @@ import { MessageCircle, X, Send } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 
-type Msg = { role: "user" | "assistant"; content: string };
+type Msg = { role: "user" | "assistant" | "tool"; content: string };
 
 // Routes where the companion must NOT appear: the funnel (it competes with the
 // conversion task), the public/marketing surfaces, and the generation stream.
@@ -34,6 +34,7 @@ export function CompanionDock() {
   const [streaming, setStreaming] = useState(false);
   const [hydrated, setHydrated] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const coordsRef = useRef<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -63,6 +64,18 @@ export function CompanionDock() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, streaming]);
 
+  // Best-effort live position so the companion can ground "near me" suggestions.
+  // Requested only when the panel opens; silent on denial — find_nearby just
+  // returns nothing and the model falls back to the itinerary.
+  useEffect(() => {
+    if (!open || coordsRef.current || !("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { coordsRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+      () => {},
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+    );
+  }, [open]);
+
   async function send() {
     const text = input.trim();
     if (!text || streaming || itineraryId == null) return;
@@ -74,7 +87,7 @@ export function CompanionDock() {
       const res = await fetch(`/api/itinerary/${itineraryId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, lang }),
+        body: JSON.stringify({ message: text, lang, coords: coordsRef.current }),
       });
       const reader = res.body?.getReader();
       if (!reader) { setStreaming(false); return; }
@@ -96,6 +109,13 @@ export function CompanionDock() {
                 setMessages(prev => {
                   const next = [...prev];
                   next[next.length - 1] = { role: "assistant", content: next[next.length - 1].content + data.text };
+                  return next;
+                });
+              } else if (currentEvent === "tool" && data.label) {
+                // Insert a small status line just before the trailing assistant bubble.
+                setMessages(prev => {
+                  const next = [...prev];
+                  next.splice(next.length - 1, 0, { role: "tool", content: data.label });
                   return next;
                 });
               }
@@ -155,16 +175,25 @@ export function CompanionDock() {
               <p className="text-[13px] text-white/50 leading-relaxed">{t("companion.greeting")}</p>
             )}
             {messages.map((m, i) => (
-              <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
-                <div
-                  className="max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13.5px] leading-relaxed whitespace-pre-wrap"
-                  style={m.role === "user"
-                    ? { background: "#E94560", color: "#fff", borderBottomRightRadius: 4 }
-                    : { background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.92)", borderBottomLeftRadius: 4 }}
-                >
-                  {m.content || (streaming && i === messages.length - 1 ? "…" : "")}
+              m.role === "tool" ? (
+                <div key={i} className="flex justify-start">
+                  <div className="flex items-center gap-1.5 text-[11.5px] text-white/45 px-1">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#E94560" }} />
+                    {m.content}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
+                  <div
+                    className="max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13.5px] leading-relaxed whitespace-pre-wrap"
+                    style={m.role === "user"
+                      ? { background: "#E94560", color: "#fff", borderBottomRightRadius: 4 }
+                      : { background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.92)", borderBottomLeftRadius: 4 }}
+                  >
+                    {m.content || (streaming && i === messages.length - 1 ? "…" : "")}
+                  </div>
+                </div>
+              )
             ))}
           </div>
 
