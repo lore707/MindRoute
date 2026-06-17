@@ -407,6 +407,85 @@ CRITICAL: Respond ONLY with the JSON object. No text before or after. No
 explanations. Start with { end with }. Pure JSON only.`;
 }
 
+// ── Chain of Verification (2B) — anti-pattern guard ───────────────────────
+// Dopo la generazione, un passaggio economico con Haiku verifica l'itinerario
+// contro ciò che l'utente vuole EVITARE (dedotto dalle risposte del quiz +
+// note). Se trova violazioni chiare (es. "no caos" → mercato affollato), una
+// singola correzione mirata (Sonnet) riscrive SOLO i momenti incriminati,
+// lasciando intatto il resto. Tutto best-effort: se la verifica fallisce o va
+// in timeout, restituiamo l'itinerario originale senza bloccare l'utente.
+const COV_HAIKU = "claude-haiku-4-5-20251001";
+
+function buildAvoidDigest(input: ProfilingInput): string | null {
+  const parts: string[] = [];
+  if (Array.isArray(input.answers) && input.answers.length) parts.push(`Quiz answers (mix of likes and dislikes): ${input.answers.join("; ")}`);
+  if (input.constraints) parts.push(`Constraints / notes: ${input.constraints}`);
+  return parts.length ? parts.join("\n") : null;
+}
+
+function extractJson(text: string): string {
+  return text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+}
+
+async function verifyAvoidViolations(
+  itinerary: ItineraryV2, input: ProfilingInput,
+): Promise<Array<{ id: string; issue: string }>> {
+  const avoidDigest = buildAvoidDigest(input);
+  if (!avoidDigest) return [];
+  const digest = itinerary.days
+    .map((d) => `Day ${d.day_number} — ${d.title_evocative}\n` +
+      (d.moments ?? []).map((m) => `  [${m.id}] (${m.type}) ${m.title_evocative}: ${m.description}`).join("\n"))
+    .join("\n\n");
+
+  const prompt = `You are a strict itinerary reviewer. From the traveler's quiz answers and notes, infer ONLY what they explicitly want to AVOID (anti-patterns, dislikes, hard constraints). Then scan the itinerary and flag moments that CLEARLY violate those avoidances — e.g. they said "no crowds / no chaos" but a moment is a crowded chaotic market, or "no long transfers" but a moment is a 6h bus.
+
+TRAVELER (extract the dislikes):
+${avoidDigest}
+
+ITINERARY:
+${digest}
+
+Return STRICT JSON only: {"violations":[{"id":"d2m3","issue":"crowded market — user avoids crowds"}]}. Empty array if nothing clearly violates. Be conservative: only clear, defensible violations, max 5. JSON only.`;
+
+  const msg = await client.messages.create({
+    model: COV_HAIKU,
+    max_tokens: 700,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const text = msg.content.filter((b) => b.type === "text").map((b) => (b as any).text).join("");
+  const parsed = JSON.parse(extractJson(text));
+  return Array.isArray(parsed?.violations)
+    ? parsed.violations.filter((v: any) => v && typeof v.id === "string").slice(0, 5)
+    : [];
+}
+
+async function correctAvoidViolations(
+  itinerary: ItineraryV2, violations: Array<{ id: string; issue: string }>, input: ProfilingInput,
+): Promise<ItineraryV2> {
+  const langName = input.lang === "it" ? "Italian" : "English";
+  const avoidDigest = buildAvoidDigest(input) ?? "";
+  const prompt = `You will fix a travel itinerary. The traveler wants to AVOID certain things; a reviewer flagged violations. Rewrite ONLY the flagged moments so they NO LONGER violate, keeping each day coherent (geography, timing, and any booking links must stay valid and realistic). Keep every OTHER field and moment EXACTLY as-is.
+
+AVOID (from traveler):
+${avoidDigest}
+
+FLAGGED VIOLATIONS (rewrite these moment ids):
+${violations.map((v) => `- ${v.id}: ${v.issue}`).join("\n")}
+
+CURRENT ITINERARY JSON:
+${JSON.stringify(itinerary)}
+
+Return the FULL corrected itinerary as a SINGLE JSON object, identical v2 schema, ALL text fields in ${langName}. JSON only, no prose, start with { end with }.`;
+
+  const msg = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 24000,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const text = msg.content.filter((b) => b.type === "text").map((b) => (b as any).text).join("");
+  return itineraryV2Schema.parse(JSON.parse(extractJson(text)));
+}
+
 // ── V2 generation entry point ─────────────────────────────────────────────
 
 export async function generateItineraryV2ForDestination(
@@ -435,5 +514,18 @@ export async function generateItineraryV2ForDestination(
     .replace(/```\n?/g, "")
     .trim();
 
-  return itineraryV2Schema.parse(JSON.parse(cleanJson));
+  let itinerary = itineraryV2Schema.parse(JSON.parse(cleanJson));
+
+  // Chain of Verification (2B): controllo anti-pattern + correzione mirata.
+  try {
+    const violations = await verifyAvoidViolations(itinerary, input);
+    if (violations.length > 0) {
+      console.log(`[v2 CoV] ${violations.length} avoid-violation(s), correcting:`, violations.map((v) => v.id).join(", "));
+      itinerary = await correctAvoidViolations(itinerary, violations, input);
+    }
+  } catch (e) {
+    console.warn("[v2 CoV] verification/correction skipped (best-effort):", e);
+  }
+
+  return itinerary;
 }
