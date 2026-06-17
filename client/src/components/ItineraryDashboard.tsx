@@ -198,7 +198,10 @@ export function ItineraryDashboard({
 
   /* ── OVERVIEW ── */
   const OverviewView = () => {
-    const arcLabels = useMemo(() => days.map(d => d.arc).filter(Boolean), [days]);
+    // NB: queste funzioni-vista vengono invocate condizionalmente (es.
+    // `view === "overview" && OverviewView()`), quindi NON devono chiamare hook
+    // (violerebbe le Rules of Hooks → crash al cambio tab). Calcolo diretto.
+    const arcLabels = days.map(d => d.arc).filter(Boolean);
     // emotional arc curve points (peak in the middle)
     const W = 800, H = 60;
     const pts = days.map((_, i) => {
