@@ -9,7 +9,10 @@ type Msg = { role: "user" | "assistant" | "tool"; content: string };
 // Routes where the companion must NOT appear: the funnel (it competes with the
 // conversion task), the public/marketing surfaces, and the generation stream.
 function isHiddenRoute(path: string): boolean {
-  if (path === "/" || path === "/come-funziona" || path === "/profiling" || path === "/destinations" || path === "/privacy") return true;
+  // NB: "/" non è più nascosto — per l'utente loggato è la dashboard (e gli
+  // anonimi sono già esclusi da `!loggedIn`). Restano nascoste le superfici del
+  // funnel/marketing e lo stream di generazione.
+  if (path === "/come-funziona" || path === "/profiling" || path === "/destinations" || path === "/privacy") return true;
   if (path.startsWith("/itinerary/stream")) return true;
   if (path.startsWith("/i/")) return true; // public shared view
   return false;
@@ -139,46 +142,70 @@ export function CompanionDock() {
 
   if (!loggedIn || itineraryId == null || isHiddenRoute(location)) return null;
 
+  const SERIF = "'Playfair Display', Georgia, serif";
+
   return (
     <>
-      {/* Launcher */}
+      {/* Launcher — pill con glow accento; etichetta su desktop, icona su mobile */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
           aria-label={t("companion.open")}
-          className="fixed bottom-5 right-5 z-[110] w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95"
-          style={{ background: "#E94560", color: "#fff", boxShadow: "0 8px 28px rgba(233,69,96,0.45)" }}
+          className="group fixed bottom-5 right-5 z-[110] flex items-center gap-2.5 rounded-full transition-all hover:-translate-y-0.5 active:scale-95 h-14 w-14 sm:w-auto sm:pl-4 sm:pr-5 justify-center"
+          style={{
+            background: "radial-gradient(circle at 35% 30%, #ff5d76, #E94560 48%, #b42a40)",
+            color: "#fff",
+            border: "1px solid rgba(255,255,255,0.18)",
+            boxShadow: "0 14px 38px -8px rgba(233,69,96,0.6), inset 0 1px 0 rgba(255,255,255,0.25)",
+          }}
           data-testid="companion-fab"
         >
-          <MessageCircle className="w-6 h-6" />
+          <span className="relative flex items-center justify-center w-7 h-7 shrink-0">
+            <span className="absolute inset-0 rounded-full opacity-60 animate-ping" style={{ background: "rgba(255,255,255,0.35)" }} />
+            <MessageCircle className="relative w-[22px] h-[22px]" />
+          </span>
+          <span className="hidden sm:block text-[14px] font-medium pr-0.5" style={{ fontFamily: SERIF, fontStyle: "italic" }}>
+            {t("companion.title")}
+          </span>
         </button>
       )}
 
-      {/* Panel */}
+      {/* Panel — palette cinematica vinaccia/oro, allineata alla dashboard */}
       {open && (
         <div
-          className="fixed z-[120] flex flex-col overflow-hidden border shadow-2xl bottom-0 right-0 w-full h-[80vh] rounded-t-2xl sm:bottom-5 sm:right-5 sm:w-[400px] sm:h-[600px] sm:rounded-2xl"
-          style={{ background: "rgba(12,14,20,0.97)", borderColor: "rgba(255,255,255,0.1)", backdropFilter: "blur(12px)" }}
+          className="fixed z-[120] flex flex-col overflow-hidden shadow-2xl bottom-0 right-0 w-full h-[82vh] rounded-t-[22px] sm:bottom-5 sm:right-5 sm:w-[404px] sm:h-[600px] sm:rounded-[22px]"
+          style={{
+            background: "linear-gradient(180deg, rgba(26,14,26,0.98), rgba(13,7,13,0.99))",
+            border: "1px solid rgba(255,255,255,0.12)",
+            backdropFilter: "blur(22px)",
+            boxShadow: "0 40px 90px -30px rgba(0,0,0,0.7)",
+          }}
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full" style={{ background: "#E94560" }} />
-              <span className="text-[14px] font-medium text-white">{t("companion.title")}</span>
+          {/* hairline accento in cima */}
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "linear-gradient(to right, transparent, #E94560, transparent)" }} />
+
+          <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex w-2.5 h-2.5">
+                <span className="absolute inline-flex h-full w-full rounded-full opacity-70 animate-ping" style={{ background: "#E94560" }} />
+                <span className="relative inline-flex rounded-full w-2.5 h-2.5" style={{ background: "#E94560", boxShadow: "0 0 10px #E94560" }} />
+              </span>
+              <span className="text-[17px] text-white" style={{ fontFamily: SERIF, fontStyle: "italic" }}>{t("companion.title")}</span>
             </div>
-            <button onClick={() => setOpen(false)} aria-label={t("companion.close")} className="text-white/60 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
+            <button onClick={() => setOpen(false)} aria-label={t("companion.close")} className="flex items-center justify-center w-8 h-8 rounded-full text-white/55 hover:text-white transition-colors" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {messages.length === 0 && (
-              <p className="text-[13px] text-white/50 leading-relaxed">{t("companion.greeting")}</p>
+              <p className="text-[14px] text-white/60 leading-relaxed px-1" style={{ fontFamily: SERIF, fontStyle: "italic" }}>{t("companion.greeting")}</p>
             )}
             {messages.map((m, i) => (
               m.role === "tool" ? (
                 <div key={i} className="flex justify-start">
-                  <div className="flex items-center gap-1.5 text-[11.5px] text-white/45 px-1">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#E94560" }} />
+                  <div className="flex items-center gap-1.5 text-[11.5px] px-1" style={{ color: "rgba(212,168,83,0.85)" }}>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#D4A853", boxShadow: "0 0 7px #D4A853" }} />
                     {m.content}
                   </div>
                 </div>
@@ -187,8 +214,8 @@ export function CompanionDock() {
                   <div
                     className="max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13.5px] leading-relaxed whitespace-pre-wrap"
                     style={m.role === "user"
-                      ? { background: "#E94560", color: "#fff", borderBottomRightRadius: 4 }
-                      : { background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.92)", borderBottomLeftRadius: 4 }}
+                      ? { background: "linear-gradient(135deg, #E94560, #c4324c)", color: "#fff", borderBottomRightRadius: 5, boxShadow: "0 8px 22px -10px rgba(233,69,96,0.7)" }
+                      : { background: "rgba(255,255,255,0.055)", color: "rgba(251,245,240,0.92)", border: "1px solid rgba(255,255,255,0.07)", borderBottomLeftRadius: 5 }}
                   >
                     {m.content || (streaming && i === messages.length - 1 ? "…" : "")}
                   </div>
@@ -197,24 +224,26 @@ export function CompanionDock() {
             ))}
           </div>
 
-          <div className="px-3 py-3 border-t flex items-end gap-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder={t("companion.placeholder")}
-              rows={1}
-              className="flex-1 resize-none bg-transparent text-white text-[14px] placeholder:text-white/35 outline-none max-h-28 px-2 py-2"
-            />
-            <button
-              onClick={send}
-              disabled={streaming || !input.trim()}
-              aria-label={t("companion.send")}
-              className="w-9 h-9 rounded-full flex items-center justify-center transition-opacity disabled:opacity-30"
-              style={{ background: "#E94560", color: "#fff" }}
-            >
-              <Send className="w-4 h-4" />
-            </button>
+          <div className="px-3.5 py-3.5 border-t" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+            <div className="flex items-end gap-2 rounded-2xl px-2 py-1.5" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <textarea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                placeholder={t("companion.placeholder")}
+                rows={1}
+                className="flex-1 resize-none bg-transparent text-white text-[14px] placeholder:text-white/35 outline-none max-h-28 px-2 py-2"
+              />
+              <button
+                onClick={send}
+                disabled={streaming || !input.trim()}
+                aria-label={t("companion.send")}
+                className="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:brightness-110 shrink-0"
+                style={{ background: "#E94560", color: "#fff", boxShadow: "0 6px 18px -6px rgba(233,69,96,0.7)" }}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
