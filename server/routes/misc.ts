@@ -85,6 +85,35 @@ export function registerMiscRoutes(app: Express) {
     }
   });
 
+  // GET /api/me/portrait-card.png — Share Card 9:16 (storie IG/TikTok) col
+  // Ritratto + Paradosso. Driver di crescita organica (3B). Best-effort: 404 se
+  // il ritratto non è ancora disponibile (nessun segnale). `bg` opzionale = hero
+  // da sfumare sullo sfondo (passato dal client).
+  app.get("/api/me/portrait-card.png", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const portrait = await buildPortrait(user.id);
+      const text = portrait?.narrative?.portrait;
+      if (!text) return res.status(404).json({ message: "Ritratto non ancora disponibile" });
+      const bgRaw = typeof req.query.bg === "string" ? req.query.bg : "";
+      const bg = /^https?:\/\//.test(bgRaw) ? bgRaw : null;
+      const { renderPortraitSharePng } = await import("../og-card");
+      const png = await renderPortraitSharePng({
+        portrait: text,
+        paradox: portrait.narrative?.paradox ?? null,
+        name: (user.name ?? "").split(" ")[0] || "",
+        bgImageUrl: bg,
+      });
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Cache-Control", "private, max-age=300");
+      res.send(png);
+    } catch (err) {
+      console.error("portrait-card error:", err);
+      res.status(500).json({ message: "Errore nella generazione della card" });
+    }
+  });
+
   // GET /api/me/atlas — geolocated travel footprint for the account world map.
   // Resolves a coordinate per destination (recentDestinations cache → live
   // geocode), returns places[] + unlocated[] + stats. First load may be slower

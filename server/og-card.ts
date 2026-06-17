@@ -164,6 +164,95 @@ function buildTree(opts: { title: string; days: number; subline: string; bgDataU
   });
 }
 
+// ── Share Card 9:16 — "Ritratto del viaggiatore" (3B) ─────────────────────
+// Card verticale (1080×1920) per storie IG/TikTok: wordmark, eyebrow, il
+// Ritratto in serif e il Paradosso in oro. Driver di crescita organica.
+const PWIDTH = 1080;
+const PHEIGHT = 1920;
+const BRAND_GOLD = "#D4A853";
+
+function buildPortraitTree(opts: { portrait: string; paradox: string | null; name: string; bgDataUri: string | null }) {
+  const { portrait, paradox, name, bgDataUri } = opts;
+  const big = portrait.length > 180;
+  return el("div", {
+    style: {
+      width: PWIDTH, height: PHEIGHT, display: "flex", flexDirection: "column",
+      position: "relative", fontFamily: "DM Sans", backgroundColor: "#0d070d",
+      ...(bgDataUri ? { backgroundImage: `url("${bgDataUri}")`, backgroundSize: "cover", backgroundPosition: "center" } : {}),
+    },
+    children: [
+      // veil scuro per leggibilità
+      el("div", {
+        style: {
+          position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex",
+          backgroundImage: "linear-gradient(180deg, rgba(13,7,13,0.82) 0%, rgba(13,7,13,0.7) 38%, rgba(13,7,13,0.92) 100%)",
+        },
+      }),
+      // wordmark
+      el("div", {
+        style: { position: "absolute", top: 84, left: 88, display: "flex", alignItems: "center" },
+        children: [
+          el("img", { src: LOGO_DATA_URI, width: 58, height: 58, style: { marginRight: 18 } }),
+          el("div", { style: { color: "white", fontSize: 38, fontWeight: 700, letterSpacing: 1 }, children: "MindRoute" }),
+        ],
+      }),
+      // blocco contenuto centrato verticalmente
+      el("div", {
+        style: {
+          position: "absolute", left: 88, right: 88, top: 320, display: "flex", flexDirection: "column",
+        },
+        children: [
+          el("div", {
+            style: { color: BRAND_CORAL, fontSize: 28, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase", marginBottom: 34, display: "flex" },
+            children: "Il mio ritratto di viaggio",
+          }),
+          el("div", {
+            style: {
+              color: "white", fontFamily: "Playfair Display", fontWeight: 700,
+              fontSize: big ? 60 : 74, lineHeight: 1.18, letterSpacing: -1, display: "flex",
+            },
+            children: portrait,
+          }),
+          ...(paradox ? [
+            el("div", { style: { width: 92, height: 5, backgroundColor: BRAND_GOLD, borderRadius: 3, marginTop: 56, marginBottom: 34, display: "flex" } }),
+            el("div", {
+              style: { color: BRAND_GOLD, fontSize: 24, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", marginBottom: 18, display: "flex" },
+              children: "Il mio paradosso",
+            }),
+            el("div", {
+              style: { color: "rgba(255,255,255,0.86)", fontFamily: "Playfair Display", fontStyle: "italic", fontSize: 40, lineHeight: 1.32, display: "flex" },
+              children: paradox,
+            }),
+          ] : []),
+        ],
+      }),
+      // footer
+      el("div", {
+        style: { position: "absolute", left: 88, right: 88, bottom: 92, display: "flex", alignItems: "center", justifyContent: "space-between" },
+        children: [
+          el("div", { style: { color: "rgba(255,255,255,0.92)", fontFamily: "Playfair Display", fontStyle: "italic", fontSize: 34, display: "flex" }, children: name ? `— ${name}` : "" }),
+          el("div", { style: { color: BRAND_CORAL, fontSize: 26, fontWeight: 700, letterSpacing: 2, display: "flex" }, children: "scopri il tuo · mindroute" }),
+        ],
+      }),
+    ],
+  });
+}
+
+/** Render PNG verticale 9:16 del ritratto utente per le storie social. */
+export async function renderPortraitSharePng(input: {
+  portrait: string; paradox: string | null; name: string; bgImageUrl: string | null;
+}): Promise<Buffer> {
+  await ensureWasm();
+  const fonts = loadFonts();
+  const bgDataUri = input.bgImageUrl ? await fetchImageDataUri(input.bgImageUrl) : null;
+  const portrait = (input.portrait || "").replace(/\s+/g, " ").trim().slice(0, 320);
+  const paradox = input.paradox ? input.paradox.replace(/\s+/g, " ").trim().slice(0, 200) : null;
+  const tree = buildPortraitTree({ portrait, paradox, name: input.name, bgDataUri });
+  const svg = await satori(tree as any, { width: PWIDTH, height: PHEIGHT, fonts: fonts as any });
+  const png = new Resvg(svg, { fitTo: { mode: "width", value: PWIDTH } }).render().asPng();
+  return Buffer.from(png);
+}
+
 const pngCache = new Map<string, Buffer>();
 
 /**

@@ -79,6 +79,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   const [q, setQ] = useState("");
   const [ambientIdx, setAmbientIdx] = useState(0);
   const [heroIdx, setHeroIdx] = useState(0);
+  const [sharing, setSharing] = useState(false);
 
   // Interpolatore: t() non supporta placeholder, li sostituiamo qui.
   const tx = (key: string, vars: Record<string, string | number>) => {
@@ -164,6 +165,30 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   };
 
   const toggleLang = () => setLang(lang === "it" ? "en" : "it");
+
+  // Share Card 9:16 (3B): scarica la PNG del ritratto e la passa allo share
+  // sheet nativo (IG/TikTok storie) quando supportato, altrimenti la scarica.
+  const sharePortrait = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const res = await fetch(`/api/me/portrait-card.png?bg=${encodeURIComponent(data.heroImg || "")}`);
+      if (!res.ok) throw new Error("card");
+      const blob = await res.blob();
+      const file = new File([blob], "mindroute-ritratto.png", { type: "image/png" });
+      const nav = navigator as any;
+      if (nav.canShare && nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: t("acd.point.portraitK") });
+      } else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "mindroute-ritratto.png";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      }
+    } catch { /* best-effort */ }
+    finally { setSharing(false); }
+  };
 
   /* ──────────────── sotto-componenti ──────────────── */
 
@@ -414,7 +439,10 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
           eyebrow={t("acd.portrait.eyebrow")}
           title={titleHtml}
           sub={t("acd.portrait.sub")}
-          right={<button className="btn-g" onClick={() => setLocation("/profiling")}>{t("acd.portrait.regen")}</button>}
+          right={<>
+            <button className="btn-p" onClick={sharePortrait} disabled={sharing}>{sharing ? t("acd.portrait.sharing") : t("acd.portrait.share")}</button>
+            <button className="btn-g" onClick={() => setLocation("/profiling")}>{t("acd.portrait.regen")}</button>
+          </>}
         />
         <div className="portrait-full">
           <div className="col">

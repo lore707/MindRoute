@@ -76,6 +76,8 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.portrait.titleNone":{ en: "Your portrait <em>is taking shape</em>.", it: "Il tuo ritratto <em>prende forma</em>." },
   "acd.portrait.sub":      { en: "A living synthesis, built from how you choose — not what you declare. It refines with every trip.", it: "Una sintesi viva, costruita da come scegli — non da quello che dichiari. Si affina a ogni viaggio." },
   "acd.portrait.regen":    { en: "Regenerate ↻", it: "Rigenera ↻" },
+  "acd.portrait.share":    { en: "Share ↗", it: "Condividi ↗" },
+  "acd.portrait.sharing":  { en: "Preparing…", it: "Preparo…" },
   "acd.portrait.synK":     { en: "Synthesis", it: "Sintesi" },
   "acd.portrait.synWho":   { en: "for {name}", it: "per {name}" },
   "acd.portrait.paradox":  { en: "Your paradox", it: "Il tuo paradosso" },
