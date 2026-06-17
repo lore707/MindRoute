@@ -428,7 +428,11 @@
   .account-dash .tb-cta{padding:10px 14px;font-size:12.5px}
   .account-dash .hero{padding:24px 18px 30px;min-height:280px}
   .account-dash .hero-title{font-size:clamp(40px,13vw,60px)}
+  .account-dash .hero-row{gap:18px}
+  .account-dash .hero-stats{gap:16px 22px}
+  .account-dash .hero-stat .n{font-size:28px}
   .account-dash .hero-act{margin-left:0;width:100%}
+  .account-dash .hero-act .btn-p{width:100%;justify-content:center}
   .account-dash .content,.account-dash .home-content,.account-dash .resume-full,
   .account-dash .portrait-full,.account-dash .atlas-full{padding-left:18px;padding-right:18px}
   .account-dash .view-head{padding-left:18px;padding-right:18px}
@@ -439,5 +443,10 @@
   .account-dash .next-go{width:100%;justify-content:center}
 }
 @media (max-width:480px){
-  .account-dash .topbar .tb-cta span.full{display:none}
+  .account-dash .hero-stats{gap:14px 18px}
+  .account-dash .hero-stat .n{font-size:25px}
+  .account-dash .hero-stat .l{letter-spacing:.14em}
+  .account-dash .pick-act,.account-dash .r-act{flex-direction:column}
+  .account-dash .pick-act .btn-p,.account-dash .pick-act .btn-g,
+  .account-dash .r-act .btn-p,.account-dash .r-act .btn-g{width:100%;justify-content:center}
 }
