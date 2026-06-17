@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
 import { useLocation } from "wouter";
+import { setFlow } from "@/lib/flow-storage";
 
 interface FromProfileModalProps {
   open: boolean;
@@ -88,10 +89,10 @@ export function FromProfileModal({ open, onClose, snapshotCount }: FromProfileMo
       // fails or targets the wrong destination.
       const data = await res.json();
       if (Array.isArray(data?.destinations)) {
-        sessionStorage.setItem("mind_destinations", JSON.stringify(data.destinations));
+        setFlow("mind_destinations", JSON.stringify(data.destinations));
       }
       if (data?.input) {
-        sessionStorage.setItem("mind_profiling_input", JSON.stringify(data.input));
+        setFlow("mind_profiling_input", JSON.stringify(data.input));
       }
       onClose();
       setLocation("/destinations");

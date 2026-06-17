@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, buildUrl, type ProfilingInput } from "@shared/routes";
+import { getFlow } from "@/lib/flow-storage";
 
 export function useSubmitProfiling() {
   return useMutation({
@@ -54,7 +55,7 @@ export function useMapPointsPolling(itineraryId: number, enabled: boolean) {
 
 export function getStoredDestinations() {
   try {
-    const stored = sessionStorage.getItem("mind_destinations");
+    const stored = getFlow("mind_destinations");
     return stored ? JSON.parse(stored) : [];
   } catch (e) {
     return [];

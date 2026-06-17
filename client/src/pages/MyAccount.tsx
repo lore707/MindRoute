@@ -9,6 +9,7 @@ import { type PortraitData } from "@/components/AccountPortrait";
 import { type AtlasData } from "@/components/AccountAtlas";
 import { deriveTraitLabels } from "@/lib/trait-labels";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
+import { setFlow } from "@/lib/flow-storage";
 import { unsplashSized } from "@/lib/img";
 import type { TraitVector } from "@shared/traits";
 
@@ -232,10 +233,10 @@ export default function MyAccount() {
       // fails or targets the wrong destination.
       const data = await res.json();
       if (Array.isArray(data?.destinations)) {
-        sessionStorage.setItem("mind_destinations", JSON.stringify(data.destinations));
+        setFlow("mind_destinations", JSON.stringify(data.destinations));
       }
       if (data?.input) {
-        sessionStorage.setItem("mind_profiling_input", JSON.stringify(data.input));
+        setFlow("mind_profiling_input", JSON.stringify(data.input));
       }
       setShowFromProfile(false);
       setLocation("/destinations");

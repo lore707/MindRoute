@@ -23,19 +23,59 @@ import type {
 
 // ── V2 Zod schemas — runtime validation for Claude output ─────────────────
 
-const momentTypeSchema = z.enum([
-  "transport", "accommodation", "food", "experience", "walk", "view", "rest",
-]) satisfies z.ZodType<MomentType>;
+// Loose enum: Claude, quando genera con lang="it", a volte emette i token
+// strutturali in italiano ("cibo" invece di "food", "pioggia" invece di "rain").
+// Con un z.enum rigido un solo valore localizzato fa fallire l'INTERO parse v2
+// → fallback costoso al legacy stream. Qui normalizziamo (trim+lowercase+
+// sinonimi IT) RICONDUCENDO al token canonico EN, così il resto dell'app — che
+// indicizza per chiave inglese — continua a funzionare. (1A audit)
+function looseEnum<T extends string>(canonical: readonly T[], synonyms: Record<string, T> = {}): z.ZodType<T> {
+  const set = new Set<string>(canonical as readonly string[]);
+  return z.preprocess((v) => {
+    if (typeof v !== "string") return v;
+    const k = v.trim().toLowerCase();
+    if (set.has(k)) return k;
+    return synonyms[k] ?? v;
+  }, z.enum(canonical as unknown as [T, ...T[]])) as unknown as z.ZodType<T>;
+}
 
-const bookingStatusSchema = z.enum([
-  "bookable_now", "reserve_recommended", "walk_in",
-]) satisfies z.ZodType<BookingStatus>;
+const momentTypeSchema = looseEnum<MomentType>(
+  ["transport", "accommodation", "food", "experience", "walk", "view", "rest"],
+  {
+    trasporto: "transport", spostamento: "transport",
+    alloggio: "accommodation", hotel: "accommodation", soggiorno: "accommodation",
+    cibo: "food", mangiare: "food", pasto: "food", ristorante: "food",
+    esperienza: "experience", attività: "experience", "attivita": "experience",
+    camminata: "walk", passeggiata: "walk", "a piedi": "walk",
+    vista: "view", panorama: "view", veduta: "view",
+    riposo: "rest", pausa: "rest", relax: "rest",
+  },
+) satisfies z.ZodType<MomentType>;
 
-const energyLevelSchema = z.enum(["low", "medium", "high"]) satisfies z.ZodType<EnergyLevel>;
+const bookingStatusSchema = looseEnum<BookingStatus>(
+  ["bookable_now", "reserve_recommended", "walk_in"],
+  {
+    prenotabile: "bookable_now", "prenotabile_ora": "bookable_now", prenotabile_adesso: "bookable_now",
+    consigliato: "reserve_recommended", consigliata: "reserve_recommended", "prenotazione_consigliata": "reserve_recommended",
+    "senza_prenotazione": "walk_in", "accesso_libero": "walk_in", walkin: "walk_in",
+  },
+) satisfies z.ZodType<BookingStatus>;
 
-const weatherConditionSchema = z.enum([
-  "sunny", "cloudy", "rain", "mixed", "snow",
-]) satisfies z.ZodType<WeatherCondition>;
+const energyLevelSchema = looseEnum<EnergyLevel>(
+  ["low", "medium", "high"],
+  { basso: "low", bassa: "low", medio: "medium", media: "medium", alto: "high", alta: "high" },
+) satisfies z.ZodType<EnergyLevel>;
+
+const weatherConditionSchema = looseEnum<WeatherCondition>(
+  ["sunny", "cloudy", "rain", "mixed", "snow"],
+  {
+    soleggiato: "sunny", sole: "sunny", sereno: "sunny",
+    nuvoloso: "cloudy", coperto: "cloudy", nuvole: "cloudy",
+    pioggia: "rain", piovoso: "rain", piova: "rain",
+    misto: "mixed", variabile: "mixed",
+    neve: "snow", nevoso: "snow",
+  },
+) satisfies z.ZodType<WeatherCondition>;
 
 const bookingInfoV2Schema = z.object({
   // Free string — provider names are too varied/localized to enumerate without
@@ -66,12 +106,12 @@ const momentV2Schema: z.ZodType<MomentV2> = z.object({
   type: momentTypeSchema,
   title_evocative: z.string(),
   title_operational: z.string(),
-  // English canonical + Italian equivalents Claude emits when lang="it", so a
-  // localized label never fails the whole itinerary (and the costly retry).
-  time_label: z.enum([
-    "morning", "lunch", "afternoon", "evening", "night",
-    "mattina", "mezzogiorno", "pomeriggio", "sera", "notte",
-  ]),
+  // English canonical + Italian equivalents Claude emits when lang="it":
+  // normalizziamo al token EN così i consumer (icone/slot) restano coerenti.
+  time_label: looseEnum<MomentV2["time_label"]>(
+    ["morning", "lunch", "afternoon", "evening", "night"],
+    { mattina: "morning", mezzogiorno: "lunch", pranzo: "lunch", pomeriggio: "afternoon", sera: "evening", notte: "night" },
+  ),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
   duration_min: z.number().optional(),

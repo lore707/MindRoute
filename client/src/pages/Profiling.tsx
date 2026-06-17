@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, Ch
 import { useSubmitProfiling } from "@/hooks/use-profiling";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
+import { setFlow } from "@/lib/flow-storage";
 import { Link, useLocation } from "wouter";
 import LangDropdown from "@/components/LangDropdown";
 import { useTheme } from "@/components/ThemeProvider";
@@ -331,7 +332,7 @@ export default function Profiling() {
     setShowAnalyzing(false);
 
     try {
-    sessionStorage.setItem("mind_destinations", JSON.stringify(submitMutation.data));
+    setFlow("mind_destinations", JSON.stringify(submitMutation.data));
       setLocation("/destinations");
     } catch (error) {
       console.error("Failed to persist destinations:", error);
@@ -757,7 +758,7 @@ const profilingPayload = {
       lang: currentLang,
     };
 
-    sessionStorage.setItem("mind_profiling_input", JSON.stringify(profilingPayload));
+    setFlow("mind_profiling_input", JSON.stringify(profilingPayload));
     submitMutation.mutate(profilingPayload);
   };
 

@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n";
 import { useTraitRecognition } from "@/hooks/use-trait-recognition";
 import { RecognitionBanner } from "@/components/RecognitionBanner";
 import { unsplashSized } from "@/lib/img";
+import { getFlow } from "@/lib/flow-storage";
 
 export default function Destinations() {
   const { t, lang } = useI18n();
@@ -58,7 +59,7 @@ const handleContinue = async () => {
       // "genera dal profilo" in a fresh tab), fall back to the server, which is
       // the source of truth for the saved profiling input.
       let profilingInput: any = null;
-      const storedInput = sessionStorage.getItem("mind_profiling_input");
+      const storedInput = getFlow("mind_profiling_input");
       if (storedInput) {
         profilingInput = JSON.parse(storedInput);
       } else {

@@ -58,7 +58,18 @@ const generatedDestinationSchema = z.object({
   // lateral = stessa emozione angolo diverso, surprise = predicted-positive
   // che l'utente non avrebbe cercato. L'LLM lo dichiara esplicitamente e
   // verifichiamo lato server che i tre valori siano una permutazione completa.
-  slotRole: z.enum(["direct", "lateral", "surprise"]).optional(),
+  // Loose: accetta sinonimi IT/lowercase e li riconduce al token canonico EN,
+  // così un "diretto"/"sorpresa" non rompe la validazione (→ retry costoso). (1A)
+  slotRole: z.preprocess((v) => {
+    if (typeof v !== "string") return v;
+    const k = v.trim().toLowerCase();
+    const map: Record<string, string> = {
+      diretto: "direct", diretta: "direct",
+      laterale: "lateral",
+      sorpresa: "surprise", sorprendente: "surprise",
+    };
+    return (["direct", "lateral", "surprise"].includes(k)) ? k : (map[k] ?? v);
+  }, z.enum(["direct", "lateral", "surprise"])).optional(),
 });
 
 const generatedItinerarySchema = z.object({
