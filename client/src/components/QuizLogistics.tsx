@@ -16,7 +16,7 @@
  * Answers shape: vedi LogisticsAnswers in fondo file.
  * ─────────────────────────────────────────────────────────────── */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 /* ════════════ types ════════════ */
 export type LogisticsAnswers = {
@@ -102,6 +102,25 @@ const DURATIONS = [
 ];
 
 const SAVED_CITIES = ["Milan", "London", "Rome", "Paris", "New York"];
+
+// Smart-fill (3A): mappature dai default di profilo (/api/profiling/defaults,
+// gli stessi usati dalla shortcut "Genera dal profilo") verso lo stato logistico.
+const BUDGET_FROM_DEFAULT: Record<string, NonNullable<LogisticsAnswers["budget"]>> = {
+  basso: "shoestring", low: "shoestring",
+  medio: "mid", medium: "mid", mid: "mid",
+  alto: "upper", high: "upper", upper: "upper",
+  unlimited: "open", open: "open",
+};
+const WHO_FROM_DEFAULT: Record<string, NonNullable<LogisticsAnswers["who"]>> = {
+  solo: "solo", couple: "partner", partner: "partner", coppia: "partner",
+  friends: "friends", amici: "friends", family: "family", famiglia: "family",
+};
+function durationFromDays(n: unknown): LogisticsAnswers["duration"] | undefined {
+  if (typeof n !== "number" || !Number.isFinite(n)) return undefined;
+  if (n <= 4) return "weekend";
+  if (n <= 7) return "week";
+  return "twoweek";
+}
 
 const SLEEP_TIERS: TierItem[] = [
   { id: "hostel",   grade: 1, name: "Hostel · Capsule",  meta: "Shared rooms, capsule pods, the bare necessities.",   range: "€0 – 30" },
@@ -241,6 +260,36 @@ export function QuizLogistics({
     openWallet: false,
     whenMode: "month",
   });
+  const [savedCities, setSavedCities] = useState<string[]>(SAVED_CITIES);
+
+  // Smart-fill (3A): per gli utenti loggati precompiliamo budget/compagnia/
+  // durata/partenza dai pattern dei viaggi passati. /api/profiling/defaults dà
+  // 401 agli anonimi → nessun prefill. Riempiamo solo i campi ancora vuoti, così
+  // non sovrascriviamo mai una scelta dell'utente.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/profiling/defaults")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        setAnswers((a) => {
+          const next = { ...a };
+          const b = typeof d.budget === "string" ? BUDGET_FROM_DEFAULT[d.budget.toLowerCase()] : undefined;
+          if (!next.budget && b) next.budget = b;
+          const w = typeof d.companions === "string" ? WHO_FROM_DEFAULT[d.companions.toLowerCase()] : undefined;
+          if (!next.who && w) next.who = w;
+          const dur = durationFromDays(d.days);
+          if (!next.duration && dur) next.duration = dur;
+          const dep = typeof d.departure === "string" ? d.departure.trim() : "";
+          if (!next.city && dep && dep.toLowerCase() !== "italia") next.city = dep;
+          return next;
+        });
+        const dep = typeof d.departure === "string" ? d.departure.trim() : "";
+        if (dep) setSavedCities([dep, ...SAVED_CITIES.filter((c) => c.toLowerCase() !== dep.toLowerCase())].slice(0, 5));
+      })
+      .catch(() => { /* best-effort */ });
+    return () => { cancelled = true; };
+  }, []);
 
   function update<K extends keyof LogisticsAnswers>(key: K, value: LogisticsAnswers[K]) {
     setAnswers((a) => ({ ...a, [key]: value }));
@@ -268,6 +317,7 @@ export function QuizLogistics({
               answers={answers}
               update={update}
               profile={profile}
+              savedCities={savedCities}
               onNext={nextChapter}
               onBack={prevChapter}
             />
@@ -301,11 +351,12 @@ function StepRail({ chapter }: { chapter: Chapter }) {
 
 /* ════════════ CHAPTER II — The Frame ════════════ */
 function ChapterFrame({
-  answers, update, profile, onNext, onBack,
+  answers, update, profile, savedCities, onNext, onBack,
 }: {
   answers: LogisticsAnswers;
   update: <K extends keyof LogisticsAnswers>(k: K, v: LogisticsAnswers[K]) => void;
   profile?: ProfileSummary;
+  savedCities?: string[];
   onNext: () => void;
   onBack: () => void;
 }) {
@@ -565,7 +616,7 @@ function ChapterFrame({
             />
             <div className="ql-depart-saved">
               <span className="ql-depart-saved-lbl">Saved · </span>
-              {SAVED_CITIES.map((c) => (
+              {(savedCities ?? SAVED_CITIES).map((c) => (
                 <button key={c} className={"ql-depart-chip " + (answers.city === c ? "on" : "")} onClick={() => update("city", c)}>{c}</button>
               ))}
             </div>
