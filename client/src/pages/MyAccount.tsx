@@ -425,11 +425,12 @@ export default function MyAccount() {
     settings,
     onNewItinerary: () => setLocation("/profiling"),
     onSecondaryCta: () => {
+      // "Genera dal profilo": apre il modal se abbiamo abbastanza segnale
+      // (≥2 snapshot). Altrimenti — invece di un no-op (la vecchia ancora
+      // #ac-collection non esiste più nella dashboard) — avvia il quiz, così
+      // il pulsante fa sempre qualcosa di utile.
       if (canGenerateFromProfile) openFromProfileModal();
-      else {
-        const el = document.getElementById("ac-collection");
-        if (el) el.scrollIntoView({ behavior: "smooth" });
-      }
+      else setLocation("/profiling");
     },
     secondaryCtaLabel: canGenerateFromProfile ? "✨ Genera dal tuo profilo" : "↓ Continua a esplorare",
     onLogout: () => { window.location.href = "/auth/logout"; },
