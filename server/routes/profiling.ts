@@ -8,6 +8,7 @@ import { getRecentDestinationNames } from "../recent-destinations";
 import { fetchUnsplashHero } from "../unsplash";
 import { computeTraitVector, emaAggregate, synthesizeAnswersFromVector, MAPPING_VERSION, type TraitVector } from "@shared/traits";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
+import { formatDestinationCoherenceBlock } from "../destination-traits";
 import { computeProfileDefaults } from "../profile-defaults";
 import { requireAuth } from "../auth";
 
@@ -19,7 +20,16 @@ export function registerProfilingRoutes(app: Express) {
       const input = api.profiling.submit.input.parse(req.body);
       const userIdForPrior = (req.user as any)?.id ?? null;
       const prior = await getTraitPriorForUser(userIdForPrior);
-      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      // 2A — vettore dell'utente da QUESTO quiz (deterministico, sempre
+      // disponibile anche al primo viaggio) → shortlist di coerenza col catalogo.
+      const userVec = computeTraitVector({
+        answers: input.answers ?? [],
+        companions: input.companions ?? null,
+        budget: input.budget ?? null,
+        travelStyle: input.travelStyle ?? null,
+        constraints: input.constraints ?? null,
+      });
+      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(userVec);
       const recentNames = await getRecentDestinationNames();
       const destinations = await generateDestinationsOnly(input, priorBlock, undefined, recentNames);
       await storage.clearAll();
@@ -145,7 +155,8 @@ export function registerProfilingRoutes(app: Express) {
       };
 
       const prior = await getTraitPriorForUser(user.id);
-      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      // 2A — coerenza col catalogo dal vettore aggregato (current).
+      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(current);
       const recentNames = await getRecentDestinationNames();
       const destinations = await generateDestinationsOnly(input, priorBlock, contextOverride, recentNames);
       await storage.clearAll();
