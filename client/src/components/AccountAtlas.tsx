@@ -12,6 +12,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
+import { useI18n } from "@/lib/i18n";
 // Leaflet's base CSS is imported once globally from client/src/index.css
 // (project convention: all CSS via index.css), so it isn't imported here.
 
@@ -42,14 +43,16 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
 
-function popupHtml(p: AtlasPlace): string {
-  const meta = [`${p.trips} ${p.trips === 1 ? "viaggio" : "viaggi"}`, `${p.days} ${p.days === 1 ? "giorno" : "giorni"}`]
-    .join(" · ");
+function popupHtml(p: AtlasPlace, t: (k: string) => string): string {
+  const meta = [
+    `${p.trips} ${p.trips === 1 ? t("acd.unit.trip") : t("acd.unit.trips")}`,
+    `${p.days} ${p.days === 1 ? t("acd.unit.day") : t("acd.unit.days")}`,
+  ].join(" · ");
   return `
     <div class="ac-atlas-pop">
       <div class="ac-atlas-pop-name">${escapeHtml(p.name)}</div>
       <div class="ac-atlas-pop-meta">${escapeHtml(meta)}${p.lastDate ? ` · ${escapeHtml(p.lastDate)}` : ""}</div>
-      <a class="ac-atlas-pop-link" href="${escapeHtml(p.href)}">Apri l'itinerario →</a>
+      <a class="ac-atlas-pop-link" href="${escapeHtml(p.href)}">${escapeHtml(t("acd.atlasc.popOpen"))}</a>
     </div>`;
 }
 
@@ -64,6 +67,7 @@ export function AccountAtlas({
   narrative?: string;
   narrativeBold?: string[];
 }) {
+  const { t } = useI18n();
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
 
@@ -100,7 +104,7 @@ export function AccountAtlas({
         iconAnchor: [size / 2, size / 2],
       });
       const marker = L.marker([p.lat, p.lng], { icon, title: p.name }).addTo(map);
-      marker.bindPopup(popupHtml(p), { closeButton: false, className: "ac-atlas-popup", offset: [0, -6] });
+      marker.bindPopup(popupHtml(p, t), { closeButton: false, className: "ac-atlas-popup", offset: [0, -6] });
       marker.on("mouseover", () => marker.openPopup());
       latlngs.push([p.lat, p.lng]);
     }
@@ -112,14 +116,14 @@ export function AccountAtlas({
     }
 
     // Container may mount at 0px during transitions; nudge Leaflet to recompute.
-    const t = setTimeout(() => map.invalidateSize(), 200);
+    const timer = setTimeout(() => map.invalidateSize(), 200);
 
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       map.remove();
       mapRef.current = null;
     };
-  }, [places]);
+  }, [places, t]);
 
   const narrativeNode = useMemo(() => {
     if (!narrative) return null;
@@ -147,34 +151,36 @@ export function AccountAtlas({
       <div className="ac-container">
         <div className="ac-atlas-head">
           <div>
-            <div className="ac-eyebrow gold"><span className="d" />Capitolo V · il tuo atlante</div>
-            <h2 className="ac-atlas-title"><em>{s.days}</em> giorni<br />passati altrove.</h2>
+            <div className="ac-eyebrow gold"><span className="d" />{t("acd.atlasc.eyebrow")}</div>
+            <h2 className="ac-atlas-title"><em>{s.days}</em>{" "}
+              <span dangerouslySetInnerHTML={{ __html: t("acd.atlasc.titlePost") }} />
+            </h2>
           </div>
-          <p className="ac-atlas-sub">Ogni meta che hai immaginato, su una sola mappa. Una storia raccontata dai luoghi che hai aperto.</p>
+          <p className="ac-atlas-sub">{t("acd.atlasc.sub")}</p>
         </div>
 
         <div className="ac-atlas-map-shell">
           {loading && (
-            <div className="ac-atlas-state"><span className="ac-atlas-spin" />Disegniamo la tua mappa…</div>
+            <div className="ac-atlas-state"><span className="ac-atlas-spin" />{t("acd.atlasc.loading")}</div>
           )}
           {!loading && places.length === 0 && (
-            <div className="ac-atlas-state">La tua mappa si popolerà appena genererai il primo itinerario.</div>
+            <div className="ac-atlas-state">{t("acd.atlasc.empty")}</div>
           )}
           {places.length > 0 && <div ref={mapEl} className="ac-atlas-map" />}
 
           {places.length > 0 && (
             <div className="ac-atlas-stats">
-              <div className="ac-atlas-stat"><span className="n">{s.trips}</span><span className="l">Viaggi</span></div>
-              <div className="ac-atlas-stat"><span className="n">{s.days}</span><span className="l">Giorni</span></div>
-              <div className="ac-atlas-stat"><span className="n">{s.cities}</span><span className="l">{s.cities === 1 ? "Meta" : "Mete"}</span></div>
-              <div className="ac-atlas-stat"><span className="n"><em>{s.continents}</em></span><span className="l">{s.continents === 1 ? "Continente" : "Continenti"}</span></div>
+              <div className="ac-atlas-stat"><span className="n">{s.trips}</span><span className="l">{t("acd.atlasc.statTrips")}</span></div>
+              <div className="ac-atlas-stat"><span className="n">{s.days}</span><span className="l">{t("acd.atlasc.statDays")}</span></div>
+              <div className="ac-atlas-stat"><span className="n">{s.cities}</span><span className="l">{s.cities === 1 ? t("acd.atlasc.statPlacesOne") : t("acd.atlasc.statPlaces")}</span></div>
+              <div className="ac-atlas-stat"><span className="n"><em>{s.continents}</em></span><span className="l">{s.continents === 1 ? t("acd.atlasc.statContinentsOne") : t("acd.atlasc.statContinents")}</span></div>
             </div>
           )}
         </div>
 
         {data && data.unlocated.length > 0 && (
           <div className="ac-atlas-note">
-            {data.unlocated.length} {data.unlocated.length === 1 ? "meta non posizionata" : "mete non posizionate"} sulla mappa: {data.unlocated.join(", ")}.
+            {data.unlocated.length} {data.unlocated.length === 1 ? t("acd.atlasc.unlocatedOne") : t("acd.atlasc.unlocatedMany")}: {data.unlocated.join(", ")}.
           </div>
         )}
 

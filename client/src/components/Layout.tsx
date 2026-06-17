@@ -7,6 +7,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { BackgroundLayers } from "@/components/BackgroundLayers";
 import { CompanionDock } from "@/components/CompanionDock";
 import { SectionProvider } from "@/lib/sectionContext";
+import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
 
@@ -56,12 +57,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { t } = useI18n();
   const { theme } = useTheme();
+  const { user } = useAuth();
+
+  // La dashboard (utente loggato su "/" oppure "/my-account") porta la propria
+  // app-shell (sidebar + topbar): nascondiamo la nav globale per non avere due
+  // barre fisse sovrapposte.
+  const isDashboard = location === "/my-account" || (location === "/" && !!user);
 
   return (
     <SectionProvider>
 <div className="min-h-screen text-[var(--text-primary)] overflow-x-hidden selection:bg-primary/20 selection:text-primary-foreground font-sans transition-colors duration-300">
       <BackgroundLayers />
 
+      {!isDashboard && (
       <nav className="fixed top-0 left-0 right-0 z-[100] px-3 py-2.5 md:px-10 md:py-5 flex items-center justify-between gap-2 backdrop-blur-xl border-b transition-all duration-300" style={{ background: "rgba(7,9,15,0.65)", borderColor: "rgba(255,255,255,0.06)" }}>
         <Link href="/" className="flex items-center gap-2 md:gap-2.5 text-[var(--text-primary)] no-underline min-h-[44px]">
           <svg className="w-8 h-8 md:w-9 md:h-9" viewBox="0 0 120 120" fill="none">
@@ -131,6 +139,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       </nav>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.main

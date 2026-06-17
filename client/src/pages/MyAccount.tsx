@@ -3,7 +3,8 @@ import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Heart, GitCompare } from "lucide-react";
 import { type AccountData } from "@/components/AccountCinematic";
-import { AccountRedesign } from "@/components/AccountRedesign";
+import { AccountDashboard } from "@/components/AccountDashboard";
+import { useI18n } from "@/lib/i18n";
 import { type PortraitData } from "@/components/AccountPortrait";
 import { type AtlasData } from "@/components/AccountAtlas";
 import { deriveTraitLabels } from "@/lib/trait-labels";
@@ -80,15 +81,18 @@ function normalizeContinent(label: string | null | undefined): string {
 }
 
 const MONTH_IT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
-function shortDate(iso: string | null | undefined): string {
+const MONTH_EN = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+function shortDate(iso: string | null | undefined, lang: "en" | "it" = "it"): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
-  return `${MONTH_IT[d.getMonth()]} ${d.getFullYear()}`;
+  const months = lang === "en" ? MONTH_EN : MONTH_IT;
+  return `${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export default function MyAccount() {
   const [, setLocation] = useLocation();
+  const { lang } = useI18n();
   const [user, setUser] = useState<any>(null);
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -302,28 +306,32 @@ export default function MyAccount() {
       .filter(t => t.createdAt)
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       .slice(0, 3);
-    return oldest.map((t, i) => ({
-      title: t.destinationName ?? "Itinerario",
-      quote: t.whyYours ?? undefined,
-      sub: `${t.days?.length ?? 7} giorni`,
-      date: shortDate(t.createdAt),
-      img: t.heroImageUrl ?? FALLBACK_HERO_IMG,
-      href: `/itinerary/${t.id}`,
-      featured: i === 0,
-    }));
-  }, [trips]);
+    const daysWord = (n: number) => lang === "en" ? (n === 1 ? "day" : "days") : (n === 1 ? "giorno" : "giorni");
+    return oldest.map((t, i) => {
+      const n = t.days?.length ?? 7;
+      return {
+        title: t.destinationName ?? "Itinerario",
+        quote: t.whyYours ?? undefined,
+        sub: `${n} ${daysWord(n)}`,
+        date: shortDate(t.createdAt, lang),
+        img: t.heroImageUrl ?? FALLBACK_HERO_IMG,
+        href: `/itinerary/${t.id}`,
+        featured: i === 0,
+      };
+    });
+  }, [trips, lang]);
 
   // Trips per il mosaic della collezione. Niente filtri client-side qui — il
   // componente AccountCinematic ha la sua UI di filtri integrata.
   const mappedTrips = useMemo(() => trips.map(t => ({
     dest: t.destinationName ?? "Itinerario",
     quote: t.whyYours ?? "",
-    duration: `${t.days?.length ?? 7} giorni`,
-    date: shortDate(t.createdAt),
+    duration: `${t.days?.length ?? 7} ${lang === "en" ? "days" : "giorni"}`,
+    date: shortDate(t.createdAt, lang),
     continent: normalizeContinent(t.continentLabel ?? t.continent),
     img: t.heroImageUrl ?? FALLBACK_HERO_IMG,
     href: `/itinerary/${t.id}`,
-  })), [trips]);
+  })), [trips, lang]);
 
   // Stats novelistic — 4 numeri grandi. Costruite da trips + insights.
   const novelStats = useMemo(() => {
@@ -364,18 +372,24 @@ export default function MyAccount() {
     const totalDays = trips.reduce((acc, t) => acc + (Array.isArray(t.days) ? t.days.length : 0), 0);
     const destinations = new Set(trips.map(t => t.destinationName ?? "").filter(Boolean));
     if (trips.length === 0) {
-      return "Il tuo primo viaggio è ancora da scrivere. MindRoute è qui quando vorrai partire.";
+      return lang === "en"
+        ? "Your first trip is still to be written. MindRoute is here whenever you want to leave."
+        : "Il tuo primo viaggio è ancora da scrivere. MindRoute è qui quando vorrai partire.";
     }
     const n = trips.length;
     const cities = destinations.size;
-    return `Sei partito ${n} volte. Hai immaginato ${totalDays} giorni altrove, sotto ${cities} cieli diversi. Continua così.`;
-  }, [trips]);
+    return lang === "en"
+      ? `You set off ${n} times. You imagined ${totalDays} days elsewhere, under ${cities} different skies. Keep going.`
+      : `Sei partito ${n} volte. Hai immaginato ${totalDays} giorni altrove, sotto ${cities} cieli diversi. Continua così.`;
+  }, [trips, lang]);
   const statsBold = useMemo(() => {
     if (trips.length === 0) return [];
     const totalDays = trips.reduce((acc, t) => acc + (Array.isArray(t.days) ? t.days.length : 0), 0);
     const destinations = new Set(trips.map(t => t.destinationName ?? "").filter(Boolean)).size;
-    return [`${trips.length} volte`, `${totalDays} giorni`, `${destinations} cieli diversi`];
-  }, [trips]);
+    return lang === "en"
+      ? [`${trips.length} times`, `${totalDays} days`, `${destinations} different skies`]
+      : [`${trips.length} volte`, `${totalDays} giorni`, `${destinations} cieli diversi`];
+  }, [trips, lang]);
 
   // Settings: rapida lista neutrale. Email è auto-aggiunto dal componente
   // dalla AccountData.email. La maggior parte sono placeholder "href #" finché
@@ -436,11 +450,11 @@ export default function MyAccount() {
 
   return (
     <>
-      <AccountRedesign data={accountData} />
-
-      {/* Sezioni custom appendute dopo il design — preservano funzionalità
-          non coperte dal componente cinematic (Ondata B saved moments + CTA
-          compare). Stili sotto .account-cinematic-extra in account-cinematic.css. */}
+      {/* Sezioni custom (Ondata B saved moments + CTA compare) iniettate DENTRO
+          la Home della dashboard via prop homeExtra, così restano nello shell
+          (offset sidebar) invece di galleggiare a tutta larghezza sotto di esso. */}
+      <AccountDashboard data={accountData} homeExtra={
+        (savedMoments.length > 0 || trips.length >= 2) ? (
       <div className="account-cinematic-extra">
         {savedMoments.length > 0 && (
           <section>
@@ -494,6 +508,8 @@ export default function MyAccount() {
           </section>
         )}
       </div>
+        ) : null
+      } />
 
       {/* Modal "Genera dal profilo" — invariato dalla versione precedente,
           attivato dal CTA ghost della hero quando l'utente ha ≥2 snapshot. */}

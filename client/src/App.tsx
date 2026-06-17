@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Layout } from "@/components/Layout";
 import { RequireAuth } from "@/components/RequireAuth";
 import { CookieBanner } from "@/components/CookieBanner";
+import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 
@@ -43,12 +44,21 @@ function PageFallback() {
   );
 }
 
+// Home auth-aware: l'utente loggato atterra direttamente sulla dashboard
+// (MyAccount), l'anonimo sulla landing pubblica. Il vero gate resta lato
+// server; qui scegliamo solo cosa montare alla rotta "/".
+function Home() {
+  const { user, loading } = useAuth();
+  if (loading) return <PageFallback />;
+  return user ? <MyAccount /> : <Landing />;
+}
+
 function Router() {
   return (
     <Layout>
       <Suspense fallback={<PageFallback />}>
         <Switch>
-          <Route path="/" component={Landing} />
+          <Route path="/" component={Home} />
           <Route path="/come-funziona" component={HowItWorks} />
           <Route path="/profiling">
             <RequireAuth><Profiling /></RequireAuth>
