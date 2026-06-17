@@ -670,7 +670,7 @@ export function ItineraryDashboard({
   ];
 
   return (
-    <div className="account-dash">
+    <div className="account-dash itinerary-dash">
       <div className="iv-bg">
         {dayImages.map((src, i) => (
           <div key={src + i} className={"iv-bg-photo" + (activeImgIdx === i ? " active" : "")} style={{ backgroundImage: bg(src, isMobile ? 900 : 1400, 55) }} />

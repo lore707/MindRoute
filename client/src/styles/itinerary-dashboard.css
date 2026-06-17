@@ -299,8 +299,20 @@
 @media (max-width:720px){
   .account-dash .it-hero{padding:28px 18px 32px}
   .account-dash .it-trip .nm{display:none}
+  .account-dash .it-trip .cd{padding:5px 10px 5px 9px}
+  .account-dash .it-trip .cd .l{display:none}
   .account-dash .arc-rail{grid-template-columns:1fr}
   .account-dash .mh-say{text-align:left}
   .account-dash .mcard{flex-wrap:wrap}
+  .account-dash .mright{flex-direction:row;align-items:center;width:100%;justify-content:space-between;margin-top:4px}
   .account-dash .kit{grid-template-columns:1fr 1fr}
+  /* l'itinerario non ha drawer: il selettore lingua resta in topbar su mobile.
+     L'editing è raggiungibile dal kit (Panoramica), quindi nascondo cmd-edit. */
+  .account-dash.itinerary-dash .tb-pill{display:inline-flex;padding:7px 11px;font-size:12px}
+  .account-dash.itinerary-dash .cmd-edit{display:none}
+  .account-dash.itinerary-dash .topbar{padding:12px 14px;gap:8px}
+  .account-dash.itinerary-dash .it-ring{display:none}
+}
+@media (max-width:420px){
+  .account-dash.itinerary-dash .it-trip{display:none}
 }
