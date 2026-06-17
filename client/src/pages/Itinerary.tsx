@@ -20,6 +20,7 @@ import { useI18n } from "@/lib/i18n";
 import { setLastOpenedItinerary } from "@/lib/last-opened";
 import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
 import { ItineraryRedesign } from "@/components/ItineraryRedesign";
+import { ItineraryDashboard } from "@/components/ItineraryDashboard";
 
 // ── URL BUILDER ───────────────────────────────────────────────────────────────
 export function buildAffiliateUrls(destinationName: string, profilingInput: any, region: string, topLinks: Record<string, string>): Record<string, string> {
@@ -688,6 +689,9 @@ export default function Itinerary() {
   const { data: itinerary, isLoading, error, refetch } = useItinerary(id);
   const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
   const [activeTab, setActiveTab] = useState<"itin" | "book" | "overview">("itin");
+  // Vista di default = ItineraryDashboard. "Personalizza" apre l'editor
+  // collaudato (ItineraryRedesign, Modalità Cura) senza regressioni sul save.
+  const [showEditor, setShowEditor] = useState(false);
 
   // ── EDIT MODE STATE ──
   const [editMode, setEditMode] = useState(false);
@@ -953,28 +957,49 @@ export default function Itinerary() {
       </>
     );
 
+    // Editor "Modalità Cura" (ItineraryRedesign) aperto su richiesta dal pulsante
+    // Personalizza della dashboard. onBack torna alla dashboard.
+    if (showEditor) {
+      return (
+        <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
+          <ItineraryRedesign
+            data={cinematicData}
+            itinerary={itinerary}
+            affiliateUrls={affiliateUrls}
+            profilingInput={profilingInput}
+            onSavePdf={handleSavePdf}
+            onStartOver={() => setLocation("/")}
+            onBack={() => setShowEditor(false)}
+            itineraryId={itinerary.id}
+            savedMomentIds={savedMomentIds}
+            onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
+            onSaveDays={async (newDays) => {
+              const res = await fetch(`/api/itinerary/${itinerary.id}/edit`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ days: newDays }),
+              });
+              if (!res.ok) throw new Error("save failed");
+              await refetch();
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
-        <ItineraryRedesign
+        <ItineraryDashboard
           data={cinematicData}
           itinerary={itinerary}
           affiliateUrls={affiliateUrls}
           profilingInput={profilingInput}
           onSavePdf={handleSavePdf}
           onStartOver={() => setLocation("/")}
-          onBack={() => setLocation("/destinations")}
+          onEdit={() => setShowEditor(true)}
           itineraryId={itinerary.id}
           savedMomentIds={savedMomentIds}
           onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
-          onSaveDays={async (newDays) => {
-            const res = await fetch(`/api/itinerary/${itinerary.id}/edit`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ days: newDays }),
-            });
-            if (!res.ok) throw new Error("save failed");
-            await refetch();
-          }}
         />
       </div>
     );

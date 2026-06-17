@@ -5,6 +5,7 @@ import { logisticsDict } from "./i18n-dict/logistics";
 import { accountDict } from "./i18n-dict/account";
 import { accountCinDict } from "./i18n-dict/accountCin";
 import { accountDashDict } from "./i18n-dict/accountDash";
+import { itineraryDashDict } from "./i18n-dict/itineraryDash";
 import { residualDict } from "./i18n-dict/residual";
 import { miscDict } from "./i18n-dict/misc";
 
@@ -615,6 +616,7 @@ Object.assign(
   accountDict,
   accountCinDict,
   accountDashDict,
+  itineraryDashDict,
   residualDict,
   miscDict,
 );

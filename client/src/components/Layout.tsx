@@ -62,7 +62,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // La dashboard (utente loggato su "/" oppure "/my-account") porta la propria
   // app-shell (sidebar + topbar): nascondiamo la nav globale per non avere due
   // barre fisse sovrapposte.
-  const isDashboard = location === "/my-account" || (location === "/" && !!user);
+  const isItinerary = location.startsWith("/itinerary/") && !location.startsWith("/itinerary/stream");
+  const isDashboard = location === "/my-account" || isItinerary || (location === "/" && !!user);
 
   return (
     <SectionProvider>
