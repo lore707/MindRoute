@@ -85,6 +85,22 @@ export function registerMiscRoutes(app: Express) {
     }
   });
 
+  // GET /api/me/daily-pick — "una meta che ti somiglia" per la Home dashboard.
+  // Catalogo + coerenza-vettori, zero AI. null se non c'è ancora segnale.
+  app.get("/api/me/daily-pick", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const lang = req.query.lang === "it" ? "it" : "en";
+      const { computeDailyPick } = await import("../daily-pick");
+      const pick = await computeDailyPick(user.id, lang);
+      res.json(pick);
+    } catch (err) {
+      console.error("daily-pick error:", err);
+      res.status(500).json({ message: "Errore nel calcolo della meta del giorno" });
+    }
+  });
+
   // GET /api/me/portrait-card.png — Share Card 9:16 (storie IG/TikTok) col
   // Ritratto + Paradosso. Driver di crescita organica (3B). Best-effort: 404 se
   // il ritratto non è ancora disponibile (nessun segnale). `bg` opzionale = hero

@@ -45,6 +45,25 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.pick.ctaAlt":   { en: "Start the quiz →", it: "Inizia il quiz →" },
   "acd.pick.ghost":    { en: "Browse my trips", it: "Sfoglia i miei viaggi" },
 
+  // ── Home · daily pick reale (meta dal catalogo, coerenza-vettori) ───────
+  "acd.pick.realTag":  { en: "A place that's you", it: "Una meta che ti somiglia" },
+  "acd.pick.realCta":  { en: "Generate a trip like this →", it: "Genera un viaggio così →" },
+
+  // ── Home · empty state (0 viaggi) ───────────────────────────────────────
+  "acd.empty.eyebrow": { en: "Welcome to MindRoute", it: "Benvenuto su MindRoute" },
+  "acd.empty.title":   { en: "Your first trip <em>starts with you</em>.", it: "Il tuo primo viaggio <em>parte da te</em>." },
+  "acd.empty.sub":     { en: "Answer 7 questions about who you are — not about places. We turn them into a destination, a day-by-day itinerary, and bookings ready to go.", it: "Rispondi a 7 domande su chi sei — non sui luoghi. Le trasformiamo in una destinazione, un itinerario giorno per giorno e prenotazioni pronte." },
+  "acd.empty.step1":   { en: "Answer 7 questions about you", it: "Rispondi a 7 domande su di te" },
+  "acd.empty.step2":   { en: "Get 3 destinations chosen by feeling", it: "Ricevi 3 mete scelte per come ti senti" },
+  "acd.empty.step3":   { en: "A day-by-day plan, ready to book", it: "Un piano giorno per giorno, pronto da prenotare" },
+  "acd.empty.cta":     { en: "Start the quiz →", it: "Inizia il quiz →" },
+
+  // ── Home · completa le prenotazioni ─────────────────────────────────────
+  "acd.book.eyebrow":  { en: "Finish booking", it: "Completa le prenotazioni" },
+  "acd.book.title":    { en: "<em>Ready</em> to book.", it: "<em>Pronti</em> da prenotare." },
+  "acd.book.progress": { en: "{n}/{tot} booked", it: "{n}/{tot} prenotato" },
+  "acd.book.cta":      { en: "Finish →", it: "Completa →" },
+
   // ── Home · mood ─────────────────────────────────────────────────────────
   "acd.mood.title":    { en: "Start <em>from a mood</em>.", it: "Inizia <em>dall'umore</em>." },
   "acd.mood.hint":     { en: "Not sure where to go? Start from how you feel.", it: "Non sai dove andare? Parti da come ti senti." },

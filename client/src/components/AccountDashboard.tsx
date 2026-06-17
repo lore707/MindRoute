@@ -80,6 +80,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   const [ambientIdx, setAmbientIdx] = useState(0);
   const [heroIdx, setHeroIdx] = useState(0);
   const [sharing, setSharing] = useState(false);
+  const [dailyPick, setDailyPick] = useState<{ name: string; country: string; imageUrl: string; why: string } | null>(null);
 
   // Interpolatore: t() non supporta placeholder, li sostituiamo qui.
   const tx = (key: string, vars: Record<string, string | number>) => {
@@ -140,6 +141,41 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     const continents = new Set(data.trips.map(tr => tr.continent).filter(Boolean)).size || (trips ? 1 : 0);
     return { trips, days, places, continents };
   }, [data.trips, data.atlas]);
+
+  // Meta del giorno (catalogo + coerenza-vettori, server-side, zero AI).
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/me/daily-pick?lang=${lang}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled) setDailyPick(d && d.name ? d : null); })
+      .catch(() => { /* best-effort */ });
+    return () => { cancelled = true; };
+  }, [lang]);
+
+  // "Completa le prenotazioni": viaggi con checklist (localStorage) avviata ma
+  // incompleta — nudge onesto e azionabile (non mostra mai i viaggi mai aperti).
+  const MISSION_TOTAL = 5;
+  const bookingNudge = useMemo(() => {
+    const out: Array<{ title: string; href: string; img: string; booked: number; total: number }> = [];
+    for (const tr of data.trips) {
+      const m = (tr.href || "").match(/\/itinerary\/(\d+)/);
+      if (!m) continue;
+      let booked = 0, has = false;
+      try {
+        const raw = localStorage.getItem(`mindroute_checklist_${m[1]}`);
+        if (raw) {
+          has = true;
+          const p = JSON.parse(raw);
+          booked = Array.isArray(p) ? p.filter((x: any) => x?.checked).length : Object.values(p).filter(Boolean).length;
+        }
+      } catch { /* ignore */ }
+      if (has && booked > 0 && booked < MISSION_TOTAL) out.push({ title: tr.dest, href: tr.href!, img: tr.img, booked, total: MISSION_TOTAL });
+      if (out.length >= 3) break;
+    }
+    return out;
+  }, [data.trips]);
+
+  const isEmpty = data.trips.length === 0 && data.continueItems.length === 0;
 
   const plural = (n: number, oneKey: string, manyKey: string) => t(n === 1 ? oneKey : manyKey);
   const daysOf = (durationStr: string) => parseInt(durationStr) || 0;
@@ -262,6 +298,21 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
       </section>
 
       <div className="home-content">
+        {isEmpty && (
+          <section className="onboard">
+            <div className="onboard-eyebrow">{t("acd.empty.eyebrow")}</div>
+            <Html as="h2" className="onboard-title" html={t("acd.empty.title")} />
+            <p className="onboard-sub">{t("acd.empty.sub")}</p>
+            <div className="onboard-steps">
+              {["acd.empty.step1", "acd.empty.step2", "acd.empty.step3"].map((k, i) => (
+                <div key={k} className="onboard-step"><span className="n">{i + 1}</span><span className="lbl">{t(k)}</span></div>
+              ))}
+            </div>
+            <button className="btn-p" onClick={data.onNewItinerary}>{t("acd.empty.cta")}</button>
+          </section>
+        )}
+
+        {!isEmpty && (<>
         {/* Riprendi (teaser) */}
         {featured && (
           <div className="next" onClick={() => go("resume")}>
@@ -279,6 +330,30 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
           </div>
         )}
 
+        {/* Completa le prenotazioni */}
+        {bookingNudge.length > 0 && (
+          <section>
+            <div className="sec-head">
+              <div>
+                <div className="sec-eyebrow">{t("acd.book.eyebrow")}</div>
+                <Html as="h2" className="sec-title" html={t("acd.book.title")} />
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {bookingNudge.map((b, i) => (
+                <div key={i} className="next" onClick={() => setLocation(b.href)}>
+                  <div className="next-thumb" style={{ backgroundImage: bg(b.img, 280) }} />
+                  <div className="next-mid">
+                    <div className="next-k"><span className="p" />{tx("acd.book.progress", { n: b.booked, tot: b.total })}</div>
+                    <div className="next-nm">{b.title}</div>
+                  </div>
+                  <button className="next-go" onClick={(e) => { e.stopPropagation(); setLocation(b.href); }}>{t("acd.book.cta")}</button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="home-grid">
           {/* Daily pick → genera dal profilo */}
           <section>
@@ -289,19 +364,19 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
               </div>
             </div>
             <div className="pick">
-              <div className="ph" style={{ backgroundImage: bg(data.heroImg, featW) }} />
+              <div className="ph" style={{ backgroundImage: bg(dailyPick?.imageUrl || data.heroImg, featW) }} />
               <div className="pick-top">
-                <div className="pick-tag"><span className="s">✦</span>{t("acd.pick.tag")}</div>
+                <div className="pick-tag"><span className="s">✦</span>{dailyPick ? t("acd.pick.realTag") : t("acd.pick.tag")}</div>
               </div>
               <div className="pick-body">
-                <div className="pick-meta">{t("acd.pick.meta")}</div>
-                <div className="pick-nm">{t("acd.pick.name")}</div>
+                <div className="pick-meta">{dailyPick ? dailyPick.country : t("acd.pick.meta")}</div>
+                <div className="pick-nm">{dailyPick ? dailyPick.name : t("acd.pick.name")}</div>
                 <div className="pick-why">
                   <div className="k">{t("acd.pick.whyK")}</div>
-                  <div className="t">{data.portrait?.narrative?.portrait ?? data.profileQuote ?? t("acd.pick.whyFallback")}</div>
+                  <div className="t">{dailyPick ? dailyPick.why : (data.portrait?.narrative?.portrait ?? data.profileQuote ?? t("acd.pick.whyFallback"))}</div>
                 </div>
                 <div className="pick-act">
-                  <button className="btn-p" onClick={data.onSecondaryCta}>{t("acd.pick.cta")}</button>
+                  <button className="btn-p" onClick={data.onSecondaryCta}>{dailyPick ? t("acd.pick.realCta") : t("acd.pick.cta")}</button>
                   <button className="btn-g" onClick={data.onNewItinerary}>{t("acd.pick.ctaAlt")}</button>
                 </div>
               </div>
@@ -344,6 +419,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
         </div>
 
         {homeExtra && <div className="home-extra">{homeExtra}</div>}
+        </>)}
       </div>
     </div>
   );
