@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { MessageCircle, X, Send } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { fetchMe } from "@/hooks/use-auth";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 
 type Msg = { role: "user" | "assistant" | "tool"; content: string };
@@ -40,10 +41,7 @@ export function CompanionDock() {
   const coordsRef = useRef<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then(r => r.ok ? r.json() : null)
-      .then(u => setLoggedIn(!!u))
-      .catch(() => setLoggedIn(false));
+    fetchMe().then(u => setLoggedIn(!!u));
   }, []);
 
   // Re-resolve the trip whenever the route changes.

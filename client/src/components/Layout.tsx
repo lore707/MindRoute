@@ -7,7 +7,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { BackgroundLayers } from "@/components/BackgroundLayers";
 import { CompanionDock } from "@/components/CompanionDock";
 import { SectionProvider } from "@/lib/sectionContext";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, fetchMe } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { User } from "lucide-react";
 
@@ -17,10 +17,7 @@ function AuthButton() {
   const { t } = useI18n();
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then(r => r.ok ? r.json() : null)
-      .then(data => setUser(data))
-      .catch(() => setUser(null));
+    fetchMe().then(data => setUser(data));
   }, []);
 
   useEffect(() => {

@@ -9,6 +9,7 @@ import { type PortraitData } from "@/components/AccountPortrait";
 import { type AtlasData } from "@/components/AccountAtlas";
 import { deriveTraitLabels } from "@/lib/trait-labels";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
+import { fetchMe } from "@/hooks/use-auth";
 import { setFlow } from "@/lib/flow-storage";
 import { unsplashSized } from "@/lib/img";
 import type { TraitVector } from "@shared/traits";
@@ -140,10 +141,7 @@ export default function MyAccount() {
     // ── Percorso critico: auth + viaggi. Sbloccano subito il render (hero +
     // collezione). Tutto il resto è sotto la piega e viene idratato dopo, così
     // non compete col primo paint per rete e pool DB.
-    fetch("/api/auth/me")
-      .then(r => r.ok ? r.json() : null)
-      .then(data => setUser(data))
-      .catch(() => setUser(null));
+    fetchMe().then(data => setUser(data));
 
     let cancelled = false;
     fetch("/api/my-trips")
