@@ -28,12 +28,26 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
   : ["http://localhost:5000", "http://localhost:5173"];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS: origin ${origin} not allowed`));
-  },
-  credentials: true,
+// Vite marks the JS/CSS tags as `crossorigin`, so the browser fetches the
+// bundle in CORS mode even though it's same-origin — meaning the response MUST
+// carry Access-Control-Allow-Origin or the browser blocks it. We therefore:
+//   1) reflect same-origin requests (Origin host === Host) so the app's own
+//      assets work on ANY domain it's served from (onrender.com, mindroute.co,
+//      future domains/CDN) without touching an env allowlist;
+//   2) keep ALLOWED_ORIGINS for genuine cross-origin API consumers;
+//   3) NEVER throw on a disallowed origin — returning an Error here surfaced as
+//      a 500 on every crossorigin asset for unlisted hosts (custom-domain bug).
+//      We omit the CORS headers instead: a clean block, not a 500.
+app.use(cors((req, callback) => {
+  const origin = req.headers.origin;
+  let allow = false;
+  if (!origin) {
+    allow = true; // same-origin navigation / non-CORS request
+  } else {
+    try { allow = new URL(origin).host === req.headers.host; } catch { /* malformed Origin */ }
+    if (!allow && allowedOrigins.includes(origin)) allow = true;
+  }
+  callback(null, { origin: allow, credentials: true });
 }));
 const httpServer = createServer(app);
 const PgSession = connectPgSimple(session);
