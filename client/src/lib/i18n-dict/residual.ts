@@ -1,6 +1,7 @@
 export const residualDict: Record<string, { en: string; it: string }> = {
   // ── Layout ────────────────────────────────────────────────────────────────
   "res.layout.signIn": { en: "Sign in", it: "Accedi" },
+  "res.layout.account": { en: "Your account", it: "Il tuo account" },
 
   // ── RequireAuth ───────────────────────────────────────────────────────────
   "res.auth.title": { en: "Sign in to continue", it: "Accedi per continuare" },

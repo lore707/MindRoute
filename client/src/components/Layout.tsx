@@ -26,10 +26,10 @@ function AuthButton() {
 
   if (user) {
     return (
-      <a href="/my-account" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+      <a href="/my-account" aria-label={user.name || t("res.layout.account")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
         {user.avatar
-          ? <img src={user.avatar} className="w-7 h-7 rounded-full border border-[#E94560]/30" />
-          : <div className="w-7 h-7 rounded-full bg-[#E94560] flex items-center justify-center text-white text-[11px] font-bold">{user.name?.[0]}</div>
+          ? <img src={user.avatar} alt="" aria-hidden="true" className="w-7 h-7 rounded-full border border-[#E94560]/30" />
+          : <div aria-hidden="true" className="w-7 h-7 rounded-full bg-[#E94560] flex items-center justify-center text-white text-[11px] font-bold">{user.name?.[0]}</div>
         }
         <span className="hidden sm:inline text-[12px] font-medium transition-colors" style={{ color: "#E94560" }}>
           {user.name?.split(" ")[0]}
@@ -41,10 +41,11 @@ function AuthButton() {
   return (
     <a
       href={`/auth/google?returnTo=${encodeURIComponent(currentPath)}`}
+      aria-label={t("res.layout.signIn")}
       className="flex items-center gap-1.5 text-[12px] font-medium transition-colors"
       style={{ color: "#E94560" }}
     >
-      <User className="w-4 h-4" />
+      <User className="w-4 h-4" aria-hidden="true" />
       <span className="hidden sm:inline">{t("res.layout.signIn")}</span>
     </a>
   );
