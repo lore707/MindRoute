@@ -21,6 +21,18 @@ const authRateLimit = rateLimit({
   message: { message: "Troppi tentativi, riprova tra 15 minuti." },
 });
 
+// Il redirect_uri OAuth deve seguire il dominio da cui arriva l'utente, non
+// essere fisso: altrimenti chi entra da mindroute.co viene rimandato da Google
+// sul dominio dell'env (onrender) e finisce loggato sul dominio sbagliato.
+// trust proxy:1 fa sì che protocol=https e host=dominio pubblico su Render.
+// NB: ogni host pubblico va aggiunto agli "Authorized redirect URIs" in Google
+// Cloud Console. L'env GOOGLE_CALLBACK_URL resta come fallback (host assente).
+function callbackURLFor(req: any): string {
+  const host = req.get?.("host");
+  if (host) return `${req.protocol || "https"}://${host}/auth/google/callback`;
+  return process.env.GOOGLE_CALLBACK_URL || "http://localhost:5000/auth/google/callback";
+}
+
 export function setupAuth(app: any) {
   passport.use(
     new GoogleStrategy(
@@ -65,13 +77,20 @@ app.get("/auth/google", authRateLimit, (req: any, res: any, next: any) => {
     req.session.returnTo = returnTo;
     passport.authenticate("google", {
       scope: ["profile", "email"],
-      prompt: "select_account"
-    })(req, res, next);
+      prompt: "select_account",
+      callbackURL: callbackURLFor(req),
+    } as any)(req, res, next);
   });
 
   app.get(
     "/auth/google/callback",
-    passport.authenticate("google", { failureRedirect: "/" }),
+    // callbackURL dev'essere identico a quello dell'andata (Google valida il
+    // redirect_uri allo scambio del code) → ricalcolato dallo stesso host.
+    (req: any, res: any, next: any) =>
+      passport.authenticate("google", {
+        failureRedirect: "/",
+        callbackURL: callbackURLFor(req),
+      } as any)(req, res, next),
   (req: any, res: any) => {
       // No PII in logs: non logghiamo user/email/sessione. Solo errori di save.
       const returnTo = req.session.returnTo || "/";
