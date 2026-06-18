@@ -54,7 +54,11 @@ export function setupAuth(app: any) {
             avatar: profile.photos?.[0]?.value ?? null,
             createdAt: new Date().toISOString(),
           }).returning();
-          return done(null, newUser[0]);
+          // Flag effimero (vive solo per questa richiesta: serializeUser salva
+          // solo l'id, deserializeUser rilegge la riga senza il flag). Lo usa il
+          // callback per mandare un utente NUOVO dritto al quiz invece che a una
+          // dashboard vuota.
+          return done(null, { ...newUser[0], isNewSignup: true });
         } catch (err) {
           return done(err as Error);
         }
@@ -93,11 +97,14 @@ app.get("/auth/google", authRateLimit, (req: any, res: any, next: any) => {
       } as any)(req, res, next),
   (req: any, res: any) => {
       // No PII in logs: non logghiamo user/email/sessione. Solo errori di save.
+      // Utente nuovo → quiz (onboarding), non la dashboard vuota. Per chi ha già
+      // un profilo si rispetta il returnTo (dove stava prima del login).
       const returnTo = req.session.returnTo || "/";
       delete req.session.returnTo;
+      const dest = req.user?.isNewSignup ? "/profiling" : returnTo;
       req.session.save((err: any) => {
         if (err) console.error("Session save error:", err);
-        res.redirect(returnTo);
+        res.redirect(dest);
       });
     }
   );
