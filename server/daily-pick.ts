@@ -8,7 +8,28 @@
 import { storage } from "./storage";
 import { destinationCatalog } from "./destination-catalog";
 import { getDestinationTraitVector, destinationCoherence } from "./destination-traits";
+import { fetchUnsplashHero } from "./unsplash";
 import { emaAggregate, AXIS_NAMES, MAPPING_VERSION, type TraitVector, type Axis } from "@shared/traits";
+
+// Per-destination hero, cached per day. The catalog stores a single frozen
+// photo ID per destination, which over time reads as a tired/weak image. We
+// instead pull a quality-filtered, popularity-ranked hero for the chosen
+// destination (one Unsplash call per destination per day, memoised here) and
+// fall back to the curated catalog URL whenever the API is unavailable.
+const heroCache = new Map<string, string>();
+async function dailyHero(name: string, dayKey: number, fallback: string): Promise<string> {
+  const cacheKey = `${name}|${dayKey}`;
+  const cached = heroCache.get(cacheKey);
+  if (cached) return cached;
+  let url = fallback;
+  try {
+    const hero = await fetchUnsplashHero(name);
+    if (hero?.url) url = hero.url;
+  } catch { /* keep the curated fallback */ }
+  heroCache.set(cacheKey, url);
+  if (heroCache.size > 64) heroCache.delete(heroCache.keys().next().value as string);
+  return url;
+}
 
 export interface DailyPick {
   name: string;
@@ -71,7 +92,7 @@ export async function computeDailyPick(userId: number, lang: "en" | "it"): Promi
   return {
     name: pick.d.name,
     country: pick.d.country,
-    imageUrl: pick.d.imageUrl,
+    imageUrl: await dailyHero(pick.d.name, dayOfYear, pick.d.imageUrl),
     why: buildWhy(user, lang),
     coherence: Math.round(pick.score * 100) / 100,
   };

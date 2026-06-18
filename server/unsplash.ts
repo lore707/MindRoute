@@ -13,6 +13,26 @@
  *     waves to stay under Unsplash's per-second burst throttle.
  */
 
+/**
+ * Pick the best photo out of a relevance-ordered Unsplash result set.
+ *
+ * Unsplash already sorts `search` by relevance, so blindly taking results[0]
+ * gives the most-on-topic photo — but often a mediocre/awkward one. We keep
+ * relevance by only looking at the top few, then prefer the most-liked among
+ * them (likes are a solid proxy for "polished, well-composed, not junk").
+ * Photos with almost no engagement are skipped unless nothing better exists.
+ */
+function pickBestPhoto<T extends { likes?: number }>(results: T[] | undefined): T | null {
+  if (!Array.isArray(results) || results.length === 0) return null;
+  const top = results.slice(0, 5);
+  // Highest-liked within the top relevance band.
+  const best = top.reduce((b, p) => ((p?.likes ?? 0) > (b?.likes ?? 0) ? p : b), top[0]);
+  return best ?? top[0];
+}
+
+// Unsplash quality/safety filter — keeps out flagged/low-grade content.
+const QUALITY = "content_filter=high";
+
 export async function fetchUnsplashHero(destinationName: string): Promise<{ url: string; photographer: string; photographerUrl: string } | null> {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   if (!key) return null;
@@ -35,13 +55,14 @@ export async function fetchUnsplashHero(destinationName: string): Promise<{ url:
   async function searchUnsplash(query: string): Promise<{ url: string; photographer: string; photographerUrl: string } | null> {
     try {
       const res = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=3`,
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=8&${QUALITY}`,
         { headers: { Authorization: `Client-ID ${key}` } }
       );
       if (!res.ok) return null;
       const data = await res.json();
       if (data.results && data.results.length > 0) {
-        const photo = data.results[0];
+        const photo = pickBestPhoto(data.results as any[]);
+        if (!photo) return null;
         // Build a right-sized hero (~1600px webp) from `raw` instead of `full`
         // (which is multi-MB) — same photo, a fraction of the bytes.
         const raw = photo.urls?.raw as string | undefined;
@@ -134,13 +155,13 @@ export async function fetchDayImageWithFallback(query: string | null | undefined
 
   const tryQuery = async (q: string): Promise<string | null> => {
     if (!q || q.trim().length < 2) return null;
-    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q.trim())}&orientation=landscape&per_page=1`;
+    const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q.trim())}&orientation=landscape&per_page=5&${QUALITY}`;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const r = await fetch(url, { headers: { Authorization: `Client-ID ${key}` } });
         if (r.ok) {
           const d = await r.json();
-          return d.results?.[0]?.urls?.regular ?? null;
+          return pickBestPhoto(d.results as any[])?.urls?.regular ?? null;
         }
         if (r.status === 429 || r.status >= 500) {
           if (attempt < 2) {
@@ -242,7 +263,7 @@ export async function searchUnsplashMulti(
 ): Promise<Array<{ id: string; url: string; photographer: string; photographerUrl: string }>> {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   if (!key) return [];
-  const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=${perPage}`;
+  const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&orientation=landscape&per_page=${perPage}&${QUALITY}`;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const r = await fetch(url, { headers: { Authorization: `Client-ID ${key}` } });
