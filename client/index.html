@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <!-- Warm the connection to the image CDN early: the LCP hero is an Unsplash
+         photo, so saving DNS+TCP+TLS setup shaves real time off first paint,
+         especially from slow in-app browsers (TikTok/IG). No crossorigin —
+         images are fetched no-CORS as background-image/<img>. -->
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
     <!--OG:START-->
     <title>MindRoute — Travel starts with who you are</title>
     <meta name="description" content="Answer a short quiz and get a day-by-day trip designed around who you are. MindRoute — travel starts with who you are." />

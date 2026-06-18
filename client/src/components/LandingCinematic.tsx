@@ -139,17 +139,39 @@ export function LandingCinematic({ data, mode = "landing" }: { data: LandingData
     return () => { window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
   }, []);
 
-  // Preload — decode hero + final photos in the background so the crossfade
-  // never shows a blank/black flash. Browsers cache the bytes; second paint is
-  // instant. Limited to hero+final because those are the slots that auto-cycle;
-  // steps/destinations are static so the browser already lazy-loads them.
+  // Preload strategy tuned for LCP. The first hero is the LCP element (a CSS
+  // background-image, so it can't carry fetchpriority/loading attributes) — we
+  // give it a high-priority <link rel=preload> so the browser fetches it as
+  // soon as the connection is warm. The remaining hero/final photos only feed
+  // the auto-crossfade, so we defer them to idle: warming all ~10 at t=0 floods
+  // mobile bandwidth and competes with the one image the user is waiting for.
   useEffect(() => {
-    const toPreload = [...data.heroPhotos.map(p => bgFull(p.img)), ...data.finalPhotos.map(p => bgFull(p.img))];
-    toPreload.forEach(src => {
-      const img = new Image();
-      img.decoding = "async";
-      img.src = src;
-    });
+    if (!data.heroPhotos.length) return;
+    const firstHero = bgFull(data.heroPhotos[0].img);
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = firstHero;
+    link.setAttribute("fetchpriority", "high");
+    document.head.appendChild(link);
+
+    // Warm the rest once the browser is idle (or after a short fallback delay),
+    // so they never block the LCP image.
+    const rest = [...data.heroPhotos.slice(1), ...data.finalPhotos].map(p => bgFull(p.img));
+    let warmed = false;
+    const warm = () => {
+      if (warmed) return;
+      warmed = true;
+      rest.forEach(src => { const img = new Image(); img.decoding = "async"; img.src = src; });
+    };
+    const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, o?: any) => number);
+    const idleId = ric ? ric(warm, { timeout: 2500 }) : 0;
+    const timerId = window.setTimeout(warm, 1800);
+    return () => {
+      window.clearTimeout(timerId);
+      if (ric && (window as any).cancelIdleCallback) (window as any).cancelIdleCallback(idleId);
+      link.remove();
+    };
   }, [data.heroPhotos, data.finalPhotos]);
 
   // Float particles for final
