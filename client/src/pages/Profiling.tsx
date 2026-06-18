@@ -1,5 +1,8 @@
 ﻿import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+// CSS del quiz, code-split su questa route lazy (vedi index.css).
+import "@/styles/quiz-cinematic.css";
+import "@/styles/quiz-logistics.css";
 import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, ChevronDown, Moon, Sun, HelpCircle as QuestionIcon, Leaf, Volume2, Zap, Heart, User, Sparkles, Landmark, Compass, Home, Globe, Plane, UtensilsCrossed, Waves, Building2, Tent, Car, Mountain, Flower2, Dice5, Camera, Search, Battery, Wind, Bird, Eye, Bus, Users, Clock, MessageCircle, Footprints, PiggyBank, Timer, Star, Coffee, Sunset } from "lucide-react";
 import { useSubmitProfiling } from "@/hooks/use-profiling";
 import { useToast } from "@/hooks/use-toast";

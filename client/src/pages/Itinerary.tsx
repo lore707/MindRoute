@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useRoute, useLocation } from "wouter";
+// CSS dell'area itinerario, code-split su questa route lazy (vedi index.css).
+import "@/styles/account-dashboard.css";
+import "@/styles/itinerary-dashboard.css";
+import "@/styles/itinerary-cinematic.css";
+import "@/styles/itinerary-redesign.css";
 import { useItinerary, useMapPointsPolling } from "@/hooks/use-profiling";
 import { motion } from "framer-motion";
 import {

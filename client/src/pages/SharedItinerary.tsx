@@ -10,6 +10,9 @@
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/lib/i18n";
+// CSS dell'itinerario (ItineraryRedesign→ItineraryCinematic), code-split qui.
+import "@/styles/itinerary-redesign.css";
+import "@/styles/itinerary-cinematic.css";
 import { ItineraryRedesign } from "@/components/ItineraryRedesign";
 import { mapItineraryToCinematic, buildAffiliateUrls, detectRegion } from "@/pages/Itinerary";
 

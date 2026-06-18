@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
+// CSS dell'area account, code-split su questa route lazy (vedi nota in index.css).
+import "leaflet/dist/leaflet.css";
+import "@/styles/account-dashboard.css";
+import "@/styles/account-cinematic.css";
+import "@/styles/account-portrait.css";
+import "@/styles/account-atlas.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Heart, GitCompare } from "lucide-react";
 import { type AccountData } from "@/components/AccountCinematic";

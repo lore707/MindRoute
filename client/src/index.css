@@ -1,16 +1,11 @@
 /* Fonts are self-hosted via @fontsource imports in main.tsx (no render-blocking
    Google round-trip). Do not re-add a remote @import here. */
-@import "leaflet/dist/leaflet.css";
-@import "./styles/itinerary-cinematic.css";
-@import "./styles/account-cinematic.css";
-@import "./styles/account-portrait.css";
-@import "./styles/account-atlas.css";
-@import "./styles/account-redesign.css";
-@import "./styles/account-dashboard.css";
-@import "./styles/itinerary-dashboard.css";
+/* Feature stylesheets are imported per-route, at the top of the lazy page that
+   renders them (MyAccount, Itinerary, SharedItinerary, Profiling), so Vite
+   code-splits each into its route chunk. This keeps the landing's critical,
+   render-blocking CSS small (was ~67KB with ~62KB unused on "/"). Only
+   landing-cinematic stays global: the landing route is eager and needs it. */
 @import "./styles/landing-cinematic.css";
-@import "./styles/quiz-cinematic.css";
-@import "./styles/quiz-logistics.css";
 
 @tailwind base;
 @tailwind components;
