@@ -1,0 +1,14 @@
+# MindRoute
+
+MindRoute è un servizio di raccomandazione viaggi: rispondi a un breve quiz di
+profilazione, un motore AI sceglie la destinazione che ti somiglia e genera un
+itinerario giorno-per-giorno con prenotazioni pronte.
+
+## Pagine principali
+- [Home](https://mindroute.co/): inizia il quiz
+- [Come funziona](https://mindroute.co/come-funziona): il metodo in 3 passi
+- [Privacy](https://mindroute.co/privacy): trattamento dati
+
+## Note
+- Prodotto IT/EN. Il cuore è il quiz di profilazione → matching → itinerario.
+- Contatti: Instagram/TikTok @mindroute.travel
