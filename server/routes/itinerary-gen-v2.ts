@@ -12,7 +12,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { itineraryLimiter } from "../rate-limiter";
 import { generateItineraryV2ForDestination, type ItineraryV2 } from "../matching-engine-v2";
-import { fetchUnsplashHero, fetchMomentImage, fetchDayImageWithFallback, mapWithConcurrency } from "../unsplash";
+import { fetchUnsplashHero, fetchMomentImage, fetchDayImageWithFallback, buildDestinationPhotoPool, mapWithConcurrency } from "../unsplash";
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";

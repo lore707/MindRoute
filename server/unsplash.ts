@@ -66,7 +66,52 @@ export async function fetchUnsplashHero(destinationName: string): Promise<{ url:
     if (result) return result;
   }
 
-  return searchUnsplash("tropical island paradise landscape");
+  // Fallback GEO-coerente: il nome città/paese nudo quasi sempre rende qualcosa
+  // sul posto. Niente più "tropical island paradise" (dava spiagge a caso anche
+  // per Reykjavík → immagini nonsense).
+  if (city) { const r = await searchUnsplash(city); if (r) return r; }
+  if (country) { const r = await searchUnsplash(country); if (r) return r; }
+  return null;
+}
+
+/**
+ * Costruisce un POOL di foto reali DISTINTE per una destinazione, in poche
+ * chiamate (per_page alto), deduplicate per ID. Serve ad assegnare un'immagine
+ * DIVERSA a hero + ogni card-giorno senza ripetizioni e con poche richieste
+ * (vs decine di search per_page=1 che ritornano lo stesso top-result e
+ * saturano il rate-limit del free tier). Query CONCRETE (città/paese), così le
+ * foto sono sempre on-topic. Ogni url è già dimensionato a ~1080px.
+ */
+export async function buildDestinationPhotoPool(
+  destinationName: string,
+  want = 24,
+): Promise<Array<{ id: string; url: string }>> {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  if (!key) return [];
+  const parts = destinationName.split(",").map(s => s.trim());
+  const city = parts[0] ?? destinationName;
+  const country = parts[1] ?? "";
+  const queries = [
+    `${city} ${country}`.trim(),
+    `${city} cityscape`.trim(),
+    `${city} landmark`.trim(),
+    `${city} street`.trim(),
+    `${city} nature landscape`.trim(),
+    `${country} landscape travel`.trim(),
+  ].filter(q => q.length > 2);
+
+  const used = new Set<string>();
+  const pool: Array<{ id: string; url: string }> = [];
+  for (const q of queries) {
+    if (pool.length >= want) break;
+    const photos = await searchUnsplashMulti(q, used, 12);
+    for (const p of photos) {
+      if (used.has(p.id)) continue;
+      used.add(p.id);
+      pool.push({ id: p.id, url: p.url });
+    }
+  }
+  return pool;
 }
 
 /**
