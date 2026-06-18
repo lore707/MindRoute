@@ -754,6 +754,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
       <main className="main">
         {/* Topbar */}
         <div className={"topbar" + (stuck ? " stuck" : "")}>
+          <button className="tb-brand" onClick={() => go("home")} title="MindRoute"><Compass size={20} color="#E94560" /></button>
           <div className="tb-search">
             <Icon name="search" />
             <input placeholder={t("acd.tb.search")} value={q} onChange={e => onTopSearch(e.target.value)} />
@@ -762,6 +763,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
           <button className="tb-pill" onClick={toggleLang}>{lang === "it" ? "🇮🇹 Italiano" : "🇬🇧 English"} ⌄</button>
           <button className="btn-g" onClick={data.onSecondaryCta}>{t("acd.tb.fromProfile")}</button>
           <button className="tb-cta" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>
+          <button className="tb-av-m" onClick={() => setDrawer(true)} title={data.userName}>{data.avatarInitial ?? data.userName[0]}</button>
         </div>
 
         {view === "home" && HomeView()}
@@ -770,6 +772,15 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
         {view === "trips" && CollectionView()}
         {view === "atlas" && AtlasView()}
       </main>
+
+      <nav className="mnav">
+        {NAV.map(n => (
+          <button key={n.id} className={"mnav-i" + (view === n.id ? " on" : "")} onClick={() => go(n.id)}>
+            <Icon name={n.ic} />
+            <span className="lab">{t(n.key)}</span>
+          </button>
+        ))}
+      </nav>
 
       {Drawer()}
     </div>

@@ -39,6 +39,7 @@ export const itineraryDashDict: Record<string, { en: string; it: string }> = {
   "itd.days.titleOne":{ en: "<em>One day</em>, one story.", it: "<em>Un giorno</em>, una storia." },
   "itd.days.sub":     { en: "Tap a day to open it. Every moment is a real, bookable place.", it: "Tocca un giorno per aprirlo. Ogni momento è un luogo reale e prenotabile." },
   "itd.day.expand":   { en: "Open the day →", it: "Apri il giorno →" },
+  "itd.day.collapse": { en: "Close ▲", it: "Chiudi ▲" },
   "itd.day.tlKick":   { en: "The day's rhythm", it: "Il ritmo della giornata" },
   "itd.dd.prev":      { en: "Previous", it: "Precedente" },
   "itd.dd.next":      { en: "Next", it: "Successivo" },

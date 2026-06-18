@@ -316,3 +316,63 @@
 @media (max-width:420px){
   .account-dash.itinerary-dash .it-trip{display:none}
 }
+
+/* ════════════════════════════════════════════════════════════
+   ACCORDION GIORNI
+   Il dettaglio del giorno viene reso INLINE subito dopo la card
+   aperta (non più in fondo alla lista). Span full-width così su
+   desktop scende a tutta riga sotto la card, su mobile resta
+   incolonnato sotto la card toccata.
+   ════════════════════════════════════════════════════════════ */
+.account-dash .arc-rail .day-detail{grid-column:1/-1;margin-top:2px}
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE (bottom-nav shell) — itinerario
+   ════════════════════════════════════════════════════════════ */
+@media (max-width:767px){
+  /* brand/back nella topbar (mobile): torna all'account */
+  .account-dash.itinerary-dash .tb-brand svg{width:20px;height:20px}
+
+  /* hero più compatto + fatti in griglia 2×2 */
+  .account-dash.itinerary-dash .it-hero{padding:24px 18px 30px;min-height:300px}
+  .account-dash.itinerary-dash .it-hero-title{font-size:clamp(44px,15vw,68px)}
+  .account-dash.itinerary-dash .it-hero-sub{font-size:16px}
+  .account-dash.itinerary-dash .it-facts{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin-top:22px}
+  .account-dash.itinerary-dash .it-fact + .it-fact{padding-left:0;border-left:0}
+  .account-dash.itinerary-dash .it-fact .n{font-size:26px}
+
+  /* why: niente più due colonne, quote più piccola */
+  .account-dash.itinerary-dash .why-quote{font-size:23px;line-height:1.34;padding-left:20px}
+  .account-dash.itinerary-dash .why-quote::before{font-size:64px;top:-16px}
+
+  /* accordion: la card aperta si "salda" al dettaglio sotto */
+  .account-dash.itinerary-dash .day:hover{transform:none}
+  .account-dash.itinerary-dash .day.open{border-bottom-left-radius:8px;border-bottom-right-radius:8px}
+  .account-dash.itinerary-dash .arc-rail .day-detail{border-top-left-radius:8px;border-top-right-radius:8px;margin-top:0}
+
+  /* day detail impilato */
+  .account-dash.itinerary-dash .day-detail{border-radius:18px}
+  .account-dash.itinerary-dash .dd-focus-photo{height:212px}
+  .account-dash.itinerary-dash .dd-focus-body{padding:20px 18px 24px}
+  .account-dash.itinerary-dash .dd-focus-name{font-size:25px;margin-bottom:12px}
+  .account-dash.itinerary-dash .dd-actions{flex-direction:column;align-items:stretch;gap:12px}
+  .account-dash.itinerary-dash .dd-actions .dd-book{width:100%;justify-content:center}
+  .account-dash.itinerary-dash .dd-nav{padding:14px 16px}
+  .account-dash.itinerary-dash .dd-nav button{padding:9px 12px;font-size:11px}
+
+  /* route map: testo / mappa / legenda impilati invece che sovrapposti */
+  .account-dash.itinerary-dash .route-wrap{display:flex;flex-direction:column;border-radius:18px}
+  .account-dash.itinerary-dash .route-overlay{position:static;order:0;max-width:none;padding:20px 18px 4px}
+  .account-dash.itinerary-dash .route-overlay .rt{font-size:21px}
+  .account-dash.itinerary-dash .route-svg{order:1}
+  .account-dash.itinerary-dash .route-legend{position:static;order:2;left:auto;bottom:auto;
+    padding:14px 18px 18px;gap:14px 18px;border-top:1px solid var(--stroke)}
+
+  /* missioni: percentuale + card a piena larghezza */
+  .account-dash.itinerary-dash .mission-hero{padding:24px 18px 22px}
+  .account-dash.itinerary-dash .mh-top{flex-direction:column;align-items:flex-start;gap:14px}
+  .account-dash.itinerary-dash .mbtn{flex:1;justify-content:center}
+
+  /* trip kit 2×2 */
+  .account-dash.itinerary-dash .kit{grid-template-columns:1fr 1fr;gap:10px;margin-top:24px}
+}

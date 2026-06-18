@@ -15,7 +15,7 @@
  * descrizioni dei momenti) arrivano già nella lingua dell'utente.
  * ─────────────────────────────────────────────────────────────── */
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import {
   Compass, Layers, CalendarDays, Map as MapIcon, Backpack, Ticket,
@@ -343,76 +343,81 @@ export function ItineraryDashboard({
         <div className="content">
           <div className="arc-rail">
             {days.map(d => (
-              <div
-                key={d.n}
-                className={"day" + (openDay === d.n ? " open" : "")}
-                onClick={() => { setOpenDay(d.n); setActiveDay(d.n); setActiveMoment(0); }}
-              >
-                <div className="day-num">{d.n}</div>
-                <div className="day-photo" style={{ backgroundImage: bg(d.img, cardW) }}>
-                  {d.arc && <div className="day-act">{d.arc}</div>}
-                </div>
-                <div className="day-body">
-                  <div className="day-kick">{tx("itd.mis.day", { n: d.n })}</div>
-                  <div className="day-name">{d.title}</div>
-                  <div className="day-foot">
-                    <span>{(data.momentsByDay[d.n]?.length ?? 0)} {t("itd.fact.moments")}</span>
-                    <span className="expand">{t("itd.day.expand")}</span>
+              <Fragment key={d.n}>
+                <div
+                  className={"day" + (openDay === d.n ? " open" : "")}
+                  onClick={() => {
+                    const next = openDay === d.n ? null : d.n;
+                    setOpenDay(next);
+                    if (next != null) { setActiveDay(next); setActiveMoment(0); }
+                  }}
+                >
+                  <div className="day-num">{d.n}</div>
+                  <div className="day-photo" style={{ backgroundImage: bg(d.img, cardW) }}>
+                    {d.arc && <div className="day-act">{d.arc}</div>}
+                  </div>
+                  <div className="day-body">
+                    <div className="day-kick">{tx("itd.mis.day", { n: d.n })}</div>
+                    <div className="day-name">{d.title}</div>
+                    <div className="day-foot">
+                      <span>{(data.momentsByDay[d.n]?.length ?? 0)} {t("itd.fact.moments")}</span>
+                      <span className="expand">{openDay === d.n ? t("itd.day.collapse") : t("itd.day.expand")}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+
+                {openDay === d.n && openDayObj && dayMoments.length > 0 && m && (
+                  <div className="day-detail">
+                    <div className="dd-top">
+                      <div className="dd-timeline">
+                        <div className="dd-tl-kick">{t("itd.day.tlKick")}</div>
+                        {dayMoments.map((mm, i) => (
+                          <div key={i} className={"dd-slot" + (i === activeMoment ? " on" : "")} onClick={() => setActiveMoment(i)}>
+                            <span className="dot" />
+                            <div className="when">{mm.t}</div>
+                            <div className="what">{mm.title}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="dd-focus">
+                        <div className="dd-focus-photo" style={{ backgroundImage: bg(m.imageUrl || openDayObj.img, cardW) }}>
+                          <div className="dd-focus-tag">{m.t}</div>
+                        </div>
+                        <div className="dd-focus-body">
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                            <h3 className="dd-focus-name" style={{ flex: 1 }}>{m.title}</h3>
+                            {onToggleSaved && itineraryId && m.id && (
+                              <button
+                                className={"dd-fav" + (savedMomentIds?.has(m.id) ? " on" : "")}
+                                title={t("itd.dd.save")}
+                                onClick={() => onToggleSaved(m.id!, m)}
+                              >
+                                <Heart size={16} fill={savedMomentIds?.has(m.id) ? "currentColor" : "none"} />
+                              </button>
+                            )}
+                          </div>
+                          {m.desc && <p className="dd-focus-desc">{m.desc}</p>}
+                          <div className="dd-actions">
+                            {m.cta && m.ctaUrl && (
+                              <a className="dd-book" href={m.ctaUrl} target="_blank" rel="noopener noreferrer">
+                                {m.cta}{m.ctaPrice && <span className="price">· {m.ctaPrice}</span>}
+                                <ExternalLink size={13} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="dd-nav">
+                      <button disabled={activeMoment === 0} onClick={() => setActiveMoment(i => Math.max(0, i - 1))}>← {t("itd.dd.prev")}</button>
+                      <span className="ctr">{t("itd.dd.moment")} <em>{activeMoment + 1}</em> {t("itd.dd.of")} {dayMoments.length}</span>
+                      <button disabled={activeMoment >= dayMoments.length - 1} onClick={() => setActiveMoment(i => Math.min(dayMoments.length - 1, i + 1))}>{t("itd.dd.next")} →</button>
+                    </div>
+                  </div>
+                )}
+              </Fragment>
             ))}
           </div>
-
-          {openDayObj && dayMoments.length > 0 && m && (
-            <div className="day-detail">
-              <div className="dd-top">
-                <div className="dd-timeline">
-                  <div className="dd-tl-kick">{t("itd.day.tlKick")}</div>
-                  {dayMoments.map((mm, i) => (
-                    <div key={i} className={"dd-slot" + (i === activeMoment ? " on" : "")} onClick={() => setActiveMoment(i)}>
-                      <span className="dot" />
-                      <div className="when">{mm.t}</div>
-                      <div className="what">{mm.title}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="dd-focus">
-                  <div className="dd-focus-photo" style={{ backgroundImage: bg(m.imageUrl || openDayObj.img, cardW) }}>
-                    <div className="dd-focus-tag">{m.t}</div>
-                  </div>
-                  <div className="dd-focus-body">
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                      <h3 className="dd-focus-name" style={{ flex: 1 }}>{m.title}</h3>
-                      {onToggleSaved && itineraryId && m.id && (
-                        <button
-                          className={"dd-fav" + (savedMomentIds?.has(m.id) ? " on" : "")}
-                          title={t("itd.dd.save")}
-                          onClick={() => onToggleSaved(m.id!, m)}
-                        >
-                          <Heart size={16} fill={savedMomentIds?.has(m.id) ? "currentColor" : "none"} />
-                        </button>
-                      )}
-                    </div>
-                    {m.desc && <p className="dd-focus-desc">{m.desc}</p>}
-                    <div className="dd-actions">
-                      {m.cta && m.ctaUrl && (
-                        <a className="dd-book" href={m.ctaUrl} target="_blank" rel="noopener noreferrer">
-                          {m.cta}{m.ctaPrice && <span className="price">· {m.ctaPrice}</span>}
-                          <ExternalLink size={13} />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="dd-nav">
-                <button disabled={activeMoment === 0} onClick={() => setActiveMoment(i => Math.max(0, i - 1))}>← {t("itd.dd.prev")}</button>
-                <span className="ctr">{t("itd.dd.moment")} <em>{activeMoment + 1}</em> {t("itd.dd.of")} {dayMoments.length}</span>
-                <button disabled={activeMoment >= dayMoments.length - 1} onClick={() => setActiveMoment(i => Math.min(dayMoments.length - 1, i + 1))}>{t("itd.dd.next")} →</button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -698,6 +703,7 @@ export function ItineraryDashboard({
 
       <main className="main">
         <div className={"topbar" + (stuck ? " stuck" : "")}>
+          <button className="tb-brand" onClick={() => setLocation("/")} title={t("itd.back")}><Compass size={20} color="#E94560" /></button>
           <div className="it-trip">
             <span className="nm">{data.destination}</span>
             <span className="cd">
@@ -729,6 +735,15 @@ export function ItineraryDashboard({
         {view === "practical" && PracticalView()}
         {view === "missions" && MissionsView()}
       </main>
+
+      <nav className="mnav">
+        {NAV.map(n => (
+          <button key={n.id} className={"mnav-i" + (view === n.id ? " on" : "")} onClick={() => go(n.id)}>
+            <span className="ic">{n.icon}</span>
+            <span className="lab">{t(n.key)}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
