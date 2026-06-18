@@ -9,6 +9,37 @@
          images are fetched no-CORS as background-image/<img>. -->
     <link rel="preconnect" href="https://images.unsplash.com" />
     <link rel="dns-prefetch" href="https://images.unsplash.com" />
+    <!-- Prerendered hero: the first hero photo is known at build time, so we
+         preload it at high priority. Same URL the React landing requests on
+         mobile (w=900,q=70) → one fetch, served from cache when React mounts. -->
+    <link rel="preload" as="image" fetchpriority="high"
+      href="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=900&fit=crop&crop=entropy&auto=format&q=70" />
+    <!-- Critical CSS for the static hero shell (#pre-hero). Inlined so it paints
+         with zero extra requests, before the JS bundle/stylesheet load. -->
+    <style>
+      #pre-hero{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;
+        justify-content:flex-end;background:#1a0e1a;overflow:hidden;
+        transition:opacity .6s ease}
+      #pre-hero.ph-hide{opacity:0;pointer-events:none}
+      #pre-hero .ph-photo{position:absolute;inset:0;background-size:cover;background-position:center;
+        background-image:url("https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=900&fit=crop&crop=entropy&auto=format&q=70")}
+      #pre-hero .ph-veil{position:absolute;inset:0;background:
+        linear-gradient(to top,rgba(26,14,26,.92) 0%,rgba(26,14,26,.30) 38%,transparent 60%,rgba(26,14,26,.18) 100%),
+        linear-gradient(120deg,rgba(233,69,96,.18) 0%,transparent 45%,rgba(212,168,83,.14) 100%)}
+      #pre-hero .ph-in{position:relative;z-index:2;width:100%;max-width:1320px;margin:0 auto;padding:0 64px 60px}
+      #pre-hero .ph-title{font-family:"Playfair Display",Georgia,serif;font-weight:400;color:#fff;
+        font-size:clamp(56px,8vw,128px);line-height:.92;letter-spacing:-.025em;margin:0 0 22px;
+        text-shadow:0 4px 32px rgba(0,0,0,.4)}
+      #pre-hero .ph-title i{color:#E94560;font-style:italic}
+      #pre-hero .ph-tag{font-family:"Playfair Display",Georgia,serif;font-style:italic;color:rgba(255,255,255,.85);
+        font-size:clamp(17px,1.4vw,20px);line-height:1.5;max-width:520px;margin:0;text-shadow:0 2px 16px rgba(0,0,0,.4)}
+      @media (max-width:768px){
+        #pre-hero .ph-in{padding:0 18px 36px}
+        #pre-hero .ph-title{font-size:clamp(40px,11vw,58px);line-height:.95;margin-bottom:14px}
+        #pre-hero .ph-tag{font-size:15px;max-width:none}
+      }
+      @media (prefers-reduced-motion:reduce){#pre-hero{transition:none}}
+    </style>
     <!--OG:START-->
     <title>MindRoute — Travel starts with who you are</title>
     <meta name="description" content="Answer a short quiz and get a day-by-day trip designed around who you are. MindRoute — travel starts with who you are." />
@@ -52,6 +83,25 @@
     </script>
   </head>
   <body>
+    <!-- Static hero shell: paints the LCP image + headline instantly, before the
+         JS bundle runs. React renders the real landing into #root underneath and
+         then fades this away (see main.tsx). Only relevant on the home route. -->
+    <div id="pre-hero" aria-hidden="true">
+      <div class="ph-photo"></div>
+      <div class="ph-veil"></div>
+      <div class="ph-in">
+        <h1 class="ph-title">Travel starts with <i>who you are.</i></h1>
+        <p class="ph-tag">Every trip starts from an emotion. MindRoute turns it into a real place: destination, itinerary and bookings ready in under 3 minutes.</p>
+      </div>
+    </div>
+    <script>
+      // The shell only makes sense on the landing ("/"). On any other route
+      // (deep links, dashboard, etc.) drop it before paint so it never flashes.
+      if (location.pathname !== '/') {
+        var ph = document.getElementById('pre-hero');
+        if (ph) ph.remove();
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

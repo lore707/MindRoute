@@ -16,3 +16,17 @@ import "@fontsource/playfair-display/latin-400-italic.css";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Retire the static hero shell (#pre-hero, see index.html) once React has taken
+// over. We wait a beat so the real landing hero — which fades/animates in — is
+// painted underneath before we cross-fade the shell out, avoiding a flash to a
+// half-rendered hero. If React throws before this runs, the shell stays up
+// (showing the hero) rather than revealing a blank #root.
+(function retireHeroShell() {
+  const ph = document.getElementById("pre-hero");
+  if (!ph) return;
+  window.setTimeout(() => {
+    ph.classList.add("ph-hide");
+    window.setTimeout(() => ph.remove(), 700);
+  }, 1200);
+})();
