@@ -81,6 +81,12 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Liveness probe — deliberately placed before the logger, the /api rate-limiter
+// and route registration so it answers instantly with zero DB work. Used both
+// by Render's health check and by the external keep-alive ping that prevents
+// the free instance from spinning down (cold starts add 30-60s to first load).
+app.get("/healthz", (_req, res) => res.status(200).json({ ok: true, ts: Date.now() }));
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
