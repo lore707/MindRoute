@@ -25,6 +25,7 @@ import { unsplashSized } from "@/lib/img";
 import { useI18n } from "@/lib/i18n";
 import type { ItineraryData, Moment } from "./ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
+import { FlowNavLogo } from "@/components/FlowNav";
 
 const bg = (url: string, w: number, q = 70) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
 
@@ -692,7 +693,7 @@ export function ItineraryDashboard({
       <div className="grain" />
 
       <aside className="sidebar">
-        <button className="sb-logo" onClick={() => setLocation("/")} title="MindRoute"><Compass color="#E94560" /></button>
+        <button className="sb-logo" onClick={() => setLocation("/")} title="MindRoute"><FlowNavLogo size={26} /></button>
         <nav className="sb-nav">
           {NAV.map(n => (
             <button key={n.id} className={"sb-item" + (view === n.id ? " on" : "")} onClick={() => go(n.id)}>
@@ -708,7 +709,7 @@ export function ItineraryDashboard({
 
       <main className="main">
         <div className={"topbar" + (stuck ? " stuck" : "")}>
-          <button className="tb-brand" onClick={() => setLocation("/")} title={t("itd.back")}><Compass size={20} color="#E94560" /></button>
+          <button className="tb-brand" onClick={() => setLocation("/")} title={t("itd.back")}><FlowNavLogo size={20} /></button>
           <div className="it-trip">
             <span className="nm">{data.destination}</span>
             <span className="cd">

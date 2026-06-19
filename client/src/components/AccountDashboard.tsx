@@ -17,8 +17,8 @@
 
 import { useEffect, useMemo, useState, lazy, Suspense, type ReactNode } from "react";
 import { useLocation } from "wouter";
-import { Compass } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
+import { FlowNavLogo } from "@/components/FlowNav";
 import { useI18n } from "@/lib/i18n";
 import type { AccountData } from "./AccountCinematic";
 
@@ -736,7 +736,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
 
       {/* Sidebar */}
       <aside className="sidebar">
-        <div className="sb-logo"><Compass color="#E94560" /></div>
+        <button className="sb-logo" onClick={() => go("home")} title="MindRoute"><FlowNavLogo size={26} /></button>
         <nav className="sb-nav">
           {NAV.map(n => (
             <button key={n.id} className={"sb-item" + (view === n.id ? " on" : "")} onClick={() => go(n.id)}>
@@ -754,7 +754,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
       <main className="main">
         {/* Topbar */}
         <div className={"topbar" + (stuck ? " stuck" : "")}>
-          <button className="tb-brand" onClick={() => go("home")} title="MindRoute"><Compass size={20} color="#E94560" /></button>
+          <button className="tb-brand" onClick={() => go("home")} title="MindRoute"><FlowNavLogo size={20} /></button>
           <div className="tb-search">
             <Icon name="search" />
             <input placeholder={t("acd.tb.search")} value={q} onChange={e => onTopSearch(e.target.value)} />
