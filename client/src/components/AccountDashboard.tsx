@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState, lazy, Suspense, type ReactNode } from "re
 import { useLocation } from "wouter";
 import { unsplashSized } from "@/lib/img";
 import { FlowNavLogo } from "@/components/FlowNav";
+import LangDropdown from "@/components/LangDropdown";
 import { useI18n } from "@/lib/i18n";
 import type { AccountData } from "./AccountCinematic";
 
@@ -760,7 +761,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
             <input placeholder={t("acd.tb.search")} value={q} onChange={e => onTopSearch(e.target.value)} />
           </div>
           <div className="tb-spacer" />
-          <button className="tb-pill" onClick={toggleLang}>{lang === "it" ? "🇮🇹 Italiano" : "🇬🇧 English"} ⌄</button>
+          <LangDropdown variant="dark" />
           <button className="btn-g" onClick={data.onSecondaryCta}>{t("acd.tb.fromProfile")}</button>
           <button className="tb-cta" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>
           <button className="tb-av-m" onClick={() => setDrawer(true)} title={data.userName}>{data.avatarInitial ?? data.userName[0]}</button>

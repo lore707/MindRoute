@@ -26,6 +26,7 @@ import { useI18n } from "@/lib/i18n";
 import type { ItineraryData, Moment } from "./ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
 import { FlowNavLogo } from "@/components/FlowNav";
+import LangDropdown from "@/components/LangDropdown";
 
 const bg = (url: string, w: number, q = 70) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
 
@@ -730,7 +731,7 @@ export function ItineraryDashboard({
             </svg>
             <span className="lbl">{pct}</span>
           </div>
-          <button className="tb-pill" onClick={toggleLang}>{lang === "it" ? "🇮🇹 Italiano" : "🇬🇧 English"} ⌄</button>
+          <LangDropdown variant="dark" />
           {onEdit && <button className="cmd-edit" onClick={onEdit}><Pencil className="pen" size={14} /> {t("itd.tb.edit")}</button>}
           <button className="tb-cta" onClick={onSavePdf}><Printer size={15} /> PDF</button>
         </div>
