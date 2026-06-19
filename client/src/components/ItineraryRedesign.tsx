@@ -14,6 +14,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { unsplashSized } from "@/lib/img";
 import type { ItineraryData, Moment } from "@/components/ItineraryCinematic";
+import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
 import "@/styles/itinerary-redesign.css";
 
 type Props = {
@@ -226,6 +227,13 @@ export function ItineraryRedesign({
     } catch { /* free-form */ }
     return String(raw).split(/[,;]/).map(s => s.trim()).filter(s => s.length > 1);
   }, [itinerary?.packingList]);
+
+  // Risale al provider canonico da un URL affiliate (checklist/provider links
+  // usano direttamente i valori di affiliateUrls) → reverse-lookup chiave→provider.
+  const provFromUrl = (url: string): string => {
+    const key = Object.keys(affiliateUrls).find(k => affiliateUrls[k] === url);
+    return key ? affiliateProvider(key) : "unknown";
+  };
 
   // ── checklist (localStorage) ──
   const checklist = useMemo(() => ([
@@ -579,7 +587,8 @@ export function ItineraryRedesign({
                         {f.cta && f.ctaUrl && (
                           <div className="dd-actions">
                             {f.ctaStatus === "reserve_recommended" && <span className="dd-status">{t("itin.cin.book.reserveHint")}</span>}
-                            <a className="btn-book btn-book-exp" href={f.ctaUrl} target="_blank" rel="noopener noreferrer">
+                            <a className="btn-book btn-book-exp" href={f.ctaUrl} target="_blank" rel="noopener noreferrer"
+                              onClick={() => trackAffiliate(f.ctaProvider ?? "unknown", data.destination)}>
                               {f.cta}{f.ctaPrice && <span className="price"> · {f.ctaPrice}</span>} →
                             </a>
                           </div>
@@ -705,7 +714,7 @@ export function ItineraryRedesign({
                         <div className="bc-name">{item.nm}</div>
                         <div className="bc-meta">{item.meta}</div>
                       </div>
-                      {!done && <a className="bc-go" href={item.url} target="_blank" rel="noopener noreferrer" onClick={() => toggleBook(item.id)}>{lang === "it" ? "Prenota →" : "Book →"}</a>}
+                      {!done && <a className="bc-go" href={item.url} target="_blank" rel="noopener noreferrer" onClick={() => { trackAffiliate(provFromUrl(item.url!), data.destination); toggleBook(item.id); }}>{lang === "it" ? "Prenota →" : "Book →"}</a>}
                       {done && <button className="bc-go" style={{ background: "transparent", border: "1px solid var(--stroke-strong)", color: "var(--ink-faint)", boxShadow: "none" }} onClick={() => toggleBook(item.id)}>{lang === "it" ? "Fatto ✓" : "Done ✓"}</button>}
                     </div>
                   );
@@ -719,7 +728,7 @@ export function ItineraryRedesign({
                   <div key={i} className="prov-group">
                     <div className="prov-h">{p.h}</div>
                     {p.links.map((l, j) => (
-                      <a key={j} className="prov-link" href={l.url} target="_blank" rel="noopener noreferrer">{l.label}<span className="ext">↗</span></a>
+                      <a key={j} className="prov-link" href={l.url} target="_blank" rel="noopener noreferrer" onClick={() => trackAffiliate(provFromUrl(l.url), data.destination)}>{l.label}<span className="ext">↗</span></a>
                     ))}
                   </div>
                 ))}

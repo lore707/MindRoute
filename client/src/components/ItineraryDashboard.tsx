@@ -24,6 +24,7 @@ import {
 import { unsplashSized } from "@/lib/img";
 import { useI18n } from "@/lib/i18n";
 import type { ItineraryData, Moment } from "./ItineraryCinematic";
+import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
 
 const bg = (url: string, w: number, q = 70) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
 
@@ -168,12 +169,14 @@ export function ItineraryDashboard({
   }, [data.manifesto, data.emWord]);
 
   // ── missions ──
-  const missionUrl = (urlKeys: readonly string[]) => {
-    for (const k of urlKeys) if (affiliateUrls[k]) return affiliateUrls[k];
-    return undefined;
+  // Risolve URL + provider canonico dalla PRIMA chiave affiliate disponibile,
+  // così l'evento affiliate_click riporta il partner reale (non l'id missione).
+  const missionUrlAndProvider = (urlKeys: readonly string[]): { url?: string; provider?: string } => {
+    for (const k of urlKeys) if (affiliateUrls[k]) return { url: affiliateUrls[k], provider: affiliateProvider(k) };
+    return {};
   };
   const missions = useMemo(() => MISSION_DEFS
-    .map(m => ({ ...m, url: missionUrl(m.urlKeys) }))
+    .map(m => ({ ...m, ...missionUrlAndProvider(m.urlKeys) }))
     .filter(m => !!m.url), [affiliateUrls]);
   const doneCount = missions.filter(m => checked[m.id]).length;
   const missionTotal = missions.length || 1;
@@ -399,7 +402,8 @@ export function ItineraryDashboard({
                           {m.desc && <p className="dd-focus-desc">{m.desc}</p>}
                           <div className="dd-actions">
                             {m.cta && m.ctaUrl && (
-                              <a className="dd-book" href={m.ctaUrl} target="_blank" rel="noopener noreferrer">
+                              <a className="dd-book" href={m.ctaUrl} target="_blank" rel="noopener noreferrer"
+                                onClick={() => trackAffiliate(m.ctaProvider ?? "unknown", data.destination)}>
                                 {m.cta}{m.ctaPrice && <span className="price">· {m.ctaPrice}</span>}
                                 <ExternalLink size={13} />
                               </a>
@@ -637,7 +641,7 @@ export function ItineraryDashboard({
                   </div>
                   <div className="mright">
                     {dayN != null && <div className="mday">{tx("itd.mis.day", { n: dayN })}</div>}
-                    <a className="mbtn" href={mn.url} target="_blank" rel="noopener noreferrer" onClick={() => { if (!done) toggle(mn.id); }}>
+                    <a className="mbtn" href={mn.url} target="_blank" rel="noopener noreferrer" onClick={() => { trackAffiliate(mn.provider ?? "unknown", data.destination); if (!done) toggle(mn.id); }}>
                       {done ? t("itd.mis.done") : t("itd.mis.book")} <ExternalLink size={13} />
                     </a>
                   </div>
@@ -653,7 +657,8 @@ export function ItineraryDashboard({
                   <div key={i} className="prov-group">
                     <div className="prov-h">{g.head}</div>
                     {g.links.map((l, j) => (
-                      <a key={j} className="prov-link" href={l.url} target="_blank" rel="noopener noreferrer">
+                      <a key={j} className="prov-link" href={l.url} target="_blank" rel="noopener noreferrer"
+                        onClick={() => trackAffiliate(affiliateProvider(l.label), data.destination)}>
                         {l.label} <span className="ext"><ExternalLink size={12} /></span>
                       </a>
                     ))}
