@@ -57,11 +57,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
   const { user } = useAuth();
 
-  // La dashboard (utente loggato su "/" oppure "/my-account") porta la propria
-  // app-shell (sidebar + topbar): nascondiamo la nav globale per non avere due
-  // barre fisse sovrapposte.
+  // Pagine che portano la PROPRIA barra → niente nav globale (sennò due barre
+  // fisse sovrapposte):
+  //  · le dashboard (utente loggato su "/" o "/my-account", itinerario) hanno
+  //    la loro app-shell sidebar+topbar;
+  //  · il quiz (/profiling) è una schermata immersiva a sé: porta solo la sua
+  //    barra minima (logo→indietro, lingua, "Salva ed esci"). Uguale per loggati
+  //    e anonimi — nessuna nav marketing né shell dashboard durante le 7 domande.
   const isItinerary = location.startsWith("/itinerary/") && !location.startsWith("/itinerary/stream");
-  const isDashboard = location === "/my-account" || isItinerary || (location === "/" && !!user);
+  const isQuiz = location === "/profiling";
+  const isDashboard = location === "/my-account" || isItinerary || isQuiz || (location === "/" && !!user);
 
   return (
     <SectionProvider>
