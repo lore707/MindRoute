@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { setFlow } from "@/lib/flow-storage";
 import { track } from "@/lib/analytics";
+import { FlowNav } from "@/components/FlowNav";
 import { Link, useLocation } from "wouter";
 import LangDropdown from "@/components/LangDropdown";
 import { useTheme } from "@/components/ThemeProvider";
@@ -24,18 +25,6 @@ import { FromProfileModal } from "@/components/FromProfileModal";
 import { QuizCinematic, type Answers as CinematicAnswers } from "@/components/QuizCinematic";
 import { QuizCinematicA, type AnswersA } from "@/components/QuizCinematicA";
 import { QuizLogistics, type LogisticsAnswers, type ProfileSummary } from "@/components/QuizLogistics";
-const MindRouteLogo = ({ size = 30 }: { size?: number }) => (
-  <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
-    <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85" />
-    <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55" />
-    <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85" />
-    <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55" />
-    <ellipse cx="60" cy="60" rx="5" ry="6" fill="var(--text-primary)" />
-    <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7" />
-    <circle cx="60" cy="48" r="3.5" fill="var(--text-primary)" />
-  </svg>
-);
-
 export default function Profiling() {
   const { t } = useI18n();
   const { theme, toggleTheme } = useTheme();
@@ -833,23 +822,9 @@ const profilingPayload = {
     });
   };
 
-  const Nav = () => (
-    <nav className="fixed top-0 left-0 right-0 z-[100] px-3 py-2.5 md:px-8 md:py-4 flex items-center justify-between gap-2 backdrop-blur-xl transition-colors duration-300" style={{ background: 'var(--nav-bg)', borderBottom: '1px solid var(--nav-border)' }}>
-      <Link href="/" className="flex items-center gap-2 md:gap-2.5 no-underline text-[var(--text-primary)] min-h-[44px]" data-testid="link-home">
-        <MindRouteLogo size={26} />
-        <span className="font-serif text-[15px] md:text-[18px]">MindRoute</span>
-      </Link>
-      <div className="flex items-center gap-2 md:gap-3">
-        <LangDropdown />
-        <Link href="/" className="hidden sm:inline-flex px-4 py-[7px] border border-[var(--border-input)] text-[var(--text-secondary)] rounded-full text-[13px] no-underline hover:border-[#E94560] hover:text-[#E94560] transition-all bg-transparent cursor-pointer" data-testid="link-exit">
-          {t('nav.saveExit')}
-        </Link>
-        <Link href="/" className="sm:hidden flex items-center justify-center w-11 h-11 rounded-full border border-[var(--border-input)] text-[var(--text-secondary)] no-underline hover:border-[#E94560] hover:text-[#E94560] transition-all" data-testid="link-exit-mobile" aria-label="Esci">
-          <ArrowLeft className="w-4 h-4" />
-        </Link>
-      </div>
-    </nav>
-  );
+  // Barra del quiz = stessa barra di flusso di /destinations (FlowNav), così le
+  // due schermate immersive restano identiche e non divergono.
+  const Nav = () => <FlowNav />;
 
   const TopProgressBar = () => {
     const total = questions.length || 7;

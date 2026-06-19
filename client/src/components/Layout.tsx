@@ -61,12 +61,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // fisse sovrapposte):
   //  · le dashboard (utente loggato su "/" o "/my-account", itinerario) hanno
   //    la loro app-shell sidebar+topbar;
-  //  · il quiz (/profiling) è una schermata immersiva a sé: porta solo la sua
-  //    barra minima (logo→indietro, lingua, "Salva ed esci"). Uguale per loggati
-  //    e anonimi — nessuna nav marketing né shell dashboard durante le 7 domande.
+  //  · il FLUSSO immersivo (quiz /profiling + scelta mete /destinations) porta la
+  //    sua barra minima condivisa (FlowNav: logo→indietro, lingua, "Salva ed esci").
+  //    Uguale per loggati e anonimi — nessuna nav marketing durante quiz e scelta.
   const isItinerary = location.startsWith("/itinerary/") && !location.startsWith("/itinerary/stream");
-  const isQuiz = location === "/profiling";
-  const isDashboard = location === "/my-account" || isItinerary || isQuiz || (location === "/" && !!user);
+  const isFlow = location === "/profiling" || location === "/destinations";
+  const isDashboard = location === "/my-account" || isItinerary || isFlow || (location === "/" && !!user);
 
   return (
     <SectionProvider>

@@ -10,6 +10,7 @@ import { RecognitionBanner } from "@/components/RecognitionBanner";
 import { unsplashSized } from "@/lib/img";
 import { getFlow } from "@/lib/flow-storage";
 import { track } from "@/lib/analytics";
+import { FlowNav } from "@/components/FlowNav";
 
 export default function Destinations() {
   const { t, lang } = useI18n();
@@ -264,6 +265,7 @@ if (destinations.length === 0) return null;
 
   return (
     <div style={{ background: "transparent", color: "white", minHeight: "100vh" }}>
+    <FlowNav />
     <div className="container max-w-7xl mx-auto px-4 md:px-6 pt-20 md:pt-24 pb-16 md:pb-20">
       <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
         <motion.p
