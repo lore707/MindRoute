@@ -21,6 +21,11 @@ export type Moment = {
   locationName?: string;
   imageUrl?: string;
   dayNumber?: number;
+  // v2 only — connettore "come arrivi alla prossima tappa" già formattato
+  // (es. "A piedi · ~12 min"). Stima qualitativa, non un orario preciso.
+  transport?: string;
+  // v2 only — alternativa se la tappa salta, formattata "trigger → alternativa".
+  planB?: string;
 };
 
 export type ItineraryData = {
@@ -284,6 +289,42 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
                           {currentMoment.ctaPrice && <span className="book-btn-price">{currentMoment.ctaPrice}</span>}
                           <span className="book-btn-arrow">→</span>
                         </a>
+                      </div>
+                    )}
+                    {currentMoment.planB && (
+                      <div style={{
+                        marginTop: 14,
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        color: "rgba(245,240,238,0.72)",
+                      }}>
+                        <span style={{
+                          display: "inline-block",
+                          marginRight: 8,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                          color: "rgba(245,240,238,0.45)",
+                        }}>{t('itin.cin.planB')}</span>
+                        {currentMoment.planB}
+                      </div>
+                    )}
+                    {currentMoment.transport && (
+                      <div style={{
+                        marginTop: 12,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        fontSize: 13,
+                        color: "rgba(245,240,238,0.55)",
+                      }}>
+                        <span aria-hidden style={{ opacity: 0.7 }}>↳</span>
+                        <span><span style={{ opacity: 0.7 }}>{t('itin.cin.transportNext')} · </span>{currentMoment.transport}</span>
                       </div>
                     )}
                   </>

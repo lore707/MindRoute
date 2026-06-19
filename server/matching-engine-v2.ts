@@ -296,8 +296,8 @@ detail. Apply the following rules strictly.
    - note (optional) — 1 short phrase: "10 min a piedi lungo il pier".
 
 9. DAY HEADER FIELDS
-   - weather_forecast: realistic for destination + month. condition is one of
-     sunny/cloudy/rain/mixed/snow.
+   - Do NOT output weather_forecast. We never show invented weather for a future
+     date — it would be fabricated. Omit the field entirely.
    - energy_level: low | medium | high based on walking_distance_km + total moment count.
    - energy_note: 1 short sentence, only if energy is unusual ("Heavy travel day — keep evening soft").
    - walking_distance_km: realistic estimate for the day's walking.
@@ -334,7 +334,6 @@ Exactly ${days} days in the "days" array.
       "title_evocative": "Left Milan Behind — The Southern Edge Begins",
       "subtitle": "Train south, ferry to the island, first dinner under the cliffs.",
       "hero_image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=1200&h=600&fit=crop",
-      "weather_forecast": { "temp_min": 18, "temp_max": 26, "condition": "sunny", "note": "Sea still warm" },
       "energy_level": "medium",
       "energy_note": "Heavy travel day — keep evening soft",
       "walking_distance_km": 3.5,

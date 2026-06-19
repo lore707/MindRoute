@@ -481,6 +481,8 @@ const translations: Record<string, Record<Lang, string>> = {
   "itin.cin.book.boat": { en: "Rent the boat", it: "Noleggia la barca" },
   "itin.cin.book.car": { en: "Rent the car", it: "Noleggia l'auto" },
   "itin.cin.book.reserveHint": { en: "Worth booking ahead", it: "Conviene prenotare in anticipo" },
+  "itin.cin.transportNext": { en: "Then", it: "Poi" },
+  "itin.cin.planB": { en: "Plan B", it: "Piano B" },
   "itin.cin.book.cta": { en: "Book flight + hotel", it: "Prenota volo + hotel" },
   "itin.cin.book.from": { en: "from", it: "da" },
   "itin.cin.duration.day": { en: "day", it: "giorno" },

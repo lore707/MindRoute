@@ -501,7 +501,10 @@ function buildMoments(
 
 // v2 — MomentV2[] → CinMoment[]. The cinematic component's moment shape is
 // intentionally smaller than MomentV2; we surface title_evocative + description
-// + a booking CTA, and drop transport/plan_b/weather (no UI slot for them yet).
+// + a booking CTA + a qualitative transport connector + plan_b. We deliberately
+// drop weather_forecast: it would be model-invented for a future date (fabricated),
+// against the "show only what's real/grounded" principle — the v2 prompt no longer
+// generates it.
 const MOMENT_TYPE_ICONS: Record<string, string> = {
   transport: "✈️",
   accommodation: "🏨",
@@ -535,6 +538,25 @@ function buildMomentsV2(day: any, t: (k: string) => string, opts: { destCity: st
   return moments.map((m) => {
     const title = m.title_evocative || m.title_operational || "";
     const desc = m.description || m.why_this || "";
+    // transport_to_next → connettore qualitativo "modo · ~Nmin · costo".
+    // Niente orari precisi inventati: è una stima del modello, mostrata come tale.
+    const buildTransport = (): string | undefined => {
+      const tn = m.transport_to_next;
+      if (!tn) return undefined;
+      const parts: string[] = [];
+      if (typeof tn.mode === "string" && tn.mode.trim()) parts.push(tn.mode.trim());
+      if (typeof tn.duration_min === "number" && tn.duration_min > 0) parts.push(`~${tn.duration_min} min`);
+      if (typeof tn.cost_estimate === "string" && tn.cost_estimate.trim()) parts.push(tn.cost_estimate.trim());
+      return parts.length ? parts.join(" · ") : undefined;
+    };
+    // plan_b → "trigger → alternativa" (entrambi già localizzati dal modello).
+    const buildPlanB = (): string | undefined => {
+      const pb = m.plan_b;
+      const alt = typeof pb?.alternative === "string" ? pb.alternative.trim() : "";
+      if (!alt) return undefined;
+      const trigger = typeof pb?.trigger === "string" ? pb.trigger.trim() : "";
+      return trigger ? `${trigger} → ${alt}` : alt;
+    };
     const booking = m.booking;
     const bookable = !!(booking && booking.affiliate_url &&
       (booking.status === "bookable_now" || booking.status === "reserve_recommended"));
@@ -561,6 +583,8 @@ function buildMomentsV2(day: any, t: (k: string) => string, opts: { destCity: st
       locationName: m.location_name,
       imageUrl: m.image_url,
       dayNumber: day?.day_number,
+      transport: buildTransport(),
+      planB: buildPlanB(),
     } as CinMoment;
   });
 }
