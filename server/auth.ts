@@ -101,7 +101,9 @@ app.get("/auth/google", authRateLimit, (req: any, res: any, next: any) => {
       // un profilo si rispetta il returnTo (dove stava prima del login).
       const returnTo = req.session.returnTo || "/";
       delete req.session.returnTo;
-      const dest = req.user?.isNewSignup ? "/profiling" : returnTo;
+      // Utente nuovo → /profiling?welcome=1: il quiz (onboarding) + flag per
+      // l'evento analytics email_signup, letto e ripulito una volta dal client.
+      const dest = req.user?.isNewSignup ? "/profiling?welcome=1" : returnTo;
       req.session.save((err: any) => {
         if (err) console.error("Session save error:", err);
         res.redirect(dest);

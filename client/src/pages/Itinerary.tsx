@@ -24,6 +24,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useI18n } from "@/lib/i18n";
 import { setLastOpenedItinerary } from "@/lib/last-opened";
 import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
+import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
 import { ItineraryRedesign } from "@/components/ItineraryRedesign";
 import { ItineraryDashboard } from "@/components/ItineraryDashboard";
 
@@ -164,6 +165,7 @@ function BookTab({ urls, region, destinationName, profilingInput, itineraryId }:
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {section.links.map((link: any) => (
               <a key={link.key} href={link.url} target="_blank" rel="noopener noreferrer"
+                onClick={() => trackAffiliate(affiliateProvider(link.key), dest)}
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 14px", borderRadius: 10, background: link.color, border: `1px solid ${link.border}`, color: link.text, fontSize: 13, fontWeight: 600, textDecoration: "none", transition: "all 0.2s" }}
                 onMouseEnter={e => (e.currentTarget.style.filter = "brightness(1.15)")}
                 onMouseLeave={e => (e.currentTarget.style.filter = "brightness(1)")}>
@@ -197,6 +199,7 @@ function BookTab({ urls, region, destinationName, profilingInput, itineraryId }:
                 </button>
                 {!item.checked && bookUrl && (
                   <a href={bookUrl} target="_blank" rel="noopener noreferrer"
+                    onClick={() => trackAffiliate(affiliateProvider(item.id), dest)}
                     style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: "#E94560", textDecoration: "none", padding: "9px 13px", borderRadius: 999, border: "1px solid rgba(233,69,96,0.35)", background: "rgba(233,69,96,0.08)", whiteSpace: "nowrap" }}>
                     Prenota →
                   </a>
@@ -449,7 +452,7 @@ function buildMoments(
   if (Array.isArray(day?.editedMoments) && day.editedMoments.length) {
     return day.editedMoments.map((m: any): CinMoment => ({
       t: m.t ?? "", ic: m.ic ?? "📍", title: m.title ?? "", desc: m.desc ?? "",
-      cta: m.cta, ctaUrl: m.ctaUrl, ctaPrice: m.ctaPrice, ctaStatus: m.ctaStatus,
+      cta: m.cta, ctaUrl: m.ctaUrl, ctaPrice: m.ctaPrice, ctaStatus: m.ctaStatus, ctaProvider: m.ctaProvider,
       locationName: m.locationName, imageUrl: m.imageUrl, id: m.id, type: m.type,
     }));
   }
@@ -494,6 +497,7 @@ function buildMoments(
       t: s.label, ic: s.ic, title, desc,
       cta, ctaUrl,
       ctaStatus: ctaUrl && linkKey ? bookStatusFor(linkKey) : undefined,
+      ctaProvider: ctaUrl && linkKey ? affiliateProvider(linkKey) : undefined,
     });
   }
   return moments;
@@ -575,6 +579,7 @@ function buildMomentsV2(day: any, t: (k: string) => string, opts: { destCity: st
       desc,
       cta: bookable ? ((booking.display_label ?? "").trim() || derivedLabel()) : undefined,
       ctaUrl: bookable ? booking.affiliate_url : undefined,
+      ctaProvider: bookable ? affiliateProvider(booking.provider) : undefined,
       ctaPrice: bookable ? fmtBookPrice(m.cost_min, m.cost_max) : undefined,
       ctaStatus: bookable ? booking.status : undefined,
       // Pass-through dei campi v2 necessari al bookmark (Ondata B).

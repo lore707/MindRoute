@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { unsplashSized } from "@/lib/img";
+import { trackAffiliate } from "@/lib/analytics";
 
 export type Highlight = { ic: string; name: string; desc: string };
 export type Day = { n: number; arc: string; title: string; sub: string; img: string };
@@ -15,6 +16,8 @@ export type Moment = {
   ctaPrice?: string;
   /** Booking urgency — drives the small hint above the button. */
   ctaStatus?: "bookable_now" | "reserve_recommended";
+  /** Provider affiliate canonico per l'evento analytics (es. "getyourguide"). */
+  ctaProvider?: string;
   // v2 only — usato per il bookmark trasversale (Ondata B). Assente nei v1.
   id?: string;
   type?: string;
@@ -284,7 +287,8 @@ export function ItineraryCinematic({ data, tripGlance, practicalSection, booking
                         {currentMoment.ctaStatus === "reserve_recommended" && (
                           <span className="book-status">{t('itin.cin.book.reserveHint')}</span>
                         )}
-                        <a className="book-btn" href={currentMoment.ctaUrl} target="_blank" rel="noopener noreferrer">
+                        <a className="book-btn" href={currentMoment.ctaUrl} target="_blank" rel="noopener noreferrer"
+                          onClick={() => trackAffiliate(currentMoment.ctaProvider ?? "unknown", data.destination)}>
                           <span className="book-btn-label">{currentMoment.cta}</span>
                           {currentMoment.ctaPrice && <span className="book-btn-price">{currentMoment.ctaPrice}</span>}
                           <span className="book-btn-arrow">→</span>

@@ -8,6 +8,7 @@ import { useSubmitProfiling } from "@/hooks/use-profiling";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { setFlow } from "@/lib/flow-storage";
+import { track } from "@/lib/analytics";
 import { Link, useLocation } from "wouter";
 import LangDropdown from "@/components/LangDropdown";
 import { useTheme } from "@/components/ThemeProvider";
@@ -124,6 +125,36 @@ export default function Profiling() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const transitionBusy = useRef(false);
   const analyzeTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Ref-guard: quiz_started deve partire UNA sola volta per sessione di quiz.
+  const quizStartedRef = useRef(false);
+
+  // email_signup — il callback OAuth manda l'utente NUOVO a /profiling?welcome=1
+  // (vedi server/auth.ts). Leggiamo il flag una volta, spariamo l'evento e
+  // ripuliamo l'URL così non riscatta a un eventuale reload. email_signup viaggia
+  // sopra OAuth: arriverà solo quando il login Google è attivo in produzione.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("welcome") === "1") {
+      track("email_signup");
+      params.delete("welcome");
+      const qs = params.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+    }
+  }, []);
+
+  // quiz_started — POST-muro auth: Profiling è dentro <RequireAuth>, quindi monta
+  // solo per utenti già loggati. Spariamo quando il quiz vero è a schermo (non la
+  // recognition screen del ritorno, non l'analyzing). Il delta con quiz_cta_click
+  // (CTA landing, pre-muro) = costo dell'auth gate.
+  useEffect(() => {
+    if (quizStartedRef.current) return;
+    const quizVisible = !(recognition.canShow && showRecognition) && !showAnalyzing;
+    if (quizVisible) {
+      quizStartedRef.current = true;
+      track("quiz_started");
+    }
+  }, [recognition.canShow, showRecognition, showAnalyzing]);
 
   const getPlaceholderForRegion = (regionLabel?: string) => {
     const label = (regionLabel || "").toLowerCase();
@@ -413,6 +444,9 @@ export default function Profiling() {
   };
 
   const startAnalyzing = (formOverride?: typeof formData) => {
+    // quiz_completed — chokepoint unico: ci passano sia il flusso form vecchio
+    // (handleDiscoverClick) sia la logistica cinematic, sempre prima della generazione.
+    track("quiz_completed", { path: selectedPath ?? undefined });
     analyzeTimers.current.forEach(t => clearTimeout(t));
     analyzeTimers.current = [];
     setVisibleTraits([]);

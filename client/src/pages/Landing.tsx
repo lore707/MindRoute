@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { LandingCinematic, DEFAULT_LANDING_DATA, type LandingData, type MarqueeItem } from "@/components/LandingCinematic";
+import { track } from "@/lib/analytics";
 
 export default function Landing() {
   const [, navigate] = useLocation();
@@ -42,7 +43,10 @@ export default function Landing() {
     <LandingCinematic
       data={{
         ...data,
-        onStart: () => navigate("/profiling"),
+        // Evento PRE-muro auth: il CTA fa solo navigate(/profiling), il gate
+        // <RequireAuth> scatta DOPO. Il delta con quiz_started (scelta-path, post-muro)
+        // misura il drop-off dell'auth gate.
+        onStart: () => { track("quiz_cta_click"); navigate("/profiling"); },
       }}
     />
   );

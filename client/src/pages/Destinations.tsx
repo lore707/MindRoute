@@ -9,6 +9,7 @@ import { useTraitRecognition } from "@/hooks/use-trait-recognition";
 import { RecognitionBanner } from "@/components/RecognitionBanner";
 import { unsplashSized } from "@/lib/img";
 import { getFlow } from "@/lib/flow-storage";
+import { track } from "@/lib/analytics";
 
 export default function Destinations() {
   const { t, lang } = useI18n();
@@ -71,6 +72,14 @@ const handleContinue = async () => {
       const currentLang = localStorage.getItem("mindroute-lang") || "en";
       const inputWithLang = { ...profilingInput, lang: currentLang };
 
+      // generate_itinerary_started — al clic di generazione, prima del fetch.
+      track("generate_itinerary_started", {
+        destination: selectedDest.name,
+        days: profilingInput.days,
+        budget: profilingInput.budget,
+        travel_style: profilingInput.travelStyle,
+      });
+
       setIsGenerating(true);
       setGenMessage("Analizzo il tuo profilo psicologico...");
       setGenHeroUrl(selectedDest.imageUrl || "");
@@ -120,6 +129,8 @@ const handleContinue = async () => {
           });
           if (v2Res.ok) {
             const v2Data = await v2Res.json();
+            // itinerary_generated — 1 volta per creazione riuscita (non a ogni revisita).
+            track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v2" });
             clearInterval(msgInterval);
             setLocation(`/itinerary/${v2Data.id ?? selectedId}`);
             return;
@@ -165,6 +176,8 @@ const handleContinue = async () => {
               if (currentEvent === "progress") {
                 setGenMessage(data.message);
               } else if (currentEvent === "done") {
+                // itinerary_generated — fallback v1: a stream completato.
+                track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v1" });
                 clearInterval(msgInterval);
                 setLocation(`/itinerary/${data.itineraryId ?? selectedId}`);
                 return;
