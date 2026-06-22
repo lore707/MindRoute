@@ -82,7 +82,7 @@ const handleContinue = async () => {
       });
 
       setIsGenerating(true);
-      setGenMessage("Analizzo il tuo profilo psicologico...");
+      setGenMessage(lang === "it" ? "Analizzo il tuo profilo psicologico..." : "Analyzing your psychological profile...");
       setGenHeroUrl(selectedDest.imageUrl || "");
       setGenDestName(selectedDest.name || "");
 
@@ -217,7 +217,7 @@ if (destinations.length === 0) return null;
           <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-12 z-10">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <span className="inline-block px-3 py-1 text-[10px] font-bold uppercase tracking-[2.5px] md:tracking-[3px] rounded-full bg-[#E94560]/20 text-[#E94560] border border-[#E94560]/30 mb-3 md:mb-4">
-                ✦ Costruendo il tuo itinerario
+                ✦ {lang === "it" ? "Costruendo il tuo itinerario" : "Building your itinerary"}
               </span>
               <h1 className="text-[34px] sm:text-4xl md:text-6xl font-serif font-bold text-white tracking-tight leading-[1.05]">
                 {genDestName}
@@ -256,7 +256,7 @@ if (destinations.length === 0) return null;
             </div>
           </div>
           <p className="text-white/25 text-xs text-center">
-            Gli itinerari personalizzati richiedono circa 90 secondi
+            {lang === "it" ? "Gli itinerari personalizzati richiedono circa 90 secondi" : "Personalized itineraries take about 90 seconds"}
           </p>
         </div>
       </div>
