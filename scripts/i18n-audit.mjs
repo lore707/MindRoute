@@ -11,7 +11,9 @@ const dictFiles = [
 ];
 
 const defined = new Map(); // key -> {en:bool, it:bool}
-const entryRe = /["']([\w.:-]+)["']\s*:\s*\{([^{}]*?)\}/g;
+// Body allows one level of nested braces so placeholder values like
+// { en: "Continue with {n}" } are still recognised as defined entries.
+const entryRe = /["']([\w.:-]+)["']\s*:\s*\{((?:[^{}]|\{[^{}]*\})*?)\}/g;
 for (const rel of dictFiles) {
   let src;
   try { src = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }

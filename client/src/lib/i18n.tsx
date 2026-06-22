@@ -177,6 +177,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "b.q4.trail.sub": { en: "Effort, reward, deep silence", it: "Fatica, ricompensa, silenzio profondo" },
   "b.q4.cafe": { en: "European café, rainy day", it: "Caffè europeo, giorno di pioggia" },
   "b.q4.cafe.sub": { en: "A book, coffee, slowness", it: "Un libro, caffè, lentezza" },
+  "b.q4.addendum": { en: "What draws you to this atmosphere? (optional)", it: "Cosa ti attira di questa atmosfera? (opzionale)" },
 
   "b.q5.text": { en: "What <em>rhythm</em> for your days?", it: "Che <em>ritmo</em> per le tue giornate?" },
   "b.q5.hint": { en: "Drag the slider to your comfort zone.", it: "Trascina il cursore nella tua zona di comfort." },

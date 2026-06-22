@@ -153,10 +153,10 @@ const handleContinue = async () => {
         }),
       });
 
-      if (!res.ok) throw new Error("Errore generazione");
+      if (!res.ok) throw new Error(lang === "it" ? "Errore nella generazione" : "Generation error");
 
       const reader = res.body?.getReader();
-      if (!reader) throw new Error("Streaming non disponibile");
+      if (!reader) throw new Error(lang === "it" ? "Streaming non disponibile" : "Streaming unavailable");
 
       const decoder = new TextDecoder();
       let buffer = "";
