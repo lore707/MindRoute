@@ -7,6 +7,10 @@ import { getLastOpenedItinerary } from "@/lib/last-opened";
 
 type Msg = { role: "user" | "assistant" | "tool"; content: string };
 
+// Posizione del launcher trascinabile, persistita fra sessioni.
+const LAUNCH_POS_KEY = "mindroute-companion-pos";
+type Pos = { x: number; y: number };
+
 // Routes where the companion must NOT appear: the funnel (it competes with the
 // conversion task), the public/marketing surfaces, and the generation stream.
 function isHiddenRoute(path: string): boolean {
@@ -40,9 +44,64 @@ export function CompanionDock() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const coordsRef = useRef<{ lat: number; lng: number } | null>(null);
 
+  // Launcher trascinabile: pos=null → resta nell'angolo di default (CSS).
+  // Appena trascinato passa a coordinate assolute (left/top) clampate al viewport.
+  const [pos, setPos] = useState<Pos | null>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number; moved: boolean } | null>(null);
+
   useEffect(() => {
     fetchMe().then(u => setLoggedIn(!!u));
   }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LAUNCH_POS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (typeof p?.x === "number" && typeof p?.y === "number") setPos(p);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  function clampPos(x: number, y: number): Pos {
+    const el = launcherRef.current;
+    const w = el?.offsetWidth ?? 56;
+    const h = el?.offsetHeight ?? 56;
+    const maxX = window.innerWidth - w - 8;
+    const maxY = window.innerHeight - h - 8;
+    return { x: Math.max(8, Math.min(x, maxX)), y: Math.max(8, Math.min(y, maxY)) };
+  }
+
+  function onLauncherPointerDown(e: React.PointerEvent<HTMLButtonElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragRef.current = { startX: e.clientX, startY: e.clientY, baseX: rect.left, baseY: rect.top, moved: false };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
+  function onLauncherPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.moved && Math.hypot(dx, dy) < 5) return; // soglia: distingue tap da drag
+    d.moved = true;
+    setPos(clampPos(d.baseX + dx, d.baseY + dy));
+  }
+  function onLauncherPointerUp(e: React.PointerEvent<HTMLButtonElement>) {
+    const d = dragRef.current;
+    dragRef.current = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+    if (!d) return;
+    if (d.moved) {
+      // persisti l'ultima posizione clampata
+      setPos(prev => {
+        if (prev) { try { localStorage.setItem(LAUNCH_POS_KEY, JSON.stringify(prev)); } catch { /* ignore */ } }
+        return prev;
+      });
+    } else {
+      setOpen(true); // tap senza trascinamento = apri
+    }
+  }
 
   // Re-resolve the trip whenever the route changes.
   useEffect(() => {
@@ -147,14 +206,19 @@ export function CompanionDock() {
       {/* Launcher — pill con glow accento; etichetta su desktop, icona su mobile */}
       {!open && (
         <button
-          onClick={() => setOpen(true)}
+          ref={launcherRef}
+          onPointerDown={onLauncherPointerDown}
+          onPointerMove={onLauncherPointerMove}
+          onPointerUp={onLauncherPointerUp}
           aria-label={t("companion.open")}
-          className="group fixed bottom-5 right-5 z-[110] flex items-center gap-2.5 rounded-full transition-all hover:-translate-y-0.5 active:scale-95 h-14 w-14 sm:w-auto sm:pl-4 sm:pr-5 justify-center"
+          className="group fixed bottom-5 right-5 z-[110] flex items-center gap-2.5 rounded-full transition-[transform,box-shadow] hover:-translate-y-0.5 active:scale-95 h-14 w-14 sm:w-auto sm:pl-4 sm:pr-5 justify-center cursor-grab active:cursor-grabbing touch-none select-none"
           style={{
             background: "radial-gradient(circle at 35% 30%, #ff5d76, #E94560 48%, #b42a40)",
             color: "#fff",
             border: "1px solid rgba(255,255,255,0.18)",
             boxShadow: "0 14px 38px -8px rgba(233,69,96,0.6), inset 0 1px 0 rgba(255,255,255,0.25)",
+            touchAction: "none",
+            ...(pos ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" } : {}),
           }}
           data-testid="companion-fab"
         >

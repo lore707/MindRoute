@@ -64,6 +64,14 @@ export function QuizCinematic({
     }
     setStep((step + 1) as Step);
   }
+  // Q1: la scelta della card avanza immediatamente (niente bottone Continua).
+  // Si passa il valore esplicito perché lo stato `answers` aggiornato non è
+  // ancora leggibile in modo sincrono qui.
+  function pickPath(p: "guided" | "intentional") {
+    setAnswers({ ...answers, path: p });
+    if (p === "guided") { onSelectGuided?.(); return; }
+    setStep(2);
+  }
   function back() {
     if (step === 1) {
       onBackFromQ1?.();
@@ -78,7 +86,7 @@ export function QuizCinematic({
       <StepRail step={step} onStep={(s) => setStep(s as Step)} />
       <div className="qc-stage">
         <div className="qc-container">
-          {step === 1 && <Q1 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} hasBackFromQ1={!!onBackFromQ1} />}
+          {step === 1 && <Q1 answers={answers} onPick={pickPath} onBack={back} hasBackFromQ1={!!onBackFromQ1} />}
           {step === 2 && <Q2 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} />}
           {step === 3 && <Q3 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} />}
           {step === 4 && <Q4 answers={answers} setAnswers={setAnswers} onNext={next} onBack={back} />}
@@ -172,7 +180,7 @@ export function FooterNav({ backLabel, canContinue, ctaLabel, onBack, onNext }: 
 }
 
 /* ════════════ Q1 · path ════════════ */
-function Q1({ answers, setAnswers, onNext, onBack, hasBackFromQ1 }: { answers: Answers; setAnswers: (a: Answers) => void; onNext: () => void; onBack: () => void; hasBackFromQ1: boolean }) {
+function Q1({ answers, onPick, onBack, hasBackFromQ1 }: { answers: Answers; onPick: (p: "guided" | "intentional") => void; onBack: () => void; hasBackFromQ1: boolean }) {
   const sel = answers.path ?? null;
   return (
     <>
@@ -184,17 +192,17 @@ function Q1({ answers, setAnswers, onNext, onBack, hasBackFromQ1 }: { answers: A
           <p className="qc-q-sub">Start from how you feel today. The rest of the journey will follow that direction.</p>
         </div>
       </div>
+      {/* Il click su una card avanza subito: niente bottone Continua. */}
       <div className="qc-q1-cards">
-        <PathCard kind="guided" selected={sel === "guided"} onClick={() => setAnswers({ ...answers, path: "guided" })} />
-        <PathCard kind="intentional" selected={sel === "intentional"} onClick={() => setAnswers({ ...answers, path: "intentional" })} />
+        <PathCard kind="guided" selected={sel === "guided"} onClick={() => onPick("guided")} />
+        <PathCard kind="intentional" selected={sel === "intentional"} onClick={() => onPick("intentional")} />
       </div>
-      <FooterNav
-        backLabel="Back"
-        canContinue={!!sel}
-        ctaLabel={sel === "guided" ? "Continue with guided" : "Continue"}
-        onBack={hasBackFromQ1 ? onBack : undefined}
-        onNext={onNext}
-      />
+      {hasBackFromQ1 && (
+        <div className="qc-nav">
+          <button className="qc-back" onClick={onBack}>← Back</button>
+          <span />
+        </div>
+      )}
     </>
   );
 }

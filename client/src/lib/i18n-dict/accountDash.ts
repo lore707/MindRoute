@@ -23,6 +23,7 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   // ── Hero ─────────────────────────────────────────────────────────────────
   "acd.hero.greeting": { en: "Welcome back,", it: "Bentornato," },
   "acd.hero.sub":      { en: "Here's your <em>MindRoute</em> — everything in its place, today.", it: "Ecco la tua <em>MindRoute</em> — tutto al suo posto, oggi." },
+  "acd.hero.resumeCta":{ en: "Resume {name} →", it: "Riprendi {name} →" },
 
   // ── Common ───────────────────────────────────────────────────────────────
   "acd.back":          { en: "Home", it: "Home" },

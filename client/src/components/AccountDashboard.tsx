@@ -291,8 +291,20 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
                 <span className="l">{plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span>
               </div>
             </div>
+            {/* CTA contestuale: se c'è un viaggio da riprendere lo porta in primo
+                piano (azione più probabile per chi rientra); la voce globale
+                "Nuovo itinerario" resta sempre in topbar — qui non la ripetiamo. */}
             <div className="hero-act">
-              <button className="btn-p" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>
+              {featured ? (
+                <button
+                  className="btn-p"
+                  onClick={() => { if (featured.href) setLocation(featured.href); }}
+                >
+                  {tx("acd.hero.resumeCta", { name: (featured.title || "").split(",")[0] })}
+                </button>
+              ) : (
+                <button className="btn-p" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>
+              )}
             </div>
           </div>
         </div>

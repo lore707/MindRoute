@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { getStoredDestinations } from "@/hooks/use-profiling";
 import { type Destination } from "@shared/schema";
 import { useI18n } from "@/lib/i18n";
@@ -45,14 +44,16 @@ const [isGenerating, setIsGenerating] = useState(false);
     setDestinations(sorted);
   }, [setLocation]);
 
+  // Click su una card = genera subito l'itinerario per quella meta.
   const handleSelect = (destId: number) => {
+    if (isGenerating) return;
     setSelectedId(destId);
+    generateItinerary(destId);
   };
 
 
-const handleContinue = async () => {
-    if (!selectedId) return;
-    const selectedDest = destinations.find((d) => d.id === selectedId);
+const generateItinerary = async (destId: number) => {
+    const selectedDest = destinations.find((d) => d.id === destId);
     if (!selectedDest) return;
 
     setGenError("");
@@ -125,7 +126,7 @@ const handleContinue = async () => {
             body: JSON.stringify({
               input: inputWithLang,
               destinationName: selectedDest.name,
-              destinationId: selectedId,
+              destinationId: destId,
             }),
           });
           if (v2Res.ok) {
@@ -133,7 +134,7 @@ const handleContinue = async () => {
             // itinerary_generated — 1 volta per creazione riuscita (non a ogni revisita).
             track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v2" });
             clearInterval(msgInterval);
-            setLocation(`/itinerary/${v2Data.id ?? selectedId}`);
+            setLocation(`/itinerary/${v2Data.id ?? destId}`);
             return;
           }
           console.warn("[v2] endpoint returned non-2xx, falling back to legacy stream");
@@ -148,7 +149,7 @@ const handleContinue = async () => {
         body: JSON.stringify({
           input: inputWithLang,
           destinationName: selectedDest.name,
-          destinationId: selectedId,
+          destinationId: destId,
           whyYours: selectedDest.whyYours,
         }),
       });
@@ -180,7 +181,7 @@ const handleContinue = async () => {
                 // itinerary_generated — fallback v1: a stream completato.
                 track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v1" });
                 clearInterval(msgInterval);
-                setLocation(`/itinerary/${data.itineraryId ?? selectedId}`);
+                setLocation(`/itinerary/${data.itineraryId ?? destId}`);
                 return;
               } else if (currentEvent === "error") {
                 throw new Error(data.message);
@@ -195,14 +196,13 @@ const handleContinue = async () => {
       }
 
       clearInterval(msgInterval);
-      setLocation(`/itinerary/${selectedId}`);
+      setLocation(`/itinerary/${destId}`);
     } catch (err) {
       console.error(err);
       setIsGenerating(false);
       setGenError(err instanceof Error && err.message ? err.message : (lang === "it" ? "Errore nella generazione. Riprova." : "Generation failed. Try again."));
     }
   };
-  const selectedName = destinations.find((d) => d.id === selectedId)?.name;
 
 if (destinations.length === 0) return null;
 
@@ -369,44 +369,6 @@ if (destinations.length === 0) return null;
           </motion.div>
         ))}
       </div>
-
-      <AnimatePresence>
-        {selectedId && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="mt-10 md:mt-16 flex justify-center"
-          >
-            <button
-              onClick={handleContinue}
-              disabled={isGenerating}
-              data-testid="button-continue-dest"
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto max-w-[420px] min-h-[52px] px-6 sm:px-9 py-3.5 sm:py-4 rounded-full font-semibold text-[14px] sm:text-[15px] tracking-tight transition-all"
-              style={{
-                background: isGenerating ? "rgba(233,69,96,0.5)" : "#E94560",
-                color: "white",
-                boxShadow: "0 12px 36px rgba(233,69,96,0.28)",
-                border: "none",
-                cursor: isGenerating ? "not-allowed" : "pointer",
-                fontFamily: "system-ui, sans-serif",
-              }}
-            >
-              {isGenerating ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span className="truncate">{lang === "it" ? "Creo il tuo itinerario..." : "Building your itinerary..."}</span>
-                </>
-              ) : (
-                <>
-                  <span className="truncate">{t("dest.choose")} {selectedName?.split(",")[0]}</span>
-                  <ArrowRight className="w-5 h-5 shrink-0 transition-transform group-hover:translate-x-1" />
-                </>
-              )}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {genError && (
         <motion.p

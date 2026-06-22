@@ -204,18 +204,6 @@ export function ItineraryDashboard({
     // NB: queste funzioni-vista vengono invocate condizionalmente (es.
     // `view === "overview" && OverviewView()`), quindi NON devono chiamare hook
     // (violerebbe le Rules of Hooks → crash al cambio tab). Calcolo diretto.
-    const arcLabels = days.map(d => d.arc).filter(Boolean);
-    // emotional arc curve points (peak in the middle)
-    const W = 800, H = 60;
-    const pts = days.map((_, i) => {
-      const x = dayCount <= 1 ? W / 2 : (i / (dayCount - 1)) * W;
-      const mid = (dayCount - 1) / 2;
-      const intensity = dayCount <= 1 ? 1 : 1 - Math.abs(i - mid) / (mid || 1);
-      const y = H - 6 - intensity * (H - 14);
-      return { x, y };
-    });
-    const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
-
     return (
       <div className="view">
         <section className="it-hero">
@@ -267,32 +255,6 @@ export function ItineraryDashboard({
                     ))}
                   </div>
                 )}
-              </div>
-            </section>
-          )}
-
-          {dayCount > 1 && (
-            <section className="sec">
-              <div className="sec-head">
-                <div><div className="sec-eyebrow gold">{t("itd.arc.eyebrow")}</div></div>
-              </div>
-              <div className="emo-arc">
-                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="emoG" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="rgba(233,69,96,.2)" />
-                      <stop offset="50%" stopColor="rgba(212,168,83,.9)" />
-                      <stop offset="100%" stopColor="rgba(233,69,96,.2)" />
-                    </linearGradient>
-                  </defs>
-                  <path d={path} fill="none" stroke="url(#emoG)" strokeWidth="2" strokeLinecap="round" />
-                  {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3" fill={i === Math.floor((dayCount - 1) / 2) ? "#D4A853" : "#E94560"} />)}
-                </svg>
-                {arcLabels.length > 0 && [0, Math.floor((dayCount - 1) / 2), dayCount - 1]
-                  .filter((v, i, a) => a.indexOf(v) === i)
-                  .map(i => (
-                    <span key={i} className="emo-label" style={{ left: `${dayCount <= 1 ? 50 : (i / (dayCount - 1)) * 100}%` }}>{days[i]?.arc}</span>
-                  ))}
               </div>
             </section>
           )}
