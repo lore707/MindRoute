@@ -626,7 +626,10 @@ Object.assign(
 
 interface I18nContextType {
   lang: Lang;
-  setLang: (lang: Lang) => void;
+  // persist=false → cambia solo la UI in-memory senza toccare la preferenza
+  // salvata (usato dalle viste con contenuto generato monolingua, che forzano
+  // la lingua del contenuto e poi ripristinano la preferenza all'uscita).
+  setLang: (lang: Lang, persist?: boolean) => void;
   t: (key: string) => string;
 }
 
@@ -642,9 +645,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     if (saved === "it" || saved === "en") return saved as Lang;
     return "en";
   });
-  const setLang = useCallback((newLang: Lang) => {
+  const setLang = useCallback((newLang: Lang, persist = true) => {
     setLangState(newLang);
-    localStorage.setItem("mindroute-lang", newLang);
+    if (persist) localStorage.setItem("mindroute-lang", newLang);
   }, []);
 
   const t = useCallback((key: string) => {

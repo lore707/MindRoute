@@ -478,6 +478,7 @@ export function registerItineraryGenRoutes(app: Express) {
         userId,
         profilingInput: input,
         createdAt: new Date().toISOString(),
+        lang: input?.lang === "it" ? "it" : "en",
       });
 
       send("done", { itineraryId: saved.id, destinationId });

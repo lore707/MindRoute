@@ -26,7 +26,6 @@ import { useI18n } from "@/lib/i18n";
 import type { ItineraryData, Moment } from "./ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
 import { FlowNavLogo } from "@/components/FlowNav";
-import LangDropdown from "@/components/LangDropdown";
 
 const bg = (url: string, w: number, q = 70) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
 
@@ -102,7 +101,7 @@ export function ItineraryDashboard({
   data, itinerary, affiliateUrls, profilingInput,
   onSavePdf, onStartOver, onEdit, onShare, itineraryId, savedMomentIds, onToggleSaved,
 }: Props) {
-  const { t, lang, setLang } = useI18n();
+  const { t, lang } = useI18n();
   const [, setLocation] = useLocation();
   const [view, setView] = useState<ViewId>("overview");
   const [stuck, setStuck] = useState(false);
@@ -135,7 +134,6 @@ export function ItineraryDashboard({
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const toggleLang = () => setLang(lang === "it" ? "en" : "it");
 
   // ── ambient: immagini dei giorni, crossfade sul giorno attivo ──
   const dayImages = useMemo(() => days.map(d => d.img || data.heroImg).filter(Boolean), [days, data.heroImg]);
@@ -731,7 +729,8 @@ export function ItineraryDashboard({
             </svg>
             <span className="lbl">{pct}</span>
           </div>
-          <LangDropdown variant="dark" />
+          {/* Nessun toggle lingua: il contenuto è monolingua e fisso alla
+              creazione (la pagina forza già la lingua del contenuto). */}
           {onEdit && <button className="cmd-edit" onClick={onEdit}><Pencil className="pen" size={14} /> {t("itd.tb.edit")}</button>}
           <button className="tb-cta" onClick={onSavePdf}><Printer size={15} /> PDF</button>
         </div>

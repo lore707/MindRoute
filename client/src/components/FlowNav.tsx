@@ -19,7 +19,10 @@ export const FlowNavLogo = ({ size = 30 }: { size?: number }) => (
   </svg>
 );
 
-export function FlowNav() {
+// hideLang: nascondi il toggle lingua quando la vista mostra contenuto generato
+// monolingua (es. /destinations dopo il match) — cambiarlo darebbe un mix EN/IT.
+// Nel quiz resta visibile (i testi sono tutti tradotti dinamicamente).
+export function FlowNav({ hideLang = false }: { hideLang?: boolean }) {
   const { t } = useI18n();
   return (
     <nav className="fixed top-0 left-0 right-0 z-[100] px-3 py-2.5 md:px-8 md:py-4 flex items-center justify-between gap-2 backdrop-blur-xl transition-colors duration-300" style={{ background: 'var(--nav-bg)', borderBottom: '1px solid var(--nav-border)' }}>
@@ -28,7 +31,7 @@ export function FlowNav() {
         <span className="font-serif text-[15px] md:text-[18px]">MindRoute</span>
       </Link>
       <div className="flex items-center gap-2 md:gap-3">
-        <LangDropdown />
+        {!hideLang && <LangDropdown />}
         <Link href="/" className="hidden sm:inline-flex px-4 py-[7px] border border-[var(--border-input)] text-[var(--text-secondary)] rounded-full text-[13px] no-underline hover:border-[#E94560] hover:text-[#E94560] transition-all bg-transparent cursor-pointer" data-testid="link-exit">
           {t('nav.saveExit')}
         </Link>

@@ -7,6 +7,7 @@
  * personale/salvataggi — ma tiene i link di prenotazione (monetizzazione)
  * e un CTA "Ricomincia" che riporta al sito. */
 
+import { useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/lib/i18n";
@@ -19,7 +20,7 @@ import { mapItineraryToCinematic, buildAffiliateUrls, detectRegion } from "@/pag
 export default function SharedItinerary() {
   const [, params] = useRoute("/i/:token");
   const token = params?.token;
-  const { t, lang } = useI18n();
+  const { t, lang, setLang } = useI18n();
 
   const { data: itinerary, isLoading, error } = useQuery<any>({
     queryKey: ["/api/share", token],
@@ -30,6 +31,17 @@ export default function SharedItinerary() {
     },
     enabled: !!token,
   });
+
+  // Lingua bloccata sul contenuto (vedi Itinerary.tsx): forza la UI sulla
+  // lingua in cui l'itinerario è stato generato, effimero, e ripristina la
+  // preferenza all'uscita. Chi apre un link condiviso vede una pagina coerente.
+  useEffect(() => {
+    const contentLang = itinerary?.lang;
+    if (contentLang !== "it" && contentLang !== "en") return;
+    const prev = (localStorage.getItem("mindroute-lang") === "it" ? "it" : "en") as "en" | "it";
+    if (contentLang !== prev) setLang(contentLang, false);
+    return () => { if (contentLang !== prev) setLang(prev, false); };
+  }, [itinerary, setLang]);
 
   if (isLoading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "transparent" }}>

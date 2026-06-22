@@ -183,6 +183,7 @@ function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: num
     country: v2.country,
     tripMeta,
     profilingInput,
+    lang: profilingInput?.lang === "it" ? "it" : "en",
   };
 }
 

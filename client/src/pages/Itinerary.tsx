@@ -716,7 +716,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function Itinerary() {
-  const { t, lang } = useI18n();
+  const { t, lang, setLang } = useI18n();
   const [, params] = useRoute("/itinerary/:id");
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
@@ -740,6 +740,19 @@ export default function Itinerary() {
   useEffect(() => {
     if (id > 0) setLastOpenedItinerary(id);
   }, [id]);
+
+  // Opzione 1 "lingua bloccata sul contenuto": il contenuto generato è
+  // monolingua e fisso alla creazione. Forziamo la UI sulla lingua del
+  // contenuto (effimero, senza persistere) e ripristiniamo la preferenza
+  // dell'utente all'uscita, così non si vede mai una pagina mezza tradotta.
+  // Righe legacy (lang null) → nessuna forzatura, si resta sulla preferenza.
+  useEffect(() => {
+    const contentLang = (itinerary as any)?.lang;
+    if (contentLang !== "it" && contentLang !== "en") return;
+    const prev = (localStorage.getItem("mindroute-lang") === "it" ? "it" : "en") as "en" | "it";
+    if (contentLang !== prev) setLang(contentLang, false);
+    return () => { if (contentLang !== prev) setLang(prev, false); };
+  }, [itinerary, setLang]);
 
   // ── SAVED MOMENTS (Ondata B — bookmark trasversale) ──
   // Fetcho lo stato all'apertura della pagina; il toggle è ottimistico:

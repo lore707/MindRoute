@@ -60,6 +60,11 @@ export const itineraries = pgTable("itineraries", {
   // slot globale profiling_inputs (race cross-utente). Nullable: le righe legacy
   // ricadono sul fallback globale. MAI esposto nella condivisione pubblica.
   profilingInput: jsonb("profiling_input").$type<any>(),
+  // Lingua in cui il CONTENUTO generato è stato scritto ("en" | "it"). Il
+  // contenuto AI è monolingua e fisso alla creazione: i lettori forzano la UI
+  // su questa lingua invece di mostrare una pagina mezza tradotta. Null sulle
+  // righe legacy (ricadono sulla preferenza globale dell'utente).
+  lang: text("lang"),
 });
 
 // ── v2 — moment-based itinerary types ──────────────────────────────────────
