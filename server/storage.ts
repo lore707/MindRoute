@@ -13,6 +13,7 @@ export interface IStorage {
   getItineraryByPublicToken(token: string): Promise<Itinerary | undefined>;
   setItineraryPublicToken(id: number, token: string): Promise<void>;
  updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
+  updateItineraryTrip(id: number, updatedDays: any[], tripMeta: any): Promise<void>;
   getUserItineraries(userId: number): Promise<any[]>;
   createTraitSnapshot(snapshot: InsertTraitSnapshot): Promise<TraitSnapshot>;
   getTraitSnapshots(userId: number): Promise<TraitSnapshot[]>;
@@ -95,6 +96,13 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     const idx = this.itineraries.findIndex(i => i.id === id);
     if (idx >= 0) {
       this.itineraries[idx] = { ...this.itineraries[idx], days: updatedDays };
+    }
+  }
+
+  async updateItineraryTrip(id: number, updatedDays: any[], tripMeta: any): Promise<void> {
+    const idx = this.itineraries.findIndex(i => i.id === id);
+    if (idx >= 0) {
+      this.itineraries[idx] = { ...this.itineraries[idx], days: updatedDays, tripMeta };
     }
   }
 

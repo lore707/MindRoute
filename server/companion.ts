@@ -259,6 +259,8 @@ export interface CompanionToolContext {
   alreadySaved: (userId: number, itineraryId: number, momentId: string) => Promise<boolean>;
   // Persiste i giorni modificati (remove/replace moment). Salva l'intero array.
   saveDays?: (days: any[]) => Promise<void>;
+  // Persiste giorni + tripMeta (per ri-allineare i pin mappa dopo un edit).
+  saveTrip?: (days: any[], tripMeta: any) => Promise<void>;
 }
 
 // Coordinate rappresentative del viaggio: usate dal meteo quando manca il GPS.
@@ -277,6 +279,21 @@ export function itineraryCoords(itin: Itinerary): { lat: number; lng: number } |
     }
   }
   return null;
+}
+
+// map_points v2 ricalcolati dai momenti geolocalizzati del piano: usati per
+// tenere i PIN della mappa allineati dopo un edit del bot (la mappa v2 legge
+// tripMeta.map_points, non i momenti per-giorno).
+function mapPointsFromDays(days: any[]): { day: number; lat: number; lng: number; label: string }[] {
+  const out: { day: number; lat: number; lng: number; label: string }[] = [];
+  for (const d of (Array.isArray(days) ? days : [])) {
+    for (const m of (Array.isArray(d.moments) ? d.moments : [])) {
+      if (typeof m?.location_lat === "number" && typeof m?.location_lng === "number") {
+        out.push({ day: d.day_number ?? 0, lat: m.location_lat, lng: m.location_lng, label: m.location_name || m.title_operational || m.title_evocative || "" });
+      }
+    }
+  }
+  return out;
 }
 
 // WMO weather code → etichetta breve + emoji, EN/IT.
@@ -372,8 +389,15 @@ async function executeTool(
     if ((ctx.itinerary as any).schemaVersion !== 2) {
       return { result: "This itinerary can't be edited from chat (legacy format).", label: it ? "Non modificabile" : "Not editable" };
     }
-    if (!ctx.saveDays) return { result: "Editing unavailable.", label: it ? "Non modificabile" : "Not editable" };
+    if (!ctx.saveTrip && !ctx.saveDays) return { result: "Editing unavailable.", label: it ? "Non modificabile" : "Not editable" };
     const days: any[] = Array.isArray(ctx.itinerary.days) ? ctx.itinerary.days : [];
+    // Persiste i giorni e ri-allinea i pin mappa (tripMeta.map_points) all'edit.
+    const persistEdit = async (d: any[]) => {
+      const meta = { ...((ctx.itinerary as any).tripMeta ?? {}), map_points: mapPointsFromDays(d) };
+      (ctx.itinerary as any).tripMeta = meta;
+      if (ctx.saveTrip) await ctx.saveTrip(d, meta);
+      else if (ctx.saveDays) await ctx.saveDays(d);
+    };
 
     if (name === "add_moment") {
       const dayNo = Number(input?.day_number);
@@ -397,7 +421,7 @@ async function executeTool(
         if (img?.url) newMoment.image_url = img.url;
       } catch { /* nessuna immagine */ }
       day.moments = [...(Array.isArray(day.moments) ? day.moments : []), newMoment];
-      await ctx.saveDays(days);
+      await persistEdit(days);
       return { result: `Added "${title}" to Day ${dayNo}. The plan is updated.`, label: it ? `Aggiunto: ${title}` : `Added: ${title}` };
     }
 
@@ -407,7 +431,7 @@ async function executeTool(
     if (name === "remove_moment") {
       const title = hit.moment.title_evocative ?? hit.moment.title_operational ?? "moment";
       hit.day.moments = (hit.day.moments ?? []).filter((m: any) => m.id !== hit.moment.id);
-      await ctx.saveDays(days);
+      await persistEdit(days);
       return { result: `Removed "${title}" from Day ${hit.day.day_number}. The plan is updated.`, label: it ? `Rimosso: ${title}` : `Removed: ${title}` };
     }
 
@@ -428,7 +452,7 @@ async function executeTool(
       const img = await fetchUnsplashHero(q);
       if (img?.url) m.image_url = img.url;
     } catch { /* tieni l'immagine vecchia */ }
-    await ctx.saveDays(days);
+    await persistEdit(days);
     return { result: `Replaced "${oldTitle}" with "${newTitle}" on Day ${hit.day.day_number}. The plan is updated.`, label: it ? `Sostituito: ${newTitle}` : `Replaced: ${newTitle}` };
   }
 
