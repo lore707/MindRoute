@@ -129,7 +129,7 @@ How you behave:
 - When the user wants to keep or remember a place/activity that is part of their plan, call save_moment with that moment's id (the [id:...] tag in the plan below) so it lands in their saved collection. Only the moments listed below have ids; never invent one.
 - You can ACTUALLY edit the plan: remove_moment drops a moment, replace_moment swaps one, add_moment adds a new stop to a day. Propose the change in words first; only call the tool once the user clearly agrees ("yes", "do it", "add it"). For anything "near me / nearby", call find_nearby first and use a REAL place + its coordinates. After editing, tell them it's done — the plan refreshes on their screen.
 - Keep replies short by default (a few sentences). Expand only when they ask for detail.
-- To BOOK anything (a moment, a flight, a hotel), call get_booking_link and hand over the EXACT url it returns. Never invent or guess a booking URL.
+- BOOKING LINKS ARE MANDATORY: whenever you PROPOSE or RECOMMEND something bookable — a place, activity, tour, restaurant, hotel, swap or added stop — you MUST call get_booking_link (pass its category and name) and include the EXACT url it returns in the same reply, as a clear "Book it: <url>". Never invent a URL, and never propose a bookable thing without its link. Only purely free/walk-in things (a public square, a stroll) need no link.
 - For WEATHER, you have a real forecast: call get_weather instead of guessing. Use it to advise on a day (beach vs indoors, rain plan, what to pack) — proactively when it clearly matters.
 - If you don't know something else real-time (live opening hours, ticket availability), say so plainly and give your best informed guess.
 ${isV2 ? "" : "\nNOTE: this is a legacy itinerary without per-moment ids — save_moment is unavailable here; just talk the user through it."}
@@ -211,12 +211,13 @@ const COMPANION_TOOLS = [
   {
     name: "get_booking_link",
     description:
-      "Get the REAL booking/affiliate link for a moment or for flights/hotels of this trip. Call this when the user wants to book/reserve something ('book this', 'where do I get tickets', 'book my flight'). Returns the exact URL to hand over — never invent booking URLs yourself.",
+      "Get the REAL affiliate booking link for anything you propose (activity, tour, restaurant, place, hotel, flight, transport) or for a specific moment. Always returns a real URL to hand over — never invent booking URLs yourself. Call this every time you recommend something bookable.",
     input_schema: {
       type: "object" as const,
       properties: {
-        moment_id: { type: "string", description: "Optional: the [id:...] of the moment they want to book." },
-        category: { type: "string", description: "Optional: 'flight', 'hotel', 'experience', 'restaurant', 'transport' when not tied to one moment." },
+        moment_id: { type: "string", description: "Optional: the [id:...] of the moment, if the recommendation is an existing plan moment." },
+        category: { type: "string", description: "Kind of thing: 'experience'/'tour'/'activity', 'restaurant', 'hotel', 'flight', 'transport'. Drives which partner is used." },
+        query: { type: "string", description: "The place/activity name to search (e.g. 'Sagrada Familia tickets', 'sushi omakase'). Used to build a targeted link." },
       },
     },
   },
@@ -432,7 +433,14 @@ async function executeTool(
   }
 
   if (name === "get_booking_link") {
-    // 1) Link a livello di momento (dati strutturati v2: booking.affiliate_url).
+    const itin = ctx.itinerary as any;
+    const dest = itin.destinationName ?? "";
+    const td = itin.tripMeta?.travel_dates ?? {};
+    let category = String(input?.category ?? "").toLowerCase();
+    let query = String(input?.query ?? "").trim();
+
+    // 1) Link a livello di momento (dati strutturati v2: booking.affiliate_url) —
+    //    è il migliore quando esiste (provider giusto, deep-link reale).
     const mid = String(input?.moment_id ?? "").trim();
     if (mid) {
       const hit = findMomentById(ctx.itinerary, mid);
@@ -443,17 +451,34 @@ async function executeTool(
           label: it ? "Trovo come prenotare" : "Finding how to book",
         };
       }
-      if (hit) {
-        return { result: `That moment is walk-in / has no booking link. Tell them no reservation is needed.`, label: it ? "Nessuna prenotazione" : "No booking needed" };
-      }
+      // Momento senza link strutturato (es. aggiunto in chat): ricaviamo categoria
+      // e query dal momento per costruire comunque un link affiliato.
+      if (hit && !query) query = hit.moment.location_name || hit.moment.title_operational || hit.moment.title_evocative || "";
+      if (hit && !category) category = String(hit.moment.type ?? "");
     }
-    // 2) Fallback: link di viaggio top dell'itinerario (voli/hotel/…).
-    const top = (ctx.itinerary as any).topAffiliateLinks as Record<string, string> | null | undefined;
-    if (top && Object.keys(top).length) {
-      const list = Object.entries(top).map(([k, v]) => `- ${k}: ${v}`).join("\n");
-      return { result: `Trip booking links (hand over the exact URL that matches what they asked):\n${list}`, label: it ? "Trovo come prenotare" : "Finding how to book" };
+
+    // 2) Costruiamo SEMPRE un link affiliato reale per la proposta.
+    const { viatorSearchUrl, hotelsComUrl } = await import("./affiliate-config");
+    const c = category;
+    const q = query || dest;
+    let provider = "", url = "";
+    if (/(hotel|stay|sleep|accommodation|alloggio|dormire)/.test(c)) {
+      provider = "Hotels.com"; url = hotelsComUrl(dest || q, td.start, td.end);
+    } else if (/(flight|volo|transport|train|bus|car|transfer)/.test(c)) {
+      // Voli/transfer: i link migliori (con tratta/date) sono nei topAffiliateLinks.
+      const top = itin.topAffiliateLinks as Record<string, string> | null | undefined;
+      const key = Object.keys(top ?? {}).find((k) => /flight|expedia|car|flixbus|train/.test(k.toLowerCase()));
+      if (top && key) { provider = key; url = top[key]; }
+      else { provider = "Viator"; url = viatorSearchUrl(`${q} transport`); }
+    } else {
+      // attività, tour, esperienze, ristoranti, luoghi → Viator (globale, per testo).
+      provider = "Viator"; url = viatorSearchUrl(`${q} ${dest}`.trim());
     }
-    return { result: "No stored booking link for this. Point them to the Book tab of their itinerary.", label: it ? "Vedi scheda Prenota" : "See the Book tab" };
+
+    if (url) {
+      return { result: `Affiliate booking link to hand over EXACTLY (do not alter):\nProvider: ${provider}\nURL: ${url}`, label: it ? "Trovo come prenotare" : "Finding how to book" };
+    }
+    return { result: "Point them to the Book tab of their itinerary.", label: it ? "Vedi scheda Prenota" : "See the Book tab" };
   }
 
   if (name === "get_weather") {

@@ -43,3 +43,17 @@ export function klookSearchUrl(city: string): string {
 export function musementCityUrl(citySlug: string): string {
   return `https://www.musement.com/it/${citySlug}/?utm_source=affiliate&utm_medium=affiliate&utm_campaign=${AFFILIATES.musementCampaign}`;
 }
+
+// Viator — ricerca per testo (globale): copre attività, tour, esperienze e food
+// tour per QUALSIASI luogo. pid/mcid sono gli id affiliate reali del progetto
+// (gli stessi del prompt del matching engine).
+export function viatorSearchUrl(text: string): string {
+  return `https://www.viator.com/searchResults/all?text=${encodeURIComponent(text)}&pid=P00293604&mcid=42383&medium=link`;
+}
+
+// Hotels.com via CJ click wrapper — ricerca per città (+ date opzionali). URL
+// interno lasciato grezzo come gli altri link del progetto (CJ lo tollera).
+export function hotelsComUrl(city: string, checkin?: string, checkout?: string): string {
+  const dateQs = `${checkin ? `&q-check-in=${checkin}` : ""}${checkout ? `&q-check-out=${checkout}` : ""}`;
+  return `https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=${encodeURIComponent(city)}${dateQs}`;
+}
