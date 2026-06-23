@@ -17,6 +17,13 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useI18n } from "@/lib/i18n";
+
+const tx = (t: (k: string) => string, key: string, vars: Record<string, string | number>) => {
+  let s = t(key);
+  for (const k in vars) s = s.split(`{${k}}`).join(String(vars[k]));
+  return s;
+};
 
 /* ════════════ types ════════════ */
 export type LogisticsAnswers = {
@@ -370,6 +377,7 @@ function ChapterFrame({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const { t } = useI18n();
   const budgetObj = TIERS.find((t) => t.id === answers.budget);
   const durObj    = DURATIONS.find((d) => d.id === answers.duration);
   const whoObj    = WHO_OPTIONS.find((w) => w.id === answers.who);
@@ -421,9 +429,9 @@ function ChapterFrame({
     : whenMode === "period" ? periods.length > 0
     : months.length > 0;
   const whenStatus =
-    whenMode === "dates"  ? (whenFilled ? "set" : "open")
-    : whenMode === "period" ? (periods.length ? `${periods.length} picked` : "open")
-    : (months.length ? `${months.length} picked` : "open");
+    whenMode === "dates"  ? (whenFilled ? t("ql.status.set") : t("ql.status.open"))
+    : whenMode === "period" ? (periods.length ? tx(t, "ql.when.picked", { n: periods.length }) : t("ql.status.open"))
+    : (months.length ? tx(t, "ql.when.picked", { n: months.length }) : t("ql.status.open"));
 
   const filled = [budgetObj, whenFilled ? "y" : null, durObj, whoObj, answers.city].filter(Boolean).length;
   const cityCode = (answers.city || "").trim().slice(0, 3).toUpperCase() || "—";
@@ -436,10 +444,10 @@ function ChapterFrame({
 
   const whenStr = useMemo(() => {
     if (whenMode === "dates") return whenFilled ? `${fmtDate(answers.dateFrom)} → ${fmtDate(answers.dateTo)}` : "";
-    if (whenMode === "period") return periods.join(", ");
+    if (whenMode === "period") return periods.map((p) => t(`ql.period.${p.toLowerCase()}`)).join(", ");
     const order = MONTHS.map((m) => m.nm);
-    return [...months].sort((a, b) => order.indexOf(a) - order.indexOf(b)).join(", ");
-  }, [whenMode, whenFilled, answers.dateFrom, answers.dateTo, periods, months]);
+    return [...months].sort((a, b) => order.indexOf(a) - order.indexOf(b)).map((m) => t(`ql.months.${m.toLowerCase()}`)).join(", ");
+  }, [whenMode, whenFilled, answers.dateFrom, answers.dateTo, periods, months, t]);
 
   const estCost = useMemo(() => {
     if (!budgetObj) return null;
@@ -452,49 +460,49 @@ function ChapterFrame({
     <>
       <div className="ql-sticky-head">
         <div className="ql-header-strip">
-          <span className="ql-label">Chapter II · The frame</span>
+          <span className="ql-label">{t("ql.ch2.strip")}</span>
           <div className="ql-progress-line"><div className="ql-fill" style={{ width: `${(filled / 5) * 100}%` }} /></div>
-          <span className="ql-count">{filled} of 5 anchors set</span>
+          <span className="ql-count">{tx(t, "ql.ch2.anchors", { n: filled })}</span>
         </div>
 
         <div className="ql-q-head">
-          <div className="ql-q-eyebrow"><strong>Chapter II</strong> · giving it real shape</div>
-          <h1 className="ql-q-title">Now, the <em>practical</em><br />shape of it.</h1>
-          <p className="ql-q-sub">Five quick anchors — budget, time, length, company, departure. We'll keep it light. The texture comes next.</p>
+          <div className="ql-q-eyebrow"><strong>{t("ql.ch2.label")}</strong> · {t("ql.ch2.eyebrow")}</div>
+          <h1 className="ql-q-title" dangerouslySetInnerHTML={{ __html: t("ql.ch2.title") }} />
+          <p className="ql-q-sub">{t("ql.ch2.sub")}</p>
         </div>
       </div>
 
       <div className="ql-q-grid">
         <div>
           {/* i — BUDGET */}
-          <Section num="1." title="How much do you want to spend?" hint="Per person, all in — flights, stays, food, the whole texture." status={budgetObj ? "set" : "open"} filled={!!budgetObj}>
+          <Section num="1." title={t("ql.s1.title")} hint={t("ql.s1.hint")} status={budgetObj ? t("ql.status.set") : t("ql.status.open")} filled={!!budgetObj}>
             <div className="ql-budget-scale">
-              {TIERS.map((t) => (
-                <div key={t.id} className={"ql-tier " + (answers.budget === t.id ? "on" : "")} onClick={() => update("budget", t.id as LogisticsAnswers["budget"])}>
+              {TIERS.map((tier) => (
+                <div key={tier.id} className={"ql-tier " + (answers.budget === tier.id ? "on" : "")} onClick={() => update("budget", tier.id as LogisticsAnswers["budget"])}>
                   <div className="ql-dots">
-                    {[1, 2, 3, 4].map((i) => <div key={i} className={"ql-dot " + (i <= t.dots ? "fill" : "")} />)}
+                    {[1, 2, 3, 4].map((i) => <div key={i} className={"ql-dot " + (i <= tier.dots ? "fill" : "")} />)}
                   </div>
-                  <div className="ql-tier-lbl">{t.lbl}</div>
-                  <div className="ql-tier-range">{t.range}</div>
+                  <div className="ql-tier-lbl">{t(`ql.tier.${tier.id}.lbl`)}</div>
+                  <div className="ql-tier-range">{t(`ql.tier.${tier.id}.range`)}</div>
                 </div>
               ))}
             </div>
             <div className="ql-budget-extra">
               <div className="ql-budget-extra-text">
-                <span className="l">Estimated for your trip</span>
-                <span className="v">{estCost ?? "Pick a tier and a duration to see a range"}</span>
+                <span className="l">{t("ql.s1.est.label")}</span>
+                <span className="v">{estCost ?? t("ql.s1.est.empty")}</span>
               </div>
               <div className={"ql-toggle-row " + (answers.openWallet ? "on" : "")} onClick={() => update("openWallet", !answers.openWallet)}>
                 <div className="ql-toggle-sw" />
-                <span>Hide the numbers — surprise me</span>
+                <span>{t("ql.s1.open.wallet")}</span>
               </div>
             </div>
           </Section>
 
           {/* ii — WHEN */}
-          <Section num="2." title="When do you want to go?" hint="Fixed dates, a flexible month, or just a season — whatever you know right now." status={whenStatus} filled={whenFilled}>
+          <Section num="2." title={t("ql.s2.title")} hint={t("ql.s2.hint")} status={whenStatus} filled={whenFilled}>
             <div className="ql-when-tabs">
-              {([["dates", "Exact dates"], ["month", "Flexible month"], ["period", "Flexible period"]] as const).map(([k, l]) => (
+              {([["dates", t("ql.when.dates")], ["month", t("ql.when.month")], ["period", t("ql.when.period")]] as const).map(([k, l]) => (
                 <div key={k} className={"ql-when-tab " + (whenMode === k ? "on" : "")} onClick={() => update("whenMode", k)}>{l}</div>
               ))}
             </div>
@@ -502,11 +510,11 @@ function ChapterFrame({
             {whenMode === "dates" && (
               <div className="ql-when-dates">
                 <label className="ql-when-date">
-                  <span>Leaving</span>
+                  <span>{t("ql.when.leaving")}</span>
                   <input type="date" value={answers.dateFrom ?? ""} max={answers.dateTo || undefined} onChange={(e) => update("dateFrom", e.target.value)} />
                 </label>
                 <label className="ql-when-date">
-                  <span>Returning</span>
+                  <span>{t("ql.when.returning")}</span>
                   <input type="date" value={answers.dateTo ?? ""} min={answers.dateFrom || undefined} onChange={(e) => update("dateTo", e.target.value)} />
                 </label>
               </div>
@@ -520,7 +528,7 @@ function ChapterFrame({
                     type="button"
                     className={"ql-month-cell " + (months.includes(m.nm) ? "on" : "")}
                     onClick={() => toggleMonth(m.nm)}
-                  >{m.nm}</button>
+                  >{t(`ql.months.${m.nm.toLowerCase()}`)}</button>
                 ))}
               </div>
             )}
@@ -533,14 +541,14 @@ function ChapterFrame({
                     className={"ql-period-chip " + (periods.includes(p.id) ? "on" : "")}
                     style={{ ["--pc" as string]: p.c }}
                     onClick={() => togglePeriod(p.id)}
-                  >{p.id}</button>
+                  >{t(`ql.period.${p.id.toLowerCase()}`)}</button>
                 ))}
               </div>
             )}
           </Section>
 
           {/* iii — DURATION */}
-          <Section num="3." title="How long do you have?" hint="A weekend is its own thing. Two weeks is a different animal entirely." status={durObj ? "set" : "open"} filled={!!durObj}>
+          <Section num="3." title={t("ql.s3.title")} hint={t("ql.s3.hint")} status={durObj ? t("ql.status.set") : t("ql.status.open")} filled={!!durObj}>
             <div className="ql-dur-row">
               {DURATIONS.map((d) => (
                 <div key={d.id} className={"ql-dur " + (answers.duration === d.id ? "on" : "")} onClick={() => update("duration", d.id as LogisticsAnswers["duration"])}>
@@ -553,22 +561,22 @@ function ChapterFrame({
                       />
                     ))}
                   </div>
-                  <div className="ql-dur-lbl">{d.lbl}</div>
-                  <div className="ql-dur-meta">{d.meta}</div>
+                  <div className="ql-dur-lbl">{t(`ql.dur.${d.id}.lbl`)}</div>
+                  <div className="ql-dur-meta">{t(`ql.dur.${d.id}.meta`)}</div>
                 </div>
               ))}
             </div>
           </Section>
 
           {/* iv — WHO */}
-          <Section num="4." title="Who are you traveling with?" hint="Changes everything about pace, places, and the way we plan." status={whoObj ? whoObj.lbl : "open"} filled={!!whoObj}>
+          <Section num="4." title={t("ql.s4.title")} hint={t("ql.s4.hint")} status={whoObj ? t(`ql.who.${whoObj.id}.lbl`) : t("ql.status.open")} filled={!!whoObj}>
             <div className="ql-who-row">
               {WHO_OPTIONS.map((w) => (
                 <div key={w.id} className={"ql-who " + (answers.who === w.id ? "on" : "")} onClick={() => pickWho(w.id)}>
                   <div className="ql-who-avatar">{w.svg}</div>
                   <div>
-                    <div className="ql-who-lbl">{w.lbl}</div>
-                    <div className="ql-who-sub">{w.sub}</div>
+                    <div className="ql-who-lbl">{t(`ql.who.${w.id}.lbl`)}</div>
+                    <div className="ql-who-sub">{t(`ql.who.${w.id}.sub`)}</div>
                   </div>
                 </div>
               ))}
@@ -576,35 +584,35 @@ function ChapterFrame({
 
             {showGroup && (
               <div className="ql-group-form">
-                <div className="ql-group-head">Who's in the {answers.who === "family" ? "family" : "group"}?</div>
+                <div className="ql-group-head">{answers.who === "family" ? t("ql.group.head.family") : t("ql.group.head.friends")}</div>
                 <div className="ql-group-counts">
                   <div className="ql-group-count">
-                    <div className="ql-group-count-lbl">Adults</div>
+                    <div className="ql-group-count-lbl">{t("ql.group.adults")}</div>
                     <div className="ql-stepper">
-                      <button type="button" onClick={() => setAdults(adults - 1)} disabled={adults <= 1} aria-label="Fewer adults">−</button>
+                      <button type="button" onClick={() => setAdults(adults - 1)} disabled={adults <= 1} aria-label={t("ql.group.aria.fewer.adults")}>−</button>
                       <span>{adults}</span>
-                      <button type="button" onClick={() => setAdults(adults + 1)} disabled={adults >= 12} aria-label="More adults">+</button>
+                      <button type="button" onClick={() => setAdults(adults + 1)} disabled={adults >= 12} aria-label={t("ql.group.aria.more.adults")}>+</button>
                     </div>
                   </div>
                   <div className="ql-group-count">
-                    <div className="ql-group-count-lbl">Children <small>under 18</small></div>
+                    <div className="ql-group-count-lbl">{t("ql.group.children")} <small>{t("ql.group.children.sub")}</small></div>
                     <div className="ql-stepper">
-                      <button type="button" onClick={() => setKids(kids - 1)} disabled={kids <= 0} aria-label="Fewer children">−</button>
+                      <button type="button" onClick={() => setKids(kids - 1)} disabled={kids <= 0} aria-label={t("ql.group.aria.fewer.children")}>−</button>
                       <span>{kids}</span>
-                      <button type="button" onClick={() => setKids(kids + 1)} disabled={kids >= 10} aria-label="More children">+</button>
+                      <button type="button" onClick={() => setKids(kids + 1)} disabled={kids >= 10} aria-label={t("ql.group.aria.more.children")}>+</button>
                     </div>
                   </div>
                 </div>
                 {kids > 0 && (
                   <div className="ql-kids-ages">
-                    <div className="ql-kids-ages-lbl">Each child's age</div>
+                    <div className="ql-kids-ages-lbl">{t("ql.group.kids.ages.lbl")}</div>
                     <div className="ql-kids-ages-row">
                       {Array.from({ length: kids }).map((_, i) => (
                         <input
                           key={i}
                           type="number" min={0} max={17}
                           className="ql-kid-age"
-                          placeholder="age"
+                          placeholder={t("ql.group.kids.age.placeholder")}
                           value={kidsAges[i] ?? ""}
                           onChange={(e) => setKidAge(i, e.target.value)}
                         />
@@ -617,15 +625,15 @@ function ChapterFrame({
           </Section>
 
           {/* v — DEPART */}
-          <Section num="5." title="Where are you departing from?" hint="So we can price the journey honestly — and find flights you'll actually take." status={answers.city || "open"} filled={!!answers.city}>
+          <Section num="5." title={t("ql.s5.title")} hint={t("ql.s5.hint")} status={answers.city || t("ql.status.open")} filled={!!answers.city}>
             <input
               className="ql-depart-input"
-              placeholder="e.g. Milan, London, New York…"
+              placeholder={t("ql.s5.placeholder")}
               value={answers.city ?? ""}
               onChange={(e) => update("city", e.target.value)}
             />
             <div className="ql-depart-saved">
-              <span className="ql-depart-saved-lbl">Saved · </span>
+              <span className="ql-depart-saved-lbl">{t("ql.s5.saved")}</span>
               {(savedCities ?? SAVED_CITIES).map((c) => (
                 <button key={c} className={"ql-depart-chip " + (answers.city === c ? "on" : "")} onClick={() => update("city", c)}>{c}</button>
               ))}
@@ -634,17 +642,17 @@ function ChapterFrame({
         </div>
 
         <aside className="ql-side">
-          <TripCard answers={answers} profile={profile} cityCode={cityCode} whenStr={whenStr} durLbl={durObj?.meta ?? "—"} budgetLbl={budgetObj?.lbl ?? null} estCost={estCost} whoLbl={whoObj?.lbl ?? null} />
-          <SideCard head={<><div className="ql-side-ic">?</div>Why these five</>}>
-            <p>These are the practical anchors that turn an idea into an itinerary. We'll quote and time everything around them — and surface places that match.</p>
+          <TripCard answers={answers} profile={profile} cityCode={cityCode} whenStr={whenStr} durLbl={durObj ? t(`ql.dur.${durObj.id}.meta`) : "—"} budgetLbl={budgetObj ? t(`ql.tier.${budgetObj.id}.lbl`) : null} estCost={estCost} whoLbl={whoObj ? t(`ql.who.${whoObj.id}.lbl`) : null} />
+          <SideCard head={<><div className="ql-side-ic">?</div>{t("ql.side.ch2.why.head")}</>}>
+            <p>{t("ql.side.ch2.why.body")}</p>
           </SideCard>
-          <SideCard variant="privacy" head={<><div className="ql-side-ic">✓</div>Privacy</>}>
-            <p>Your answers shape your destinations. Never stored, never shared.</p>
+          <SideCard variant="privacy" head={<><div className="ql-side-ic">✓</div>{t("ql.privacy.head")}</>}>
+            <p>{t("ql.privacy.body")}</p>
           </SideCard>
         </aside>
       </div>
 
-      <FooterNav backLbl="← Back to what to avoid" nextLbl="Continue to the texture →" onBack={onBack} onNext={onNext} canContinue={filled === 5} />
+      <FooterNav backLbl={t("ql.side.ch2.back.lbl")} nextLbl={t("ql.side.ch2.next.lbl")} onBack={onBack} onNext={onNext} canContinue={filled === 5} />
     </>
   );
 }
@@ -658,11 +666,13 @@ function ChapterTexture({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const { t } = useI18n();
   const moveObj  = MOVE_OPTIONS.find((m) => m.id === answers.move);
   const sleepObj = SLEEP_TIERS.find((s) => s.id === answers.sleep);
   const foodObj  = FOOD_TIERS.find((f) => f.id === answers.food);
   const effort   = answers.effort ?? 2;
-  const [effortLbl, effortCopy] = EFFORT_COPY[effort];
+  const effortLbl = t(`ql.effort.${effort}.lbl`);
+  const effortCopy = t(`ql.effort.${effort}.copy`);
   const diet = answers.diet ?? [];
 
   function toggleDiet(id: string) {
@@ -681,55 +691,58 @@ function ChapterTexture({
 
   const dietSummary = useMemo(() => {
     if (diet.length === 0) return null;
-    if (diet.includes("none")) return "I eat everything";
-    return diet.map((id) => DIET_OPTIONS.find((d) => d.id === id)?.lbl).join(", ");
-  }, [diet]);
+    if (diet.includes("none")) return t("ql.diet.sum.none");
+    return diet.map((id) => t(`ql.diet.${id}`)).join(", ");
+  }, [diet, t]);
 
   return (
     <>
       <div className="ql-sticky-head">
         <div className="ql-header-strip">
-          <span className="ql-label">Chapter III · The texture</span>
+          <span className="ql-label">{t("ql.ch3.strip")}</span>
           <div className="ql-progress-line"><div className="ql-fill" style={{ width: `${(completion / 5) * 100}%` }} /></div>
-          <span className="ql-count">{completion} of 5 textures set</span>
+          <span className="ql-count">{tx(t, "ql.ch3.textures", { n: completion })}</span>
         </div>
 
         <div className="ql-q-head">
-          <div className="ql-q-eyebrow"><strong>Chapter III</strong> · the texture of your days</div>
-          <h1 className="ql-q-title">And the <em>texture</em><br />of your days.</h1>
-          <p className="ql-q-sub">How you move, where you sleep, what you eat, how hard you push your body. The small grain that makes a trip yours.</p>
+          <div className="ql-q-eyebrow"><strong>{t("ql.ch3.label")}</strong> · {t("ql.ch3.eyebrow")}</div>
+          <h1 className="ql-q-title" dangerouslySetInnerHTML={{ __html: t("ql.ch3.title") }} />
+          <p className="ql-q-sub">{t("ql.ch3.sub")}</p>
         </div>
       </div>
 
       <div className="ql-q-grid">
         <div>
           {/* i — MOVEMENT */}
-          <Section num="1." title="How do you want to move?" hint="This shapes the entire structure of your itinerary." status={moveObj?.lbl ?? "open"} filled={!!moveObj}>
+          <Section num="1." title={t("ql.t1.title")} hint={t("ql.t1.hint")} status={moveObj ? t(`ql.move.${moveObj.id === "twostops" ? "two" : moveObj.id === "discovery" ? "disc" : "base"}.lbl`) : t("ql.status.open")} filled={!!moveObj}>
             <div className="ql-move-row">
-              {MOVE_OPTIONS.map((m) => (
-                <div key={m.id} className={"ql-move " + (answers.move === m.id ? "on" : "")} onClick={() => update("move", m.id as LogisticsAnswers["move"])}>
-                  <div className="ql-move-diagram"><MoveDiagram id={m.id} /></div>
-                  <div>
-                    <div className="ql-move-lbl">{m.lbl}</div>
-                    <div className="ql-move-meta">{m.meta}</div>
+              {MOVE_OPTIONS.map((m) => {
+                const stem = m.id === "twostops" ? "two" : m.id === "discovery" ? "disc" : "base";
+                return (
+                  <div key={m.id} className={"ql-move " + (answers.move === m.id ? "on" : "")} onClick={() => update("move", m.id as LogisticsAnswers["move"])}>
+                    <div className="ql-move-diagram"><MoveDiagram id={m.id} /></div>
+                    <div>
+                      <div className="ql-move-lbl">{t(`ql.move.${stem}.lbl`)}</div>
+                      <div className="ql-move-meta">{t(`ql.move.${stem}.meta`)}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Section>
 
           {/* ii — SLEEP */}
-          <Section num="2." title="Where do you prefer to sleep?" hint="Shapes hotel and stay recommendations. Price is per room, per night." status={sleepObj?.range ?? "open"} filled={!!sleepObj}>
-            <TierStripList items={SLEEP_TIERS} selected={answers.sleep} onPick={(id) => update("sleep", id)} gradeMax={5} />
+          <Section num="2." title={t("ql.t2.title")} hint={t("ql.t2.hint")} status={sleepObj ? t(`ql.sleep.${sleepObj.id === "boutique" ? "bout" : sleepObj.id === "luxury" ? "lux" : sleepObj.id}.range`) : t("ql.status.open")} filled={!!sleepObj}>
+            <TierStripList items={SLEEP_TIERS} selected={answers.sleep} onPick={(id) => update("sleep", id)} gradeMax={5} keyPrefix="ql.sleep" stemMap={{ boutique: "bout", luxury: "lux" }} />
           </Section>
 
           {/* iii — FOOD */}
-          <Section num="3." title="How do you want to eat?" hint="Food is part of the journey. Tell us how much of one." status={foodObj?.range ?? "open"} filled={!!foodObj}>
-            <TierStripList items={FOOD_TIERS} selected={answers.food} onPick={(id) => update("food", id)} gradeMax={4} />
+          <Section num="3." title={t("ql.t3.title")} hint={t("ql.t3.hint")} status={foodObj ? t(`ql.food.${foodObj.id}.range`) : t("ql.status.open")} filled={!!foodObj}>
+            <TierStripList items={FOOD_TIERS} selected={answers.food} onPick={(id) => update("food", id)} gradeMax={4} keyPrefix="ql.food" stemMap={{}} />
           </Section>
 
           {/* iv — EFFORT */}
-          <Section num="4." title="How much physical effort?" hint="Changes the kind of days we plan — from cable-cars to multi-day treks." status={effortLbl} filled>
+          <Section num="4." title={t("ql.t4.title")} hint={t("ql.t4.hint")} status={effortLbl} filled>
             <div className="ql-effort-stage">
               <div className="ql-topo">
                 <svg viewBox="0 0 600 90" preserveAspectRatio="none">
@@ -747,8 +760,8 @@ function ChapterTexture({
               </div>
               <div className="ql-effort-track">
                 <div className="ql-effort-stops">
-                  {EFFORT_STOPS.map((s, i) => (
-                    <span key={i} className={"ql-effort-stop " + (effort === i ? "on" : "")}>{s}</span>
+                  {EFFORT_STOPS.map((_s, i) => (
+                    <span key={i} className={"ql-effort-stop " + (effort === i ? "on" : "")}>{t(`ql.effort.stop.${i}`)}</span>
                   ))}
                 </div>
                 <input type="range" min={0} max={5} step={1} value={effort} onChange={(e) => update("effort", parseInt(e.target.value, 10))} />
@@ -761,35 +774,38 @@ function ChapterTexture({
           </Section>
 
           {/* v — DIET */}
-          <Section num="5." title="Any dietary restrictions?" hint="So we never point you toward the wrong kind of place." status={diet.includes("none") ? "unrestricted" : diet.length ? `${diet.length} flagged` : "open"} filled={diet.length > 0}>
+          <Section num="5." title={t("ql.t5.title")} hint={t("ql.t5.hint")} status={diet.includes("none") ? t("ql.diet.unrestricted") : diet.length ? tx(t, "ql.diet.flagged", { n: diet.length }) : t("ql.status.open")} filled={diet.length > 0}>
             <div className="ql-diet-chips">
               {DIET_OPTIONS.map((d) => (
                 <button
                   key={d.id}
                   className={"ql-diet-chip " + (d.excl ? "ql-excl " : "") + (diet.includes(d.id) ? "on" : "")}
                   onClick={() => toggleDiet(d.id)}
-                >{d.lbl}</button>
+                >{t(`ql.diet.${d.id}`)}</button>
               ))}
             </div>
           </Section>
 
           {/* vi — NOTES */}
-          <Section num="6." title="Anything else we should know?" hint="Accessibility, fears, special needs — or just something important to mention." status={answers.notes ? "noted" : "optional"} filled={!!answers.notes}>
+          <Section num="6." title={t("ql.t6.title")} hint={t("ql.t6.hint")} status={answers.notes ? t("ql.t6.noted") : t("ql.t6.optional.status")} filled={!!answers.notes}>
             <div className="ql-notes-wrap">
               <div className="ql-notes-head">
                 <div className="ql-notes-ic">✎</div>
-                <div className="ql-notes-lbl">Whatever you'd tell a friend who's planning this for you</div>
-                <div className="ql-notes-opt">Optional</div>
+                <div className="ql-notes-lbl">{t("ql.t6.head.lbl")}</div>
+                <div className="ql-notes-opt">{t("ql.t6.optional")}</div>
               </div>
               <textarea
                 value={answers.notes ?? ""}
                 onChange={(e) => update("notes", e.target.value)}
-                placeholder="For example: I'm afraid of flights longer than 4 hours, I need wheelchair accessibility, I prefer ground floor rooms…"
+                placeholder={t("ql.t6.placeholder")}
               />
               <div className="ql-notes-suggestions">
-                {NOTE_SUGGESTIONS.map((s) => (
-                  <button key={s} className="ql-note-sugg" onClick={() => update("notes", answers.notes ? `${answers.notes}. ${s}` : s)}>{s}</button>
-                ))}
+                {(["ql.note.flight", "ql.note.wheelchair", "ql.note.baby", "ql.note.altitude"] as const).map((key) => {
+                  const s = t(key);
+                  return (
+                    <button key={key} className="ql-note-sugg" onClick={() => update("notes", answers.notes ? `${answers.notes}. ${s}` : s)}>{s}</button>
+                  );
+                })}
               </div>
             </div>
           </Section>
@@ -797,23 +813,23 @@ function ChapterTexture({
 
         <aside className="ql-side">
           <RecipeCard
-            moveLbl={moveObj?.lbl ?? null}
-            sleepLbl={sleepObj ? sleepObj.name.split(" · ")[0] : null}
-            foodLbl={foodObj?.name ?? null}
+            moveLbl={moveObj ? t(`ql.move.${moveObj.id === "twostops" ? "two" : moveObj.id === "discovery" ? "disc" : "base"}.lbl`) : null}
+            sleepLbl={sleepObj ? t(`ql.sleep.${sleepObj.id === "boutique" ? "bout" : sleepObj.id === "luxury" ? "lux" : sleepObj.id}.name`).split(" · ")[0] : null}
+            foodLbl={foodObj ? t(`ql.food.${foodObj.id}.name`) : null}
             effortLbl={effortLbl}
             dietSummary={dietSummary}
             noteWords={answers.notes ? answers.notes.split(/\s+/).filter(Boolean).length : 0}
           />
-          <SideCard head={<><div className="ql-side-ic">?</div>Why this matters</>}>
-            <p>Two travelers with the same budget can have completely different trips. These six knobs decide whether yours feels rough and real, or smooth and curated — or anything in between.</p>
+          <SideCard head={<><div className="ql-side-ic">?</div>{t("ql.side.ch3.why.head")}</>}>
+            <p>{t("ql.side.ch3.why.body")}</p>
           </SideCard>
-          <SideCard variant="privacy" head={<><div className="ql-side-ic">✓</div>Privacy</>}>
-            <p>Your answers shape your destinations. Never stored, never shared.</p>
+          <SideCard variant="privacy" head={<><div className="ql-side-ic">✓</div>{t("ql.privacy.head")}</>}>
+            <p>{t("ql.privacy.body")}</p>
           </SideCard>
         </aside>
       </div>
 
-      <FooterNav backLbl="← Back to the frame" nextLbl="Show me where this can take me →" onBack={onBack} onNext={onNext} canContinue primary />
+      <FooterNav backLbl={t("ql.side.ch3.back.lbl")} nextLbl={t("ql.side.ch3.next.lbl")} onBack={onBack} onNext={onNext} canContinue primary />
     </>
   );
 }
@@ -840,33 +856,42 @@ function Section({
 }
 
 function TierStripList({
-  items, selected, onPick, gradeMax,
+  items, selected, onPick, gradeMax, keyPrefix, stemMap,
 }: {
   items: TierItem[];
   selected?: string;
   onPick: (id: string) => void;
   gradeMax: number;
+  keyPrefix?: string;
+  stemMap?: Record<string, string>;
 }) {
+  const { t } = useI18n();
   return (
     <div className="ql-strip-list">
-      {items.map((s) => (
-        <div key={s.id} className={"ql-strip " + (selected === s.id ? "on" : "")} onClick={() => onPick(s.id)}>
-          <div className="ql-strip-grade">
-            {s.mixed
-              ? <span className="ql-strip-mix">mix</span>
-              : Array.from({ length: gradeMax }).map((_, i) => (
-                  <div key={i} className={"ql-strip-pip " + (i < s.grade ? "fill" : "")} />
-                ))
-            }
+      {items.map((s) => {
+        const stem = stemMap?.[s.id] ?? s.id;
+        const name = keyPrefix ? t(`${keyPrefix}.${stem}.name`) : s.name;
+        const meta = keyPrefix ? t(`${keyPrefix}.${stem}.meta`) : s.meta;
+        const range = keyPrefix ? t(`${keyPrefix}.${stem}.range`) : s.range;
+        return (
+          <div key={s.id} className={"ql-strip " + (selected === s.id ? "on" : "")} onClick={() => onPick(s.id)}>
+            <div className="ql-strip-grade">
+              {s.mixed
+                ? <span className="ql-strip-mix">mix</span>
+                : Array.from({ length: gradeMax }).map((_, i) => (
+                    <div key={i} className={"ql-strip-pip " + (i < s.grade ? "fill" : "")} />
+                  ))
+              }
+            </div>
+            <div className="ql-strip-body">
+              <div className="ql-strip-name">{name}</div>
+              <div className="ql-strip-meta">{meta}</div>
+            </div>
+            <div className="ql-strip-range">{range}</div>
+            <div className="ql-strip-radio" />
           </div>
-          <div className="ql-strip-body">
-            <div className="ql-strip-name">{s.name}</div>
-            <div className="ql-strip-meta">{s.meta}</div>
-          </div>
-          <div className="ql-strip-range">{s.range}</div>
-          <div className="ql-strip-radio" />
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -883,6 +908,10 @@ function TripCard({
   estCost: string | null;
   whoLbl: string | null;
 }) {
+  const { t } = useI18n();
+  const adultsVal = answers.adults ?? 2;
+  const kidsVal = answers.kids ?? 0;
+  const groupStr = `${adultsVal} ${adultsVal === 1 ? t("ql.tc.adult.s") : t("ql.tc.adult.p")}${kidsVal ? ` · ${kidsVal} ${kidsVal === 1 ? t("ql.tc.kid.s") : t("ql.tc.kid.p")}` : ""}`;
   return (
     <div className="ql-trip-card">
       <div className="ql-tc-perfs">
@@ -892,13 +921,13 @@ function TripCard({
         {[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="ql-tc-perf" />)}
       </div>
       <div className="ql-tc-head">
-        <span className="ql-tc-name">Your trip so far{profile?.name ? ` · ${profile.name}` : ""}</span>
+        <span className="ql-tc-name">{t("ql.tc.head")}{profile?.name ? ` · ${profile.name}` : ""}</span>
         <span className="ql-tc-pnr">MR · 07/09</span>
       </div>
       <div className="ql-tc-route">
         <div className="ql-tc-city">
           <span className="ql-tc-code">{cityCode}</span>
-          <span className="ql-tc-nm">{answers.city || "departure"}</span>
+          <span className="ql-tc-nm">{answers.city || t("ql.tc.departure")}</span>
         </div>
         <div className="ql-tc-arrow">
           <svg viewBox="0 0 60 14" fill="none">
@@ -908,25 +937,25 @@ function TripCard({
         </div>
         <div className="ql-tc-city ql-tc-dst">
           <span className="ql-tc-code">{(profile?.region ?? "ASA").slice(0, 3).toUpperCase()}</span>
-          <span className="ql-tc-nm">{profile?.region ? profile.region.toLowerCase() : "somewhere in Asia"}</span>
+          <span className="ql-tc-nm">{profile?.region ? profile.region.toLowerCase() : t("ql.tc.somewhere")}</span>
         </div>
       </div>
       <div className="ql-tc-rows">
-        <Row k="Trip type" v={profile?.tripTypes?.[0] ?? "Discovery"} />
-        <Row k="Rhythm" v={profile?.rhythmLabel ?? "Flowing"} />
-        <Row k="Feeling" v={profile?.feeling ?? "Feel the place"} />
-        <Row k="Avoid" v={profile?.avoidCount != null ? `${profile.avoidCount} patterns` : "3 patterns"} />
-        <Row k="When" v={whenStr || null} fallback="to be chosen" />
-        <Row k="Company" v={whoLbl} fallback="to be chosen" />
+        <Row k={t("ql.tc.triptype")} v={profile?.tripTypes?.[0] ?? t("ql.tc.discovery")} />
+        <Row k={t("ql.tc.rhythm")} v={profile?.rhythmLabel ?? t("ql.tc.flowing")} />
+        <Row k={t("ql.tc.feeling")} v={profile?.feeling ?? t("ql.tc.feelplace")} />
+        <Row k={t("ql.tc.avoid")} v={profile?.avoidCount != null ? tx(t, "ql.tc.avoid.val", { n: profile.avoidCount }) : tx(t, "ql.tc.avoid.val", { n: 3 })} />
+        <Row k={t("ql.tc.when")} v={whenStr || null} fallback={t("ql.tc.tbchosen")} />
+        <Row k={t("ql.tc.company")} v={whoLbl} fallback={t("ql.tc.tbchosen")} />
         {(answers.who === "friends" || answers.who === "family") && (
-          <Row k="Group" v={`${answers.adults ?? 2} adult${(answers.adults ?? 2) === 1 ? "" : "s"}${answers.kids ? ` · ${answers.kids} kid${answers.kids === 1 ? "" : "s"}` : ""}`} />
+          <Row k={t("ql.tc.group")} v={groupStr} />
         )}
-        <Row k="Tier" v={budgetLbl} fallback="to be chosen" />
-        <Row k="Length" v={durLbl !== "—" ? durLbl : null} fallback="to be chosen" />
+        <Row k={t("ql.tc.tier")} v={budgetLbl} fallback={t("ql.tc.tbchosen")} />
+        <Row k={t("ql.tc.length")} v={durLbl !== "—" ? durLbl : null} fallback={t("ql.tc.tbchosen")} />
       </div>
       <div className="ql-tc-foot">
-        <span className="ql-tc-stamp">stamped · {new Date().toLocaleDateString("en", { day: "2-digit", month: "short" })}</span>
-        <span className="ql-tc-est">{estCost ?? "estimate pending"}</span>
+        <span className="ql-tc-stamp">{t("ql.tc.stamped")} · {new Date().toLocaleDateString("en", { day: "2-digit", month: "short" })}</span>
+        <span className="ql-tc-est">{estCost ?? t("ql.tc.est.pending")}</span>
       </div>
     </div>
   );
@@ -947,18 +976,19 @@ function RecipeCard({
   moveLbl: string | null; sleepLbl: string | null; foodLbl: string | null;
   effortLbl: string; dietSummary: string | null; noteWords: number;
 }) {
+  const { t } = useI18n();
   return (
     <div className="ql-recipe-card">
-      <div className="ql-recipe-head">The texture · your recipe</div>
-      <div className="ql-recipe-title">A trip with this grain</div>
+      <div className="ql-recipe-head">{t("ql.recipe.head")}</div>
+      <div className="ql-recipe-title">{t("ql.recipe.title")}</div>
       <div className="ql-recipe-list">
-        <RecipeRow k="Movement" v={moveLbl} />
-        <RecipeRow k="Sleep"    v={sleepLbl} />
-        <RecipeRow k="Food"     v={foodLbl} />
+        <RecipeRow k={t("ql.recipe.movement")} v={moveLbl} fallback={t("ql.recipe.tbchosen")} />
+        <RecipeRow k={t("ql.recipe.sleep")}    v={sleepLbl} fallback={t("ql.recipe.tbchosen")} />
+        <RecipeRow k={t("ql.recipe.food")}     v={foodLbl} fallback={t("ql.recipe.tbchosen")} />
         <div className="ql-recipe-divider" />
-        <RecipeRow k="Effort"   v={effortLbl} />
-        <RecipeRow k="Diet"     v={dietSummary} />
-        <RecipeRow k="Notes"    v={noteWords ? `${noteWords} words` : null} fallback="—" />
+        <RecipeRow k={t("ql.recipe.effort")}   v={effortLbl} fallback={t("ql.recipe.tbchosen")} />
+        <RecipeRow k={t("ql.recipe.diet")}     v={dietSummary} fallback={t("ql.recipe.tbchosen")} />
+        <RecipeRow k={t("ql.recipe.notes")}    v={noteWords ? tx(t, "ql.t6.words", { n: noteWords }) : null} fallback="—" />
       </div>
     </div>
   );

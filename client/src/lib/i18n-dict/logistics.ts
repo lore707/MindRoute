@@ -79,6 +79,11 @@ export const logisticsDict: Record<string, { en: string; it: string }> = {
   "ql.when.leaving":   { en: "Leaving",                     it: "Partenza" },
   "ql.when.returning": { en: "Returning",                   it: "Ritorno" },
   "ql.when.picked":    { en: "{n} picked",                  it: "{n} selezionati" },
+  "ql.period.spring":  { en: "Spring",   it: "Primavera" },
+  "ql.period.summer":  { en: "Summer",   it: "Estate" },
+  "ql.period.autumn":  { en: "Autumn",   it: "Autunno" },
+  "ql.period.winter":  { en: "Winter",   it: "Inverno" },
+  "ql.period.anytime": { en: "Anytime",  it: "Quando capita" },
 
   /* §3 Duration */
   "ql.s3.title":       { en: "How long do you have?",       it: "Quanto tempo hai?" },
