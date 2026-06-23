@@ -15,7 +15,7 @@
  *   - initialStep? (1..4)         → step iniziale (default 1)
  * ─────────────────────────────────────────────────────────────── */
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 
 // Mappa nome-inglese (identità memorizzata in answers, letta dalle mappe di
@@ -185,6 +185,23 @@ export function HeaderStrip({ label, count, fillPct }: { label: string; count: s
   );
 }
 
+// RichTitle: recupera il "tocco" editoriale dei titoli. La stringa tradotta usa
+// "\n" per l'a-capo (<br/>) e *asterischi* per la parola in corsivo (<em>).
+function RichTitle({ text }: { text: string }) {
+  return (
+    <>
+      {text.split("\n").map((line, li) => (
+        <Fragment key={li}>
+          {li > 0 && <br />}
+          {line.split("*").map((seg, i) =>
+            i % 2 === 1 ? <em key={i}>{seg}</em> : <Fragment key={i}>{seg}</Fragment>
+          )}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
 // Eyebrow: il numero domanda resta in grassetto come nel design. La stringa
 // tradotta usa " · " come separatore, così bolda solo il primo segmento.
 function Eyebrow({ text }: { text: string }) {
@@ -260,7 +277,7 @@ function Q1({ answers, onPick, onBack, hasBackFromQ1 }: { answers: Answers; onPi
         <HeaderStrip label={t("qb.header.q1")} count="01 / 07" fillPct={14} />
         <div className="qc-q-head qc-center">
           <Eyebrow text={t("qb.q1.eyebrow")} />
-          <h1 className="qc-q-title">{t("qb.q1.title")}</h1>
+          <h1 className="qc-q-title"><RichTitle text={t("qb.q1.title")} /></h1>
           <p className="qc-q-sub">{t("qb.q1.sub")}</p>
         </div>
       </div>
@@ -340,7 +357,7 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
         <HeaderStrip label={t("qb.header.q2")} count="02 / 07" fillPct={28} />
         <div className="qc-q-head">
           <Eyebrow text={t("qb.q2.eyebrow")} />
-          <h1 className="qc-q-title">{t("qb.q2.title")}</h1>
+          <h1 className="qc-q-title"><RichTitle text={t("qb.q2.title")} /></h1>
           <p className="qc-q-sub">{t("qb.q2.sub")}</p>
         </div>
       </div>
@@ -413,7 +430,7 @@ function Q3({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
         <HeaderStrip label={t("qb.header.q3")} count="03 / 07" fillPct={42} />
         <div className="qc-q-head">
           <Eyebrow text={t("qb.q3.eyebrow")} />
-          <h1 className="qc-q-title">{t("qb.q3.title")}</h1>
+          <h1 className="qc-q-title"><RichTitle text={t("qb.q3.title")} /></h1>
           <div className="qc-q-sub">
             {t("qb.q3.sub")}
             <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 {t("qb.pick.selected")}</div>
@@ -482,7 +499,7 @@ function Q4({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
         <HeaderStrip label={t("qb.header.q4")} count="04 / 07" fillPct={56} />
         <div className="qc-q-head">
           <Eyebrow text={t("qb.q4.eyebrow")} />
-          <h1 className="qc-q-title">{t("qb.q4.title")}</h1>
+          <h1 className="qc-q-title"><RichTitle text={t("qb.q4.title")} /></h1>
           <div className="qc-q-sub">
             {t("qb.q4.sub")}
             <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 {t("qb.pick.selected")}</div>
@@ -550,7 +567,7 @@ function Q5({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
         <HeaderStrip label={t("qb.header.q5")} count="05 / 07" fillPct={70} />
         <div className="qc-q-head">
           <Eyebrow text={t("qb.q5.eyebrow")} />
-          <h1 className="qc-q-title">{t("qb.q5.title")}</h1>
+          <h1 className="qc-q-title"><RichTitle text={t("qb.q5.title")} /></h1>
           <p className="qc-q-sub">{t("qb.q5.sub")}</p>
         </div>
       </div>
@@ -620,7 +637,7 @@ function Q6({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
         <HeaderStrip label={t("qb.header.q6")} count="06 / 07" fillPct={84} />
         <div className="qc-q-head">
           <Eyebrow text={t("qb.q6.eyebrow")} />
-          <h1 className="qc-q-title">{t("qb.q6.title")}</h1>
+          <h1 className="qc-q-title"><RichTitle text={t("qb.q6.title")} /></h1>
           <div className="qc-q-sub">
             {t("qb.q6.sub")}
             <div className={"qc-pick-counter" + (isFull ? " full" : "")}><strong>{selected.length}</strong>/3 {t("qb.pick.selected")}</div>
@@ -698,7 +715,7 @@ function Q7({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
         <HeaderStrip label={t("qb.header.q7")} count="07 / 07" fillPct={100} />
         <div className="qc-q-head">
           <Eyebrow text={t("qb.q7.eyebrow")} />
-          <h1 className="qc-q-title">{t("qb.q7.title")}</h1>
+          <h1 className="qc-q-title"><RichTitle text={t("qb.q7.title")} /></h1>
           <div className="qc-q-sub">
             {t("qb.q7.sub")}
             <div className="qc-pick-counter"><strong>{selected.length}</strong> {t("qb.pick.selected")}</div>

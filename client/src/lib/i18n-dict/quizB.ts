@@ -21,7 +21,7 @@ export const quizBDict: Record<string, { en: string; it: string }> = {
 
   /* ── Q1 eyebrow / title / sub ───────────────────────────────── */
   "qb.q1.eyebrow":       { en: "Question 01 · the starting point",           it: "Domanda 01 · il punto di partenza" },
-  "qb.q1.title":         { en: "What kind of traveler are you, today?",       it: "Che tipo di viaggiatore sei, oggi?" },
+  "qb.q1.title":         { en: "What kind of traveler\nare you, *today?*",     it: "Che tipo di viaggiatore\nsei, *oggi?*" },
   "qb.q1.sub":           { en: "Start from how you feel today. The rest of the journey will follow that direction.", it: "Parti da come ti senti oggi. Il resto del viaggio seguirà quella direzione." },
 
   /* ── Q1 PathCard · guided ───────────────────────────────────── */
@@ -45,7 +45,7 @@ export const quizBDict: Record<string, { en: string; it: string }> = {
 
   /* ── Q2 eyebrow / sub / preview labels ─────────────────────── */
   "qb.q2.eyebrow":       { en: "Question 02 · the territory",                 it: "Domanda 02 · il territorio" },
-  "qb.q2.title":         { en: "Where do you want to go?",                     it: "Dove vuoi andare?" },
+  "qb.q2.title":         { en: "Where do you\nwant to *go?*",                  it: "Dove vuoi\n*andare?*" },
   "qb.q2.sub":           { en: "Choose the region that feels closest to you right now. We'll narrow it down to a specific destination later.", it: "Scegli la regione che ti sembra più vicina in questo momento. La restringeremo a una destinazione specifica in seguito." },
   "qb.q2.preview.hover": { en: "Sample destination",                          it: "Destinazione di esempio" },
   "qb.q2.preview.sel":   { en: "Your region",                                 it: "La tua regione" },
@@ -93,7 +93,7 @@ export const quizBDict: Record<string, { en: string; it: string }> = {
 
   /* ── Q4 eyebrow / sub / cta ─────────────────────────────────── */
   "qb.q4.eyebrow":       { en: "Question 04 · the defining moment",           it: "Domanda 04 · il momento che definisce il viaggio" },
-  "qb.q4.title":         { en: "What moments would make this trip truly special?", it: "Quali momenti renderebbero questo viaggio davvero speciale?" },
+  "qb.q4.title":         { en: "What moments would make\nthis trip truly *special?*", it: "Quali momenti renderebbero\nquesto viaggio davvero *speciale?*" },
   "qb.q4.sub":           { en: "Pick up to 3. The combination tells us everything about what you're really chasing.", it: "Scegline fino a 3. La combinazione ci dice tutto su quello che stai davvero cercando." },
   "qb.q4.cta.empty":     { en: "Pick at least 1",                             it: "Scegli almeno 1" },
   "qb.q4.cta.n":         { en: "Continue with",                               it: "Continua con" },
@@ -121,7 +121,7 @@ export const quizBDict: Record<string, { en: string; it: string }> = {
 
   /* ── Q5 eyebrow / title / sub ───────────────────────────────── */
   "qb.q5.eyebrow":       { en: "Question 05 · the rhythm",                    it: "Domanda 05 · il ritmo" },
-  "qb.q5.title":         { en: "How do you want the days to flow?",            it: "Come vuoi che scorrano le giornate?" },
+  "qb.q5.title":         { en: "How do you want\nthe days to *flow?*",         it: "Come vuoi che\n*scorrano* le giornate?" },
   "qb.q5.sub":           { en: "From a schedule that holds you to a sky that doesn't. There's no wrong answer — only your answer.", it: "Da un programma che ti sostiene a un cielo senza confini. Non ci sono risposte sbagliate — solo la tua." },
   "qb.q5.back":          { en: "Back to defining moment",                      it: "Torna al momento che definisce il viaggio" },
 
@@ -149,7 +149,7 @@ export const quizBDict: Record<string, { en: string; it: string }> = {
 
   /* ── Q6 eyebrow / title / sub ───────────────────────────────── */
   "qb.q6.eyebrow":       { en: "Question 06 · the feeling you're chasing",    it: "Domanda 06 · la sensazione che cerchi" },
-  "qb.q6.title":         { en: "What do you want to feel on this trip?",       it: "Come vuoi sentirti durante questo viaggio?" },
+  "qb.q6.title":         { en: "What do you want\nto *feel* on this trip?",    it: "Come vuoi *sentirti*\nin questo viaggio?" },
   "qb.q6.sub":           { en: "Pick up to 3. This is the emotional shape of your journey.", it: "Scegline fino a 3. Questa è la forma emotiva del tuo viaggio." },
   "qb.q6.cta.empty":     { en: "Pick at least 1",                             it: "Scegli almeno 1" },
   "qb.q6.cta.n":         { en: "Continue with",                               it: "Continua con" },
@@ -175,7 +175,7 @@ export const quizBDict: Record<string, { en: string; it: string }> = {
 
   /* ── Q7 eyebrow / title / sub ───────────────────────────────── */
   "qb.q7.eyebrow":       { en: "Question 07 · the boundaries",                it: "Domanda 07 · i confini" },
-  "qb.q7.title":         { en: "What would ruin this trip for you?",           it: "Cosa rovinerebbe questo viaggio per te?" },
+  "qb.q7.title":         { en: "What would *ruin*\nthis trip for you?",         it: "Cosa *rovinerebbe*\nquesto viaggio per te?" },
   "qb.q7.sub":           { en: "Pick as many as you want — even none. Naming what you don't want sharpens the part you do.", it: "Scegline quanti vuoi — anche nessuno. Nominare quello che non vuoi rende più nitido quello che cerchi." },
   "qb.q7.back":          { en: "Back to emotional goals",                      it: "Torna agli obiettivi emotivi" },
   "qb.q7.cta.skip":      { en: "Skip — continue",                             it: "Salta — continua" },
@@ -204,7 +204,7 @@ export const quizBDict: Record<string, { en: string; it: string }> = {
   "qb.q7.side.why":      { en: "A trip is also defined by what's not in it. Knowing your no-zones is half of crafting the right yes.", it: "Un viaggio è definito anche da quello che non contiene. Conoscere le tue zone di rifiuto è metà del lavoro per costruire il sì giusto." },
 
   /* ── Q3 title (h1 plain text, em handled in JSX) ────────────── */
-  "qb.q3.title":         { en: "What type of trip?",                             it: "Che tipo di viaggio?" },
+  "qb.q3.title":         { en: "What *type* of trip?",                           it: "Che *tipo* di viaggio?" },
 
   /* ── Q5 aria label for range input ─────────────────────────── */
   "qb.q5.aria.pace":     { en: "Trip pace",                                      it: "Ritmo del viaggio" },
