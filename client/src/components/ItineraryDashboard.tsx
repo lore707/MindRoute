@@ -15,7 +15,7 @@
  * descrizioni dei momenti) arrivano già nella lingua dell'utente.
  * ─────────────────────────────────────────────────────────────── */
 
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import {
   Compass, Layers, CalendarDays, Map as MapIcon, Backpack, Ticket,
@@ -28,6 +28,9 @@ import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
 import { FlowNavLogo } from "@/components/FlowNav";
 
 const bg = (url: string, w: number, q = 70) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
+
+// Leaflet (~150KB) caricato solo quando si apre il tab Mappa.
+const RouteMap = lazy(() => import("@/components/RouteMap"));
 
 type ViewId = "overview" | "days" | "map" | "practical" | "missions";
 
@@ -111,7 +114,6 @@ export function ItineraryDashboard({
   const [activeDay, setActiveDay] = useState<number>(days[0]?.n ?? 1);
   const [openDay, setOpenDay] = useState<number | null>(days[0]?.n ?? null);
   const [activeMoment, setActiveMoment] = useState(0);
-  const [activePin, setActivePin] = useState(0);
 
   const { checked, toggle } = useMissions(itineraryId);
 
@@ -391,37 +393,29 @@ export function ItineraryDashboard({
 
   /* ── MAP ── */
   const MapView = () => {
-    const pins = data.mapPoints ?? [];
     const geo = data.geometry;
     const noteKey = geo?.walkable ? "itd.map.compact" : "itd.map.spread";
     const note = geo ? tx(noteKey, { km: Math.max(1, Math.round(geo.spanKm)), min: geo.walkMinutes }) : "";
-    // viewBox 0..400 (points are projected into 60..340)
-    const path = pins.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+    // Solo le tappe con coordinate reali finiscono sulla mappa Leaflet.
+    const routePoints = (data.mapPoints ?? [])
+      .filter((p) => typeof p.lat === "number" && typeof p.lng === "number")
+      .map((p) => ({ lat: p.lat!, lng: p.lng!, label: p.label, day: p.day, slot: p.slot }));
+    // La mappa si renderizza sempre: con tappe → percorso; senza → centro città
+    // (RouteMap geocodifica la destinazione come fallback). Mai un vicolo cieco.
     return (
       <div className="view">
         <ViewHead gold eyebrow={t("itd.map.eyebrow")} title={t("itd.map.title")} sub={geo ? note : undefined} />
         <div className="content">
-          {pins.length > 0 ? (
-            <div className="route-wrap">
-              <svg className="route-svg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
-                {pins.length > 1 && <path className="route-path" d={path} />}
-                {pins.map((p, i) => (
-                  <g key={i} className={"route-pin-hit" + (activePin === i ? " on" : "")} onMouseEnter={() => setActivePin(i)} onClick={() => setActivePin(i)}>
-                    <circle className="route-pin-ring" cx={p.x} cy={p.y} r="9" />
-                    <circle className="route-pin-dot" cx={p.x} cy={p.y} r="9" />
-                    <text className="route-pin-num" x={p.x} y={p.y}>{i + 1}</text>
-                    {p.label && <text className="route-pin-cap" x={p.x} y={p.y + 22}>{p.label}</text>}
-                  </g>
-                ))}
-              </svg>
-              <div className="route-overlay">
+          {data.destination ? (
+            <div className="route-overlaywrap">
+              <div className="route-meta">
                 <div className="live">{t("itd.map.live")}</div>
                 <div className="rt">{data.destination}</div>
                 {geo && <div className="rd">{note}</div>}
               </div>
-              <div className="route-legend">
-                <div className="lg"><span className="sw" style={{ background: "var(--accent)" }} /> {t("itd.map.legendStops")}</div>
-              </div>
+              <Suspense fallback={<div className="rmap-loading">{t("itd.map.loading")}</div>}>
+                <RouteMap points={routePoints} center={data.mapCenter} destination={data.destination} t={t} lang={lang as "it" | "en"} />
+              </Suspense>
             </div>
           ) : (
             <div className="c-empty" style={{ border: "1px solid var(--stroke)", borderRadius: "var(--radius)" }}>{t("itd.map.empty")}</div>

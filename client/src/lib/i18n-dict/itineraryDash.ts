@@ -55,6 +55,7 @@ export const itineraryDashDict: Record<string, { en: string; it: string }> = {
   "itd.map.spread":   { en: "Stops span ~{km} km — plan a few short hops between areas.", it: "Tappe in ~{km} km — metti in conto qualche breve spostamento tra le zone." },
   "itd.map.empty":    { en: "The map appears as soon as your stops are geolocated.", it: "La mappa appare appena le tue tappe vengono geolocalizzate." },
   "itd.map.legendStops": { en: "Your stops", it: "Le tue tappe" },
+  "itd.map.loading":  { en: "Loading the map…", it: "Carico la mappa…" },
 
   // ── Practical ────────────────────────────────────────────────────────────
   "itd.prat.eyebrow": { en: "Practical", it: "Pratica" },

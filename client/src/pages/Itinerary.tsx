@@ -661,7 +661,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
   // map_points: v2 keeps them at the top level inside tripMeta (lat/lng), v1
   // attaches them per-day. Both get projected into the cinematic's 60–340 box.
   let mapPoints: ItineraryData["mapPoints"];
-  const allPoints: { lat: number; lng: number; label: string }[] = [];
+  const allPoints: { lat: number; lng: number; label: string; day?: number; slot?: string }[] = [];
   const seen = new Set<string>();
   if (isV2 && Array.isArray(tripMeta?.map_points)) {
     for (const p of tripMeta.map_points as any[]) {
@@ -669,20 +669,22 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
       const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
       if (seen.has(k)) continue;
       seen.add(k);
-      allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "" });
+      allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "", day: p.day ?? p.day_number ?? undefined, slot: p.slot ?? undefined });
     }
   } else {
     for (const d of days) {
+      const dayNum = d.dayNumber ?? undefined;
       for (const p of (d.mapPoints ?? []) as any[]) {
         if (p?.lat == null || p?.lng == null) continue;
         const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
         if (seen.has(k)) continue;
         seen.add(k);
-        allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "" });
+        allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "", day: p.dayNum ?? dayNum, slot: p.slot ?? undefined });
       }
     }
   }
   const geometry = computeGeometry(allPoints);
+  let mapCenter: ItineraryData["mapCenter"];
   if (allPoints.length > 0) {
     const lats = allPoints.map(p => p.lat);
     const lngs = allPoints.map(p => p.lng);
@@ -690,10 +692,16 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
     const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
     const latRange = (maxLat - minLat) || 0.001;
     const lngRange = (maxLng - minLng) || 0.001;
+    mapCenter = { lat: (minLat + maxLat) / 2, lng: (minLng + maxLng) / 2 };
+    // x/y resta per il vecchio SVG cinematic; lat/lng/day/slot per Leaflet.
     mapPoints = allPoints.map(p => ({
       x: 60 + ((p.lng - minLng) / lngRange) * 280,
       y: 60 + (1 - (p.lat - minLat) / latRange) * 280,
       label: p.label,
+      lat: p.lat,
+      lng: p.lng,
+      day: p.day,
+      slot: p.slot,
     }));
   }
 
@@ -710,6 +718,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
     momentsByDay,
     closingQuote: itinerary?.closingMessage ?? "",
     mapPoints,
+    mapCenter,
     geometry,
   };
 }
