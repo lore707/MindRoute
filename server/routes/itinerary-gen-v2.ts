@@ -187,6 +187,12 @@ function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: num
   };
 }
 
+// Generazioni in corso, per destinationId. Se il client ricarica o ritenta mentre
+// la prima generazione è ancora viva, la seconda richiesta si aggancia allo stesso
+// risultato invece di avviare un secondo (costoso) giro di LLM. Resiliente ai
+// touch/refresh accidentali dell'utente.
+const inFlightV2 = new Map<number, Promise<{ id: number; itinerary: any }>>();
+
 export function registerItineraryGenV2Routes(app: Express) {
   app.post("/api/itinerary/generate-v2", requireAuth, itineraryLimiter, async (req, res) => {
     try {
@@ -194,27 +200,44 @@ export function registerItineraryGenV2Routes(app: Express) {
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
+      const destIdNum = Number(destinationId);
 
-      const userIdForPrior = (req.user as any)?.id ?? null;
-      const prior = await getTraitPriorForUser(userIdForPrior);
-      let priorBlock = prior ? formatTraitPriorBlock(prior) : "";
-      // Caso "città precisa" (Option C): la card scelta porta un angolo (tagline).
-      // L'intero itinerario va modellato su quel carattere, non su una Barcellona
-      // generica. Inietto lo steering nel priorBlock.
-      if (typeof tagline === "string" && tagline.trim()) {
-        priorBlock += `\n\nTRIP ANGLE (mandatory): The traveler chose the "${tagline.trim()}" way to live ${destinationName}. Shape the ENTIRE itinerary around this character — every day, every moment must clearly express it. ${typeof whyYours === "string" && whyYours.trim() ? `Why it fits them: ${whyYours.trim()}` : ""}`.trim();
+      // 1) Idempotenza: se l'itinerario per questa meta esiste già (es. la prima
+      //    richiesta è arrivata in fondo mentre il client si era ricaricato),
+      //    restituiscilo subito senza rigenerare.
+      const existing = await storage.getItinerary(destIdNum);
+      if (existing) {
+        return res.json({ id: existing.id, resumed: true });
       }
-      const rough = await generateItineraryV2ForDestination(input, destinationName, priorBlock);
-      const enriched = await enrichItineraryV2(rough, destinationName);
 
-      const userId = (req.user as any)?.id ?? null;
-      const insertRow = itineraryV2ToInsert(enriched, destinationId, userId, input);
-      const saved = await storage.createItinerary(insertRow);
+      // 2) Dedup in-flight: se una generazione per questa meta è già in corso,
+      //    aspetta lo stesso risultato.
+      let gen = inFlightV2.get(destIdNum);
+      if (!gen) {
+        const userId = (req.user as any)?.id ?? null;
+        const prior = await getTraitPriorForUser(userId);
+        let priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+        // Caso "città precisa" (Option C): la card scelta porta un angolo (tagline).
+        // L'intero itinerario va modellato su quel carattere, non su una Barcellona
+        // generica. Inietto lo steering nel priorBlock.
+        if (typeof tagline === "string" && tagline.trim()) {
+          priorBlock += `\n\nTRIP ANGLE (mandatory): The traveler chose the "${tagline.trim()}" way to live ${destinationName}. Shape the ENTIRE itinerary around this character — every day, every moment must clearly express it. ${typeof whyYours === "string" && whyYours.trim() ? `Why it fits them: ${whyYours.trim()}` : ""}`.trim();
+        }
+        gen = (async () => {
+          const rough = await generateItineraryV2ForDestination(input, destinationName, priorBlock);
+          const enriched = await enrichItineraryV2(rough, destinationName);
+          const insertRow = itineraryV2ToInsert(enriched, destIdNum, userId, input);
+          const saved = await storage.createItinerary(insertRow);
+          recordRecentDestination(destinationName).catch(() => {});
+          recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id });
+          return { id: saved.id, itinerary: enriched };
+        })();
+        inFlightV2.set(destIdNum, gen);
+        gen.finally(() => inFlightV2.delete(destIdNum));
+      }
 
-      recordRecentDestination(destinationName).catch(() => {});
-      recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id });
-
-      res.json({ id: saved.id, itinerary: enriched });
+      const result = await gen;
+      res.json(result);
     } catch (err) {
       console.error("[generate-v2] error:", err);
       res.status(500).json({ message: "Failed to generate v2 itinerary", detail: err instanceof Error ? err.message : String(err) });

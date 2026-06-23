@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Check, ShieldCheck, HelpCircle, MapPin, Info, Ch
 import { useSubmitProfiling } from "@/hooks/use-profiling";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
-import { setFlow } from "@/lib/flow-storage";
+import { setFlow, saveQuizProgress, loadQuizProgress, clearQuizProgress } from "@/lib/flow-storage";
 import { track } from "@/lib/analytics";
 import { FlowNav } from "@/components/FlowNav";
 import { Link, useLocation } from "wouter";
@@ -25,6 +25,24 @@ import { FromProfileModal } from "@/components/FromProfileModal";
 import { QuizCinematic, type Answers as CinematicAnswers } from "@/components/QuizCinematic";
 import { QuizCinematicA, type AnswersA } from "@/components/QuizCinematicA";
 import { QuizLogistics, type LogisticsAnswers, type ProfileSummary } from "@/components/QuizLogistics";
+type FormDataShape = {
+  budget: string;
+  selectedMonths: string[];
+  dateMode: "exact" | "flexible-month" | "flexible-period";
+  dateFrom: string;
+  dateTo: string;
+  selectedPeriods: string[];
+  duration: string;
+  departure: string;
+  companions: string;
+  travelStyle: string;
+  accommodation: string;
+  food: string;
+  effort: string;
+  dietary: string[];
+  constraints: string;
+};
+
 export default function Profiling() {
   const { t } = useI18n();
   const { theme, toggleTheme } = useTheme();
@@ -78,34 +96,39 @@ export default function Profiling() {
   // L'ingresso è ora direttamente il QuizCinematic Q1 (scelta path): niente più
   // overlay split separato. selectedPath parte da 'b' + cinematicMode=true; la Q1
   // del cinematic gestisce guided→Path A (onSelectGuided) o intentional→prosegue.
-  const [selectedPath, setSelectedPath] = useState<'a' | 'b' | null>('b');
+  // Snapshot del quiz salvato (reload/back resilience): letto UNA volta in init
+  // lazy così riprendiamo senza flash dalla Q1. Vedi saveQuizProgress più sotto.
+  const [restored] = useState(() => loadQuizProgress<any>());
+  const hasRestored = !!restored?.hasProgress;
+  const [selectedPath, setSelectedPath] = useState<'a' | 'b' | null>(restored?.selectedPath ?? 'b');
   const [showSplit, setShowSplit] = useState(false);
   const [splitExiting, setSplitExiting] = useState(false);
   // cinematicMode=true → renderizziamo QuizCinematic invece del vecchio quiz body.
   // I valori vengono mappati in chipSelections/answers vecchie a fine cinematic, così
   // buildStructuredProfileForPathB e la sidebar profile-so-far continuano a funzionare.
-  const [cinematicMode, setCinematicMode] = useState(true);
-  const [cinematicAnswers, setCinematicAnswers] = useState<CinematicAnswers>({});
-  const [cinematicStep, setCinematicStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
+  const [cinematicMode, setCinematicMode] = useState<boolean>(restored?.cinematicMode ?? true);
+  const [cinematicAnswers, setCinematicAnswers] = useState<CinematicAnswers>(restored?.cinematicAnswers ?? {});
+  const [cinematicStep, setCinematicStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(restored?.cinematicStep ?? 1);
   // Path A (guided discovery) — risposte cinematic + step di rientro dalla logistica.
-  const [cinematicAnswersA, setCinematicAnswersA] = useState<AnswersA>({});
-  const [cinematicAStep, setCinematicAStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
+  const [cinematicAnswersA, setCinematicAnswersA] = useState<AnswersA>(restored?.cinematicAnswersA ?? {});
+  const [cinematicAStep, setCinematicAStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(restored?.cinematicAStep ?? 1);
   // Risposte logistica grezze (Chapter II+III) — fonte di verità per il profilo
   // strutturato completo letto dall'AI. Ref (non state) per leggerle in modo
   // sincrono dentro doFinalSubmit, che parte subito dopo onComplete.
-  const logisticsRef = useRef<LogisticsAnswers | null>(null);
+  const logisticsRef = useRef<LogisticsAnswers | null>(restored?.logistics ?? null);
   const recognition = useTraitRecognition();
   // showRecognition gates the pre-quiz screen for returning users. Defaults to
   // true; user dismisses it via "cambia qualcosa" to fall through to the quiz.
-  const [showRecognition, setShowRecognition] = useState(true);
+  // Se stiamo riprendendo un quiz salvato, saltiamo la schermata di ritorno.
+  const [showRecognition, setShowRecognition] = useState(!hasRestored);
   const [fromProfileOpen, setFromProfileOpen] = useState(false);
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [chipSelections, setChipSelections] = useState<Record<number, string[]>>({});
-  const [imageSelections, setImageSelections] = useState<string[]>([]);
-  const [sliderValue, setSliderValue] = useState(50);
+  const [step, setStep] = useState<number>(restored?.step ?? 0);
+  const [answers, setAnswers] = useState<Record<string, string>>(restored?.answers ?? {});
+  const [chipSelections, setChipSelections] = useState<Record<number, string[]>>(restored?.chipSelections ?? {});
+  const [imageSelections, setImageSelections] = useState<string[]>(restored?.imageSelections ?? []);
+  const [sliderValue, setSliderValue] = useState<number>(restored?.sliderValue ?? 50);
   const [reaction, setReaction] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState<boolean>(restored?.showForm ?? false);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [visibleTraits, setVisibleTraits] = useState<string[]>([]);
   const [mobileWhyOpen, setMobileWhyOpen] = useState(false);
@@ -270,7 +293,7 @@ export default function Profiling() {
     return "Es: qualcos'altro che sarebbe meglio evitare per goderti davvero il viaggio…";
   };
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormDataShape>(restored?.formData ?? {
     budget: "",
     selectedMonths: [] as string[],
     dateMode: "flexible-month" as "exact" | "flexible-month" | "flexible-period",
@@ -288,7 +311,7 @@ export default function Profiling() {
     constraints: "",
   });
   const [formFocus, setFormFocus] = useState<string>("budget");
-  const [formStep, setFormStep] = useState<1 | 2>(1);
+  const [formStep, setFormStep] = useState<1 | 2>(restored?.formStep ?? 1);
 
   const questions = selectedPath ? questionsByPath[selectedPath] : ([] as Question[]);
   const currentQ = questions[step];
@@ -356,6 +379,8 @@ export default function Profiling() {
 
     try {
     setFlow("mind_destinations", JSON.stringify(submitMutation.data));
+      // Quiz completato con successo → niente più da riprendere.
+      clearQuizProgress();
       setLocation("/destinations");
     } catch (error) {
       console.error("Failed to persist destinations:", error);
@@ -375,6 +400,33 @@ export default function Profiling() {
       variant: "destructive",
     });
   }, [submitMutation.error, toast]);
+
+  // ── Persistenza del progresso quiz (resilienza reload/back) ────────────────
+  // Capitolo logistica corrente, in ref così persistQuiz lo include sempre.
+  const logisticsChapterRef = useRef<2 | 3>(restored?.logisticsChapter ?? 2);
+  const persistQuiz = () => {
+    if (showAnalyzing) return; // submit finale in corso: non sovrascrivere
+    saveQuizProgress({
+      hasProgress: true,
+      selectedPath, cinematicMode, cinematicAnswers, cinematicStep,
+      cinematicAnswersA, cinematicAStep,
+      step, answers, chipSelections, imageSelections, sliderValue,
+      showForm, formStep, formData,
+      logistics: logisticsRef.current,
+      logisticsChapter: logisticsChapterRef.current,
+    });
+  };
+  useEffect(() => {
+    // Salva solo quando c'è progresso reale (oltre la Q1 a vuoto), così un
+    // visitatore nuovo non si vede saltare la schermata di ritorno.
+    const meaningful = cinematicStep > 1 || cinematicAStep > 1 || showForm
+      || Object.keys(cinematicAnswers).length > 0 || Object.keys(cinematicAnswersA).length > 0
+      || selectedPath === 'a';
+    if (!meaningful || showAnalyzing) return;
+    persistQuiz();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPath, cinematicMode, cinematicAnswers, cinematicStep, cinematicAnswersA, cinematicAStep,
+      step, answers, chipSelections, imageSelections, sliderValue, showForm, formStep, formData, showAnalyzing]);
 
   const choosePath = (path: 'a' | 'b') => {
     setSelectedPath(path);
@@ -1275,6 +1327,8 @@ const profilingPayload = {
         <Nav />
         <QuizLogistics
           profile={logisticsProfile}
+          initial={{ answers: logisticsRef.current ?? restored?.logistics ?? undefined, chapter: logisticsChapterRef.current ?? restored?.logisticsChapter ?? undefined }}
+          onChange={(l, ch) => { logisticsRef.current = l; logisticsChapterRef.current = ch; persistQuiz(); }}
           onBack={() => {
             // Torna al cinematic Q7 (what to avoid).
             setShowForm(false);
@@ -1310,6 +1364,8 @@ const profilingPayload = {
         <Nav />
         <QuizLogistics
           profile={logisticsProfileA}
+          initial={{ answers: logisticsRef.current ?? restored?.logistics ?? undefined, chapter: logisticsChapterRef.current ?? restored?.logisticsChapter ?? undefined }}
+          onChange={(l, ch) => { logisticsRef.current = l; logisticsChapterRef.current = ch; persistQuiz(); }}
           onBack={() => {
             // Torna al cinematic Q7 (distance).
             setShowForm(false);

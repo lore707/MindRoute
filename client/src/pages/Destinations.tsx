@@ -7,7 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { useTraitRecognition } from "@/hooks/use-trait-recognition";
 import { RecognitionBanner } from "@/components/RecognitionBanner";
 import { unsplashSized } from "@/lib/img";
-import { getFlow } from "@/lib/flow-storage";
+import { getFlow, setPendingGen, getPendingGen, clearPendingGen } from "@/lib/flow-storage";
 import { track } from "@/lib/analytics";
 import { FlowNav } from "@/components/FlowNav";
 
@@ -43,6 +43,48 @@ const [isGenerating, setIsGenerating] = useState(false);
     });
     setDestinations(sorted);
   }, [setLocation]);
+
+  // ── Ripresa dopo ricarica/back durante la generazione ──────────────────────
+  // Se troviamo un marker "generazione in corso", mostriamo subito la schermata
+  // di attesa e facciamo polling del risultato: il giro LLM lato server è
+  // arrivato comunque a salvare su DB (o ci sta arrivando), quindi appena
+  // l'itinerario esiste navighiamo. L'utente non perde nulla.
+  useEffect(() => {
+    const pending = getPendingGen();
+    if (!pending) return;
+    let alive = true;
+    setIsGenerating(true);
+    setGenHeroUrl(pending.heroUrl || "");
+    setGenDestName(pending.destinationName || "");
+    setGenMessage(lang === "it" ? "Riprendo il tuo itinerario…" : "Resuming your itinerary…");
+
+    const startedAt = Date.now();
+    const MAX_MS = 150_000; // ~2.5 min: oltre, qualcosa è andato storto → retry
+    const tick = async () => {
+      if (!alive) return;
+      try {
+        const r = await fetch(`/api/itinerary/${pending.destinationId}`);
+        if (alive && r.ok) {
+          const data = await r.json();
+          if (data?.id) {
+            clearPendingGen();
+            setLocation(`/itinerary/${data.id}`);
+            return;
+          }
+        }
+      } catch { /* rete instabile: riprova al prossimo tick */ }
+      if (!alive) return;
+      if (Date.now() - startedAt > MAX_MS) {
+        clearPendingGen();
+        setIsGenerating(false);
+        setGenError(lang === "it" ? "Generazione interrotta. Riprova." : "Generation interrupted. Try again.");
+        return;
+      }
+      timer = window.setTimeout(tick, 3000);
+    };
+    let timer = window.setTimeout(tick, 1500);
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [lang, setLocation]);
 
   // Click su una card = genera subito l'itinerario per quella meta.
   const handleSelect = (destId: number) => {
@@ -86,6 +128,9 @@ const generateItinerary = async (destId: number) => {
       setGenMessage(lang === "it" ? "Analizzo il tuo profilo psicologico..." : "Analyzing your psychological profile...");
       setGenHeroUrl(selectedDest.imageUrl || "");
       setGenDestName(selectedDest.name || "");
+      // Marker di ripresa: se l'utente ricarica/torna indietro ora, al rientro
+      // riprendiamo da qui invece di perdere la generazione.
+      setPendingGen({ destinationId: destId, destinationName: selectedDest.name, heroUrl: selectedDest.imageUrl || "" });
 
       const messages = lang === "it" ? [
         "Analizzo il tuo profilo psicologico...",
@@ -137,6 +182,7 @@ const generateItinerary = async (destId: number) => {
             // itinerary_generated — 1 volta per creazione riuscita (non a ogni revisita).
             track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v2" });
             clearInterval(msgInterval);
+            clearPendingGen();
             setLocation(`/itinerary/${v2Data.id ?? destId}`);
             return;
           }
@@ -184,6 +230,7 @@ const generateItinerary = async (destId: number) => {
                 // itinerary_generated — fallback v1: a stream completato.
                 track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v1" });
                 clearInterval(msgInterval);
+                clearPendingGen();
                 setLocation(`/itinerary/${data.itineraryId ?? destId}`);
                 return;
               } else if (currentEvent === "error") {
@@ -199,9 +246,11 @@ const generateItinerary = async (destId: number) => {
       }
 
       clearInterval(msgInterval);
+      clearPendingGen();
       setLocation(`/itinerary/${destId}`);
     } catch (err) {
       console.error(err);
+      clearPendingGen();
       setIsGenerating(false);
       setGenError(err instanceof Error && err.message ? err.message : (lang === "it" ? "Errore nella generazione. Riprova." : "Generation failed. Try again."));
     }

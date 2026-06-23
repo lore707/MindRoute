@@ -247,13 +247,19 @@ export function QuizLogistics({
   profile,
   onComplete,
   onBack,
+  initial,
+  onChange,
 }: {
   profile?: ProfileSummary;
   onComplete?: (a: LogisticsAnswers) => void;
   onBack?: () => void;
+  // Ripresa (reload/back): seme dello stato + report dei cambiamenti verso il
+  // genitore, che li persiste. Così anche l'ultimo step non si perde.
+  initial?: { answers?: LogisticsAnswers; chapter?: Chapter };
+  onChange?: (a: LogisticsAnswers, chapter: Chapter) => void;
 }) {
-  const [chapter, setChapter] = useState<Chapter>(2);
-  const [answers, setAnswers] = useState<LogisticsAnswers>({
+  const [chapter, setChapter] = useState<Chapter>(initial?.chapter ?? 2);
+  const [answers, setAnswers] = useState<LogisticsAnswers>(initial?.answers ?? {
     months: ["Oct"],
     diet: ["none"],
     effort: 2,
@@ -262,11 +268,15 @@ export function QuizLogistics({
   });
   const [savedCities, setSavedCities] = useState<string[]>(SAVED_CITIES);
 
+  // Riporta lo stato al genitore per la persistenza (resilienza reload/back).
+  useEffect(() => { onChange?.(answers, chapter); }, [answers, chapter]);
+
   // Smart-fill (3A): per gli utenti loggati precompiliamo budget/compagnia/
   // durata/partenza dai pattern dei viaggi passati. /api/profiling/defaults dà
   // 401 agli anonimi → nessun prefill. Riempiamo solo i campi ancora vuoti, così
   // non sovrascriviamo mai una scelta dell'utente.
   useEffect(() => {
+    if (initial?.answers) return; // ripresa: non sovrascrivere lo stato salvato
     let cancelled = false;
     fetch("/api/profiling/defaults")
       .then((r) => (r.ok ? r.json() : null))
