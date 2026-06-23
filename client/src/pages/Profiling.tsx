@@ -1174,6 +1174,8 @@ const profilingPayload = {
           setAnswers(prev => ({
             ...prev,
             0: regionLabel,
+            // Luogo preciso → letto da buildStructuredProfileForPathB come specific_place.
+            "0_precise": (a.specificPlace ?? "").trim(),
             1: typeLabels.join(", "),
             2: momentLabels.join(", "),
             4: String(paceValue),

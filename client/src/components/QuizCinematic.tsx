@@ -76,6 +76,7 @@ const NAME_KEY: Record<string, string> = {
 export type Answers = {
   path?: "guided" | "intentional";
   region?: string;
+  specificPlace?: string;     // città/luogo preciso opzionale (Q2)
   tripTypes?: string[];
   defining?: string[];        // multi 1..3 (Q4)
   pace?: number;              // 0..100  (Q5)
@@ -376,6 +377,20 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
               <div className="qc-option-dur">{t(`qb.region.${r.id}.dur`)}</div>
             </div>
           ))}
+          {/* Luogo preciso opzionale: se l'utente sa già la città (es. Barcellona),
+              la fissiamo come meta "diretta" nel matching (vedi specific_place). */}
+          <div className="qc-precise">
+            <label className="qc-precise-label" htmlFor="qc-precise-input">{t("b.q1.precise")}</label>
+            <input
+              id="qc-precise-input"
+              className="qc-precise-input"
+              type="text"
+              value={answers.specificPlace ?? ""}
+              placeholder={t("qb.q2.precise.ph")}
+              onChange={(e) => setAnswers({ ...answers, specificPlace: e.target.value })}
+            />
+            <div className="qc-precise-hint">{t("qb.q2.precise.hint")}</div>
+          </div>
         </div>
         <aside className="qc-side">
           <div className="qc-region-preview">
