@@ -108,6 +108,7 @@ export function registerCompanionRoutes(app: Express) {
           const saved = await storage.getSavedMoments(uid);
           return saved.some((s) => s.itineraryId === itinId2 && s.momentId === momentId);
         },
+        saveDays: (days) => storage.updateItineraryMapPoints(itinId, days),
       };
 
       const full = await runCompanionAgent({

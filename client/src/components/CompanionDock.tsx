@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, X, Send } from "lucide-react";
+import { api } from "@shared/routes";
 import { useI18n } from "@/lib/i18n";
 import { fetchMe } from "@/hooks/use-auth";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
+
+// Tool che modificano il piano: dopo questi, l'itinerario aperto va ricaricato.
+const PLAN_EDIT_TOOLS = new Set(["remove_moment", "replace_moment"]);
 
 type Msg = { role: "user" | "assistant" | "tool"; content: string };
 
@@ -33,6 +38,7 @@ function resolveItineraryId(path: string): number | null {
 
 export function CompanionDock() {
   const [location] = useLocation();
+  const queryClient = useQueryClient();
   const { t, lang } = useI18n();
   const [loggedIn, setLoggedIn] = useState(false);
   const [open, setOpen] = useState(false);
@@ -178,6 +184,10 @@ export function CompanionDock() {
                   next.splice(next.length - 1, 0, { role: "tool", content: data.label });
                   return next;
                 });
+                // Il bot ha modificato il piano → ricarica l'itinerario aperto.
+                if (data.tool && PLAN_EDIT_TOOLS.has(data.tool) && itineraryId != null) {
+                  queryClient.invalidateQueries({ queryKey: [api.itinerary.get.path, itineraryId] });
+                }
               }
             } catch {}
           }

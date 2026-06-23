@@ -127,7 +127,7 @@ How you behave:
 - Be practical and specific: name the actual places, days and moments from their plan.
 - During the trip, anchor advice to where they are today. If they ask "what now / where do I eat", call find_nearby and reason from real options plus today's moments.
 - When the user wants to keep or remember a place/activity that is part of their plan, call save_moment with that moment's id (the [id:...] tag in the plan below) so it lands in their saved collection. Only the moments listed below have ids; never invent one.
-- Suggest, reassure, adapt. If they want to change the plan, talk it through and give them the concrete swap to make.
+- You can ACTUALLY edit the plan: remove_moment drops a moment, replace_moment swaps one for something else. Propose the change in words first; only call the tool once the user clearly agrees ("yes", "do it", "swap it"). For a "near me / nearby" swap, call find_nearby first and replace with a REAL place + its coordinates. After editing, tell them it's done — the plan refreshes on their screen.
 - Keep replies short by default (a few sentences). Expand only when they ask for detail.
 - For WEATHER, you have a real forecast: call get_weather instead of guessing. Use it to advise on a day (beach vs indoors, rain plan, what to pack) — proactively when it clearly matters.
 - If you don't know something else real-time (live opening hours, ticket availability), say so plainly and give your best informed guess.
@@ -178,6 +178,35 @@ const COMPANION_TOOLS = [
       properties: {},
     },
   },
+  {
+    name: "remove_moment",
+    description:
+      "Remove a moment from the traveller's plan (it disappears from that day). Use ONLY after the user has clearly agreed to drop it. Only moments listed with an [id:...] tag can be removed.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        moment_id: { type: "string", description: "The id of the moment to remove, copied exactly from its [id:...] tag." },
+      },
+      required: ["moment_id"],
+    },
+  },
+  {
+    name: "replace_moment",
+    description:
+      "Replace a moment in the plan with a different place/activity. Use ONLY after the user agreed to the swap. Prefer REAL places: if the swap is 'something near me / nearby', call find_nearby first and pass a real place's name and coordinates. Keeps the same slot/day.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        moment_id: { type: "string", description: "The id of the moment being replaced (from its [id:...] tag)." },
+        new_title: { type: "string", description: "Short title of the new place/activity." },
+        new_location_name: { type: "string", description: "Optional real place name (for maps/booking)." },
+        lat: { type: "number", description: "Optional latitude of the new place (use find_nearby's value when available)." },
+        lng: { type: "number", description: "Optional longitude of the new place." },
+        note: { type: "string", description: "Optional one-line description of what they'll do there." },
+      },
+      required: ["moment_id", "new_title"],
+    },
+  },
 ];
 
 export type CompanionToolEvent = { tool: string; label: string };
@@ -196,6 +225,8 @@ export interface CompanionToolContext {
     momentSnapshot: any;
   }) => Promise<void>;
   alreadySaved: (userId: number, itineraryId: number, momentId: string) => Promise<boolean>;
+  // Persiste i giorni modificati (remove/replace moment). Salva l'intero array.
+  saveDays?: (days: any[]) => Promise<void>;
 }
 
 // Coordinate rappresentative del viaggio: usate dal meteo quando manca il GPS.
@@ -302,6 +333,44 @@ async function executeTool(
       },
     });
     return { result: `Saved "${title}" to the traveller's collection.`, label: it ? `Salvato: ${title}` : `Saved: ${title}` };
+  }
+
+  if (name === "remove_moment" || name === "replace_moment") {
+    if (ctx.userId == null) return { result: "User not logged in; cannot edit the plan.", label: it ? "Modifica non riuscita" : "Couldn't edit" };
+    if ((ctx.itinerary as any).schemaVersion !== 2) {
+      return { result: "This itinerary can't be edited from chat (legacy format).", label: it ? "Non modificabile" : "Not editable" };
+    }
+    if (!ctx.saveDays) return { result: "Editing unavailable.", label: it ? "Non modificabile" : "Not editable" };
+    const hit = findMomentById(ctx.itinerary, String(input?.moment_id ?? ""));
+    if (!hit) return { result: `No moment with id "${input?.moment_id}" exists in this itinerary.`, label: it ? "Momento non trovato" : "Moment not found" };
+    const days: any[] = Array.isArray(ctx.itinerary.days) ? ctx.itinerary.days : [];
+
+    if (name === "remove_moment") {
+      const title = hit.moment.title_evocative ?? hit.moment.title_operational ?? "moment";
+      hit.day.moments = (hit.day.moments ?? []).filter((m: any) => m.id !== hit.moment.id);
+      await ctx.saveDays(days);
+      return { result: `Removed "${title}" from Day ${hit.day.day_number}. The plan is updated.`, label: it ? `Rimosso: ${title}` : `Removed: ${title}` };
+    }
+
+    // replace_moment
+    const newTitle = String(input?.new_title ?? "").trim();
+    if (!newTitle) return { result: "replace_moment needs a new_title.", label: it ? "Titolo mancante" : "Missing title" };
+    const m = hit.moment;
+    const oldTitle = m.title_evocative ?? m.title_operational ?? "moment";
+    m.title_operational = newTitle;
+    m.title_evocative = newTitle;
+    if (typeof input?.note === "string" && input.note.trim()) m.description = input.note.trim();
+    if (typeof input?.new_location_name === "string" && input.new_location_name.trim()) m.location_name = input.new_location_name.trim();
+    if (Number.isFinite(input?.lat) && Number.isFinite(input?.lng)) { m.location_lat = Number(input.lat); m.location_lng = Number(input.lng); }
+    // Immagine best-effort per il nuovo posto (non bloccare oltre pochi secondi).
+    try {
+      const { fetchUnsplashHero } = await import("./unsplash");
+      const q = (m.location_name ? `${m.location_name} ` : "") + newTitle;
+      const img = await fetchUnsplashHero(q);
+      if (img?.url) m.image_url = img.url;
+    } catch { /* tieni l'immagine vecchia */ }
+    await ctx.saveDays(days);
+    return { result: `Replaced "${oldTitle}" with "${newTitle}" on Day ${hit.day.day_number}. The plan is updated.`, label: it ? `Sostituito: ${newTitle}` : `Replaced: ${newTitle}` };
   }
 
   if (name === "get_weather") {
