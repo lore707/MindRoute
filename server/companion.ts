@@ -129,6 +129,7 @@ How you behave:
 - When the user wants to keep or remember a place/activity that is part of their plan, call save_moment with that moment's id (the [id:...] tag in the plan below) so it lands in their saved collection. Only the moments listed below have ids; never invent one.
 - You can ACTUALLY edit the plan: remove_moment drops a moment, replace_moment swaps one, add_moment adds a new stop to a day. Propose the change in words first; only call the tool once the user clearly agrees ("yes", "do it", "add it"). For anything "near me / nearby", call find_nearby first and use a REAL place + its coordinates. After editing, tell them it's done — the plan refreshes on their screen.
 - Keep replies short by default (a few sentences). Expand only when they ask for detail.
+- To BOOK anything (a moment, a flight, a hotel), call get_booking_link and hand over the EXACT url it returns. Never invent or guess a booking URL.
 - For WEATHER, you have a real forecast: call get_weather instead of guessing. Use it to advise on a day (beach vs indoors, rain plan, what to pack) — proactively when it clearly matters.
 - If you don't know something else real-time (live opening hours, ticket availability), say so plainly and give your best informed guess.
 ${isV2 ? "" : "\nNOTE: this is a legacy itinerary without per-moment ids — save_moment is unavailable here; just talk the user through it."}
@@ -205,6 +206,18 @@ const COMPANION_TOOLS = [
         note: { type: "string", description: "Optional one-line description of what they'll do there." },
       },
       required: ["moment_id", "new_title"],
+    },
+  },
+  {
+    name: "get_booking_link",
+    description:
+      "Get the REAL booking/affiliate link for a moment or for flights/hotels of this trip. Call this when the user wants to book/reserve something ('book this', 'where do I get tickets', 'book my flight'). Returns the exact URL to hand over — never invent booking URLs yourself.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        moment_id: { type: "string", description: "Optional: the [id:...] of the moment they want to book." },
+        category: { type: "string", description: "Optional: 'flight', 'hotel', 'experience', 'restaurant', 'transport' when not tied to one moment." },
+      },
     },
   },
   {
@@ -416,6 +429,31 @@ async function executeTool(
     } catch { /* tieni l'immagine vecchia */ }
     await ctx.saveDays(days);
     return { result: `Replaced "${oldTitle}" with "${newTitle}" on Day ${hit.day.day_number}. The plan is updated.`, label: it ? `Sostituito: ${newTitle}` : `Replaced: ${newTitle}` };
+  }
+
+  if (name === "get_booking_link") {
+    // 1) Link a livello di momento (dati strutturati v2: booking.affiliate_url).
+    const mid = String(input?.moment_id ?? "").trim();
+    if (mid) {
+      const hit = findMomentById(ctx.itinerary, mid);
+      const b = hit?.moment?.booking;
+      if (b?.affiliate_url && b.status !== "walk_in" && b.provider !== "none") {
+        return {
+          result: `Booking link for "${hit.moment.title_evocative ?? hit.moment.title_operational ?? "moment"}":\nProvider: ${b.provider}\nLabel: ${b.display_label ?? ""}\nURL: ${b.affiliate_url}\nHand this exact URL to the traveller.`,
+          label: it ? "Trovo come prenotare" : "Finding how to book",
+        };
+      }
+      if (hit) {
+        return { result: `That moment is walk-in / has no booking link. Tell them no reservation is needed.`, label: it ? "Nessuna prenotazione" : "No booking needed" };
+      }
+    }
+    // 2) Fallback: link di viaggio top dell'itinerario (voli/hotel/…).
+    const top = (ctx.itinerary as any).topAffiliateLinks as Record<string, string> | null | undefined;
+    if (top && Object.keys(top).length) {
+      const list = Object.entries(top).map(([k, v]) => `- ${k}: ${v}`).join("\n");
+      return { result: `Trip booking links (hand over the exact URL that matches what they asked):\n${list}`, label: it ? "Trovo come prenotare" : "Finding how to book" };
+    }
+    return { result: "No stored booking link for this. Point them to the Book tab of their itinerary.", label: it ? "Vedi scheda Prenota" : "See the Book tab" };
   }
 
   if (name === "get_weather") {
