@@ -15,6 +15,11 @@ export const destinations = pgTable("destinations", {
   //   "surprise" = predicted-positive che l'utente non avrebbe cercato
   // Nullable solo per backward-compat con rows pre-feature.
   slotRole: text("slot_role"),
+  // Etichetta "angolo" del viaggio: valorizzata SOLO quando l'utente ha indicato
+  // una città precisa (es. "Barcellona") e la tripletta diventa 3 modi di vivere
+  // la stessa città. Es. "Architecture & Design". Altrimenti null. Il `name` resta
+  // pulito ("Città, Paese") così geocoding/immagini/OG non si rompono.
+  tagline: text("tagline"),
 });
 
 export type DestinationSlotRole = "direct" | "lateral" | "surprise";

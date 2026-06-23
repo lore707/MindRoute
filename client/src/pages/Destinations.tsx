@@ -127,6 +127,9 @@ const generateItinerary = async (destId: number) => {
               input: inputWithLang,
               destinationName: selectedDest.name,
               destinationId: destId,
+              // Angolo del viaggio (caso "città precisa") → modella l'itinerario.
+              tagline: selectedDest.tagline ?? undefined,
+              whyYours: selectedDest.whyYours,
             }),
           });
           if (v2Res.ok) {
@@ -344,6 +347,13 @@ if (destinations.length === 0) return null;
                   </span>
                 )}
                 <h3 className="text-[22px] sm:text-2xl md:text-3xl font-serif font-bold tracking-tight leading-tight">{dest.name}</h3>
+                {/* Angolo del viaggio — solo nel caso "città precisa" (3 modi di
+                    vivere la stessa città). Differenzia le 3 card a parità di nome. */}
+                {dest.tagline && (
+                  <span className="mt-1 inline-block text-[12px] md:text-[13px] font-sans font-medium tracking-wide text-[#E94560]" data-testid="dest-tagline">
+                    {dest.tagline}
+                  </span>
+                )}
               </div>
             </div>
 

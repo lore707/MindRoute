@@ -49,6 +49,7 @@ export class MemoryStorage implements IStorage {
       id: this.destIdCounter++,
       imageUrl: destination.imageUrl ?? null,
       slotRole: destination.slotRole ?? null,
+      tagline: destination.tagline ?? null,
     };
     this.destinations.push(newDest);
     return newDest;

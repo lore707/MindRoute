@@ -50,6 +50,9 @@ const itineraryDaySchema = z.object({
 
 const generatedDestinationSchema = z.object({
   name: z.string(),
+  // Angolo/carattere del viaggio — valorizzato solo nel caso "città precisa"
+  // (3 modi di vivere la stessa città). Vuoto/assente altrimenti.
+  tagline: z.string().optional(),
   whyYours: z.string(),
   experiencePreview: z.string(),
   practicalInfo: z.string(),
@@ -967,17 +970,20 @@ If user specified a precise place in addendum → ALL 3 must be within or variat
 GEOGRAPHIC CONSTRAINT OVERRIDE RULE: If geographic constraint is active, it supersedes EVERYTHING else — including the desire for diversity. Three destinations in Italy is correct if geo constraint is "Europe" and user specified "Italy". Three destinations within 4h of Milan is correct if geo constraint is "Vicino a casa" from Milan.
 
 PRECISE DESTINATION OVERRIDE RULE — HIGHEST PRIORITY:
-If the user specified a precise destination in the addendum field (a specific country, region, or city), ALL 3 slots MUST be variations of that destination. Do not propose alternatives outside it.
+If the user specified a precise destination in the addendum field, the user has DECIDED where to go. Never propose a different country or region. How you build the 3 slots depends on the granularity of what they named:
 
-- Specific country (e.g. "Giappone", "Spagna") → 3 different cities or regions within that country
-- Specific region (e.g. "Toscana", "Andalusia") → 3 different towns or areas within that region  
-- Specific city (e.g. "Tokyo", "Barcellona") → 3 different neighborhoods, nearby areas, or day-trip extensions of that city
-- Specific island (e.g. "Sardegna", "Bali") → 3 different areas or coasts of that island
+A) SPECIFIC CITY (e.g. "Tokyo", "Barcellona") — the main case. Do NOT split the city into 3 neighborhoods (a single trip already covers several). Instead the 3 slots are 3 DIFFERENT TRIP PERSONALITIES of the SAME city — three distinct ways to LIVE that one place, each calibrated to this profile's chips:
+   - Each slot keeps the same city but a different thematic character (e.g. for Barcelona: "Design & Gaudí" vs "Food & barrios" vs "Sea & nightlife"). The character must be driven by the user's actual chips, not generic.
+   - "name" field stays CLEAN and identical across the 3 slots = "City, Country" (e.g. "Barcelona, Spain"). NEVER embed the angle in the name (it must stay geocodable).
+   - Put the angle ONLY in the "tagline" field (2–4 words, e.g. "Architecture & Design"). The 3 taglines MUST differ; this is what makes the cards read as distinct choices.
+   - The slot the user picks drives the EMPHASIS of the whole generated itinerary, so each angle must be a full, coherent trip of that city — not a fragment.
+   - slotRole mapping: direct = the angle most aligned with the dominant chips ("this is exactly my Barcelona"); lateral = the same city in a different register ("same city, a side of it I hadn't pictured"); surprise = an angle of that city the user would not have planned but the profile predicts they'll love.
 
-In all cases: slot 1 = most famous/obvious area, slot 2 = same destination different character, slot 3 = hidden gem within the same destination.
-Never propose a different country or region when the user has already decided where to go.
-In all cases: slot 1 = most famous/obvious area, slot 2 = same destination different character, slot 3 = hidden gem within the same destination.
-Never propose a different country or region when the user has already decided where to go.
+B) SPECIFIC COUNTRY / REGION / ISLAND (e.g. "Spagna", "Andalusia", "Sardegna") — broad enough for real geographic variety: 3 different cities/areas WITHIN it (slot 1 = most obvious fit, slot 2 = same place different character, slot 3 = hidden gem within), each still matched to the profile.
+
+C) FALLBACK — place too small/specific for 3 distinct angles (a small town, a single village): slot 1 = that exact place (honored), slots 2-3 = the closest alternatives that hit the SAME emotional profile, staying inside the user's geographic constraint. Make clear in whyYours that 2 and 3 are kindred options, not a relocation.
+
+In all cases the city/place the user named must appear as written; never silently swap it for somewhere else.
 ── ANTI-PATTERN VETOES (each one ELIMINATES destination types) ──
 - "Vita notturna e club" in anti-patterns → ELIMINATE any destination CHOSEN for its nightlife. Beach+friends destination: choose beach WITHOUT club scene.
 - "Luoghi affollati" → ELIMINATE destinations at peak overcrowding season. Choose same destination TYPE but less crowded version or off-peak timing.
@@ -1190,6 +1196,8 @@ The 3 destinations are NOT three interchangeable picks. They answer three differ
 
 Do NOT collapse "lateral" and "surprise" into "two-different-versions-of-direct". The lateral is a SIBLING of direct; the surprise is an ORTHOGONAL pick. If you can't justify the orthogonality, your surprise is wrong — go further.
 
+EXCEPTION — PRECISE CITY: when the user named a specific city (PRECISE DESTINATION OVERRIDE RULE case A), this orthogonality rule is deliberately relaxed: all three slots ARE the same city by design. There, direct/lateral/surprise distinguish the three TRIP PERSONALITIES of that one city (most-on-profile / different register / unexpected-but-fitting angle), not three different places.
+
 ═══════════════════════════════════════
 RESPONSE LANGUAGE: Write all text fields in ${input.lang === 'it' ? 'Italian' : 'English'}.
 
@@ -1198,6 +1206,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
   "destinations": [
     {
       "name": "Specific City or Area, Country",
+      "tagline": "OMIT this field entirely UNLESS the precise-city case applies — then 2–4 words naming this slot's angle, e.g. \"Architecture & Design\"",
       "slotRole": "direct",
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
       "whyYours": "EXACTLY 2 short sentences (~25 words) following the formula above — diagnosis + place/moment",

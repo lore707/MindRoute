@@ -47,7 +47,7 @@ export const quizBDict: Record<string, { en: string; it: string }> = {
   "qb.q2.eyebrow":       { en: "Question 02 · the territory",                 it: "Domanda 02 · il territorio" },
   "qb.q2.title":         { en: "Where do you\nwant to *go?*",                  it: "Dove vuoi\n*andare?*" },
   "qb.q2.precise.ph":    { en: "E.g. Barcelona, the Dolomites, Kyoto…",         it: "Es. Barcellona, le Dolomiti, Kyoto…" },
-  "qb.q2.precise.hint":  { en: "Know exactly where? Name it and we'll shape the proposals around it.", it: "Sai già dove? Indicalo e adattiamo le proposte di conseguenza." },
+  "qb.q2.precise.hint":  { en: "Know the city already? We'll keep it and give you three ways to live it, shaped on your profile.", it: "Hai già la città? La teniamo e ti diamo tre modi di viverla, sul tuo profilo." },
   "qb.q2.sub":           { en: "Choose the region that feels closest to you right now. We'll narrow it down to a specific destination later.", it: "Scegli la regione che ti sembra più vicina in questo momento. La restringeremo a una destinazione specifica in seguito." },
   "qb.q2.preview.hover": { en: "Sample destination",                          it: "Destinazione di esempio" },
   "qb.q2.preview.sel":   { en: "Your region",                                 it: "La tua regione" },

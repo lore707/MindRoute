@@ -190,14 +190,20 @@ function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: num
 export function registerItineraryGenV2Routes(app: Express) {
   app.post("/api/itinerary/generate-v2", requireAuth, itineraryLimiter, async (req, res) => {
     try {
-      const { input, destinationName, destinationId } = req.body;
+      const { input, destinationName, destinationId, tagline, whyYours } = req.body;
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
 
       const userIdForPrior = (req.user as any)?.id ?? null;
       const prior = await getTraitPriorForUser(userIdForPrior);
-      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      let priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      // Caso "città precisa" (Option C): la card scelta porta un angolo (tagline).
+      // L'intero itinerario va modellato su quel carattere, non su una Barcellona
+      // generica. Inietto lo steering nel priorBlock.
+      if (typeof tagline === "string" && tagline.trim()) {
+        priorBlock += `\n\nTRIP ANGLE (mandatory): The traveler chose the "${tagline.trim()}" way to live ${destinationName}. Shape the ENTIRE itinerary around this character — every day, every moment must clearly express it. ${typeof whyYours === "string" && whyYours.trim() ? `Why it fits them: ${whyYours.trim()}` : ""}`.trim();
+      }
       const rough = await generateItineraryV2ForDestination(input, destinationName, priorBlock);
       const enriched = await enrichItineraryV2(rough, destinationName);
 
