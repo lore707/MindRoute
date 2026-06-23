@@ -16,7 +16,7 @@ import { fetchUnsplashHero, fetchMomentImage, fetchDayImageWithFallback, buildDe
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
-import type { DayV2, MomentV2, MapPointV2, TripMetaV2 } from "../../shared/schema";
+import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory } from "../../shared/schema";
 import { requireAuth } from "../auth";
 
 async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
@@ -74,9 +74,24 @@ async function enrichMoment(
       lat: moment.location_lat,
       lng: moment.location_lng,
       label: moment.location_name,
+      category: momentTypeToCategory(moment.type),
     };
   }
   return null;
+}
+
+// Categoria mappa dal tipo di momento v2. accommodation→lodging (l'alloggio ora
+// è SEMPRE pingato), food→food, experience→experience, view→sight (tramonti/
+// spiagge), walk→sight. transport/rest non hanno un luogo da pingare → other.
+function momentTypeToCategory(type: string): PlaceCategory {
+  switch (type) {
+    case "accommodation": return "lodging";
+    case "food":          return "food";
+    case "experience":    return "experience";
+    case "view":          return "sight";
+    case "walk":          return "sight";
+    default:              return "custom";
+  }
 }
 
 // Enrichment di UN solo giorno (companion regenerate_day): immagine del giorno,

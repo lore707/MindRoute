@@ -37,6 +37,72 @@ export function registerItineraryDetailRoutes(app: Express) {
     }
   });
 
+  // ── Saved places (mappa itinerario) ───────────────────────────────────
+  // Posti cercati/salvati dall'utente sulla mappa di QUESTO itinerario.
+  // Scoped per (utente, itinerario): GET lista, POST aggiunge, DELETE rimuove.
+  app.get("/api/itinerary/:id/saved-places", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ message: "Non autenticato" });
+      const rows = await storage.getSavedPlaces(userId, id);
+      res.json(rows);
+    } catch (err) {
+      console.error("saved-places GET error:", err);
+      res.status(500).json({ message: "Errore nel recupero dei posti salvati" });
+    }
+  });
+
+  const savedPlaceInput = z.object({
+    label: z.string().min(1).max(200),
+    lat: z.number(),
+    lng: z.number(),
+    category: z.enum(["lodging", "experience", "food", "sight", "beach", "custom"]).optional(),
+    address: z.string().max(400).optional(),
+    note: z.string().max(600).optional(),
+  });
+
+  app.post("/api/itinerary/:id/saved-places", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ message: "Non autenticato" });
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Not found" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const body = savedPlaceInput.parse(req.body);
+      // Idempotenza: stesso punto (stesse coord ~4 decimali) già salvato → no-op.
+      const existing = await storage.getSavedPlaces(userId, id);
+      const dup = existing.find(s =>
+        Math.abs(s.lat - body.lat) < 1e-4 && Math.abs(s.lng - body.lng) < 1e-4);
+      if (dup) return res.json(dup);
+      const created = await storage.createSavedPlace({
+        userId, itineraryId: id,
+        label: body.label, lat: body.lat, lng: body.lng,
+        category: body.category ?? "custom",
+        address: body.address ?? null,
+        note: body.note ?? null,
+      });
+      res.json(created);
+    } catch (err) {
+      console.error("saved-places POST error:", err);
+      res.status(400).json({ message: "Dati posto non validi" });
+    }
+  });
+
+  app.delete("/api/itinerary/:id/saved-places/:placeId", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ message: "Non autenticato" });
+      const placeId = z.coerce.number().parse(req.params.placeId);
+      await storage.deleteSavedPlace(userId, placeId);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("saved-places DELETE error:", err);
+      res.status(500).json({ message: "Errore nella rimozione" });
+    }
+  });
+
   // Polling mapPoints — used by the client to know when the background
   // enrichment is done so it can re-render the map.
   app.get("/api/itinerary/:id/mappoints", requireAuth, async (req, res) => {

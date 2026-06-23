@@ -399,7 +399,7 @@ export function ItineraryDashboard({
     // Solo le tappe con coordinate reali finiscono sulla mappa Leaflet.
     const routePoints = (data.mapPoints ?? [])
       .filter((p) => typeof p.lat === "number" && typeof p.lng === "number")
-      .map((p) => ({ lat: p.lat!, lng: p.lng!, label: p.label, day: p.day, slot: p.slot }));
+      .map((p) => ({ lat: p.lat!, lng: p.lng!, label: p.label, day: p.day, slot: p.slot, category: p.category }));
     // La mappa si renderizza sempre: con tappe → percorso; senza → centro città
     // (RouteMap geocodifica la destinazione come fallback). Mai un vicolo cieco.
     return (
@@ -414,7 +414,7 @@ export function ItineraryDashboard({
                 {geo && <div className="rd">{note}</div>}
               </div>
               <Suspense fallback={<div className="rmap-loading">{t("itd.map.loading")}</div>}>
-                <RouteMap points={routePoints} center={data.mapCenter} destination={data.destination} t={t} lang={lang as "it" | "en"} />
+                <RouteMap points={routePoints} center={data.mapCenter} destination={data.destination} itineraryId={itineraryId} t={t} lang={lang as "it" | "en"} />
               </Suspense>
             </div>
           ) : (

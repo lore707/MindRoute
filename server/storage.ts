@@ -1,4 +1,4 @@
-import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment, Conversation, InsertConversation, ChatMessage, InsertChatMessage } from "@shared/schema";
+import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment, SavedPlace, InsertSavedPlace, Conversation, InsertConversation, ChatMessage, InsertChatMessage } from "@shared/schema";
 
 export interface IStorage {
   getDestinations(): Promise<Destination[]>;
@@ -20,6 +20,10 @@ export interface IStorage {
   getSavedMoments(userId: number): Promise<SavedMoment[]>;
   createSavedMoment(row: InsertSavedMoment): Promise<SavedMoment>;
   deleteSavedMoment(userId: number, itineraryId: number, momentId: string): Promise<void>;
+  // Saved places (mappa itinerario)
+  getSavedPlaces(userId: number, itineraryId: number): Promise<SavedPlace[]>;
+  createSavedPlace(row: InsertSavedPlace): Promise<SavedPlace>;
+  deleteSavedPlace(userId: number, id: number): Promise<void>;
   // Travel companion chat
   getConversationForItinerary(userId: number, itineraryId: number): Promise<Conversation | undefined>;
   getConversationsForUser(userId: number): Promise<Conversation[]>;
@@ -149,6 +153,33 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     this.savedMoments = this.savedMoments.filter(s =>
       !(s.userId === userId && s.itineraryId === itineraryId && s.momentId === momentId)
     );
+  }
+
+  private savedPlaces: SavedPlace[] = [];
+  private savedPlaceIdCounter = 1;
+  async getSavedPlaces(userId: number, itineraryId: number): Promise<SavedPlace[]> {
+    return this.savedPlaces
+      .filter(s => s.userId === userId && s.itineraryId === itineraryId)
+      .sort((a, b) => +b.createdAt - +a.createdAt);
+  }
+  async createSavedPlace(row: InsertSavedPlace): Promise<SavedPlace> {
+    const saved: SavedPlace = {
+      id: this.savedPlaceIdCounter++,
+      createdAt: new Date(),
+      userId: row.userId,
+      itineraryId: row.itineraryId,
+      label: row.label,
+      lat: row.lat,
+      lng: row.lng,
+      category: row.category ?? null,
+      address: row.address ?? null,
+      note: row.note ?? null,
+    };
+    this.savedPlaces.push(saved);
+    return saved;
+  }
+  async deleteSavedPlace(userId: number, id: number): Promise<void> {
+    this.savedPlaces = this.savedPlaces.filter(s => !(s.userId === userId && s.id === id));
   }
 
   private conversations: Conversation[] = [];

@@ -193,7 +193,16 @@ export interface MapPointV2 {
   lat: number;
   lng: number;
   label: string;
+  // Categoria del punto, derivata dal tipo di momento (accommodation→lodging,
+  // food→food, experience→experience, view/walk→sight). Guida icona/colore/filtro
+  // sulla mappa. Opzionale per backward-compat con righe pre-feature.
+  category?: PlaceCategory;
 }
+
+// Tassonomia dei punti mappa, condivisa da map_points (v1/v2) e saved_places.
+// "custom" = punto cercato e salvato a mano dall'utente senza categoria nota.
+export type PlaceCategory =
+  | "lodging" | "experience" | "food" | "sight" | "beach" | "custom";
 
 export interface TripMetaV2 {
   em_word?: string;
@@ -290,6 +299,25 @@ export const savedMoments = pgTable("saved_moments", {
 });
 export type SavedMoment = typeof savedMoments.$inferSelect;
 export type InsertSavedMoment = typeof savedMoments.$inferInsert;
+
+// Posti salvati dalla mappa di un itinerario ("salva per dopo"). L'utente cerca
+// qualsiasi luogo (Nominatim) o salva un punto già pingato e lo conserva legato
+// a QUEL viaggio. Portiamo già lat/lng/label così la mappa ri-pinga senza dover
+// ri-geocodificare. category = PlaceCategory; note = appunto libero opzionale.
+export const savedPlaces = pgTable("saved_places", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  itineraryId: integer("itinerary_id").notNull().references(() => itineraries.id),
+  label: text("label").notNull(),
+  lat: real("lat").notNull(),
+  lng: real("lng").notNull(),
+  category: text("category").$type<PlaceCategory>(), // lodging|experience|food|sight|beach|custom
+  address: text("address"),
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type SavedPlace = typeof savedPlaces.$inferSelect;
+export type InsertSavedPlace = typeof savedPlaces.$inferInsert;
 
 // ── Travel companion chat (Fase 1) ─────────────────────────────────────────
 // A conversation is the persistent "storico" of the companion. Anchored to an

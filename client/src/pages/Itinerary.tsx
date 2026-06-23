@@ -661,7 +661,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
   // map_points: v2 keeps them at the top level inside tripMeta (lat/lng), v1
   // attaches them per-day. Both get projected into the cinematic's 60–340 box.
   let mapPoints: ItineraryData["mapPoints"];
-  const allPoints: { lat: number; lng: number; label: string; day?: number; slot?: string }[] = [];
+  const allPoints: { lat: number; lng: number; label: string; day?: number; slot?: string; category?: string }[] = [];
   const seen = new Set<string>();
   if (isV2 && Array.isArray(tripMeta?.map_points)) {
     for (const p of tripMeta.map_points as any[]) {
@@ -669,7 +669,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
       const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
       if (seen.has(k)) continue;
       seen.add(k);
-      allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "", day: p.day ?? p.day_number ?? undefined, slot: p.slot ?? undefined });
+      allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "", day: p.day ?? p.day_number ?? undefined, slot: p.slot ?? undefined, category: p.category ?? undefined });
     }
   } else {
     for (const d of days) {
@@ -679,7 +679,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
         const k = `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
         if (seen.has(k)) continue;
         seen.add(k);
-        allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "", day: p.dayNum ?? dayNum, slot: p.slot ?? undefined });
+        allPoints.push({ lat: p.lat, lng: p.lng, label: p.label ?? "", day: p.dayNum ?? dayNum, slot: p.slot ?? undefined, category: p.category ?? undefined });
       }
     }
   }
@@ -702,6 +702,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
       lng: p.lng,
       day: p.day,
       slot: p.slot,
+      category: p.category,
     }));
   }
 

@@ -7,6 +7,7 @@ import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import { requireAuth } from "../auth";
+import type { PlaceCategory } from "@shared/schema";
 
 const SLOT_MAPPING: Record<string, string> = {
   getyourguide_morning: "Mattina", klook_morning: "Mattina", viator_morning: "Mattina",
@@ -16,6 +17,47 @@ const SLOT_MAPPING: Record<string, string> = {
   thefork_lunch: "Pranzo", tripadvisor_lunch: "Pranzo",
   thefork_evening: "Sera", tripadvisor_evening: "Sera",
 };
+
+// Quanti punti geocodificare per itinerario. Prima era 5 (sync) / 8 (background):
+// troppo pochi per coprire esperienze + food + monumenti di ogni giorno. Alziamo
+// e geocodifichiamo a concorrenza 2 (rispetta il rate-limit Nominatim ~1/s, con
+// cache già attiva). Mai più la mappa con 3 pin su un viaggio di 5 giorni.
+const CANDIDATE_CAP = 14;
+
+// Deriva la categoria del pin dalla chiave affiliate ("getyourguide_place_morning"
+// → sight, "thefork_evening" → food, "viator_morning" → experience). Guida
+// icona/colore/filtro sulla mappa. Default prudente: sight.
+function categoryFromAffiliateKey(key: string): PlaceCategory {
+  const k = key.toLowerCase();
+  if (/place/.test(k)) return "sight";
+  if (/thefork|tripadvisor|fork|lunch|evening|restaurant/.test(k)) return "food";
+  if (/getyourguide|klook|viator|civitatis|musement/.test(k)) return "experience";
+  return "sight";
+}
+
+type GeoCandidate = { name: string; slot: string; dayNum: number; category: PlaceCategory };
+
+// Raccoglie TUTTI i luoghi nominati negli affiliateLabels di ogni giorno (dedup
+// per nome), con slot/giorno/categoria. Sostituisce i 3 blocchi quasi identici
+// che prima guardavano solo gli affiliateLabels e tagliavano a top5.
+function harvestCandidates(days: any[]): GeoCandidate[] {
+  const out: GeoCandidate[] = [];
+  for (const day of (days || [])) {
+    if (!day?.affiliateLabels) continue;
+    for (const [key, label] of Object.entries(day.affiliateLabels)) {
+      const l = label as string;
+      if (!l || l.length < 3 || /ristoranti\s/i.test(l)) continue;
+      if (out.find(c => c.name === l)) continue;
+      out.push({
+        name: l,
+        slot: SLOT_MAPPING[key] || "Mattina",
+        dayNum: day.dayNumber,
+        category: categoryFromAffiliateKey(key),
+      });
+    }
+  }
+  return out;
+}
 
 // Geocoding cache — Nominatim allows ~1 req/s and BANS abusers. Without a cache
 // we hit it for every map label on every generation. Coordinates are stable, so
@@ -315,26 +357,11 @@ export function registerItineraryGenRoutes(app: Express) {
               return null;
             };
 
-            const geocodeCandidates: { name: string; slot: string; dayNum: number }[] = [];
-            for (const day of (structuredItinerary.days || [])) {
-              if (day.affiliateLabels) {
-                for (const [key, label] of Object.entries(day.affiliateLabels)) {
-                  const l = label as string;
-                  if (!l || l.length < 3 || /ristoranti\s/i.test(l)) continue;
-                  if (!geocodeCandidates.find(c => c.name === l)) {
-                    geocodeCandidates.push({ name: l, slot: SLOT_MAPPING[key] || "Mattina", dayNum: day.dayNumber });
-                  }
-                }
-              }
-            }
-
-            const top5 = geocodeCandidates.slice(0, 5);
-            const geocodeResults = await Promise.all(
-              top5.map(async (c) => {
-                const coords = await tryGeocodeBg(c.name);
-                return coords ? { label: c.name, slot: c.slot, dayNum: c.dayNum, lat: coords.lat, lng: coords.lng } : null;
-              })
-            );
+            const geocodeCandidates = harvestCandidates(structuredItinerary.days || []).slice(0, CANDIDATE_CAP);
+            const geocodeResults = await mapWithConcurrency(geocodeCandidates, 2, async (c) => {
+              const coords = await tryGeocodeBg(c.name);
+              return coords ? { label: c.name, slot: c.slot, dayNum: c.dayNum, category: c.category, lat: coords.lat, lng: coords.lng } : null;
+            });
             const globalMapPoints = geocodeResults.filter(Boolean) as any[];
 
             const heroUrlBg = heroImage?.url ?? null;
@@ -432,26 +459,11 @@ export function registerItineraryGenRoutes(app: Express) {
 
       send("progress", { step: 4, message: "Piazzo i punti sulla mappa..." });
 
-      const geocodeCandidates: { name: string; slot: string; dayNum: number }[] = [];
-      for (const day of (itinerary.days || [])) {
-        if (day.affiliateLabels) {
-          for (const [key, label] of Object.entries(day.affiliateLabels)) {
-            const l = label as string;
-            if (!l || l.length < 3 || /ristoranti\s/i.test(l)) continue;
-            if (!geocodeCandidates.find(c => c.name === l)) {
-              geocodeCandidates.push({ name: l, slot: SLOT_MAPPING[key] || "Mattina", dayNum: day.dayNumber });
-            }
-          }
-        }
-      }
-
-      const top5 = geocodeCandidates.slice(0, 5);
-      const geocodeResults = await Promise.all(
-        top5.map(async (c) => {
-          const coords = await tryGeocode(c.name);
-          return coords ? { label: c.name, slot: c.slot, dayNum: c.dayNum, lat: coords.lat, lng: coords.lng } : null;
-        })
-      );
+      const geocodeCandidates = harvestCandidates(itinerary.days || []).slice(0, CANDIDATE_CAP);
+      const geocodeResults = await mapWithConcurrency(geocodeCandidates, 2, async (c) => {
+        const coords = await tryGeocode(c.name);
+        return coords ? { label: c.name, slot: c.slot, dayNum: c.dayNum, category: c.category, lat: coords.lat, lng: coords.lng } : null;
+      });
       const globalMapPoints = geocodeResults.filter(Boolean) as any[];
 
       const heroUrlStream = heroImage?.url ?? null;
@@ -490,29 +502,14 @@ export function registerItineraryGenRoutes(app: Express) {
       // Background: wider geocoding pass to enrich map after user has the itinerary
       (async () => {
         try {
-          const candidates: { name: string; slot: string; dayNum: number }[] = [];
-          for (const day of (itinerary.days || [])) {
-            if (day.affiliateLabels) {
-              for (const [key, label] of Object.entries(day.affiliateLabels)) {
-                const l = label as string;
-                if (!l || l.length < 3 || /ristoranti\s/i.test(l)) continue;
-                if (!candidates.find(c => c.name === l)) {
-                  candidates.push({ name: l, slot: SLOT_MAPPING[key] || "Mattina", dayNum: day.dayNumber });
-                }
-              }
-            }
-          }
-
-          const top8 = candidates.slice(0, 8);
-          const results = await Promise.all(
-            top8.map(async (c) => {
-              const coords = await geocode(`${c.name} ${city}`);
-              if (!coords) return null;
-              const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
-              if (dist > 3) return null;
-              return { label: c.name, slot: c.slot, dayNum: c.dayNum, lat: coords.lat, lng: coords.lng };
-            })
-          );
+          const candidates = harvestCandidates(itinerary.days || []).slice(0, CANDIDATE_CAP);
+          const results = await mapWithConcurrency(candidates, 2, async (c) => {
+            const coords = await geocode(`${c.name} ${city}`);
+            if (!coords) return null;
+            const dist = Math.sqrt(Math.pow(coords.lat - destLat, 2) + Math.pow(coords.lng - destLng, 2));
+            if (dist > 3) return null;
+            return { label: c.name, slot: c.slot, dayNum: c.dayNum, category: c.category, lat: coords.lat, lng: coords.lng };
+          });
 
           const validPoints = results.filter(Boolean) as any[];
           if (validPoints.length === 0) return;

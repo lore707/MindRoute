@@ -46,7 +46,7 @@ export type ItineraryData = {
   // x/y = proiezione 0..400 per il vecchio SVG cinematic. lat/lng/day/slot =
   // dati grezzi per la mappa Leaflet reale (ItineraryDashboard). Restano opzionali
   // così i vecchi consumer SVG continuano a funzionare.
-  mapPoints?: Array<{ x: number; y: number; label: string; lat?: number; lng?: number; day?: number; slot?: string }>;
+  mapPoints?: Array<{ x: number; y: number; label: string; lat?: number; lng?: number; day?: number; slot?: string; category?: string }>;
   // Centro città geocodificato lato server: fallback per centrare la mappa anche
   // quando non ci sono tappe puntuali.
   mapCenter?: { lat: number; lng: number };

@@ -45,6 +45,7 @@ export async function ensureIndexes(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_itineraries_destination_id ON itineraries(destination_id)`,
     `CREATE INDEX IF NOT EXISTS idx_recent_destinations_created_at ON recent_destinations(created_at)`,
     `CREATE INDEX IF NOT EXISTS idx_saved_moments_user_id ON saved_moments(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_saved_places_user_itin ON saved_places(user_id, itinerary_id)`,
     `CREATE INDEX IF NOT EXISTS idx_trait_snapshots_user_id ON trait_snapshots(user_id)`,
   ];
   for (const s of stmts) {

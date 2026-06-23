@@ -1,8 +1,8 @@
 import { db } from "./db";
-import { destinations, itineraries, profilingInputs, traitSnapshots, savedMoments, conversations, chatMessages } from "@shared/schema";
+import { destinations, itineraries, profilingInputs, traitSnapshots, savedMoments, savedPlaces, conversations, chatMessages } from "@shared/schema";
 import { eq, desc, asc, and } from "drizzle-orm";
 import type { IStorage } from "./storage";
-import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment, Conversation, InsertConversation, ChatMessage, InsertChatMessage } from "@shared/schema";
+import type { Destination, Itinerary, InsertDestination, InsertItinerary, TraitSnapshot, InsertTraitSnapshot, SavedMoment, InsertSavedMoment, SavedPlace, InsertSavedPlace, Conversation, InsertConversation, ChatMessage, InsertChatMessage } from "@shared/schema";
 
 export class DatabaseStorage implements IStorage {
   async getDestinations(): Promise<Destination[]> {
@@ -97,6 +97,24 @@ async getProfilingInput(): Promise<any | undefined> {
       eq(savedMoments.userId, userId),
       eq(savedMoments.itineraryId, itineraryId),
       eq(savedMoments.momentId, momentId),
+    ));
+  }
+
+  async getSavedPlaces(userId: number, itineraryId: number): Promise<SavedPlace[]> {
+    return await db.select().from(savedPlaces)
+      .where(and(eq(savedPlaces.userId, userId), eq(savedPlaces.itineraryId, itineraryId)))
+      .orderBy(desc(savedPlaces.createdAt));
+  }
+
+  async createSavedPlace(row: InsertSavedPlace): Promise<SavedPlace> {
+    const result = await db.insert(savedPlaces).values(row).returning();
+    return result[0];
+  }
+
+  async deleteSavedPlace(userId: number, id: number): Promise<void> {
+    await db.delete(savedPlaces).where(and(
+      eq(savedPlaces.userId, userId),
+      eq(savedPlaces.id, id),
     ));
   }
 
