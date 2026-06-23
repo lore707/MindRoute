@@ -49,6 +49,7 @@ export function registerCompanionRoutes(app: Express) {
     const parsedId = z.coerce.number().safeParse(req.params.id);
     const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
     const lang: "en" | "it" = req.body?.lang === "it" ? "it" : "en";
+    const proactive = req.body?.proactive === true;
     // Optional live position from the browser, for the find_nearby tool.
     const rawCoords = req.body?.coords;
     const coords =
@@ -91,7 +92,7 @@ export function registerCompanionRoutes(app: Express) {
         .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
       const userName = (req.user as any)?.name ?? null;
-      const system = await buildCompanionSystem({ itinerary: itin, userId, userName, lang, coords });
+      const system = await buildCompanionSystem({ itinerary: itin, userId, userName, lang, coords, proactive });
 
       // Persist the user turn before streaming so it isn't lost on disconnect.
       await storage.addMessage({ conversationId, role: "user", content: message });

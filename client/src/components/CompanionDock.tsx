@@ -142,10 +142,8 @@ export function CompanionDock() {
     );
   }, [open]);
 
-  async function send() {
-    const text = input.trim();
+  async function runChat(text: string, proactive = false) {
     if (!text || streaming || itineraryId == null) return;
-    setInput("");
     setMessages(prev => [...prev, { role: "user", content: text }, { role: "assistant", content: "" }]);
     setStreaming(true);
 
@@ -153,7 +151,7 @@ export function CompanionDock() {
       const res = await fetch(`/api/itinerary/${itineraryId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, lang, coords: coordsRef.current }),
+        body: JSON.stringify({ message: text, lang, coords: coordsRef.current, proactive }),
       });
       const reader = res.body?.getReader();
       if (!reader) { setStreaming(false); return; }
@@ -206,6 +204,25 @@ export function CompanionDock() {
       setStreaming(false);
     }
   }
+
+  function send() {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    runChat(text);
+  }
+
+  // Brief proattivo: alla prima apertura della chat per un viaggio (thread vuoto),
+  // una volta al giorno, il bot saluta da solo con meteo + un'esperienza nuova
+  // (non già nel piano) e il link affiliato. Gating per evitare spam/costi.
+  useEffect(() => {
+    if (!open || itineraryId == null || hydrated !== itineraryId || streaming) return;
+    if (messages.length > 0) return; // thread non vuoto → niente brief
+    const key = `mindroute_proactive_${itineraryId}_${new Date().toISOString().slice(0, 10)}`;
+    try { if (localStorage.getItem(key)) return; localStorage.setItem(key, "1"); } catch { /* ignore */ }
+    runChat(lang === "it" ? "Aggiornami sul viaggio" : "Update me on my trip", true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, itineraryId, hydrated, messages.length, streaming, lang]);
 
   if (!loggedIn || itineraryId == null || isHiddenRoute(location)) return null;
 

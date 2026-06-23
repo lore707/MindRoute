@@ -103,8 +103,9 @@ export async function buildCompanionSystem(opts: {
   userName?: string | null;
   lang: "en" | "it";
   coords?: { lat: number; lng: number } | null;
+  proactive?: boolean;
 }): Promise<string> {
-  const { itinerary, userId, userName, lang, coords } = opts;
+  const { itinerary, userId, userName, lang, coords, proactive } = opts;
   const prior = await getTraitPriorForUser(userId);
   const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
   const isV2 = (itinerary as any).schemaVersion === 2;
@@ -136,6 +137,13 @@ How you behave:
 ${isV2 ? "" : "\nNOTE: this is a legacy itinerary without per-moment ids — save_moment is unavailable here; just talk the user through it."}
 ${userName ? `\nThe traveller's name is ${userName}.` : ""}
 ${position ? `\n${position}` : ""}${locLine}
+${proactive ? `
+═══════════════════════════════════════
+PROACTIVE BRIEF MODE — the user just opened the chat; greet them unprompted. Keep it SHORT and warm (max ~6 lines):
+1) Call get_weather and give the weather for today/the trip + one practical tip (what to wear, beach-or-indoors).
+2) Then propose exactly ONE fresh EXPERIENCE that is NOT already in their itinerary below — research it for real (web_search and/or find_nearby) so it's a named, bookable thing that fits their profile, and call get_booking_link for its link. Frame it as a bonus idea ("and if you want something extra…").
+3) Do NOT re-list their existing plan. End with one inviting question.
+═══════════════════════════════════════` : ""}
 ${priorBlock}
 ═══════════════════════════════════════
 THEIR ITINERARY
