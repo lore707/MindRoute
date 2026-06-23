@@ -127,7 +127,7 @@ How you behave:
 - Be practical and specific: name the actual places, days and moments from their plan.
 - During the trip, anchor advice to where they are today. If they ask "what now / where do I eat", call find_nearby and reason from real options plus today's moments.
 - When the user wants to keep or remember a place/activity that is part of their plan, call save_moment with that moment's id (the [id:...] tag in the plan below) so it lands in their saved collection. Only the moments listed below have ids; never invent one.
-- You can ACTUALLY edit the plan: remove_moment drops a moment, replace_moment swaps one for something else. Propose the change in words first; only call the tool once the user clearly agrees ("yes", "do it", "swap it"). For a "near me / nearby" swap, call find_nearby first and replace with a REAL place + its coordinates. After editing, tell them it's done — the plan refreshes on their screen.
+- You can ACTUALLY edit the plan: remove_moment drops a moment, replace_moment swaps one, add_moment adds a new stop to a day. Propose the change in words first; only call the tool once the user clearly agrees ("yes", "do it", "add it"). For anything "near me / nearby", call find_nearby first and use a REAL place + its coordinates. After editing, tell them it's done — the plan refreshes on their screen.
 - Keep replies short by default (a few sentences). Expand only when they ask for detail.
 - For WEATHER, you have a real forecast: call get_weather instead of guessing. Use it to advise on a day (beach vs indoors, rain plan, what to pack) — proactively when it clearly matters.
 - If you don't know something else real-time (live opening hours, ticket availability), say so plainly and give your best informed guess.
@@ -205,6 +205,24 @@ const COMPANION_TOOLS = [
         note: { type: "string", description: "Optional one-line description of what they'll do there." },
       },
       required: ["moment_id", "new_title"],
+    },
+  },
+  {
+    name: "add_moment",
+    description:
+      "Add a NEW moment/stop to a given day of the plan. Use ONLY after the user agreed. Prefer real places (call find_nearby for 'near me' additions and pass real coordinates). The day_number must be one that exists in the plan.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        day_number: { type: "number", description: "Which day to add it to (the Day N number shown in the plan)." },
+        title: { type: "string", description: "Short title of the new place/activity." },
+        time_label: { type: "string", description: "Optional time/slot label, e.g. '20:00' or 'Evening'." },
+        location_name: { type: "string", description: "Optional real place name." },
+        lat: { type: "number", description: "Optional latitude (use find_nearby's value when available)." },
+        lng: { type: "number", description: "Optional longitude." },
+        note: { type: "string", description: "Optional one-line description." },
+      },
+      required: ["day_number", "title"],
     },
   },
 ];
@@ -335,15 +353,42 @@ async function executeTool(
     return { result: `Saved "${title}" to the traveller's collection.`, label: it ? `Salvato: ${title}` : `Saved: ${title}` };
   }
 
-  if (name === "remove_moment" || name === "replace_moment") {
+  if (name === "remove_moment" || name === "replace_moment" || name === "add_moment") {
     if (ctx.userId == null) return { result: "User not logged in; cannot edit the plan.", label: it ? "Modifica non riuscita" : "Couldn't edit" };
     if ((ctx.itinerary as any).schemaVersion !== 2) {
       return { result: "This itinerary can't be edited from chat (legacy format).", label: it ? "Non modificabile" : "Not editable" };
     }
     if (!ctx.saveDays) return { result: "Editing unavailable.", label: it ? "Non modificabile" : "Not editable" };
+    const days: any[] = Array.isArray(ctx.itinerary.days) ? ctx.itinerary.days : [];
+
+    if (name === "add_moment") {
+      const dayNo = Number(input?.day_number);
+      const day = days.find((d: any) => d.day_number === dayNo);
+      if (!day) return { result: `No day ${input?.day_number} in this plan.`, label: it ? "Giorno non trovato" : "Day not found" };
+      const title = String(input?.title ?? "").trim();
+      if (!title) return { result: "add_moment needs a title.", label: it ? "Titolo mancante" : "Missing title" };
+      const newMoment: any = {
+        id: `comp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+        time_label: typeof input?.time_label === "string" && input.time_label.trim() ? input.time_label.trim() : (it ? "Aggiunto" : "Added"),
+        title_operational: title,
+        title_evocative: title,
+        type: "activity",
+      };
+      if (typeof input?.note === "string" && input.note.trim()) newMoment.description = input.note.trim();
+      if (typeof input?.location_name === "string" && input.location_name.trim()) newMoment.location_name = input.location_name.trim();
+      if (Number.isFinite(input?.lat) && Number.isFinite(input?.lng)) { newMoment.location_lat = Number(input.lat); newMoment.location_lng = Number(input.lng); }
+      try {
+        const { fetchUnsplashHero } = await import("./unsplash");
+        const img = await fetchUnsplashHero((newMoment.location_name ? `${newMoment.location_name} ` : "") + title);
+        if (img?.url) newMoment.image_url = img.url;
+      } catch { /* nessuna immagine */ }
+      day.moments = [...(Array.isArray(day.moments) ? day.moments : []), newMoment];
+      await ctx.saveDays(days);
+      return { result: `Added "${title}" to Day ${dayNo}. The plan is updated.`, label: it ? `Aggiunto: ${title}` : `Added: ${title}` };
+    }
+
     const hit = findMomentById(ctx.itinerary, String(input?.moment_id ?? ""));
     if (!hit) return { result: `No moment with id "${input?.moment_id}" exists in this itinerary.`, label: it ? "Momento non trovato" : "Moment not found" };
-    const days: any[] = Array.isArray(ctx.itinerary.days) ? ctx.itinerary.days : [];
 
     if (name === "remove_moment") {
       const title = hit.moment.title_evocative ?? hit.moment.title_operational ?? "moment";
@@ -399,10 +444,16 @@ async function executeTool(
       return { result: "No real places found nearby for that query.", label: it ? "Niente nelle vicinanze" : "Nothing nearby" };
     }
     const list = places
-      .map((p) => `- ${p.name} (${p.type}${p.distance_m != null ? `, ${p.distance_m}m` : ""})`)
+      .map((p) => {
+        const bits = [`${p.distance_m != null ? `${p.distance_m}m` : ""}`, p.cuisine ? `cuisine: ${p.cuisine}` : "", p.opening_hours ? `hours: ${p.opening_hours}` : "", p.website ? `site: ${p.website}` : ""].filter(Boolean).join(" · ");
+        return `- ${p.name} (${p.type})${bits ? ` — ${bits}` : ""}`;
+      })
       .join("\n");
+    // Ora UTC: il modello la combina con la destinazione (di cui conosce il fuso)
+    // per stimare se un posto è aperto adesso. Gli opening_hours sono in formato OSM.
+    const nowUtc = new Date().toISOString().slice(0, 16).replace("T", " ");
     return {
-      result: `Real places near the traveller right now:\n${list}`,
+      result: `Current time (UTC): ${nowUtc}. Reason about local opening hours (OSM format) vs the destination's timezone before saying a place is open now; if hours are missing or you're unsure, say so.\nReal places near the traveller right now:\n${list}`,
       label: it ? "Cerco posti vicini" : "Finding places nearby",
     };
   }

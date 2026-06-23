@@ -402,7 +402,7 @@ function formatLiveBlock(dest: string, anchors: LiveAnchor[], lang: string): str
 // (Overpass), but anchored to the user's actual position and a tight radius so
 // "what's around me now" returns walkable, real options. Optional `category`
 // narrows the query (food / museum / viewpoint / park / landmark). Never throws.
-export interface NearbyPlace { name: string; type: string; distance_m: number | null; }
+export interface NearbyPlace { name: string; type: string; distance_m: number | null; opening_hours?: string; cuisine?: string; website?: string; }
 
 function categoryFilters(category?: string): string[] {
   const c = (category ?? "").toLowerCase();
@@ -479,7 +479,10 @@ export async function fetchNearbyAnchors(
     else if (tags.leisure) type = tags.leisure;
     else if (tags.historic) type = "landmark";
     const notable = !!(tags.wikidata || tags.wikipedia);
-    out.push({ name: nm, type, distance_m: dist });
+    const oh = typeof tags.opening_hours === "string" ? tags.opening_hours.trim() : undefined;
+    const cuisine = typeof tags.cuisine === "string" ? tags.cuisine.replace(/_/g, " ").trim() : undefined;
+    const website = typeof tags.website === "string" ? tags.website.trim() : (typeof tags["contact:website"] === "string" ? tags["contact:website"].trim() : undefined);
+    out.push({ name: nm, type, distance_m: dist, opening_hours: oh, cuisine, website });
     (out[out.length - 1] as any)._notable = notable;
   }
   // Closest first, but bubble notable ones up a little.
@@ -489,7 +492,7 @@ export async function fetchNearbyAnchors(
     if (an !== bn) return bn - an;
     return (a.distance_m ?? 9e9) - (b.distance_m ?? 9e9);
   });
-  return out.slice(0, 12).map(({ name, type, distance_m }) => ({ name, type, distance_m }));
+  return out.slice(0, 12).map(({ name, type, distance_m, opening_hours, cuisine, website }) => ({ name, type, distance_m, opening_hours, cuisine, website }));
 }
 
 /**
