@@ -79,6 +79,19 @@ async function enrichMoment(
   return null;
 }
 
+// Enrichment di UN solo giorno (companion regenerate_day): immagine del giorno,
+// immagine + geocode per ogni momento, ricalcolo costi. Mutua il giorno in place.
+export async function enrichDayV2(day: DayV2, destinationName: string): Promise<void> {
+  const heroData = await fetchUnsplashHero(destinationName);
+  const heroUrl = heroData?.url ?? "";
+  const dayImg = await fetchDayImageWithFallback(`${day.title_evocative} ${day.arc}`, destinationName);
+  day.hero_image_url = dayImg ?? heroUrl;
+  for (const m of day.moments) {
+    await enrichMoment(m, destinationName, day.day_number, day.hero_image_url);
+  }
+  recomputeDayCosts(day);
+}
+
 // Dedup moment images: same Unsplash URL across two moments is jarring.
 // When we detect a duplicate, blank it so the UI falls back to the day
 // hero image (cheaper than firing a second Unsplash request, which would

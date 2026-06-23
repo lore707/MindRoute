@@ -8,7 +8,7 @@ import { fetchMe } from "@/hooks/use-auth";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 
 // Tool che modificano il piano: dopo questi, l'itinerario aperto va ricaricato.
-const PLAN_EDIT_TOOLS = new Set(["remove_moment", "replace_moment", "add_moment"]);
+const PLAN_EDIT_TOOLS = new Set(["remove_moment", "replace_moment", "add_moment", "regenerate_day"]);
 
 type Msg = { role: "user" | "assistant" | "tool"; content: string };
 

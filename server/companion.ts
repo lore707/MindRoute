@@ -128,7 +128,7 @@ How you behave:
 - Be practical and specific: name the actual places, days and moments from their plan.
 - During the trip, anchor advice to where they are today. If they ask "what now / where do I eat", call find_nearby and reason from real options plus today's moments.
 - When the user wants to keep or remember a place/activity that is part of their plan, call save_moment with that moment's id (the [id:...] tag in the plan below) so it lands in their saved collection. Only the moments listed below have ids; never invent one.
-- You can ACTUALLY edit the plan: remove_moment drops a moment, replace_moment swaps one, add_moment adds a new stop to a day. Propose the change in words first; only call the tool once the user clearly agrees ("yes", "do it", "add it"). For anything "near me / nearby", call find_nearby first and use a REAL place + its coordinates. After editing, tell them it's done — the plan refreshes on their screen.
+- You can ACTUALLY edit the plan: remove_moment drops a moment, replace_moment swaps one, add_moment adds a new stop, and regenerate_day rebuilds a WHOLE day from scratch (use it when they want a whole day reworked — "make day 3 relaxed", "redo day 2 around food"). Propose the change in words first; only call the tool once the user clearly agrees ("yes", "do it", "redo it"). For anything "near me / nearby", call find_nearby first and use a REAL place + its coordinates. After editing, tell them it's done — the plan refreshes on their screen.
 - Keep replies short by default (a few sentences). Expand only when they ask for detail.
 - BOOKING LINKS ARE MANDATORY: whenever you PROPOSE or RECOMMEND something bookable — a place, activity, tour, restaurant, hotel, swap or added stop — you MUST call get_booking_link (pass its category and name) and include the EXACT url it returns in the same reply, as a clear "Book it: <url>". Never invent a URL, and never propose a bookable thing without its link. Only purely free/walk-in things (a public square, a stroll) need no link.
 - You can SEARCH THE WEB (web_search) for real, current info: actual restaurants and their reviews, monuments and sights, events happening during the trip, "what's the best X in <place>". Use it when the itinerary and find_nearby aren't enough, and prefer real named places over generic advice. When you recommend a real place found via search, still call get_booking_link to hand over its booking link.
@@ -228,6 +228,19 @@ const COMPANION_TOOLS = [
         category: { type: "string", description: "Kind of thing: 'experience'/'tour'/'activity', 'restaurant', 'hotel', 'flight', 'transport'. Drives which partner is used." },
         query: { type: "string", description: "The place/activity name to search (e.g. 'Sagrada Familia tickets', 'sushi omakase'). Used to build a targeted link." },
       },
+    },
+  },
+  {
+    name: "regenerate_day",
+    description:
+      "Rebuild an ENTIRE day of the plan from scratch based on what the user wants (e.g. 'make day 3 more relaxed', 'redo day 2 around food and markets'). Heavier than add/replace — use ONLY when the user wants a whole day reworked and has agreed. v2 plans only.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        day_number: { type: "number", description: "Which day to rebuild (the Day N number in the plan)." },
+        feedback: { type: "string", description: "What they want different about that day (mood, theme, pace). Empty = just refresh it." },
+      },
+      required: ["day_number"],
     },
   },
   {
@@ -393,7 +406,7 @@ async function executeTool(
     return { result: `Saved "${title}" to the traveller's collection.`, label: it ? `Salvato: ${title}` : `Saved: ${title}` };
   }
 
-  if (name === "remove_moment" || name === "replace_moment" || name === "add_moment") {
+  if (name === "remove_moment" || name === "replace_moment" || name === "add_moment" || name === "regenerate_day") {
     if (ctx.userId == null) return { result: "User not logged in; cannot edit the plan.", label: it ? "Modifica non riuscita" : "Couldn't edit" };
     if ((ctx.itinerary as any).schemaVersion !== 2) {
       return { result: "This itinerary can't be edited from chat (legacy format).", label: it ? "Non modificabile" : "Not editable" };
@@ -407,6 +420,30 @@ async function executeTool(
       if (ctx.saveTrip) await ctx.saveTrip(d, meta);
       else if (ctx.saveDays) await ctx.saveDays(d);
     };
+
+    if (name === "regenerate_day") {
+      const dayNo = Number(input?.day_number);
+      const idx = days.findIndex((d: any) => d.day_number === dayNo);
+      if (idx < 0) return { result: `No day ${input?.day_number} in this plan.`, label: it ? "Giorno non trovato" : "Day not found" };
+      const dest = (ctx.itinerary as any).destinationName ?? "";
+      const feedback = String(input?.feedback ?? "").trim();
+      const contextSummary = days
+        .filter((_: any, i: number) => i !== idx)
+        .map((d: any) => `Day ${d.day_number}: ${d.title_evocative ?? ""} — ${(Array.isArray(d.moments) ? d.moments : []).map((m: any) => m.location_name || m.title_operational).filter(Boolean).join(", ")}`)
+        .join("\n");
+      try {
+        const { regenerateDayV2 } = await import("./matching-engine-v2");
+        const { enrichDayV2 } = await import("./routes/itinerary-gen-v2");
+        const newDay = await regenerateDayV2(dest, days[idx], feedback, contextSummary, it ? "it" : "en");
+        await enrichDayV2(newDay as any, dest);
+        days[idx] = newDay;
+        await persistEdit(days);
+        return { result: `Rebuilt Day ${dayNo}. The plan is updated.`, label: it ? `Rigenerato il giorno ${dayNo}` : `Rebuilt day ${dayNo}` };
+      } catch (e) {
+        console.error("[companion] regenerate_day error:", e);
+        return { result: "Couldn't rebuild that day; try again.", label: it ? "Rigenerazione fallita" : "Rebuild failed" };
+      }
+    }
 
     if (name === "add_moment") {
       const dayNo = Number(input?.day_number);

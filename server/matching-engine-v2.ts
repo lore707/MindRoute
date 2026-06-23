@@ -528,3 +528,46 @@ export async function generateItineraryV2ForDestination(
 
   return itinerary;
 }
+
+// ── Rigenerazione di UN solo giorno (companion regenerate_day) ─────────────
+// Riusa lo schema dayV2; passiamo il giorno corrente come template così il
+// modello copia la struttura esatta. Niente immagini/coords qui — l'enrichment
+// (geocode + Unsplash) avviene dopo via enrichDayV2.
+export async function regenerateDayV2(
+  destinationName: string,
+  day: DayV2,
+  feedback: string,
+  contextSummary: string,
+  lang: "en" | "it",
+): Promise<DayV2> {
+  const prompt = `You are MindRoute's itinerary engine. Regenerate ONE day of a trip to ${destinationName}.
+
+CURRENT DAY (JSON — copy this exact structure and field names, same value types):
+${JSON.stringify(day)}
+
+OTHER DAYS of this trip (so you do NOT repeat their places):
+${contextSummary}
+
+USER REQUEST for the new version of this day: ${feedback || "refresh it with different but equally good moments"}
+
+Rules:
+- Return ONLY a JSON object for the new day — same schema/keys/types as CURRENT DAY.
+- Keep "day_number" and "date" unchanged.
+- Use REAL, well-known places in ${destinationName}; set "location_name" on every moment (needed for map + booking). Do NOT reuse the places already used on the OTHER DAYS.
+- 3 to 6 moments. All numeric fields are numbers. Write every visible text field in ${lang === "it" ? "Italian" : "English"}.
+- Leave image URLs as-is or empty and do not invent map_points — images and coordinates are set server-side.`;
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 6000,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const text = message.content
+    .filter((b) => b.type === "text")
+    .map((b) => (b as any).text)
+    .join("");
+  const parsed = dayV2Schema.parse(JSON.parse(extractJson(text)));
+  parsed.day_number = day.day_number;
+  parsed.date = day.date;
+  return parsed;
+}
