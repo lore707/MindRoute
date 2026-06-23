@@ -130,6 +130,7 @@ How you behave:
 - You can ACTUALLY edit the plan: remove_moment drops a moment, replace_moment swaps one, add_moment adds a new stop to a day. Propose the change in words first; only call the tool once the user clearly agrees ("yes", "do it", "add it"). For anything "near me / nearby", call find_nearby first and use a REAL place + its coordinates. After editing, tell them it's done — the plan refreshes on their screen.
 - Keep replies short by default (a few sentences). Expand only when they ask for detail.
 - BOOKING LINKS ARE MANDATORY: whenever you PROPOSE or RECOMMEND something bookable — a place, activity, tour, restaurant, hotel, swap or added stop — you MUST call get_booking_link (pass its category and name) and include the EXACT url it returns in the same reply, as a clear "Book it: <url>". Never invent a URL, and never propose a bookable thing without its link. Only purely free/walk-in things (a public square, a stroll) need no link.
+- You can SEARCH THE WEB (web_search) for real, current info: actual restaurants and their reviews, monuments and sights, events happening during the trip, "what's the best X in <place>". Use it when the itinerary and find_nearby aren't enough, and prefer real named places over generic advice. When you recommend a real place found via search, still call get_booking_link to hand over its booking link.
 - For WEATHER, you have a real forecast: call get_weather instead of guessing. Use it to advise on a day (beach vs indoors, rain plan, what to pack) — proactively when it clearly matters.
 - If you don't know something else real-time (live opening hours, ticket availability), say so plainly and give your best informed guess.
 ${isV2 ? "" : "\nNOTE: this is a legacy itinerary without per-moment ids — save_moment is unavailable here; just talk the user through it."}
@@ -567,14 +568,19 @@ export async function runCompanionAgent(opts: {
 
   const systemBlock = [{ type: "text" as const, text: system, cache_control: { type: "ephemeral" as const } }];
   let full = "";
-  const MAX_TURNS = 4; // guard against tool loops
+  let webSearchEmitted = false;
+  const MAX_TURNS = 6; // guard against tool loops (web search può aggiungere giri)
+
+  // web_search è un tool SERVER-side (Anthropic lo esegue): su Haiku 4.5 si usa la
+  // variante base. Dà al bot accesso al web reale (ristoranti, monumenti, eventi).
+  const tools = [...COMPANION_TOOLS, { type: "web_search_20250305" as const, name: "web_search", max_uses: 4 }];
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
     const stream = client.messages.stream({
       model: COMPANION_MODEL,
       max_tokens: 1200,
       system: systemBlock,
-      tools: COMPANION_TOOLS as any,
+      tools: tools as any,
       messages,
     });
 
@@ -582,11 +588,19 @@ export async function runCompanionAgent(opts: {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
         full += event.delta.text;
         onChunk(event.delta.text);
+      } else if (event.type === "content_block_start" && (event as any).content_block?.type === "server_tool_use" && !webSearchEmitted) {
+        // Segnala all'utente che il bot sta cercando sul web (una volta).
+        webSearchEmitted = true;
+        onTool?.({ tool: "web_search", label: ctx.lang === "it" ? "Cerco sul web" : "Searching the web" });
       }
     }
 
     const finalMsg = await stream.finalMessage();
     messages.push({ role: "assistant", content: finalMsg.content });
+
+    // pause_turn: il loop server-side (web search) ha raggiunto il limite ma non
+    // ha finito — rimanda lo stesso contesto per farlo riprendere.
+    if (finalMsg.stop_reason === "pause_turn") continue;
 
     const toolUses = finalMsg.content.filter((b: any) => b.type === "tool_use");
     if (finalMsg.stop_reason !== "tool_use" || toolUses.length === 0) break;
