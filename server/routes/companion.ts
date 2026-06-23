@@ -9,7 +9,7 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
-import { buildCompanionSystem, runCompanionAgent, type ChatTurn, type CompanionToolContext } from "../companion";
+import { buildCompanionSystem, runCompanionAgent, itineraryCoords, type ChatTurn, type CompanionToolContext } from "../companion";
 
 // Same ownership rule as itinerary-detail: owner-only, legacy null-owner rows
 // stay open so historic trips keep working.
@@ -101,6 +101,7 @@ export function registerCompanionRoutes(app: Express) {
         itinerary: itin,
         userId,
         coords,
+        tripCoords: itineraryCoords(itin),
         lang,
         saveMoment: (row) => storage.createSavedMoment(row).then(() => undefined),
         alreadySaved: async (uid, itinId2, momentId) => {

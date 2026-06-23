@@ -129,7 +129,8 @@ How you behave:
 - When the user wants to keep or remember a place/activity that is part of their plan, call save_moment with that moment's id (the [id:...] tag in the plan below) so it lands in their saved collection. Only the moments listed below have ids; never invent one.
 - Suggest, reassure, adapt. If they want to change the plan, talk it through and give them the concrete swap to make.
 - Keep replies short by default (a few sentences). Expand only when they ask for detail.
-- If you don't know something real-time (live opening hours, today's weather), say so plainly and give your best informed guess.
+- For WEATHER, you have a real forecast: call get_weather instead of guessing. Use it to advise on a day (beach vs indoors, rain plan, what to pack) — proactively when it clearly matters.
+- If you don't know something else real-time (live opening hours, ticket availability), say so plainly and give your best informed guess.
 ${isV2 ? "" : "\nNOTE: this is a legacy itinerary without per-moment ids — save_moment is unavailable here; just talk the user through it."}
 ${userName ? `\nThe traveller's name is ${userName}.` : ""}
 ${position ? `\n${position}` : ""}${locLine}
@@ -168,6 +169,15 @@ const COMPANION_TOOLS = [
       },
     },
   },
+  {
+    name: "get_weather",
+    description:
+      "Get the REAL current weather and 6-day forecast for the trip's location (or the traveller's live position if available). Call this whenever weather is relevant: the user asks about it, or you're advising on what to do on a given day (beach vs museum, rain plan, what to pack). Never guess weather — use this.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
 ];
 
 export type CompanionToolEvent = { tool: string; label: string };
@@ -176,6 +186,8 @@ export interface CompanionToolContext {
   itinerary: Itinerary;
   userId: number | null;
   coords?: { lat: number; lng: number } | null;
+  // Coordinate del viaggio (fallback per il meteo quando manca il GPS live).
+  tripCoords?: { lat: number; lng: number } | null;
   lang: "en" | "it";
   saveMoment: (row: {
     userId: number;
@@ -184,6 +196,68 @@ export interface CompanionToolContext {
     momentSnapshot: any;
   }) => Promise<void>;
   alreadySaved: (userId: number, itineraryId: number, momentId: string) => Promise<boolean>;
+}
+
+// Coordinate rappresentative del viaggio: usate dal meteo quando manca il GPS.
+// Prima le map_points v2, poi i momenti geolocalizzati, poi i mapPoints v1.
+export function itineraryCoords(itin: Itinerary): { lat: number; lng: number } | null {
+  const meta = (itin as any).tripMeta ?? {};
+  const mp = Array.isArray(meta.map_points) ? meta.map_points : [];
+  for (const p of mp) if (typeof p?.lat === "number" && typeof p?.lng === "number") return { lat: p.lat, lng: p.lng };
+  const days: any[] = Array.isArray(itin.days) ? itin.days : [];
+  for (const d of days) {
+    for (const m of (Array.isArray(d.moments) ? d.moments : [])) {
+      if (typeof m?.location_lat === "number" && typeof m?.location_lng === "number") return { lat: m.location_lat, lng: m.location_lng };
+    }
+    for (const p of (Array.isArray(d.mapPoints) ? d.mapPoints : [])) {
+      if (typeof p?.lat === "number" && typeof p?.lng === "number") return { lat: p.lat, lng: p.lng };
+    }
+  }
+  return null;
+}
+
+// WMO weather code → etichetta breve + emoji, EN/IT.
+function describeWeather(code: number, it: boolean): string {
+  const m: Record<number, [string, string, string]> = {
+    0: ["☀️", "Clear", "Sereno"],
+    1: ["🌤️", "Mostly clear", "Quasi sereno"],
+    2: ["⛅", "Partly cloudy", "Poco nuvoloso"],
+    3: ["☁️", "Overcast", "Coperto"],
+    45: ["🌫️", "Fog", "Nebbia"], 48: ["🌫️", "Rime fog", "Nebbia ghiacciata"],
+    51: ["🌦️", "Light drizzle", "Pioviggine leggera"], 53: ["🌦️", "Drizzle", "Pioviggine"], 55: ["🌦️", "Heavy drizzle", "Pioviggine intensa"],
+    61: ["🌧️", "Light rain", "Pioggia debole"], 63: ["🌧️", "Rain", "Pioggia"], 65: ["🌧️", "Heavy rain", "Pioggia forte"],
+    66: ["🌧️", "Freezing rain", "Pioggia gelata"], 67: ["🌧️", "Freezing rain", "Pioggia gelata"],
+    71: ["🌨️", "Light snow", "Neve debole"], 73: ["🌨️", "Snow", "Neve"], 75: ["❄️", "Heavy snow", "Neve forte"], 77: ["🌨️", "Snow grains", "Nevischio"],
+    80: ["🌦️", "Light showers", "Rovesci leggeri"], 81: ["🌧️", "Showers", "Rovesci"], 82: ["⛈️", "Violent showers", "Rovesci violenti"],
+    85: ["🌨️", "Snow showers", "Rovesci di neve"], 86: ["❄️", "Snow showers", "Rovesci di neve"],
+    95: ["⛈️", "Thunderstorm", "Temporale"], 96: ["⛈️", "Thunderstorm + hail", "Temporale e grandine"], 99: ["⛈️", "Thunderstorm + hail", "Temporale e grandine"],
+  };
+  const e = m[code] ?? ["🌡️", "Unknown", "Indefinito"];
+  return `${e[0]} ${it ? e[2] : e[1]}`;
+}
+
+async function fetchWeather(lat: number, lng: number, it: boolean): Promise<string | null> {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7`;
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 6000);
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(to);
+    if (!r.ok) return null;
+    const d: any = await r.json();
+    const cur = d.current ? `${it ? "Ora" : "Now"}: ${Math.round(d.current.temperature_2m)}°C, ${describeWeather(d.current.weather_code, it)}` : "";
+    const days = d.daily?.time ?? [];
+    const rows = days.slice(0, 6).map((date: string, i: number) => {
+      const hi = Math.round(d.daily.temperature_2m_max[i]);
+      const lo = Math.round(d.daily.temperature_2m_min[i]);
+      const pop = d.daily.precipitation_probability_max?.[i];
+      const popStr = typeof pop === "number" ? `, ${pop}% ${it ? "pioggia" : "rain"}` : "";
+      return `${date}: ${describeWeather(d.daily.weather_code[i], it)} ${lo}–${hi}°C${popStr}`;
+    });
+    return [cur, ...rows].filter(Boolean).join("\n");
+  } catch {
+    return null;
+  }
 }
 
 function findMomentById(itin: Itinerary, momentId: string): any | null {
@@ -228,6 +302,22 @@ async function executeTool(
       },
     });
     return { result: `Saved "${title}" to the traveller's collection.`, label: it ? `Salvato: ${title}` : `Saved: ${title}` };
+  }
+
+  if (name === "get_weather") {
+    const c = ctx.coords ?? ctx.tripCoords ?? null;
+    if (!c) {
+      return { result: "No coordinates available for this trip; can't fetch real weather.", label: it ? "Meteo non disponibile" : "Weather unavailable" };
+    }
+    const forecast = await fetchWeather(c.lat, c.lng, it);
+    if (!forecast) {
+      return { result: "Weather service unavailable right now.", label: it ? "Meteo non raggiungibile" : "Weather unavailable" };
+    }
+    const where = ctx.coords ? (it ? "posizione attuale" : "current location") : (it ? "destinazione" : "destination");
+    return {
+      result: `Real weather (${where}):\n${forecast}`,
+      label: it ? "Controllo il meteo" : "Checking the weather",
+    };
   }
 
   if (name === "find_nearby") {
