@@ -39,9 +39,13 @@ export const quizBDict: Record<string, { en: string; it: string }> = {
 
   /* ── Q1 FooterNav CTA (guided branch) ──────────────────────── */
   "qb.q1.cta.guided":    { en: "Continue with guided",                        it: "Continua con la scoperta guidata" },
+  "qb.nav.back":         { en: "Back",                                        it: "Indietro" },
+  "qb.nav.continue":     { en: "Continue",                                    it: "Continua" },
+  "qb.pick.selected":    { en: "selected",                                    it: "selezionati" },
 
   /* ── Q2 eyebrow / sub / preview labels ─────────────────────── */
   "qb.q2.eyebrow":       { en: "Question 02 · the territory",                 it: "Domanda 02 · il territorio" },
+  "qb.q2.title":         { en: "Where do you want to go?",                     it: "Dove vuoi andare?" },
   "qb.q2.sub":           { en: "Choose the region that feels closest to you right now. We'll narrow it down to a specific destination later.", it: "Scegli la regione che ti sembra più vicina in questo momento. La restringeremo a una destinazione specifica in seguito." },
   "qb.q2.preview.hover": { en: "Sample destination",                          it: "Destinazione di esempio" },
   "qb.q2.preview.sel":   { en: "Your region",                                 it: "La tua regione" },
