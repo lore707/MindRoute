@@ -571,6 +571,15 @@ export async function regenerateDayV2(
   contextSummary: string,
   lang: "en" | "it",
 ): Promise<DayV2> {
+  // Day 1 = arrival. Same conversion doctrine as the main generator (rule 2b):
+  // one strong anchor (accommodation), transit meal converts zero, no paid
+  // experiences. Injected only when regenerating day 1 so other days stay free.
+  const day1Doctrine = day.day_number === 1 ? `
+- THIS IS DAY 1 (arrival). It has ONE strong booking anchor: the accommodation (provider "hotels" or "tablet_hotels", status "bookable_now") — booked once, covers the whole trip.
+- Arrival transport: a booking ONLY if a real partner fits the actual mode (flight, long-distance coach). A scheduled ferry, regional train or generic transfer has no partner → walk_in prose, no booking object.
+- The transit meal (at the gate / on board / on first arrival) is ALWAYS walk_in: no booking object — it converts zero but stays a real beat that must read complete without a button.
+- NO bookable experiences, tours, boats or paid activities on day 1 — the traveller is tired with bags. Those belong to the rested mid/peak days.` : "";
+
   const prompt = `You are MindRoute's itinerary engine. Regenerate ONE day of a trip to ${destinationName}.
 
 CURRENT DAY (JSON — copy this exact structure and field names, same value types):
@@ -586,7 +595,9 @@ Rules:
 - Keep "day_number" and "date" unchanged.
 - Use REAL, well-known places in ${destinationName}; set "location_name" on every moment (needed for map + booking). Do NOT reuse the places already used on the OTHER DAYS.
 - 3 to 6 moments. All numeric fields are numbers. Write every visible text field in ${lang === "it" ? "Italian" : "English"}.
-- Leave image URLs as-is or empty and do not invent map_points — images and coordinates are set server-side.`;
+- Leave image URLs as-is or empty and do not invent map_points — images and coordinates are set server-side.
+- BOOKING by function + partner-fit, not by default: mark a moment "bookable_now"/"reserve_recommended" ONLY if it is genuinely reservable through a real partner. Transit meals, free wanders, scheduled ferries and generic transfers are walk_in — omit their booking object. When unsure, prefer walk_in.
+- AFFILIATE URLS: if a moment is bookable, REUSE the exact affiliate link host/click-wrapper already present in CURRENT DAY's bookings (same domain) — NEVER invent a new booking domain (no booking.com, getyourguide, skyscanner, airbnb). If there is no equivalent partner URL to copy, make the moment walk_in instead of inventing a link.${day1Doctrine}`;
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
