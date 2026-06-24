@@ -423,15 +423,18 @@ export function ItineraryDashboard({
                             )}
                           </div>
                           {m.desc && <p className="dd-focus-desc">{m.desc}</p>}
-                          <div className="dd-actions">
-                            {m.cta && m.ctaUrl && (
+                          {/* Niente CTA → niente contenitore: un momento di puro transito
+                              (pasto al gate, traghetto senza partner) deve chiudersi pulito,
+                              senza un'area-bottone vuota che lascia un buco visivo. */}
+                          {m.cta && m.ctaUrl && (
+                            <div className="dd-actions">
                               <a className="dd-book" href={m.ctaUrl} target="_blank" rel="noopener noreferrer"
                                 onClick={() => trackAffiliate(m.ctaProvider ?? "unknown", data.destination)}>
                                 {m.cta}{m.ctaPrice && <span className="price">· {m.ctaPrice}</span>}
                                 <ExternalLink size={13} />
                               </a>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

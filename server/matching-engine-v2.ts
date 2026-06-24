@@ -234,6 +234,31 @@ detail. Apply the following rules strictly.
      Departure / Layover / Arrival — that inflates the list artificially.
      Capture stopover details inside "description".
 
+2b. DAY 1 CONVERSION DOCTRINE — function of the moment decides the CTA
+   Day 1 is ARRIVAL, not activity. It has exactly ONE strong booking anchor: the
+   accommodation. The traveler is tired and carrying bags — do not load it with
+   things to book. Decide each moment's booking by its FUNCTION, never by default:
+   - ARRIVAL TRANSPORT (morning): give it a booking ONLY if a real partner fits the
+     ACTUAL mode — flight → Expedia flights, long-distance coach → FlixBus. If the
+     real mode has no matching partner (scheduled ferry, regional train, generic
+     "transfer"), make it walk_in with honest prose and NO booking object. This
+     converts weakly — never force a mismatched link onto it.
+   - THE TRANSIT MEAL (lunch at the gate / on board / on first arrival): ALWAYS
+     walk_in. NO booking object, ever. It converts zero. It is still a real beat —
+     write it so it reads complete WITHOUT a button (no dangling CTA, no apology).
+   - TRANSFER TO BASE + first light orientation (afternoon): the last hop to the
+     lodging gets a booking ONLY if it is genuinely bookable through a fitting
+     partner (FlixBus coach, a pre-booked private transfer). A scheduled ferry or a
+     short taxi has no partner → prose, no button. The first light wander of the
+     neighbourhood is always walk_in. NEVER place a 2–3h paid tour here.
+   - ACCOMMODATION (evening, or bag-drop if arrival is early): THIS is the day's one
+     real conversion. provider = hotels (or tablet_hotels), status = "bookable_now".
+     Booked once, it covers the whole trip. The welcome dinner in a local tavern is
+     normally not bookable → walk_in prose, no forced TripAdvisor link.
+   - Bookable EXPERIENCES (boat trips, guided tours, paid activities, classes) NEVER
+     appear on Day 1. They live on the rested mid/peak days. Day 1 carries at most
+     one strong CTA (the stay) — sometimes the arrival flight too, nothing more.
+
 3. MOMENT IMAGE
    - Every moment has its own image_url. NEVER reuse the same image for two
      different moments in the same itinerary. Each moment.image_url must be
@@ -262,9 +287,15 @@ detail. Apply the following rules strictly.
    - status = "reserve_recommended" → recommend reservation but walk-in is possible
      (popular restaurants, museums with timed entry).
    - status = "walk_in" → no booking needed, info only (free viewpoint, public beach).
-   - COVERAGE: every moment that is NOT walk_in MUST carry a "booking" object with a
-     valid affiliate_url. If something can be reserved, it must have a link — never
-     leave a bookable moment without one.
+   - DECIDE walk_in vs bookable BY FUNCTION + PARTNER-FIT, not by default. A moment
+     is bookable_now / reserve_recommended ONLY when it is genuinely reservable AND a
+     real partner from our set fits its actual mode (see rule 2b for Day 1). A transit
+     meal, a scheduled ferry, a generic transfer, a free wander → walk_in. When in
+     doubt on an arrival/transit moment, prefer walk_in over a forced link.
+   - COVERAGE: once a moment IS classified bookable (not walk_in), it MUST carry a
+     "booking" object with a valid affiliate_url — never a bookable moment without a
+     link. The judgement is "is this really bookable through us?", not "attach a
+     button everywhere".
    - For walk_in moments, OMIT the booking object entirely (do not include provider="none").
    - affiliate_url — USE ONLY the affiliate link templates defined earlier in this
      prompt (Expedia, Hotels.com, Tablet Hotels, Civitatis, Musement, Klook, Viator,
