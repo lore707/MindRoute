@@ -100,6 +100,19 @@ export type BookingProvider =
 
 export type EnergyLevel = "low" | "medium" | "high";
 
+// Ruolo del giorno (spec generazione v2). Determina meccanicamente la logica CTA
+// dei suoi momenti — non è una scelta libera. Assegnato in Fase A (scheletro)
+// prima di qualsiasi contenuto. La densità di conversione scala col numero di
+// apici (CTA esperienza) e basi (CTA alloggio), non col numero di giorni.
+export type DayRole =
+  | "arrivo"        // sempre G1: viaggio → base. Ancora forte = alloggio (sera).
+  | "apice"         // esperienza-firma: UNICO ruolo che converte esperienze.
+  | "esplorazione"  // immersione locale, ritmo medio. Prosa + max 1 attività leggera.
+  | "riposo"        // decompressione: ZERO CTA.
+  | "decantazione"  // penultimo giorno, discesa: prosa, conversione minima.
+  | "trasferimento" // cambio base: mini-arrivo (nuovo alloggio + transfer).
+  | "partenza";     // sempre ultimo giorno: zero / transfer di ritorno se prenotabile.
+
 export type TransportMode =
   | "walk" | "taxi" | "metro" | "bus" | "train" | "ferry" | "drive" | "flight";
 
@@ -169,6 +182,7 @@ export interface WeatherForecastV2 {
 export interface DayV2 {
   day_number: number;
   date?: string;
+  role?: DayRole;   // ruolo assegnato in Fase A; guida la logica CTA del giorno
   arc: string;
   title_evocative: string;
   subtitle: string;

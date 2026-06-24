@@ -14,6 +14,7 @@ import type {
   BookingStatus,
   EnergyLevel,
   WeatherCondition,
+  DayRole,
   DayV2,
   MomentV2,
   HighlightV2,
@@ -138,9 +139,22 @@ const weatherForecastV2Schema = z.object({
   note: z.string().optional(),
 });
 
+const dayRoleSchema = looseEnum<DayRole>(
+  ["arrivo", "apice", "esplorazione", "riposo", "decantazione", "trasferimento", "partenza"],
+  {
+    arrival: "arrivo", peak: "apice", climax: "apice",
+    exploration: "esplorazione", explore: "esplorazione",
+    rest: "riposo", relax: "riposo",
+    "wind-down": "decantazione", winddown: "decantazione", decompression: "decantazione",
+    transfer: "trasferimento", transit: "trasferimento",
+    departure: "partenza",
+  },
+);
+
 const dayV2Schema: z.ZodType<DayV2> = z.object({
   day_number: z.number(),
   date: z.string().optional(),
+  role: dayRoleSchema.optional(),
   arc: z.string(),
   title_evocative: z.string(),
   subtitle: z.string(),
@@ -214,50 +228,90 @@ function v2OutputSection(input: ProfilingInput): string {
 MOMENT STRUCTURE RULES — v2 schema (moment-based itinerary)
 ═══════════════════════════════════════════════════════════════════════════
 
-The output is no longer four fixed time-slots (morning/lunch/afternoon/evening).
-Each day is an array of "moments" — discrete experiences with full operational
-detail. Apply the following rules strictly.
+GUIDING PRINCIPLE: the position and type of every CTA is a FUNCTION of the day's
+role and the moment's function — never a free choice. Conversion density does NOT
+scale with the number of days: it scales with the number of PEAKS (experience CTA)
+and BASES (lodging CTA). A long trip has more stays and a more diluted cadence —
+not more buttons everywhere.
 
-1. MOMENT COUNT PER DAY
-   - Minimum 2 moments, maximum 6.
-   - Day 1 (arrival) and final day (departure) with long-haul flight: 2–3 moments only.
-   - Intermediate days: 3–5 moments. Never force 4 fixed.
-   - Avoid filling for the sake of filling. If a day has 3 strong beats, 3 is right.
+1. THE TWO-PHASE ALGORITHM — build the skeleton BEFORE any content.
 
-2. DAY 1 MANDATORY MIX
-   - At least 1 moment of type "transport" (the arrival flight/train/etc.).
-   - At least 1 moment of type "accommodation" (check-in or bag drop).
-   - If arrival is after 19:00 local, accommodation is the evening moment.
-   - If arrival is before 14:00 local, accommodation is bag-drop in the morning/early afternoon.
-   - Long-haul flight: render as a SINGLE moment with title_operational like
-     "Milan MXP → Sydney → Hobart HBA — 27h via SYD". Do NOT split into
-     Departure / Layover / Arrival — that inflates the list artificially.
-     Capture stopover details inside "description".
+PHASE A — SKELETON (assign roles first, no content yet).
+Give every day exactly ONE role. The role — not free choice — fixes the CTA logic
+of that day's four moments. Roles:
+   • arrivo        — always day 1. Journey → base. Strong anchor: lodging (evening). No experiences.
+   • apice         — the trip's signature experience. The ONLY role that converts experiences.
+   • esplorazione  — local immersion, medium pace. Mostly prose; at most 1 light optional activity.
+   • riposo        — deliberate decompression. ZERO CTA — a button here breaks trust.
+   • decantazione  — second-to-last day, wind-down. Prose, minimal conversion.
+   • trasferimento — change of base mid-trip. A mini-arrival: new lodging (evening) + new transfer (afternoon).
+   • partenza      — always the last day. Zero CTA, or a return transfer if bookable.
 
-2b. DAY 1 CONVERSION DOCTRINE — function of the moment decides the CTA
-   Day 1 is ARRIVAL, not activity. It has exactly ONE strong booking anchor: the
-   accommodation. The traveler is tired and carrying bags — do not load it with
-   things to book. Decide each moment's booking by its FUNCTION, never by default:
-   - ARRIVAL TRANSPORT (morning): give it a booking ONLY if a real partner fits the
-     ACTUAL mode — flight → Expedia flights, long-distance coach → FlixBus. If the
-     real mode has no matching partner (scheduled ferry, regional train, generic
-     "transfer"), make it walk_in with honest prose and NO booking object. This
-     converts weakly — never force a mismatched link onto it.
-   - THE TRANSIT MEAL (lunch at the gate / on board / on first arrival): ALWAYS
-     walk_in. NO booking object, ever. It converts zero. It is still a real beat —
-     write it so it reads complete WITHOUT a button (no dangling CTA, no apology).
-   - TRANSFER TO BASE + first light orientation (afternoon): the last hop to the
-     lodging gets a booking ONLY if it is genuinely bookable through a fitting
-     partner (FlixBus coach, a pre-booked private transfer). A scheduled ferry or a
-     short taxi has no partner → prose, no button. The first light wander of the
-     neighbourhood is always walk_in. NEVER place a 2–3h paid tour here.
-   - ACCOMMODATION (evening, or bag-drop if arrival is early): THIS is the day's one
-     real conversion. provider = hotels (or tablet_hotels), status = "bookable_now".
-     Booked once, it covers the whole trip. The welcome dinner in a local tavern is
-     normally not bookable → walk_in prose, no forced TripAdvisor link.
-   - Bookable EXPERIENCES (boat trips, guided tours, paid activities, classes) NEVER
-     appear on Day 1. They live on the rested mid/peak days. Day 1 carries at most
-     one strong CTA (the stay) — sometimes the arrival flight too, nothing more.
+SCALING (derive the counts from trip length — density follows peaks & bases, not days):
+   • Peaks (apici) ≈ 1 every 3.5 days, rounded.  4d→1 · 7d→2 · 10d→3 · 14d→4
+   • Bases ≈ 1 every 6 days.  ≤5d→1 · 6–11d→1–2 · 12+→2–3  (each extra base = one trasferimento day)
+   • Rests (riposi) = 0 below 5 days, then ~1 every 5–6 days.
+   • Day 1 = arrivo. Last day = partenza. Penultimate tends to decantazione.
+
+HARD RULES — validate the skeleton, recompute if it fails:
+   • Day 1 is arrivo; the last day is partenza.
+   • NEVER two apici in a row — between any two apici put at least one esplorazione or riposo.
+
+MONO-BASE vs MULTI-STOP (this decides how many trasferimento days exist):
+   • DEFAULT mono-base: one base for the whole trip, ZERO trasferimento days. A single
+     city/town (Kyoto, Lisbon, Marrakech, Naples) is ALWAYS mono-base.
+   • MULTI-STOP only when the destination is a WIDE AREA that genuinely requires moving
+     base — a country or large region (Uzbekistan: Samarkand/Bukhara/Khiva; Patagonia;
+     Puglia; the Azores; Albania; an island group). Then add trasferimento days per the
+     bases rule above. When unsure, choose mono-base.
+
+PHASE B — FILL. Only after the skeleton validates, fill each day's four moments
+following its role's CTA logic and the three placement rules (§3).
+
+2. FOUR FIXED MOMENTS PER DAY — mattina · pranzo · pomeriggio · sera.
+Every day has exactly these four moments, in this order (time_label = morning, lunch,
+afternoon, evening), so the frontend draws every day identically. Standard function:
+   • mattina    — the day's main activity (the signature experience on apice days).
+   • pranzo     — meal pause. NEVER converts (we have no restaurant partner). ALWAYS filled,
+                  in prose, as a pacing anchor — write it complete with NO button.
+   • pomeriggio — secondary activity, or the transfer to the base.
+   • sera       — dinner + check-in. The lodging CTA lives here on arrivo & trasferimento days.
+   Long-haul arrival: render the whole flight as the SINGLE mattina transport moment
+   ("Milan MXP → Sydney → Hobart HBA — 27h via SYD") — never split Departure/Layover/Arrival.
+
+2b. THE THREE CTA-PLACEMENT RULES — applied mechanically. Everything NOT covered by
+   these three is prose with NO button — pranzo ALWAYS included.
+   (a) SIGNATURE EXPERIENCE → always mattina, only on apice days. Never afternoon/evening,
+       never on a non-apice day. One strong experience CTA per apice (max 2).
+   (b) LODGING → always sera, on every arrivo and every trasferimento day. Once per base.
+   (c) TRANSFER → always pomeriggio (last leg before the base) or mattina on partenza
+       (return). ALWAYS conditional: a CTA only if the mode is bookable AND we have the
+       partner; otherwise honest prose, no button.
+   Rest days: zero CTA, full stop. Esplorazione/decantazione: prose + at most one light
+   optional activity CTA. NEVER promote another day to apice just to add conversion.
+
+2c. PARTNER MAP — pick booking.provider by category + region. We have NO Booking, NO
+   GetYourGuide, NO restaurant partner. The affiliate_url is normalized server-side, so
+   the PROVIDER token is what must be correct.
+   • Lodging (sera on arrivo/trasferimento)        → hotels  (or tablet_hotels for boutique/design)
+   • Flights / packages (mattina transport, partenza)→ expedia
+   • Coach between cities (transfer, Europe ground) → flixbus
+   • Boat rental / coastal hop (transfer)           → samboat
+   • Signature experience (mattina on apice), by REGION in preference order:
+       Europe         → viator → musement
+       Mediterranean  → civitatis → viator
+       Asia           → klook → viator
+       Latin America  → civitatis → viator
+       India · Africa · North America · Oceania → viator
+   • Restaurants (pranzo & dinner) → NO partner → always prose, never a CTA.
+
+2d. FALLBACK — better no CTA than a fake one (the absolute rule).
+   • Apice with no bookable experience available → keep it STRONG PROSE (why you go, the
+     right hour, what you risk missing). No fake button. Do NOT promote another day to
+     apice to compensate — the skeleton stays valid, that peak simply doesn't monetize.
+   • Transfer not bookable (e.g. you arrive on foot, or a scheduled ferry we can't sell)
+     → prose, no CTA.
+   • Any moment without a coherent partner → honest prose.
 
 3. MOMENT IMAGE
    - Every moment has its own image_url. NEVER reuse the same image for two
@@ -281,40 +335,24 @@ detail. Apply the following rules strictly.
    - trigger: "If raining" / "If sold out" / "If closed Monday" / etc.
    - alternative: 1 short sentence with a concrete swap.
 
-6. BOOKING INFO
-   - status = "bookable_now" → strong CTA, the user can complete the booking now
-     (flight, hotel, paid tour with date selection).
-   - status = "reserve_recommended" → recommend reservation but walk-in is possible
-     (popular restaurants, museums with timed entry).
-   - status = "walk_in" → no booking needed, info only (free viewpoint, public beach).
-   - DECIDE walk_in vs bookable BY FUNCTION + PARTNER-FIT, not by default. A moment
-     is bookable_now / reserve_recommended ONLY when it is genuinely reservable AND a
-     real partner from our set fits its actual mode (see rule 2b for Day 1). A transit
-     meal, a scheduled ferry, a generic transfer, a free wander → walk_in. When in
-     doubt on an arrival/transit moment, prefer walk_in over a forced link.
-   - COVERAGE: once a moment IS classified bookable (not walk_in), it MUST carry a
-     "booking" object with a valid affiliate_url — never a bookable moment without a
-     link. The judgement is "is this really bookable through us?", not "attach a
-     button everywhere".
-   - For walk_in moments, OMIT the booking object entirely (do not include provider="none").
-   - affiliate_url — USE ONLY the affiliate link templates defined earlier in this
-     prompt (Expedia, Hotels.com, Tablet Hotels, Civitatis, Musement, Klook, Viator,
-     TripAdvisor, FlixBus, SamBoat). NEVER use skyscanner.com, booking.com,
-     getyourguide.com, airbnb.com or any other non-affiliate URL — those earn nothing.
-     Match the template to the moment: transport→Expedia flights (or FlixBus/SamBoat
-     for ground/sea), accommodation→Hotels.com/Tablet Hotels, food→TripAdvisor,
-     experience/tour/view→Civitatis/Musement (Europe) · Klook (Asia) · Viator (rest).
+6. BOOKING INFO (status + provider; placement is §2b, partner choice is §2c)
+   - status = "bookable_now" → strong CTA, completable now (flight, hotel, paid tour).
+   - status = "reserve_recommended" → reserve advised but walk-in possible (timed-entry sights).
+   - status = "walk_in" → no booking; info only (free viewpoint, public beach, a wander).
+   - A moment is bookable ONLY when §2b places a CTA there AND §2c has a real partner for
+     it. Everything else — pranzo, restaurants, rest-day moments, unbookable transfers,
+     free wanders — is walk_in. When in doubt, prefer walk_in over a forced link.
+   - For walk_in moments OMIT the booking object entirely (never provider="none").
    - provider — one of: expedia, hotels, tablet_hotels, civitatis, musement, klook,
-     viator, tripadvisor, flixbus, samboat, expedia_cars. Never use skyscanner,
-     getyourguide, booking.com, trainline, welcome_pickups or airbnb — they earn
-     nothing and will be DROPPED server-side (the moment becomes walk_in). Getting
-     the provider RIGHT is what matters most: the affiliate_url is normalized
-     server-side from the provider + destination, so a correct provider guarantees a
-     correct link even if your URL is imperfect.
-   - display_label — write an ACTION + OBJECT label in the response language, naming
-     the real place: e.g. "Prenota il volo per Lisbona", "Prenota un tavolo · Taverna
-     Aktaion", "Prenota l'esperienza · Tour della Medina", "Prenota l'hotel · Riad
-     Dar Anika". Never a bare "Prenota"/"Book" and never "Find flights"/"Click here".
+     viator, tripadvisor, flixbus, samboat, expedia_cars. NEVER skyscanner, booking,
+     getyourguide, trainline, welcome_pickups or airbnb — they earn nothing and are
+     DROPPED server-side (the moment becomes walk_in). The PROVIDER is what matters:
+     affiliate_url is normalized server-side from provider + destination, so a correct
+     provider guarantees a correct link even if your URL is imperfect. (You may leave
+     affiliate_url as a plain placeholder like the destination's official site.)
+   - display_label — ACTION + OBJECT in the response language, naming the real place:
+     "Prenota il volo per Lisbona", "Prenota l'esperienza · Tour della Medina",
+     "Prenota l'hotel · Riad Dar Anika". Never a bare "Prenota"/"Book" or "Click here".
 
 7. COSTS
    - cost_bookable_total per day = sum of cost_max for all moments with
@@ -339,6 +377,30 @@ detail. Apply the following rules strictly.
 
 10. LANGUAGE
    - ALL text fields in ${lang}. Every single field. No mixed-language output.
+
+11. CONTENT COHERENCE & HONESTY
+   - GEOGRAPHIC COHERENCE: a single day's moments must be near each other. No breakfast
+     in the north and lunch at the far south of the island. The transport_to_next you
+     state must be realistic.
+   - PACING ANCHORS: lunch and dinner give the day rhythm even when they don't convert —
+     ALWAYS fill them, in prose.
+   - LIVE-DATA HONESTY: you do NOT have real-time hours, transit times or prices. Keep
+     start_time/duration/cost as HONEST, INDICATIVE estimates — never present a precise
+     number as certain. Confidently-wrong destroys trust more than a vague-but-honest range.
+
+12. WORD LIMITS — keep the narrative the star but contained, so it doesn't bloat:
+   - subtitle (the day's narrative beat) ≤ 40 words.
+   - each moment description ≤ 35 words.
+   - why_this ≤ 20 words.
+
+13. SELF-CHECK before returning (fix silently if any fails):
+   - Skeleton valid: day 1 = arrivo, last = partenza, never two apici in a row.
+   - Peak/base counts match the scaling for this length.
+   - Every apice has ONE signature experience (or strong prose if no partner) in mattina.
+   - Every arrivo & trasferimento has ONE lodging CTA in sera.
+   - Rest days: zero CTA. No out-of-context CTA anywhere; pranzo never has a CTA.
+   - Experience partner chosen by region (§2c). Each provider is from the allowed set.
+   - Each image is real or omitted; each practical figure is honest/indicative.
 
 ═══════════════════════════════════════════════════════════════════════════
 REQUIRED JSON OUTPUT — v2 schema
@@ -365,6 +427,7 @@ Exactly ${days} days in the "days" array.
     {
       "day_number": 1,
       "date": "YYYY-MM-DD",
+      "role": "arrivo",
       "arc": "Arrival",
       "title_evocative": "Left Milan Behind — The Southern Edge Begins",
       "subtitle": "Train south, ferry to the island, first dinner under the cliffs.",
@@ -397,10 +460,38 @@ Exactly ${days} days in the "days" array.
           },
           "description": "Two long legs with one layover in Sydney. Aim for an evening MXP departure if you want to land fresh.",
           "why_this": "Your 'long-haul OK' chip said this is fine — the destination earns the distance.",
-          "transport_to_next": { "mode": "taxi", "duration_min": 25, "cost_estimate": "€20–30", "note": "Pre-book a Welcome Pickup" }
+          "transport_to_next": { "mode": "taxi", "duration_min": 25, "cost_estimate": "€20–30", "note": "Grab a cab at arrivals" }
         },
         {
           "id": "d1m2",
+          "type": "food",
+          "title_evocative": "First Bite on the Ground",
+          "title_operational": "Lunch on arrival — harbourside café",
+          "time_label": "lunch",
+          "cost_min": 12,
+          "cost_max": 20,
+          "image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop",
+          "image_alt": "Simple plate by the water",
+          "description": "A plate and a coffee by the water — pure pacing, no plans. You've just landed.",
+          "why_this": "Your 'slow arrivals' note: don't schedule the first meal, just land into it.",
+          "transport_to_next": { "mode": "walk", "duration_min": 8 }
+        },
+        {
+          "id": "d1m3",
+          "type": "transport",
+          "title_evocative": "The Last Leg to Base",
+          "title_operational": "Transfer to Battery Point",
+          "time_label": "afternoon",
+          "cost_min": 0,
+          "cost_max": 8,
+          "image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop",
+          "image_alt": "Coastal road to the neighbourhood",
+          "description": "Short hop to the neighbourhood, then a slow first wander to get your bearings before dark.",
+          "why_this": "Light on purpose — you're tired with bags, no heavy activity on arrival.",
+          "transport_to_next": { "mode": "walk", "duration_min": 5 }
+        },
+        {
+          "id": "d1m4",
           "type": "accommodation",
           "title_evocative": "Settle, Slowly",
           "title_operational": "Check-in: The Nook Guesthouse, Battery Point",
@@ -575,14 +666,19 @@ export async function regenerateDayV2(
   contextSummary: string,
   lang: "en" | "it",
 ): Promise<DayV2> {
-  // Day 1 = arrival. Same conversion doctrine as the main generator (rule 2b):
-  // one strong anchor (accommodation), transit meal converts zero, no paid
-  // experiences. Injected only when regenerating day 1 so other days stay free.
-  const day1Doctrine = day.day_number === 1 ? `
-- THIS IS DAY 1 (arrival). It has ONE strong booking anchor: the accommodation (provider "hotels" or "tablet_hotels", status "bookable_now") — booked once, covers the whole trip.
-- Arrival transport: a booking ONLY if a real partner fits the actual mode (flight, long-distance coach). A scheduled ferry, regional train or generic transfer has no partner → walk_in prose, no booking object.
-- The transit meal (at the gate / on board / on first arrival) is ALWAYS walk_in: no booking object — it converts zero but stays a real beat that must read complete without a button.
-- NO bookable experiences, tours, boats or paid activities on day 1 — the traveller is tired with bags. Those belong to the rested mid/peak days.` : "";
+  // Il giorno regenerato mantiene il suo RUOLO e ne applica la logica CTA (stessa
+  // dottrina del generatore principale §2b). Fallback: G1 senza ruolo = arrivo.
+  const role: DayRole | undefined = day.role ?? (day.day_number === 1 ? "arrivo" : undefined);
+  const roleRule: Record<DayRole, string> = {
+    arrivo: `arrival — ONE strong anchor = lodging (provider "hotels"/"tablet_hotels", bookable_now) in the EVENING. Arrival transport gets a CTA only if a real partner fits the mode (expedia flight, flixbus coach), else prose. The lunch is a transit meal: walk_in, no booking. NO bookable experiences/tours today.`,
+    trasferimento: `base change — a mini-arrival: ONE lodging CTA (hotels/tablet_hotels) in the EVENING + the transfer in the afternoon (CTA only if bookable via a partner). No paid experiences.`,
+    apice: `peak — ONE signature experience CTA in the MORNING (viator/civitatis/musement/klook by region), max one. Afternoon/evening stay light. Lunch never converts.`,
+    esplorazione: `exploration — mostly prose, at most ONE light optional activity CTA. Lunch never converts.`,
+    riposo: `rest — ZERO CTA anywhere. A button here breaks trust.`,
+    decantazione: `wind-down — prose, minimal conversion, at most one light optional activity.`,
+    partenza: `departure — zero CTA, or a return transfer in the morning only if bookable.`,
+  };
+  const roleDoctrine = role ? `\n- THIS DAY'S ROLE is "${role}": ${roleRule[role]}` : "";
 
   const prompt = `You are MindRoute's itinerary engine. Regenerate ONE day of a trip to ${destinationName}.
 
@@ -595,13 +691,11 @@ ${contextSummary}
 USER REQUEST for the new version of this day: ${feedback || "refresh it with different but equally good moments"}
 
 Rules:
-- Return ONLY a JSON object for the new day — same schema/keys/types as CURRENT DAY.
-- Keep "day_number" and "date" unchanged.
+- Return ONLY a JSON object for the new day — same schema/keys/types as CURRENT DAY. Keep "day_number", "date" and "role" unchanged.
 - Use REAL, well-known places in ${destinationName}; set "location_name" on every moment (needed for map + booking). Do NOT reuse the places already used on the OTHER DAYS.
-- 3 to 6 moments. All numeric fields are numbers. Write every visible text field in ${lang === "it" ? "Italian" : "English"}.
+- FOUR moments — mattina, pranzo, pomeriggio, sera (time_label morning/lunch/afternoon/evening). The pranzo is ALWAYS prose, never a CTA. All numeric fields are numbers. Write every visible text field in ${lang === "it" ? "Italian" : "English"}.
 - Leave image URLs as-is or empty and do not invent map_points — images and coordinates are set server-side.
-- BOOKING by function + partner-fit, not by default: mark a moment "bookable_now"/"reserve_recommended" ONLY if it is genuinely reservable through a real partner. Transit meals, free wanders, scheduled ferries and generic transfers are walk_in — omit their booking object. When unsure, prefer walk_in.
-- AFFILIATE URLS: if a moment is bookable, REUSE the exact affiliate link host/click-wrapper already present in CURRENT DAY's bookings (same domain) — NEVER invent a new booking domain (no booking.com, getyourguide, skyscanner, airbnb). If there is no equivalent partner URL to copy, make the moment walk_in instead of inventing a link.${day1Doctrine}`;
+- BOOKING by function + partner-fit, not by default: mark a moment "bookable_now"/"reserve_recommended" ONLY if it is genuinely reservable through a real partner (provider one of: expedia, hotels, tablet_hotels, civitatis, musement, klook, viator, flixbus, samboat). The affiliate_url is normalized server-side from the provider — getting the PROVIDER right is what matters; never use booking.com, getyourguide, skyscanner or airbnb. Free wanders, scheduled ferries and generic transfers are walk_in — omit their booking object.${roleDoctrine}`;
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
