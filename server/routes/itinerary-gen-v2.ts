@@ -18,6 +18,37 @@ import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory } from "../../shared/schema";
 import { requireAuth } from "../auth";
+import { resolveAffiliateUrl, type AffiliateContext } from "../affiliate-config";
+
+// Contesto affiliate dal profilo: stessa derivazione di date del BookTab client
+// (leaveDate → check-in, +days → check-out; default a +3 mesi se manca la data),
+// così i link nei MOMENTI coincidono con quelli della scheda Prenota.
+function buildAffiliateContext(destinationName: string, profilingInput: any): AffiliateContext {
+  const departure = (profilingInput?.departure ?? "").trim() || undefined;
+  const leaveDate = profilingInput?.leaveDate ?? profilingInput?.travelDate ?? "";
+  const days = Number(profilingInput?.days) || 7;
+  const m = String(leaveDate).match(/(\d{4}-\d{2}-\d{2})/);
+  const base = m ? new Date(m[1]) : (() => { const d = new Date(); d.setMonth(d.getMonth() + 3); return d; })();
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+  let checkin: string | undefined, checkout: string | undefined;
+  if (!isNaN(base.getTime())) {
+    const co = new Date(base); co.setDate(co.getDate() + days);
+    checkin = fmt(base); checkout = fmt(co);
+  }
+  return { destinationName, departure, checkin, checkout };
+}
+
+// Riscrive booking.affiliate_url di UN momento col link canonico del provider.
+// Se il provider non è monetizzabile (nessun partner reale) o il momento è
+// walk_in, rimuove l'oggetto booking: mai un bottone con URL inventato/morto.
+function rewriteMomentBooking(moment: MomentV2, affCtx: AffiliateContext): void {
+  const b = moment.booking;
+  if (!b) return;
+  if (b.status === "walk_in") { moment.booking = undefined; return; }
+  const url = resolveAffiliateUrl(b.provider, affCtx);
+  if (url) b.affiliate_url = url;
+  else moment.booking = undefined; // provider senza partner → declassa a walk_in
+}
 
 async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
   try {
@@ -50,7 +81,12 @@ async function enrichMoment(
   destinationName: string,
   dayNumber: number,
   heroFallback: string,
+  affCtx: AffiliateContext,
 ): Promise<MapPointV2 | null> {
+  // Booking: rewrite the LLM-emitted affiliate_url with the canonical one for
+  // its provider (or drop the booking if the provider isn't monetizable).
+  rewriteMomentBooking(moment, affCtx);
+
   // Image: LLM URLs are unreliable (fake photo IDs return 404). Always
   // overwrite with a real Unsplash fetch keyed on location + type.
   const realImg = await fetchMomentImage(moment.location_name, moment.type, destinationName);
@@ -96,13 +132,14 @@ function momentTypeToCategory(type: string): PlaceCategory {
 
 // Enrichment di UN solo giorno (companion regenerate_day): immagine del giorno,
 // immagine + geocode per ogni momento, ricalcolo costi. Mutua il giorno in place.
-export async function enrichDayV2(day: DayV2, destinationName: string): Promise<void> {
+export async function enrichDayV2(day: DayV2, destinationName: string, profilingInput?: any): Promise<void> {
+  const affCtx = buildAffiliateContext(destinationName, profilingInput);
   const heroData = await fetchUnsplashHero(destinationName);
   const heroUrl = heroData?.url ?? "";
   const dayImg = await fetchDayImageWithFallback(`${day.title_evocative} ${day.arc}`, destinationName);
   day.hero_image_url = dayImg ?? heroUrl;
   for (const m of day.moments) {
-    await enrichMoment(m, destinationName, day.day_number, day.hero_image_url);
+    await enrichMoment(m, destinationName, day.day_number, day.hero_image_url, affCtx);
   }
   recomputeDayCosts(day);
 }
@@ -124,7 +161,9 @@ function dedupMomentImages(days: DayV2[], heroFallback: string): void {
   }
 }
 
-async function enrichItineraryV2(rough: ItineraryV2, destinationName: string): Promise<ItineraryV2> {
+async function enrichItineraryV2(rough: ItineraryV2, destinationName: string, profilingInput?: any): Promise<ItineraryV2> {
+  const affCtx = buildAffiliateContext(destinationName, profilingInput);
+
   // 1. Hero image — overwrite LLM URL with real Unsplash hero.
   const heroData = await fetchUnsplashHero(destinationName);
   const heroUrl = heroData?.url ?? rough.hero_image_url;
@@ -144,7 +183,7 @@ async function enrichItineraryV2(rough: ItineraryV2, destinationName: string): P
     // (1 req/sec per host) — concurrency lives at the day-level (2 days in
     // parallel × 1 moment serial = 2 Nominatim req/sec, safe).
     for (const m of day.moments) {
-      const mp = await enrichMoment(m, destinationName, day.day_number, day.hero_image_url);
+      const mp = await enrichMoment(m, destinationName, day.day_number, day.hero_image_url, affCtx);
       if (mp) allMapPoints.push(mp);
     }
 
@@ -253,7 +292,7 @@ export function registerItineraryGenV2Routes(app: Express) {
         }
         gen = (async () => {
           const rough = await generateItineraryV2ForDestination(input, destinationName, priorBlock);
-          const enriched = await enrichItineraryV2(rough, destinationName);
+          const enriched = await enrichItineraryV2(rough, destinationName, input);
           const insertRow = itineraryV2ToInsert(enriched, destIdNum, userId, input);
           const saved = await storage.createItinerary(insertRow);
           recordRecentDestination(destinationName).catch(() => {});

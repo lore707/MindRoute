@@ -305,8 +305,12 @@ detail. Apply the following rules strictly.
      for ground/sea), accommodation→Hotels.com/Tablet Hotels, food→TripAdvisor,
      experience/tour/view→Civitatis/Musement (Europe) · Klook (Asia) · Viator (rest).
    - provider — one of: expedia, hotels, tablet_hotels, civitatis, musement, klook,
-     viator, tripadvisor, flixbus, samboat, trainline, expedia_cars, welcome_pickups,
-     direct. Never use skyscanner, getyourguide, or booking.com as providers.
+     viator, tripadvisor, flixbus, samboat, expedia_cars. Never use skyscanner,
+     getyourguide, booking.com, trainline, welcome_pickups or airbnb — they earn
+     nothing and will be DROPPED server-side (the moment becomes walk_in). Getting
+     the provider RIGHT is what matters most: the affiliate_url is normalized
+     server-side from the provider + destination, so a correct provider guarantees a
+     correct link even if your URL is imperfect.
    - display_label — write an ACTION + OBJECT label in the response language, naming
      the real place: e.g. "Prenota il volo per Lisbona", "Prenota un tavolo · Taverna
      Aktaion", "Prenota l'esperienza · Tour della Medina", "Prenota l'hotel · Riad

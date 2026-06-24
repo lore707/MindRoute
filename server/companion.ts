@@ -372,6 +372,24 @@ function findMomentById(itin: Itinerary, momentId: string): any | null {
   return null;
 }
 
+// Match best-effort di un momento per nome/luogo. Serve a far citare al bot lo
+// STESSO link affiliato già nel piano quando l'utente vuole prenotare una cosa
+// che è già nell'itinerario — invece di costruire un link nuovo e diverso.
+function findBookableMomentByName(itin: Itinerary, query: string): any | null {
+  const q = (query ?? "").trim().toLowerCase();
+  if (q.length < 3) return null;
+  const days: any[] = Array.isArray(itin.days) ? itin.days : [];
+  for (const d of days) {
+    for (const m of (Array.isArray(d.moments) ? d.moments : [])) {
+      const b = m.booking;
+      if (!b?.affiliate_url || b.status === "walk_in" || b.provider === "none") continue;
+      const hay = `${m.location_name ?? ""} ${m.title_operational ?? ""} ${m.title_evocative ?? ""}`.toLowerCase();
+      if (hay.includes(q)) return { moment: m, day: d };
+    }
+  }
+  return null;
+}
+
 async function executeTool(
   name: string,
   input: any,
@@ -435,7 +453,7 @@ async function executeTool(
         const { regenerateDayV2 } = await import("./matching-engine-v2");
         const { enrichDayV2 } = await import("./routes/itinerary-gen-v2");
         const newDay = await regenerateDayV2(dest, days[idx], feedback, contextSummary, it ? "it" : "en");
-        await enrichDayV2(newDay as any, dest);
+        await enrichDayV2(newDay as any, dest, (ctx.itinerary as any).profilingInput);
         days[idx] = newDay;
         await persistEdit(days);
         return { result: `Rebuilt Day ${dayNo}. The plan is updated.`, label: it ? `Rigenerato il giorno ${dayNo}` : `Rebuilt day ${dayNo}` };
@@ -525,6 +543,19 @@ async function executeTool(
       // e query dal momento per costruire comunque un link affiliato.
       if (hit && !query) query = hit.moment.location_name || hit.moment.title_operational || hit.moment.title_evocative || "";
       if (hit && !category) category = String(hit.moment.type ?? "");
+    }
+
+    // 1b) La cosa richiesta è GIÀ nel piano? Cita lo STESSO link dell'itinerario
+    //     (coerenza: il bot non inventa un link diverso per un posto già pianificato).
+    if (query) {
+      const byName = findBookableMomentByName(ctx.itinerary, query);
+      if (byName) {
+        const b = byName.moment.booking;
+        return {
+          result: `Booking link (already in the plan) for "${byName.moment.title_evocative ?? byName.moment.title_operational ?? "moment"}":\nProvider: ${b.provider}\nLabel: ${b.display_label ?? ""}\nURL: ${b.affiliate_url}\nHand this exact URL to the traveller — it is the same link as in their itinerary.`,
+          label: it ? "Trovo come prenotare" : "Finding how to book",
+        };
+      }
     }
 
     // 2) Costruiamo SEMPRE un link affiliato reale per la proposta.

@@ -57,3 +57,74 @@ export function hotelsComUrl(city: string, checkin?: string, checkout?: string):
   const dateQs = `${checkin ? `&q-check-in=${checkin}` : ""}${checkout ? `&q-check-out=${checkout}` : ""}`;
   return `https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=${encodeURIComponent(city)}${dateQs}`;
 }
+
+// ── CANONICAL PROVIDER RESOLVER ──────────────────────────────────────────
+// Single source of truth: dato un provider v2 (booking.provider) + il contesto
+// del viaggio, restituisce l'URL affiliato REALE — gli stessi formati usati dal
+// BookTab (client buildAffiliateUrls). Usato per RISCRIVERE server-side ogni
+// booking.affiliate_url generato dall'LLM (mai più link inventati/morti) e dal
+// companion per citare esattamente gli stessi link. Ritorna null per provider
+// non monetizzabili (booking.com, skyscanner, getyourguide, welcome_pickups…):
+// il chiamante declassa quel momento a walk_in invece di mostrare un link finto.
+export interface AffiliateContext {
+  destinationName: string;   // "City, Region, Country" completo
+  departure?: string;        // città di partenza (per i voli)
+  checkin?: string;          // YYYY-MM-DD
+  checkout?: string;         // YYYY-MM-DD
+}
+
+// Normalizza ciò che l'LLM emette ("Hotels.com", "the fork", "expedia flights")
+// al token canonico del nostro set di partner.
+function canonicalProvider(raw: string): string {
+  const base = (raw ?? "").trim().toLowerCase().replace(/\.(com|it|net|org)\b/g, "").replace(/\s+/g, "_");
+  const syn: Record<string, string> = {
+    expedia_flights: "expedia", expediaflights: "expedia", flights: "expedia", flight: "expedia", volo: "expedia",
+    hotels_com: "hotels", hotelscom: "hotels", hotel: "hotels", hotels: "hotels",
+    tablet: "tablet_hotels", tablethotels: "tablet_hotels", tablet_hotel: "tablet_hotels",
+    trip_advisor: "tripadvisor", tripadvisor_it: "tripadvisor",
+    thefork: "tripadvisor", the_fork: "tripadvisor", fork: "tripadvisor",
+    flix: "flixbus", flixbus_it: "flixbus",
+    sam_boat: "samboat", samboat_it: "samboat",
+    cars: "expedia_cars", car: "expedia_cars", expedia_car: "expedia_cars",
+  };
+  return syn[base] ?? base;
+}
+
+export function resolveAffiliateUrl(rawProvider: string, ctx: AffiliateContext): string | null {
+  const provider = canonicalProvider(rawProvider);
+  const full = ctx.destinationName ?? "";
+  const city = full.split(",")[0].trim();
+  const destEncoded = encodeURIComponent(full);
+  const citySlug = city.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  const ci = ctx.checkin, co = ctx.checkout;
+  const hotelsDateQs = `${ci ? `&q-check-in=${ci}` : ""}${co ? `&q-check-out=${co}` : ""}`;
+
+  switch (provider) {
+    case "expedia": {
+      // Senza città di partenza non c'è un deep-link volo affidabile.
+      if (!ctx.departure) return null;
+      const dep = encodeURIComponent(ctx.departure);
+      const ciC = (ci ?? "").replace(/-/g, ""), coC = (co ?? "").replace(/-/g, "");
+      const legs = ciC && coC
+        ? `leg1=from%3A${dep}%2Cto%3A${destEncoded}%2Cdeparture%3A${ciC}%2F1&leg2=from%3A${destEncoded}%2Cto%3A${dep}%2Cdeparture%3A${coC}%2F1&`
+        : `leg1=from%3A${dep}%2Cto%3A${destEncoded}&`;
+      return `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?${legs}passengers=adults%3A1&trip=roundtrip&mode=search`;
+    }
+    case "expedia_cars":
+      return `https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Cars?${ci ? `startDate=${ci}&` : ""}${co ? `endDate=${co}&` : ""}pickUpLocation=${destEncoded}`;
+    case "hotels":
+      return `https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=${destEncoded}${hotelsDateQs}`;
+    case "tablet_hotels":
+      return `https://www.kqzyfj.com/click-101710513-15686837?url=https://www.tablethotels.com/find/results?destination=${destEncoded}`;
+    case "civitatis":  return civitatisCityUrl(citySlug);
+    case "musement":   return musementCityUrl(citySlug);
+    case "klook":      return `${klookSearchUrl(city)}${ci ? `&startDate=${ci}` : ""}`;
+    case "viator":     return `${viatorSearchUrl(full)}${ci && co ? `&startDate=${ci}&endDate=${co}` : ""}`;
+    case "tripadvisor":return `https://www.tripadvisor.it/Search?q=ristoranti+${destEncoded}`;
+    case "flixbus":    return `https://www.awin1.com/cread.php?awinmid=110876&awinaffid=2830626&ued=https%3A%2F%2Fwww.flixbus.it`;
+    case "samboat":    return `https://www.awin1.com/cread.php?awinmid=32681&awinaffid=2830626&ued=https%3A%2F%2Fwww.samboat.it%2F%3FdestinationId%3D${destEncoded}`;
+    // Non monetizzabili / nessun partner → niente link canonico.
+    default:           return null;
+  }
+}
