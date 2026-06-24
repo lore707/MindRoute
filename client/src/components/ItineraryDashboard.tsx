@@ -100,6 +100,61 @@ function Html({ html, as = "span", className }: { html: string; as?: any; classN
   return <Tag className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
+/* ── grounded "where to stay" advantage ──────────────────────────────────────
+ * Ricavato SOLO dai punti già geocodificati (Nominatim, non dal modello): qual è
+ * la zona che tiene più tappe a piedi. Non vende "un hotel", vende il vantaggio
+ * concreto da mostrare accanto al CTA alloggio — meno trasferimenti = più viaggio.
+ * Stessa matematica honest del resto del progetto: haversine × 1.3 a 4.5 km/h. */
+const WALK_KM = 1.3; // ~20 min a piedi: soglia oltre cui non è più "a piedi"
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const la1 = (a.lat * Math.PI) / 180, la2 = (b.lat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const walkMin = (km: number) => Math.max(1, Math.round(((km * 1.3) / 4.5) * 60));
+
+type StayAdvantage = { area: string; nearestMin: number; walkable: number; total: number };
+function computeStayAdvantage(mapPoints: ItineraryData["mapPoints"]): StayAdvantage | null {
+  const pts = (mapPoints ?? []).filter(p => p.lat != null && p.lng != null) as
+    Array<{ lat: number; lng: number; label: string; category?: string }>;
+  const stops = pts.filter(p => p.category !== "lodging" && p.category !== "custom" && p.label);
+  if (stops.length < 3) return null; // sotto le 3 tappe il "dove dormire" non è un vantaggio reale
+
+  // Anchor = hotel consigliato se l'itinerario ne geocodifica uno; altrimenti la
+  // tappa che tiene più tappe a piedi (medoid pesato): la base ottimale dedotta
+  // dalla sola geografia delle tappe.
+  const lodging = pts.find(p => p.category === "lodging");
+  let anchor: { lat: number; lng: number; label: string };
+  if (lodging) {
+    anchor = lodging;
+  } else {
+    let best = stops[0], bestCount = -1, bestSum = Infinity;
+    for (const c of stops) {
+      let count = 0, sum = 0;
+      for (const s of stops) {
+        if (s === c) continue;
+        const d = haversineKm(c, s); sum += d; if (d <= WALK_KM) count++;
+      }
+      if (count > bestCount || (count === bestCount && sum < bestSum)) { best = c; bestCount = count; bestSum = sum; }
+    }
+    anchor = best;
+  }
+
+  let nearest = Infinity, walkable = 0;
+  for (const s of stops) {
+    if (s.lat === anchor.lat && s.lng === anchor.lng) continue;
+    const d = haversineKm(anchor, s);
+    if (d < nearest) nearest = d;
+    if (d <= WALK_KM) walkable++;
+  }
+  // Mostriamo solo quando c'è un vantaggio onesto da vendere (≥2 tappe a piedi).
+  if (walkable < 2 || !isFinite(nearest)) return null;
+  return { area: anchor.label, nearestMin: walkMin(nearest), walkable, total: stops.length };
+}
+
 export function ItineraryDashboard({
   data, itinerary, affiliateUrls, profilingInput,
   onSavePdf, onStartOver, onEdit, onShare, itineraryId, savedMomentIds, onToggleSaved,
@@ -184,6 +239,10 @@ export function ItineraryDashboard({
   const missionTotal = missions.length || 1;
   const pct = Math.round((doneCount / missionTotal) * 100);
   const peakDay = days[Math.floor((dayCount - 1) / 2)]?.n ?? 1;
+
+  // Vantaggio "dove dormire" calcolato dalle tappe geocodificate (grounded, non
+  // dal modello): alimenta il copy concreto sul CTA alloggio.
+  const stayAdvantage = useMemo(() => computeStayAdvantage(data.mapPoints), [data.mapPoints]);
 
   /* ════════════ sotto-render ════════════ */
 
@@ -592,7 +651,14 @@ export function ItineraryDashboard({
                   <button className={"mcheck" + (done ? " on" : "")} onClick={() => toggle(mn.id)} aria-label={t(mn.nameKey)} />
                   <div className="mbody">
                     <div className="mname"><span className="ic">{mn.ic}</span>{t(mn.nameKey)}</div>
-                    <div className="mmeta">{t(mn.metaKey)}</div>
+                    {mn.id === "hotel" && stayAdvantage ? (
+                      <div className="mmeta mmeta-adv">📍 {tx("itd.mis.hotelAdv", {
+                        area: stayAdvantage.area, walkable: stayAdvantage.walkable,
+                        total: stayAdvantage.total, min: stayAdvantage.nearestMin,
+                      })}</div>
+                    ) : (
+                      <div className="mmeta">{t(mn.metaKey)}</div>
+                    )}
                     <div className={"mreward" + (done ? " got" : "")}>★ {done ? t("itd.mis.rewardGot") : t("itd.mis.reward")}</div>
                   </div>
                   <div className="mright">

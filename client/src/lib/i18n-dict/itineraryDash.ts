@@ -88,6 +88,8 @@ export const itineraryDashDict: Record<string, { en: string; it: string }> = {
   "itd.mis.flightMeta": { en: "Round trip, dates pre-filled", it: "Andata e ritorno, date già pronte" },
   "itd.mis.hotel":      { en: "Book the stay", it: "Prenota il soggiorno" },
   "itd.mis.hotelMeta":  { en: "Where you sleep sets the tone", it: "Dove dormi dà il tono al viaggio" },
+  // Grounded advantage copy: built from the geocoded stops, not the model.
+  "itd.mis.hotelAdv":   { en: "Stay near {area}: {walkable} of {total} stops stay on foot (nearest ~{min} min). Fewer transfers, more trip.", it: "Alloggia nella zona di {area}: {walkable} tappe su {total} restano a piedi (la più vicina a ~{min} min). Meno trasferimenti, più viaggio." },
   "itd.mis.experience": { en: "Book the main experience", it: "Prenota l'esperienza principale" },
   "itd.mis.experienceMeta": { en: "The one moment not to miss", it: "Il momento da non perdere" },
   "itd.mis.restaurant": { en: "Reserve the first dinner", it: "Prenota la prima cena" },

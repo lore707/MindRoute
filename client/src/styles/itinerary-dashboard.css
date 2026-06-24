@@ -252,6 +252,7 @@
 .account-dash .mcard.done .mname{color:var(--ink-dim)}
 .account-dash .mbody .mname .ic{font-size:16px}
 .account-dash .mbody .mmeta{font-size:12.5px;color:var(--ink-faint);margin-top:3px}
+.account-dash .mbody .mmeta-adv{color:var(--ink);font-size:12.5px;line-height:1.5;margin-top:6px;padding-left:11px;border-left:2px solid var(--gold);max-width:46ch}
 .account-dash .mbody .mreward{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--accent)}
 .account-dash .mbody .mreward.got{color:var(--teal)}
 .account-dash .mright{display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex-shrink:0}
