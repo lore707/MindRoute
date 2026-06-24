@@ -388,6 +388,7 @@
 .account-dash .route-meta .live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px var(--gold)}
 .account-dash .route-meta .rt{font-family:var(--serif);font-size:26px;color:var(--ink);line-height:1.1;letter-spacing:-.01em}
 .account-dash .route-meta .rd{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--ink-faint);margin-top:6px;line-height:1.4}
+.account-dash .route-meta .route-stay{margin-top:12px;padding:10px 14px;border-radius:12px;border-left:2px solid var(--gold);background:linear-gradient(90deg,rgba(212,168,83,.1),transparent 90%);font-size:13px;line-height:1.5;color:var(--ink);max-width:52ch}
 
 .account-dash .rmap-wrap{position:relative}
 .account-dash .rmap{width:100%;height:clamp(360px,52vh,560px);background:#11161f}

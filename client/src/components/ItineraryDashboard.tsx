@@ -471,6 +471,12 @@ export function ItineraryDashboard({
                 <div className="live">{t("itd.map.live")}</div>
                 <div className="rt">{data.destination}</div>
                 {geo && <div className="rd">{note}</div>}
+                {stayAdvantage && (
+                  <div className="route-stay">📍 {tx("itd.mis.hotelAdv", {
+                    area: stayAdvantage.area, walkable: stayAdvantage.walkable,
+                    total: stayAdvantage.total, min: stayAdvantage.nearestMin,
+                  })}</div>
+                )}
               </div>
               <Suspense fallback={<div className="rmap-loading">{t("itd.map.loading")}</div>}>
                 <RouteMap points={routePoints} center={data.mapCenter} destination={data.destination} itineraryId={itineraryId} t={t} lang={lang as "it" | "en"} />
