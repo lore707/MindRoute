@@ -5,6 +5,7 @@ import "@/styles/account-dashboard.css";
 import "@/styles/itinerary-dashboard.css";
 import "@/styles/itinerary-cinematic.css";
 import "@/styles/itinerary-redesign.css";
+import "@/styles/itinerary-agenda.css";
 import { useItinerary, useMapPointsPolling } from "@/hooks/use-profiling";
 import { motion } from "framer-motion";
 import {
@@ -453,6 +454,7 @@ function buildMoments(
   if (Array.isArray(day?.editedMoments) && day.editedMoments.length) {
     return day.editedMoments.map((m: any): CinMoment => ({
       t: m.t ?? "", ic: m.ic ?? "📍", title: m.title ?? "", desc: m.desc ?? "",
+      band: bandFromLabel(m.t), kindLabel: kindLabelFor(m.type, "it"),
       cta: m.cta, ctaUrl: m.ctaUrl, ctaPrice: m.ctaPrice, ctaStatus: m.ctaStatus, ctaProvider: m.ctaProvider,
       locationName: m.locationName, imageUrl: m.imageUrl, id: m.id, type: m.type,
     }));
@@ -496,6 +498,7 @@ function buildMoments(
     const cta = ctaUrl && linkKey ? bookLabel(linkKey, labels, destCity, t) : undefined;
     moments.push({
       t: s.label, ic: s.ic, title, desc,
+      band: bandFromTimeLabel(s.key),
       cta, ctaUrl,
       ctaStatus: ctaUrl && linkKey ? bookStatusFor(linkKey) : undefined,
       ctaProvider: ctaUrl && linkKey ? affiliateProvider(linkKey) : undefined,
@@ -528,7 +531,45 @@ const MOMENT_TYPE_VERB: Record<string, string> = {
   walk: "itin.cin.book.experience",
   rest: "itin.cin.book.experience",
 };
-function buildMomentsV2(day: any, t: (k: string) => string, opts: { destCity: string }): CinMoment[] {
+
+// ── Agenda (design "Giorno per Giorno") — helper di mappatura ───────────────
+// Fascia canonica dal time_label v2 (EN+IT) o dalla chiave-slot v1.
+function bandFromTimeLabel(tl?: string): "mattina" | "pranzo" | "pomeriggio" | "sera" {
+  switch ((tl ?? "").toLowerCase()) {
+    case "lunch": case "mezzogiorno": return "pranzo";
+    case "afternoon": case "pomeriggio": return "pomeriggio";
+    case "evening": case "night": case "sera": case "notte": return "sera";
+    default: return "mattina"; // morning/mattina/sconosciuto
+  }
+}
+// Fascia da un'etichetta già localizzata (editedMoments v1: "Mattina"/"Pranzo"…).
+function bandFromLabel(label?: string): "mattina" | "pranzo" | "pomeriggio" | "sera" {
+  const l = (label ?? "").toLowerCase();
+  if (l.includes("pranz") || l.includes("lunch") || l.includes("mezzogiorno")) return "pranzo";
+  if (l.includes("pomerig") || l.includes("afternoon")) return "pomeriggio";
+  if (l.includes("ser") || l.includes("even") || l.includes("nott") || l.includes("night")) return "sera";
+  return "mattina";
+}
+// Etichetta breve del tipo per la pill "kind" (IT/EN) — contenuto = type generato.
+const MOMENT_KIND_LABEL: Record<string, { it: string; en: string }> = {
+  transport:     { it: "Trasporto",  en: "Transport" },
+  accommodation: { it: "Alloggio",   en: "Stay" },
+  food:          { it: "Tavola",     en: "Food" },
+  experience:    { it: "Esperienza", en: "Experience" },
+  walk:          { it: "A piedi",    en: "On foot" },
+  view:          { it: "Panorama",   en: "View" },
+  rest:          { it: "Pausa",      en: "Break" },
+};
+function kindLabelFor(type: string | undefined, lang: "en" | "it"): string {
+  const e = MOMENT_KIND_LABEL[type ?? ""];
+  return e ? (lang === "it" ? e.it : e.en) : "";
+}
+function durationLabelFor(min?: number): string | undefined {
+  if (typeof min !== "number" || min <= 0) return undefined;
+  if (min >= 60) { const h = Math.round((min / 60) * 10) / 10; return `~${h}h`; }
+  return `~${min} min`;
+}
+function buildMomentsV2(day: any, t: (k: string) => string, lang: "en" | "it", opts: { destCity: string }): CinMoment[] {
   const moments: any[] = Array.isArray(day?.moments) ? day.moments : [];
   const slotLabel = (timeLabel: string): string => {
     switch (timeLabel) {
@@ -576,6 +617,11 @@ function buildMomentsV2(day: any, t: (k: string) => string, opts: { destCity: st
     return {
       t: slotLabel(m.time_label),
       ic: MOMENT_TYPE_ICONS[m.type] ?? "✦",
+      band: bandFromTimeLabel(m.time_label),
+      startTime: typeof m.start_time === "string" && m.start_time.trim() ? m.start_time.trim() : undefined,
+      kindLabel: kindLabelFor(m.type, lang),
+      costLabel: fmtBookPrice(m.cost_min, m.cost_max) ?? (typeof m.cost_note === "string" && m.cost_note.trim() ? m.cost_note.trim() : undefined),
+      durationLabel: durationLabelFor(m.duration_min),
       title,
       desc,
       cta: bookable ? ((booking.display_label ?? "").trim() || derivedLabel()) : undefined,
@@ -648,6 +694,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
     title: (isV2 ? d.title_evocative : d.title) ?? "",
     sub: isV2 ? (d.subtitle ?? "") : firstSentence(d.morning ?? "", 12),
     img: (isV2 ? d.hero_image_url : d.dayImageUrl) ?? "",
+    date: isV2 && typeof d.date === "string" && d.date.trim() ? d.date.trim() : undefined,
   }));
 
   const momentsByDay: Record<number, CinMoment[]> = {};
@@ -655,7 +702,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
     const d = days[i];
     const key = (isV2 ? d.day_number : d.dayNumber) ?? i + 1;
     momentsByDay[key] = isV2
-      ? buildMomentsV2(d, t, { destCity: destinationCity })
+      ? buildMomentsV2(d, t, lang, { destCity: destinationCity })
       : buildMoments(d, t, { destCity: destinationCity, dayIndex: i, dayCount, fallback });
   }
 

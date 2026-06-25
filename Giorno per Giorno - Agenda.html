@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MindRoute — Giorno per giorno · Milos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+:root{
+  --bg:#1a0e1a; --bg-deep:#0d070d; --ink:#fbf5f0;
+  --ink-dim:rgba(251,245,240,.78); --ink-faint:rgba(251,245,240,.5); --ink-ghost:rgba(251,245,240,.32);
+  --accent:#E94560; --accent-soft:rgba(233,69,96,.16);
+  --gold:#D4A853; --teal:#6FB4A8; --peri:#9B8CE0;
+  --stroke:rgba(255,255,255,.09); --stroke-strong:rgba(255,255,255,.2);
+  --serif:"Playfair Display",Georgia,serif;
+  --sans:"DM Sans",system-ui,sans-serif;
+  --surf:rgba(255,255,255,.035);
+  --surf-2:rgba(255,255,255,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{color:var(--ink);font-family:var(--sans);line-height:1.55;background:var(--bg-deep);min-height:100vh;-webkit-font-smoothing:antialiased}
+button,a{font:inherit;cursor:pointer;border:0;background:none;color:inherit;text-decoration:none}
+.tnum{font-variant-numeric:tabular-nums}
+
+.wrap{max-width:1000px;margin:0 auto;padding:30px 28px 90px}
+
+/* ── Masthead ── */
+.mast{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:22px}
+.mast .eyebrow{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:7px}
+.mast h1{font-family:var(--serif);font-weight:600;font-size:30px;line-height:1.05;letter-spacing:-.01em}
+.mast h1 em{font-style:italic;color:var(--gold)}
+.mast .lede{font-size:13px;color:var(--ink-faint);margin-top:8px;max-width:440px}
+
+/* ── Direction toggle (segmented) ── */
+.seg{display:inline-flex;background:rgba(0,0,0,.3);border:1px solid var(--stroke);border-radius:13px;padding:4px;gap:3px}
+.seg button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:9px 16px;border-radius:9px;color:var(--ink-faint);transition:.18s;min-width:140px}
+.seg button .t{font-size:13px;font-weight:600;letter-spacing:.01em}
+.seg button .d{font-size:10.5px;letter-spacing:.02em;opacity:.8}
+.seg button.on{background:var(--accent);color:#fff;box-shadow:0 6px 18px -8px var(--accent)}
+.seg button.on .d{opacity:.9}
+
+/* ── Legend (the 4 fixed bands) ── */
+.legend{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:18px 0 24px;padding:12px 16px;
+  background:var(--surf);border:1px solid var(--stroke);border-radius:12px}
+.legend .lg-h{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-ghost);font-weight:600}
+.legend .lg{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-dim)}
+.legend .dot{width:10px;height:10px;border-radius:50%}
+
+/* ── Day tabs ── */
+.daytabs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:26px}
+.daytab{text-align:left;padding:12px 14px;border-radius:13px;background:var(--surf);border:1px solid var(--stroke);transition:.18s;position:relative;overflow:hidden}
+.daytab:hover{background:var(--surf-2);border-color:var(--stroke-strong)}
+.daytab.on{background:rgba(233,69,96,.12);border-color:var(--accent)}
+.daytab .dn{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.daytab.on .dn{color:var(--accent)}
+.daytab .dttl{font-family:var(--serif);font-size:15px;margin-top:4px;line-height:1.15}
+.daytab .dact{position:absolute;top:11px;right:12px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-ghost);font-weight:600}
+
+/* ── Day header ── */
+.dayhead{margin-bottom:24px}
+.dayhead .dh-eyebrow{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:9px}
+.dayhead .dh-badge{color:var(--accent);border:1px solid var(--accent);padding:2px 9px;border-radius:99px;font-size:10px}
+.dayhead h2{font-family:var(--serif);font-weight:600;font-size:32px;line-height:1.08;letter-spacing:-.01em;max-width:760px}
+.dayhead .dh-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:13px}
+.dh-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-dim);background:var(--surf);border:1px solid var(--stroke);padding:5px 11px;border-radius:8px}
+.dayhead .dh-sub{font-size:13.5px;color:var(--ink-faint);margin-top:11px;max-width:620px}
+
+/* ════════ shared atoms ════════ */
+.kind{font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;padding:2px 8px;border-radius:99px;
+  color:var(--pc);border:1px solid color-mix(in srgb, var(--pc) 45%, transparent);background:color-mix(in srgb, var(--pc) 9%, transparent);white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.chip{display:inline-flex;align-items:baseline;gap:6px;font-size:12px;background:var(--surf-2);border:1px solid var(--stroke);padding:5px 10px;border-radius:8px}
+.chip i{font-style:normal;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-ghost);font-weight:600}
+.chip b{font-weight:500;color:var(--ink-dim)}
+.note{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink-faint);margin-top:10px;padding-left:11px;border-left:2px solid color-mix(in srgb, var(--pc) 40%, transparent)}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.btn-book{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;font-weight:600;font-size:12.5px;padding:8px 14px;border-radius:9px;box-shadow:0 8px 20px -10px var(--accent);transition:.16s}
+.btn-book:hover{filter:brightness(1.06)}
+.btn-book .ext{opacity:.8;font-size:11px}
+.btn-ghost{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-dim);border:1px solid var(--stroke-strong);padding:8px 12px;border-radius:9px;transition:.16s}
+.btn-ghost:hover{background:var(--surf-2);color:var(--ink)}
+
+/* placeholder image tile */
+.ph{position:relative;border-radius:10px;overflow:hidden;background:
+  repeating-linear-gradient(135deg, rgba(255,255,255,.055) 0 11px, rgba(255,255,255,.018) 11px 22px),
+  color-mix(in srgb, var(--pc) 10%, transparent)}
+.ph::after{content:attr(data-cap);position:absolute;left:8px;bottom:8px;font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.04em;
+  color:var(--ink-faint);background:rgba(0,0,0,.4);padding:3px 7px;border-radius:5px}
+
+/* ════════ A — AGENDA / TIMELINE ════════ */
+.agenda{max-width:720px;margin:0 auto}
+.ag-part{margin-bottom:4px}
+.ag-phead{display:flex;align-items:center;gap:11px;padding:14px 0 6px}
+.ag-node{width:13px;height:13px;border-radius:50%;background:var(--pc);box-shadow:0 0 0 4px color-mix(in srgb, var(--pc) 22%, transparent);flex:none}
+.ag-plabel{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--pc);font-weight:600}
+.ag-prange{margin-left:auto;font-size:11.5px;color:var(--ink-ghost)}
+.ag-moments{position:relative;margin-left:6px;padding-left:24px;padding-bottom:6px;border-left:2px solid color-mix(in srgb, var(--pc) 26%, transparent)}
+.ag-m{position:relative;padding:13px 16px;background:var(--surf);border:1px solid var(--stroke);border-radius:13px;margin-bottom:11px}
+.ag-m::before{content:"";position:absolute;left:-31px;top:17px;width:9px;height:9px;border-radius:50%;background:var(--pc);box-shadow:0 0 0 4px var(--bg-deep)}
+.ag-mtop{display:flex;align-items:center;gap:10px}
+.ag-mtime{font-size:15px;font-weight:600;color:var(--ink)}
+.ag-mtitle{font-family:var(--serif);font-size:19px;line-height:1.2;margin-top:7px}
+.ag-mdetail{font-size:13px;color:var(--ink-dim);margin-top:4px}
+
+/* ════════ B — A BLOCCHI ════════ */
+.blocks{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px;margin:0 auto}
+.block{display:flex;flex-direction:column;background:var(--surf);border:1px solid var(--stroke);border-radius:16px;overflow:hidden;border-top:3px solid var(--pc)}
+.bl-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--stroke);background:color-mix(in srgb, var(--pc) 7%, transparent)}
+.bl-dot{width:10px;height:10px;border-radius:50%;background:var(--pc);flex:none}
+.bl-label{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--pc);font-weight:600}
+.bl-range{margin-left:auto;font-size:11.5px;color:var(--ink-ghost)}
+.bl-body{padding:15px 16px;display:flex;flex-direction:column;gap:16px;flex:1}
+.bl-m + .bl-m{border-top:1px solid var(--stroke);padding-top:15px}
+.bl-thumb{height:122px;margin-bottom:11px}
+.bl-mtop{display:flex;align-items:center;gap:9px}
+.bl-mtime{font-size:14px;font-weight:600}
+.bl-mtitle{font-family:var(--serif);font-size:19px;line-height:1.2;margin-top:7px}
+.bl-mdetail{font-size:12.5px;color:var(--ink-dim);margin-top:4px}
+
+/* ── travel background (crossfades per day) ── */
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden}
+.bg-img{position:absolute;inset:-2.5%;background-size:cover;background-position:center;opacity:0;transition:opacity 1.3s cubic-bezier(.4,0,.2,1);filter:saturate(.92) brightness(.82);will-change:opacity}
+.bg-img.on{opacity:1}
+.bg-scrim{position:fixed;inset:0;z-index:0;pointer-events:none;background:
+  linear-gradient(180deg, rgba(13,7,13,.55) 0%, rgba(13,7,13,.80) 42%, rgba(13,7,13,.94) 100%),
+  radial-gradient(1000px 620px at 82% -8%, rgba(122,16,32,.38), transparent 58%),
+  radial-gradient(820px 560px at -6% 108%, rgba(43,33,82,.40), transparent 55%)}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.06;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .95 0 0 0 0 .92 0 0 0 0 .92 0 0 0 .35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+.wrap{position:relative;z-index:2}
+
+/* ── day header hero ── */
+.dayhead-grid{display:grid;grid-template-columns:1fr 300px;gap:26px;align-items:center}
+.dh-hero{height:194px;border-radius:16px;overflow:hidden;border:1px solid var(--stroke-strong);box-shadow:0 26px 64px -30px rgba(0,0,0,.85)}
+.dh-hero img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* ── Personalizza ── */
+.cmd-edit{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--ink-dim);border:1px solid var(--stroke-strong);padding:9px 15px;border-radius:11px;transition:.16s;white-space:nowrap}
+.cmd-edit:hover{background:var(--surf-2);color:var(--ink)}
+.cmd-edit.on{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 8px 20px -10px var(--accent)}
+.edit-hint{font-size:11.5px;color:var(--gold);margin:0 auto 16px;max-width:720px;font-style:italic;font-family:var(--serif)}
+
+/* ── editing controls ── */
+.ag-m .drag-handle{position:absolute;left:-32px;top:12px;width:24px;height:24px;border-radius:7px;display:none;align-items:center;justify-content:center;color:var(--ink-faint);background:var(--bg-deep);border:1px solid var(--stroke);cursor:grab;font-size:12px;z-index:3}
+.ag-m.editing .drag-handle{display:flex}
+.ag-m.editing::before{display:none}
+.ag-m.dragging{opacity:.45}
+.ag-m.drop-target{border-color:var(--pc);box-shadow:0 0 0 2px color-mix(in srgb, var(--pc) 38%, transparent)}
+.ed-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ed-in{font:inherit;color:var(--ink);background:rgba(0,0,0,.28);border:1px solid var(--stroke-strong);border-radius:8px;padding:7px 9px}
+.ed-in:focus{outline:none;border-color:var(--pc)}
+.ed-time{width:80px;font-variant-numeric:tabular-nums;font-weight:600;text-align:center}
+.ed-kind{width:130px;font-size:12px}
+.ed-title{width:100%;font-family:var(--serif);font-size:18px;margin-top:9px}
+.ed-detail{width:100%;font-size:13px;margin-top:7px;resize:vertical;min-height:46px;line-height:1.5;font-family:var(--sans)}
+.ed-tools{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.tool{font-size:12px;color:var(--ink-dim);border:1px solid var(--stroke-strong);padding:6px 11px;border-radius:8px;transition:.16s}
+.tool:hover{background:var(--surf-2);color:var(--ink)}
+.tool.danger:hover{background:rgba(233,69,96,.16);border-color:var(--accent);color:#fff}
+.swap{margin-top:10px;border:1px solid var(--stroke);border-radius:10px;overflow:hidden;background:rgba(0,0,0,.28)}
+.swap-h{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-ghost);font-weight:600;padding:9px 12px;border-bottom:1px solid var(--stroke)}
+.swap-opt{display:block;width:100%;text-align:left;padding:10px 12px;transition:.14s;border-bottom:1px solid var(--stroke)}
+.swap-opt:last-child{border-bottom:0}
+.swap-opt:hover{background:color-mix(in srgb, var(--pc) 12%, transparent)}
+.swap-opt .so-t{font-size:13.5px;font-weight:600;color:var(--ink)}
+.swap-opt .so-d{font-size:12px;color:var(--ink-faint);margin-top:2px}
+.swap-empty{padding:11px 12px;font-size:12px;color:var(--ink-faint);font-style:italic}
+.slot-add{width:100%;margin-top:2px;padding:11px;border:1px dashed var(--stroke-strong);border-radius:11px;color:var(--ink-faint);font-size:12.5px;transition:.16s}
+.slot-add:hover{background:var(--surf);color:var(--ink);border-color:var(--pc)}
+.day-tools{display:flex;justify-content:flex-end;max-width:720px;margin:8px auto 0}
+.reset{font-size:12px;color:var(--ink-faint);border:1px solid var(--stroke);padding:7px 13px;border-radius:9px;transition:.16s}
+.reset:hover{color:var(--ink);background:var(--surf-2)}
+
+@media(max-width:740px){
+  .wrap{padding:22px 16px 70px}
+  .mast h1{font-size:24px}
+  .daytabs{grid-template-columns:1fr 1fr}
+  .dayhead h2{font-size:25px}
+  .dayhead-grid{grid-template-columns:1fr}
+  .dh-hero{height:160px;order:-1}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState, useEffect} = React;
+
+/* ── 4 FIXED BANDS ── */
+const PARTS = {
+  mattina:    {label:"Mattina",    c:"var(--gold)"},
+  pranzo:     {label:"Pranzo",     c:"var(--teal)"},
+  pomeriggio: {label:"Pomeriggio", c:"var(--accent)"},
+  sera:       {label:"Sera",       c:"var(--peri)"},
+};
+const ORDER = ["mattina","pranzo","pomeriggio","sera"];
+const U = "https://images.unsplash.com/";
+
+/* ── DATA · Milos, 4 giorni ── */
+const DAYS = [
+  { n:1, act:"Arrivo", title:"Da Londra a Milos — il primo respiro di sale",
+    date:"Mar 12 Giu", wx:"24° · Sereno",
+    img:U+"photo-1518509562904-e7ef99cdcc86?w=1600&auto=format",
+    sub:"Voli, traghetto e prima cena al porto. Giornata di trasferimento: poche scelte, ben incastrate.",
+    bands:{
+      mattina:[{time:"06:30", kind:"Volo", title:"Londra LGW → Atene ATH", detail:"Volo diretto, atterraggio ad Atene.",
+        chips:[{k:"Durata",v:"3h 30min"},{k:"Spostamento",v:"Volo diretto"},{k:"Costo",v:"€80–130/pp"}],
+        note:"Dall'oblò le isole come macchie bianche nell'Egeo.",
+        book:"Prenota il volo · LGW → ATH + ritorno"}],
+      pranzo:[{time:"12:00", kind:"Pausa", title:"Pranzo al gate o snack a bordo", detail:"Aeroporto di Atene.",
+        chips:[{k:"Durata",v:"45min"},{k:"Costo",v:"€10–15/pp"}]}],
+      pomeriggio:[{time:"14:30", kind:"Traghetto", title:"Pireo → Adamas, Milos", detail:"SeaJets o Hellenic Seaways da Atene.",
+        chips:[{k:"Durata",v:"5–7h"},{k:"Spostamento",v:"Traghetto"},{k:"Costo",v:"€35–50/pp"}],
+        book:"Prenota il traghetto",
+        alts:[{kind:"Volo", title:"Volo interno ATH → Milos (MLO)", detail:"Olympic Air: evita le 5–7h di traghetto.",
+          chips:[{k:"Durata",v:"~40min"},{k:"Spostamento",v:"Volo interno"},{k:"Costo",v:"€60–110/pp"}]}]}],
+      sera:[{time:"21:00", kind:"Cena", title:"Cena da Aragosta", detail:"Sul porto di Adamas, primo assaggio dell'isola.",
+        chips:[{k:"Durata",v:"1h 30min"},{k:"Costo",v:"€25–35/pp"}],
+        book:"Prenota il tavolo"}],
+    }},
+  { n:2, act:"Apice", title:"Sarakiniko — la luna è qui, sulla Terra",
+    date:"Mer 13 Giu", wx:"27° · Sole",
+    img:U+"photo-1530841377377-3ff06c0ca713?w=1600&auto=format",
+    sub:"La spiaggia lunare prima del sole forte, il borgo bianco di Plaka, il tramonto in alto.",
+    bands:{
+      mattina:[{time:"09:00", kind:"Spiaggia", title:"Sarakiniko Beach", detail:"Arrivate entro le 9:00, prima che il sole bruci le rocce di pomice.",
+        chips:[{k:"Durata",v:"Mezza giornata"},{k:"Spostamento",v:"Scooter 15min"},{k:"Costo",v:"Gratis · scooter €15–20/g"}],
+        note:"Superficie lunare nel mare turchese: nessun lettino, nessun bar.",
+        book:"Noleggia lo scooter",
+        alts:[{kind:"Spiaggia", title:"Tsigrado Beach", detail:"Caletta nascosta con discesa a corda — più avventurosa.",
+          chips:[{k:"Durata",v:"Mezza giornata"},{k:"Spostamento",v:"Scooter 25min"},{k:"Costo",v:"Gratis"}]},
+          {kind:"Spiaggia", title:"Firiplaka Beach", detail:"Sabbia e ombrelloni, più comoda e attrezzata.",
+          chips:[{k:"Durata",v:"Mezza giornata"},{k:"Spostamento",v:"Scooter 20min"},{k:"Costo",v:"Lettini €15/g"}]}]}],
+      pranzo:[{time:"13:30", kind:"Taverna", title:"I Kali Kardia", detail:"Piccola taverna locale a Plaka.",
+        chips:[{k:"Durata",v:"1h"},{k:"Costo",v:"€15–20/pp"}],
+        book:"Prenota il tavolo"}],
+      pomeriggio:[{time:"16:00", kind:"Borgo", title:"Plaka, il villaggio bianco", detail:"Niente musei: solo perdersi tra i vicoli in cima all'isola.",
+        chips:[{k:"Durata",v:"2–3h"},{k:"Spostamento",v:"A piedi"},{k:"Costo",v:"Gratis"}]}],
+      sera:[{time:"20:30", kind:"Tramonto", title:"Cena a Plaka — To Kyma tis Plaka", detail:"Locale affacciato, tramonto sul mare.",
+        chips:[{k:"Durata",v:"2h"},{k:"Spostamento",v:"A piedi"},{k:"Costo",v:"€25–30/pp"}],
+        book:"Prenota il tavolo",
+        alts:[{kind:"Cena", title:"Cena ad Adamas — Flisvos", detail:"Sul porto, se preferite restare in basso.",
+          chips:[{k:"Durata",v:"1h 30min"},{k:"Costo",v:"€25–35/pp"}]}]}],
+    }},
+  { n:3, act:"Decantazione", title:"Il giro delle calette — il cuore del viaggio",
+    date:"Gio 14 Giu", wx:"26° · Sereno",
+    img:U+"photo-1533105079780-92b9be482077?w=1600&auto=format",
+    sub:"Il giro in barca di Kleftiko e delle calette nascoste: qualcosa che non avete mai fatto.",
+    bands:{
+      mattina:[{time:"09:30", kind:"Barca", title:"Giro in barca delle calette", detail:"Kleftiko (grotte marine), Tsigrado, Firopotamos. Partenza da Adamas.",
+        chips:[{k:"Durata",v:"Mezza giornata"},{k:"Spostamento",v:"Barca da Adamas"},{k:"Costo",v:"€50–70/pp"}],
+        note:"Il momento-chiave: 'vivere qualcosa di completamente nuovo'.",
+        book:"Prenota il giro in barca",
+        alts:[{kind:"Barca", title:"Noleggio barca privato di coppia", detail:"Mezza giornata solo per voi, itinerario libero.",
+          chips:[{k:"Durata",v:"Mezza giornata"},{k:"Spostamento",v:"Barca privata"},{k:"Costo",v:"€180–220 a barca"}]}]}],
+      pranzo:[{time:"14:00", kind:"Taverna", title:"Taverna O Hamos", detail:"Pollonia, villaggio di pescatori sul lato nord-est.",
+        chips:[{k:"Durata",v:"1h 30min"},{k:"Costo",v:"€18–25/pp"}],
+        book:"Prenota il tavolo"}],
+      pomeriggio:[{time:"16:30", kind:"Libero", title:"Pomeriggio non programmato", detail:"Spiaggia di Firopotamos o Papafragas, le scogliere scavate dall'acqua.",
+        chips:[{k:"Durata",v:"Libero"},{k:"Spostamento",v:"A piacere"},{k:"Costo",v:"Gratis"}]}],
+      sera:[{time:"21:00", kind:"Cena", title:"Cena al porto — Flisvos", detail:"Di nuovo ad Adamas, una taverna diversa dalla prima sera.",
+        chips:[{k:"Durata",v:"1h 30min"},{k:"Costo",v:"€25–35/pp"}],
+        book:"Prenota il tavolo"}],
+    }},
+  { n:4, act:"Partenza", title:"L'ultimo mattino — portarsi via il colore del mare",
+    date:"Ven 15 Giu", wx:"25° · Sereno",
+    img:U+"photo-1505228395891-9a51e7e86bf6?w=1600&auto=format",
+    sub:"Ultimo caffè senza sveglia, eventuale nuotata, poi il rientro a Londra.",
+    bands:{
+      mattina:[{time:"08:00", kind:"Relax", title:"Caffè greco senza sveglia", detail:"Bar del porto di Adamas + ultima nuotata opzionale a Provatas.",
+        chips:[{k:"Durata",v:"2h"},{k:"Spostamento",v:"Scooter 20min (opz.)"},{k:"Costo",v:"€5–10"}],
+        note:"Il silenzio dell'isola prima che il traghetto arrivi."}],
+      pranzo:[{time:"12:30", kind:"Taverna", title:"Ultimo pranzo — To Hani", detail:"Ad Adamas, o qualunque posto abbiate scoperto voi.",
+        chips:[{k:"Durata",v:"1h"},{k:"Costo",v:"€15–20/pp"}],
+        book:"Prenota il tavolo"}],
+      pomeriggio:[{time:"15:00", kind:"Transfer", title:"Transfer al porto di Adamas", detail:"Dalla guesthouse, a piedi o 5 min in scooter.",
+        chips:[{k:"Durata",v:"15min"},{k:"Spostamento",v:"Scooter / a piedi"}]}],
+      sera:[{time:"18:00", kind:"Rientro", title:"Traghetto + volo → Londra", detail:"Chiusura del viaggio.",
+        chips:[{k:"Durata",v:"Serata"},{k:"Spostamento",v:"Traghetto + volo"}]}],
+    }},
+];
+
+const clone = o => JSON.parse(JSON.stringify(o));
+
+/* range helper */
+function bandRange(arr){
+  if(!arr || !arr.length) return "";
+  const a = arr[0].time, b = arr[arr.length-1].time;
+  return a===b ? a : a+" – "+b;
+}
+
+/* ── shared bits ── */
+function Chips({chips}){
+  if(!chips || !chips.length) return null;
+  return (<div className="chips">{chips.map((c,i)=>(
+    <span className="chip" key={i}><i>{c.k}</i><b>{c.v}</b></span>
+  ))}</div>);
+}
+
+/* ════════ AGENDA ════════ */
+function Agenda({day, editing, act, drag, setDrag, over, setOver, swapOpen, setSwapOpen}){
+  function onDrop(key, idx){
+    if(drag && drag.key===key && drag.idx!==idx) act.moveMoment(key, drag.idx, idx);
+    setDrag(null); setOver(null);
+  }
+  return (
+    <div className="agenda">
+      {ORDER.map(key=>{
+        const p = PARTS[key], arr = day.bands[key]||[];
+        return (
+          <div className="ag-part" key={key} style={{"--pc":p.c}}>
+            <div className="ag-phead">
+              <span className="ag-node"></span>
+              <span className="ag-plabel">{p.label}</span>
+              <span className="ag-prange tnum">{bandRange(arr)}</span>
+            </div>
+            <div className="ag-moments">
+              {arr.map((m,i)=>{
+                const isDrag = drag && drag.key===key && drag.idx===i;
+                const isOver = over && over.key===key && over.idx===i && !isDrag;
+                const swapId = key+"-"+i;
+                const cls = "ag-m"+(editing?" editing":"")+(isDrag?" dragging":"")+(isOver?" drop-target":"");
+                return (
+                  <div className={cls} key={i}
+                    onDragOver={editing?(e)=>{e.preventDefault(); if(drag&&drag.key===key) setOver({key,idx:i});}:undefined}
+                    onDrop={editing?(e)=>{e.preventDefault(); onDrop(key,i);}:undefined}>
+                    {editing && (
+                      <span className="drag-handle" title="Trascina per riordinare" draggable
+                        onDragStart={()=>setDrag({key,idx:i})}
+                        onDragEnd={()=>{setDrag(null);setOver(null);}}>⠿</span>
+                    )}
+                    {editing ? (
+                      <>
+                        <div className="ed-row">
+                          <input className="ed-in ed-time" value={m.time}
+                            onChange={e=>act.updateMoment(key,i,{time:e.target.value})} placeholder="00:00"/>
+                          <input className="ed-in ed-kind" value={m.kind}
+                            onChange={e=>act.updateMoment(key,i,{kind:e.target.value})} placeholder="Tipo"/>
+                        </div>
+                        <input className="ed-in ed-title" value={m.title}
+                          onChange={e=>act.updateMoment(key,i,{title:e.target.value})} placeholder="Titolo tappa"/>
+                        <textarea className="ed-in ed-detail" value={m.detail}
+                          onChange={e=>act.updateMoment(key,i,{detail:e.target.value})} placeholder="Dettaglio…"/>
+                        <Chips chips={m.chips}/>
+                        <div className="ed-tools">
+                          <button className="tool" onClick={()=>setSwapOpen(swapOpen===swapId?null:swapId)}>↻ Sostituisci</button>
+                          <button className="tool danger" onClick={()=>act.removeMoment(key,i)}>✕ Rimuovi</button>
+                        </div>
+                        {swapOpen===swapId && (
+                          <div className="swap">
+                            <div className="swap-h">Alternative per questa tappa</div>
+                            {(m.alts&&m.alts.length) ? m.alts.map((a,ai)=>(
+                              <button className="swap-opt" key={ai}
+                                onClick={()=>{act.swapMoment(key,i,a); setSwapOpen(null);}}>
+                                <div className="so-t">{a.title}</div>
+                                <div className="so-d">{a.detail}</div>
+                              </button>
+                            )) : <div className="swap-empty">Nessuna alternativa suggerita — modifica i campi a mano.</div>}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="ag-mtop">
+                          <span className="ag-mtime tnum">{m.time}</span>
+                          <span className="kind">{m.kind}</span>
+                        </div>
+                        <div className="ag-mtitle">{m.title}</div>
+                        <div className="ag-mdetail">{m.detail}</div>
+                        <Chips chips={m.chips}/>
+                        {m.note && <div className="note">{m.note}</div>}
+                        {m.book && <div className="acts"><button className="btn-book">{m.book}<span className="ext">↗</span></button></div>}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              {editing && <button className="slot-add" onClick={()=>act.addMoment(key)}>+ Aggiungi una tappa</button>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ════════ APP ════════ */
+function App(){
+  const [days,setDays] = useState(()=>clone(DAYS));
+  const [dayN,setDayN]   = useState(()=>+(localStorage.getItem("mr_day")||1));
+  const [editing,setEditing] = useState(false);
+  const [drag,setDrag] = useState(null);
+  const [over,setOver] = useState(null);
+  const [swapOpen,setSwapOpen] = useState(null);
+
+  useEffect(()=>localStorage.setItem("mr_day",dayN),[dayN]);
+  useEffect(()=>{ setSwapOpen(null); },[dayN,editing]);
+
+  const day = days.find(d=>d.n===dayN)||days[0];
+
+  function patchBand(key,fn){
+    setDays(ds=>ds.map(d=> d.n===dayN ? {...d, bands:{...d.bands, [key]: fn(d.bands[key]||[])}} : d));
+  }
+  const act = {
+    updateMoment:(key,i,patch)=>patchBand(key,arr=>arr.map((m,j)=>j===i?{...m,...patch}:m)),
+    removeMoment:(key,i)=>patchBand(key,arr=>arr.filter((_,j)=>j!==i)),
+    addMoment:(key)=>patchBand(key,arr=>[...arr,{time:"12:00",kind:"Tappa",title:"Nuova tappa",detail:"",chips:[{k:"Durata",v:"—"}]}]),
+    moveMoment:(key,from,to)=>patchBand(key,arr=>{const a=[...arr];const[m]=a.splice(from,1);a.splice(to,0,m);return a;}),
+    swapMoment:(key,i,alt)=>patchBand(key,arr=>arr.map((m,j)=>j===i?{...m,kind:alt.kind,title:alt.title,detail:alt.detail,chips:alt.chips}:m)),
+    resetDay:()=>{ const base=DAYS.find(d=>d.n===dayN); if(base) setDays(ds=>ds.map(d=>d.n===dayN?clone(base):d)); setSwapOpen(null); },
+  };
+  const tappe = ORDER.reduce((n,k)=>n+(day.bands[k]?.length||0),0);
+
+  return (
+    <>
+      {/* travel background */}
+      <div className="bg">
+        {days.map(d=>(
+          <div key={d.n} className={"bg-img"+(d.n===dayN?" on":"")} style={{backgroundImage:`url(${d.img})`}}></div>
+        ))}
+      </div>
+      <div className="bg-scrim"></div>
+      <div className="grain"></div>
+
+      <div className="wrap">
+        {/* masthead */}
+        <div className="mast">
+          <div>
+            <div className="eyebrow">Milos · 4 giorni</div>
+            <h1>Il piano, <em>ora per ora</em>.</h1>
+            <div className="lede">Ogni giornata segue la stessa struttura fissa — Mattina · Pranzo · Pomeriggio · Sera — con orari, durata, spostamenti e costi a colpo d'occhio.</div>
+          </div>
+          <button className={"cmd-edit"+(editing?" on":"")} onClick={()=>setEditing(e=>!e)}>
+            <span className="pen">✎</span>{editing?"Fine":"Personalizza"}
+          </button>
+        </div>
+
+        {/* legend */}
+        <div className="legend">
+          <span className="lg-h">Le 4 fasce fisse</span>
+          {ORDER.map(k=>(
+            <span className="lg" key={k}><span className="dot" style={{background:PARTS[k].c}}></span>{PARTS[k].label}</span>
+          ))}
+        </div>
+
+        {/* day tabs */}
+        <div className="daytabs">
+          {days.map(d=>(
+            <button key={d.n} className={"daytab"+(d.n===dayN?" on":"")} onClick={()=>setDayN(d.n)}>
+              <span className="dact">{d.act}</span>
+              <div className="dn">Giorno {d.n}</div>
+              <div className="dttl">{d.date}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* day header */}
+        <div className="dayhead">
+          <div className="dayhead-grid">
+            <div>
+              <div className="dh-eyebrow"><span>Giorno {day.n}</span><span className="dh-badge">{day.act}</span></div>
+              <h2>{day.title}</h2>
+              <div className="dh-meta">
+                <span className="dh-chip">{day.date}</span>
+                <span className="dh-chip">{day.wx}</span>
+                <span className="dh-chip">{tappe} tappe · 4 fasce</span>
+              </div>
+              <div className="dh-sub">{day.sub}</div>
+            </div>
+            <div className="dh-hero"><img src={day.img} alt={day.title}/></div>
+          </div>
+        </div>
+
+        {editing && <div className="edit-hint">Modalità personalizzazione: cambia orari e testi, trascina ⠿ per riordinare, sostituisci con un'alternativa o aggiungi una tappa.</div>}
+
+        {/* body */}
+        <Agenda day={day} editing={editing} act={act}
+          drag={drag} setDrag={setDrag} over={over} setOver={setOver}
+          swapOpen={swapOpen} setSwapOpen={setSwapOpen}/>
+
+        {editing && (
+          <div className="day-tools">
+            <button className="reset" onClick={act.resetDay}>↺ Ripristina giorno</button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

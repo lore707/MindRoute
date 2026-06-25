@@ -15,7 +15,7 @@
  * descrizioni dei momenti) arrivano già nella lingua dell'utente.
  * ─────────────────────────────────────────────────────────────── */
 
-import { Fragment, Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import {
   Compass, Layers, CalendarDays, Map as MapIcon, Backpack, Ticket,
@@ -168,7 +168,7 @@ export function ItineraryDashboard({
   const dayCount = days.length;
   const [activeDay, setActiveDay] = useState<number>(days[0]?.n ?? 1);
   const [openDay, setOpenDay] = useState<number | null>(days[0]?.n ?? null);
-  const [activeMoment, setActiveMoment] = useState(0);
+  const [, setActiveMoment] = useState(0);
 
   const { checked, toggle } = useMissions(itineraryId);
 
@@ -353,100 +353,144 @@ export function ItineraryDashboard({
     );
   };
 
-  /* ── DAYS ── */
+  /* ── DAYS · Agenda (design "Giorno per Giorno") ──
+     Solo design: struttura e contenuti restano quelli generati (v2). I momenti
+     sono raggruppati nelle 4 fasce fisse (mattina/pranzo/pomeriggio/sera) via il
+     campo `band`. Le 8 feature del README (booking-status, transfer, offline…)
+     sono lofi/spec → non implementate. Booking CTA e cuore-salva preservati. */
   const DaysView = () => {
-    const dayMoments = data.momentsByDay[openDay ?? -1] ?? [];
-    const m = dayMoments[Math.min(activeMoment, Math.max(0, dayMoments.length - 1))];
-    const openDayObj = days.find(d => d.n === openDay);
+    const L = (it: string, en: string) => (lang === "it" ? it : en);
+    const sel = days.find(d => d.n === activeDay) ?? days[0];
+    const selMoments = sel ? (data.momentsByDay[sel.n] ?? []) : [];
+    const tappe = selMoments.length;
+    const BANDS = [
+      { key: "mattina", label: L("Mattina", "Morning"), c: "var(--ag-gold)" },
+      { key: "pranzo", label: L("Pranzo", "Lunch"), c: "var(--ag-teal)" },
+      { key: "pomeriggio", label: L("Pomeriggio", "Afternoon"), c: "var(--ag-accent)" },
+      { key: "sera", label: L("Sera", "Evening"), c: "var(--ag-peri)" },
+    ] as const;
+    const bandRange = (arr: typeof selMoments) => {
+      const ts = arr.map(m => m.startTime).filter(Boolean) as string[];
+      if (!ts.length) return "";
+      return ts.length > 1 && ts[0] !== ts[ts.length - 1] ? `${ts[0]} – ${ts[ts.length - 1]}` : ts[0];
+    };
+    const selDay = (n: number) => { setActiveDay(n); setOpenDay(n); setActiveMoment(0); };
+
     return (
       <div className="view">
-        <ViewHead
-          gold
-          eyebrow={t("itd.days.eyebrow")}
-          title={dayCount === 1 ? t("itd.days.titleOne") : tx("itd.days.title", { n: dayCount })}
-          sub={t("itd.days.sub")}
-        />
-        <div className="content">
-          <div className="arc-rail">
-            {days.map(d => (
-              <Fragment key={d.n}>
-                <div
-                  className={"day" + (openDay === d.n ? " open" : "")}
-                  onClick={() => {
-                    const next = openDay === d.n ? null : d.n;
-                    setOpenDay(next);
-                    if (next != null) { setActiveDay(next); setActiveMoment(0); }
-                  }}
-                >
-                  <div className="day-num">{d.n}</div>
-                  <div className="day-photo" style={{ backgroundImage: bg(d.img, cardW) }}>
-                    {d.arc && <div className="day-act">{d.arc}</div>}
-                  </div>
-                  <div className="day-body">
-                    <div className="day-kick">{tx("itd.mis.day", { n: d.n })}</div>
-                    <div className="day-name">{d.title}</div>
-                    <div className="day-foot">
-                      <span>{(data.momentsByDay[d.n]?.length ?? 0)} {t("itd.fact.moments")}</span>
-                      <span className="expand">{openDay === d.n ? t("itd.day.collapse") : t("itd.day.expand")}</span>
-                    </div>
-                  </div>
-                </div>
+        <div className="mr-agenda">
+          {/* masthead */}
+          <div className="ag-mast">
+            <div>
+              <div className="ag-eyebrow">{data.destination}{dayCount ? ` · ${dayCount} ${dayCount === 1 ? L("giorno", "day") : L("giorni", "days")}` : ""}</div>
+              <h1 className="ag-h1">{L("Il piano, ", "The plan, ")}<em>{L("ora per ora", "hour by hour")}</em>.</h1>
+              <div className="ag-lede">{L(
+                "Ogni giornata segue la stessa struttura — Mattina · Pranzo · Pomeriggio · Sera — con tappe, durata e costi a colpo d'occhio.",
+                "Every day follows the same structure — Morning · Lunch · Afternoon · Evening — with stops, duration and costs at a glance.",
+              )}</div>
+            </div>
+            {onEdit && (
+              <button className="ag-cmd-edit" onClick={onEdit}>
+                <Pencil size={14} />{L("Personalizza", "Customize")}
+              </button>
+            )}
+          </div>
 
-                {openDay === d.n && openDayObj && dayMoments.length > 0 && m && (
-                  <div className="day-detail">
-                    <div className="dd-top">
-                      <div className="dd-timeline">
-                        <div className="dd-tl-kick">{t("itd.day.tlKick")}</div>
-                        {dayMoments.map((mm, i) => (
-                          <div key={i} className={"dd-slot" + (i === activeMoment ? " on" : "")} onClick={() => setActiveMoment(i)}>
-                            <span className="dot" />
-                            <div className="when">{mm.t}</div>
-                            <div className="what">{mm.title}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="dd-focus">
-                        <div className="dd-focus-photo" style={{ backgroundImage: bg(m.imageUrl || openDayObj.img, cardW) }}>
-                          <div className="dd-focus-tag">{m.t}</div>
-                        </div>
-                        <div className="dd-focus-body">
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                            <h3 className="dd-focus-name" style={{ flex: 1 }}>{m.title}</h3>
-                            {onToggleSaved && itineraryId && m.id && (
-                              <button
-                                className={"dd-fav" + (savedMomentIds?.has(m.id) ? " on" : "")}
-                                title={t("itd.dd.save")}
-                                onClick={() => onToggleSaved(m.id!, m)}
-                              >
-                                <Heart size={16} fill={savedMomentIds?.has(m.id) ? "currentColor" : "none"} />
-                              </button>
-                            )}
-                          </div>
-                          {m.desc && <p className="dd-focus-desc">{m.desc}</p>}
-                          {/* Niente CTA → niente contenitore: un momento di puro transito
-                              (pasto al gate, traghetto senza partner) deve chiudersi pulito,
-                              senza un'area-bottone vuota che lascia un buco visivo. */}
-                          {m.cta && m.ctaUrl && (
-                            <div className="dd-actions">
-                              <a className="dd-book" href={m.ctaUrl} target="_blank" rel="noopener noreferrer"
-                                onClick={() => trackAffiliate(m.ctaProvider ?? "unknown", data.destination)}>
-                                {m.cta}{m.ctaPrice && <span className="price">· {m.ctaPrice}</span>}
-                                <ExternalLink size={13} />
-                              </a>
-                            </div>
+          {/* legend */}
+          <div className="ag-legend">
+            <span className="ag-lg-h">{L("Le 4 fasce fisse", "The 4 fixed bands")}</span>
+            {BANDS.map(b => (
+              <span className="ag-lg" key={b.key}><span className="ag-ldot" style={{ background: b.c }} />{b.label}</span>
+            ))}
+          </div>
+
+          {/* day tabs */}
+          {dayCount > 1 && (
+            <div className="ag-daytabs">
+              {days.map(d => (
+                <button key={d.n} className={"ag-daytab" + (sel?.n === d.n ? " on" : "")} onClick={() => selDay(d.n)}>
+                  {d.arc && <span className="ag-dact">{d.arc}</span>}
+                  <div className="ag-dn">{tx("itd.mis.day", { n: d.n })}</div>
+                  <div className="ag-dttl">{d.date || d.title}</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* day header */}
+          {sel && (
+            <div className="ag-dayhead">
+              <div className="ag-dayhead-grid">
+                <div>
+                  <div className="ag-dh-eyebrow">
+                    <span>{tx("itd.mis.day", { n: sel.n })}</span>
+                    {sel.arc && <span className="ag-dh-badge">{sel.arc}</span>}
+                  </div>
+                  <h2>{sel.title}</h2>
+                  <div className="ag-dh-meta">
+                    {sel.date && <span className="ag-dh-chip">{sel.date}</span>}
+                    <span className="ag-dh-chip">{tappe} {tappe === 1 ? t("itd.fact.moment") : t("itd.fact.moments")} · {L("4 fasce", "4 bands")}</span>
+                  </div>
+                  {sel.sub && <div className="ag-dh-sub">{sel.sub}</div>}
+                </div>
+                {sel.img && <div className="ag-dh-hero"><img src={sel.img} alt={sel.title} loading="lazy" /></div>}
+              </div>
+            </div>
+          )}
+
+          {/* agenda body — 4 fasce */}
+          <div className="ag-body">
+            {BANDS.map(b => {
+              const arr = selMoments.filter(m => (m.band ?? "mattina") === b.key);
+              if (!arr.length) return null;
+              return (
+                <div className="ag-part" key={b.key} style={{ ["--pc" as any]: b.c }}>
+                  <div className="ag-phead">
+                    <span className="ag-node" />
+                    <span className="ag-plabel">{b.label}</span>
+                    <span className="ag-prange tnum">{bandRange(arr)}</span>
+                  </div>
+                  <div className="ag-moments">
+                    {arr.map((m, i) => (
+                      <div className="ag-m" key={i}>
+                        <div className="ag-mtop">
+                          {m.startTime && <span className="ag-mtime tnum">{m.startTime}</span>}
+                          {m.kindLabel && <span className="ag-kind">{m.kindLabel}</span>}
+                          {onToggleSaved && itineraryId && m.id && (
+                            <button
+                              className={"ag-fav" + (savedMomentIds?.has(m.id) ? " on" : "")}
+                              style={{ marginLeft: "auto" }}
+                              title={t("itd.dd.save")}
+                              onClick={() => onToggleSaved(m.id!, m)}
+                            >
+                              <Heart size={15} fill={savedMomentIds?.has(m.id) ? "currentColor" : "none"} />
+                            </button>
                           )}
                         </div>
+                        <div className="ag-mtitle">{m.title}</div>
+                        {m.desc && <div className="ag-mdetail">{m.desc}</div>}
+                        {(m.durationLabel || m.costLabel) && (
+                          <div className="ag-chips">
+                            {m.durationLabel && <span className="ag-chip"><i>{L("Durata", "Duration")}</i><b>{m.durationLabel}</b></span>}
+                            {m.costLabel && <span className="ag-chip"><i>{L("Costo", "Cost")}</i><b>{m.costLabel}</b></span>}
+                          </div>
+                        )}
+                        {m.planB && <div className="ag-note">{L("Piano B", "Plan B")}: {m.planB}</div>}
+                        {m.cta && m.ctaUrl && (
+                          <div className="ag-acts">
+                            <a className="ag-btn-book" href={m.ctaUrl} target="_blank" rel="noopener noreferrer"
+                              onClick={() => trackAffiliate(m.ctaProvider ?? "unknown", data.destination)}>
+                              {m.cta}{m.ctaPrice && <span className="ag-price">· {m.ctaPrice}</span>}
+                              <ExternalLink size={12} className="ag-ext" />
+                            </a>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <div className="dd-nav">
-                      <button disabled={activeMoment === 0} onClick={() => setActiveMoment(i => Math.max(0, i - 1))}>← {t("itd.dd.prev")}</button>
-                      <span className="ctr">{t("itd.dd.moment")} <em>{activeMoment + 1}</em> {t("itd.dd.of")} {dayMoments.length}</span>
-                      <button disabled={activeMoment >= dayMoments.length - 1} onClick={() => setActiveMoment(i => Math.min(dayMoments.length - 1, i + 1))}>{t("itd.dd.next")} →</button>
-                    </div>
+                    ))}
                   </div>
-                )}
-              </Fragment>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

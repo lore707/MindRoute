@@ -4,12 +4,24 @@ import { unsplashSized } from "@/lib/img";
 import { trackAffiliate } from "@/lib/analytics";
 
 export type Highlight = { ic: string; name: string; desc: string };
-export type Day = { n: number; arc: string; title: string; sub: string; img: string };
+export type Day = { n: number; arc: string; title: string; sub: string; img: string; date?: string };
+/** Le 4 fasce fisse dell'agenda (design "Giorno per Giorno"). */
+export type MomentBand = "mattina" | "pranzo" | "pomeriggio" | "sera";
 export type Moment = {
   t: string;
   ic: string;
   title: string;
   desc: string;
+  /** Fascia canonica per il raggruppamento agenda (mattina/pranzo/pomeriggio/sera). */
+  band?: MomentBand;
+  /** Orario d'inizio se il modello l'ha fornito (raro: spesso assente by design). */
+  startTime?: string;
+  /** Etichetta breve del tipo per la pill ("Tavola", "Esperienza", …). */
+  kindLabel?: string;
+  /** Stima costo formattata ("€15–20", "~€50"). */
+  costLabel?: string;
+  /** Stima durata formattata ("~2h", "~45 min"). */
+  durationLabel?: string;
   cta?: string;
   ctaUrl?: string;
   /** Optional price string shown inside the booking button ("~€95", "€80–120"). */

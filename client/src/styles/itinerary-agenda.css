@@ -1,0 +1,103 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   itinerary-agenda.css — vista "Giorno per Giorno · Agenda"
+   Design portato 1:1 dal reference handoff (design_handoff_itinerary_essentials).
+   SOLO design: struttura e contenuti restano quelli generati dal sistema (v2).
+   Tutto namespacato sotto .mr-agenda per non collidere con itinerary-dashboard.css.
+   Le 8 feature nuove del README (booking-status, transfer, offline, …) NON sono
+   implementate qui: sono lofi/spec.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.mr-agenda{
+  --ag-ink:#fbf5f0;
+  --ag-ink-dim:rgba(251,245,240,.78);
+  --ag-ink-faint:rgba(251,245,240,.5);
+  --ag-ink-ghost:rgba(251,245,240,.32);
+  --ag-accent:#E94560;
+  --ag-gold:#D4A853; --ag-teal:#6FB4A8; --ag-peri:#9B8CE0;
+  --ag-stroke:rgba(255,255,255,.09); --ag-stroke-strong:rgba(255,255,255,.2);
+  --ag-surf:rgba(255,255,255,.035); --ag-surf-2:rgba(255,255,255,.05);
+  --ag-bg-deep:#0d070d;
+  --ag-serif:"Playfair Display",Georgia,serif;
+  color:var(--ag-ink);
+  max-width:1000px;margin:0 auto;
+}
+.mr-agenda .tnum{font-variant-numeric:tabular-nums}
+
+/* ── Masthead ── */
+.mr-agenda .ag-mast{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:22px}
+.mr-agenda .ag-eyebrow{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--ag-accent);font-weight:600;margin-bottom:7px}
+.mr-agenda .ag-h1{font-family:var(--ag-serif);font-weight:600;font-size:30px;line-height:1.05;letter-spacing:-.01em}
+.mr-agenda .ag-h1 em{font-style:italic;color:var(--ag-gold)}
+.mr-agenda .ag-lede{font-size:13px;color:var(--ag-ink-faint);margin-top:8px;max-width:440px}
+.mr-agenda .ag-cmd-edit{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--ag-ink-dim);border:1px solid var(--ag-stroke-strong);padding:9px 15px;border-radius:11px;transition:.16s;white-space:nowrap;background:none}
+.mr-agenda .ag-cmd-edit:hover{background:var(--ag-surf-2);color:var(--ag-ink)}
+
+/* ── Legend (le 4 fasce fisse) ── */
+.mr-agenda .ag-legend{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:18px 0 24px;padding:12px 16px;background:var(--ag-surf);border:1px solid var(--ag-stroke);border-radius:12px}
+.mr-agenda .ag-lg-h{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ag-ink-ghost);font-weight:600}
+.mr-agenda .ag-lg{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ag-ink-dim)}
+.mr-agenda .ag-lg .ag-ldot{width:10px;height:10px;border-radius:50%}
+
+/* ── Day tabs ── */
+.mr-agenda .ag-daytabs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:26px}
+.mr-agenda .ag-daytab{text-align:left;padding:12px 14px;border-radius:13px;background:var(--ag-surf);border:1px solid var(--ag-stroke);transition:.18s;position:relative;overflow:hidden;cursor:pointer;color:inherit}
+.mr-agenda .ag-daytab:hover{background:var(--ag-surf-2);border-color:var(--ag-stroke-strong)}
+.mr-agenda .ag-daytab.on{background:rgba(233,69,96,.12);border-color:var(--ag-accent)}
+.mr-agenda .ag-daytab .ag-dn{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ag-ink-faint);font-weight:600}
+.mr-agenda .ag-daytab.on .ag-dn{color:var(--ag-accent)}
+.mr-agenda .ag-daytab .ag-dttl{font-family:var(--ag-serif);font-size:15px;margin-top:4px;line-height:1.15}
+.mr-agenda .ag-daytab .ag-dact{position:absolute;top:11px;right:12px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ag-ink-ghost);font-weight:600}
+
+/* ── Day header ── */
+.mr-agenda .ag-dayhead{margin-bottom:24px}
+.mr-agenda .ag-dayhead-grid{display:grid;grid-template-columns:1fr 300px;gap:26px;align-items:center}
+.mr-agenda .ag-dh-eyebrow{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ag-ink-faint);font-weight:600;margin-bottom:9px}
+.mr-agenda .ag-dh-badge{color:var(--ag-accent);border:1px solid var(--ag-accent);padding:2px 9px;border-radius:99px;font-size:10px}
+.mr-agenda .ag-dayhead h2{font-family:var(--ag-serif);font-weight:600;font-size:32px;line-height:1.08;letter-spacing:-.01em;max-width:760px}
+.mr-agenda .ag-dh-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:13px}
+.mr-agenda .ag-dh-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ag-ink-dim);background:var(--ag-surf);border:1px solid var(--ag-stroke);padding:5px 11px;border-radius:8px}
+.mr-agenda .ag-dh-sub{font-size:13.5px;color:var(--ag-ink-faint);margin-top:11px;max-width:620px}
+.mr-agenda .ag-dh-hero{height:194px;border-radius:16px;overflow:hidden;border:1px solid var(--ag-stroke-strong);box-shadow:0 26px 64px -30px rgba(0,0,0,.85)}
+.mr-agenda .ag-dh-hero img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* ── atomi condivisi ── */
+.mr-agenda .ag-kind{font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;padding:2px 8px;border-radius:99px;
+  color:var(--pc);border:1px solid color-mix(in srgb, var(--pc) 45%, transparent);background:color-mix(in srgb, var(--pc) 9%, transparent);white-space:nowrap}
+.mr-agenda .ag-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.mr-agenda .ag-chip{display:inline-flex;align-items:baseline;gap:6px;font-size:12px;background:var(--ag-surf-2);border:1px solid var(--ag-stroke);padding:5px 10px;border-radius:8px}
+.mr-agenda .ag-chip i{font-style:normal;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ag-ink-ghost);font-weight:600}
+.mr-agenda .ag-chip b{font-weight:500;color:var(--ag-ink-dim)}
+.mr-agenda .ag-note{font-family:var(--ag-serif);font-style:italic;font-size:13px;color:var(--ag-ink-faint);margin-top:10px;padding-left:11px;border-left:2px solid color-mix(in srgb, var(--pc) 40%, transparent)}
+.mr-agenda .ag-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.mr-agenda .ag-btn-book{display:inline-flex;align-items:center;gap:7px;background:var(--ag-accent);color:#fff;font-weight:600;font-size:12.5px;padding:8px 14px;border-radius:9px;box-shadow:0 8px 20px -10px var(--ag-accent);transition:.16s;text-decoration:none}
+.mr-agenda .ag-btn-book:hover{filter:brightness(1.06)}
+.mr-agenda .ag-btn-book .ag-price{opacity:.85;font-weight:500}
+.mr-agenda .ag-btn-book .ag-ext{opacity:.8}
+
+/* fav (cuore) — preserva il bookmark trasversale esistente */
+.mr-agenda .ag-fav{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;color:var(--ag-ink-faint);border:1px solid var(--ag-stroke);background:var(--ag-surf);transition:.16s;cursor:pointer}
+.mr-agenda .ag-fav:hover{color:var(--ag-ink);border-color:var(--ag-stroke-strong)}
+.mr-agenda .ag-fav.on{color:var(--ag-accent);border-color:color-mix(in srgb,var(--ag-accent) 50%,transparent);background:rgba(233,69,96,.12)}
+
+/* ── timeline agenda ── */
+.mr-agenda .ag-body{max-width:720px;margin:0 auto}
+.mr-agenda .ag-part{margin-bottom:4px}
+.mr-agenda .ag-phead{display:flex;align-items:center;gap:11px;padding:14px 0 6px}
+.mr-agenda .ag-node{width:13px;height:13px;border-radius:50%;background:var(--pc);box-shadow:0 0 0 4px color-mix(in srgb, var(--pc) 22%, transparent);flex:none}
+.mr-agenda .ag-plabel{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--pc);font-weight:600}
+.mr-agenda .ag-prange{margin-left:auto;font-size:11.5px;color:var(--ag-ink-ghost)}
+.mr-agenda .ag-moments{position:relative;margin-left:6px;padding-left:24px;padding-bottom:6px;border-left:2px solid color-mix(in srgb, var(--pc) 26%, transparent)}
+.mr-agenda .ag-m{position:relative;padding:13px 16px;background:var(--ag-surf);border:1px solid var(--ag-stroke);border-radius:13px;margin-bottom:11px}
+.mr-agenda .ag-m::before{content:"";position:absolute;left:-31px;top:17px;width:9px;height:9px;border-radius:50%;background:var(--pc);box-shadow:0 0 0 4px var(--ag-bg-deep)}
+.mr-agenda .ag-mtop{display:flex;align-items:center;gap:10px}
+.mr-agenda .ag-mtime{font-size:15px;font-weight:600;color:var(--ag-ink)}
+.mr-agenda .ag-mtitle{font-family:var(--ag-serif);font-size:19px;line-height:1.2;margin-top:7px}
+.mr-agenda .ag-mdetail{font-size:13px;color:var(--ag-ink-dim);margin-top:4px}
+
+@media(max-width:740px){
+  .mr-agenda .ag-h1{font-size:24px}
+  .mr-agenda .ag-daytabs{grid-template-columns:1fr 1fr}
+  .mr-agenda .ag-dayhead h2{font-size:25px}
+  .mr-agenda .ag-dayhead-grid{grid-template-columns:1fr}
+  .mr-agenda .ag-dh-hero{height:160px;order:-1}
+}
