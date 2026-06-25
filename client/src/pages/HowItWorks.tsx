@@ -40,7 +40,7 @@ export default function HowItWorks() {
       mode="how"
       data={{
         ...data,
-        onStart: () => navigate("/profiling"),
+        onStart: () => navigate("/start"),
       }}
     />
   );

@@ -65,7 +65,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   //    sua barra minima condivisa (FlowNav: logo→indietro, lingua, "Salva ed esci").
   //    Uguale per loggati e anonimi — nessuna nav marketing durante quiz e scelta.
   const isItinerary = location.startsWith("/itinerary/") && !location.startsWith("/itinerary/stream");
-  const isFlow = location === "/profiling" || location === "/destinations";
+  const isFlow = location === "/start" || location === "/profiling" || location === "/destinations";
   const isDashboard = location === "/my-account" || isItinerary || isFlow || (location === "/" && !!user);
 
   return (
@@ -137,7 +137,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
           <LangDropdown />
           <AuthButton />
-          <Link href="/profiling" className="text-[13px] font-medium no-underline px-3.5 sm:px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center justify-center gap-1.5 min-h-[40px] min-w-[40px]" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">
+          <Link href="/start" className="text-[13px] font-medium no-underline px-3.5 sm:px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center justify-center gap-1.5 min-h-[40px] min-w-[40px]" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">
             <Compass className="w-4 h-4 sm:hidden" />
             <span className="hidden sm:inline">{t('nav.start')}</span>
           </Link>

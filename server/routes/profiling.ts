@@ -91,6 +91,44 @@ export function registerProfilingRoutes(app: Express) {
     }
   });
 
+  // STEP 1-fast — Onboarding L1, ramo "Ho già una meta".
+  // Salta del tutto il matcher (la città scelta NON è nel catalogo dei 16):
+  // crea una singola destinazione per la città digitata, salva il profilo L1 e
+  // restituisce l'id pronto per /api/itinerary/generate-v2. Niente schermata
+  // /destinations: l'utente va dritto al primo itinerario.
+  const directSchema = z.object({
+    city: z.string().min(1).max(120),
+    // Profilo L1 completo costruito client-side (answers/days/budget/_l1/lang…).
+    // Passa as-is alla generazione e viene persistito sull'itinerario: la
+    // coverage e il refine L2 leggono da lì.
+    profile: z.record(z.any()),
+  });
+
+  app.post("/api/profiling/direct", requireAuth, profilingLimiter, async (req, res) => {
+    try {
+      const { city, profile } = directSchema.parse(req.body);
+      await storage.clearAll();
+      const hero = await fetchUnsplashHero(city);
+      const dest = await storage.createDestination({
+        name: city,
+        whyYours: "",
+        experiencePreview: "",
+        practicalInfo: "",
+        imageUrl: hero?.url ?? null,
+        slotRole: "direct",
+        tagline: null,
+      });
+      await storage.saveProfilingInput(profile);
+      res.json({ destinationId: dest.id, destinationName: dest.name });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });
+      }
+      console.error("Error in /api/profiling/direct:", err);
+      return res.status(500).json({ message: "Errore nella preparazione della meta. Riprova." });
+    }
+  });
+
   // STEP 1bis — "Genera dal profilo" (Ondata C punto 3).
   // Bypass del quiz per utenti che hanno già un trait history significativo:
   // 3 micro-input contestuali (compagnia, durata, partenza) + il vector
