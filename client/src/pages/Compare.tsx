@@ -151,7 +151,7 @@ export default function Compare() {
         {!tripsLoading && trips.length < 2 && (
           <div className="text-center py-12 rounded-[20px]" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
             <p className="text-white/40 mb-2">Servono almeno 2 viaggi per confrontare.</p>
-            <Link href="/profiling" className="text-[#E94560] text-sm hover:underline">Generane uno nuovo</Link>
+            <Link href="/start" className="text-[#E94560] text-sm hover:underline">Generane uno nuovo</Link>
           </div>
         )}
 

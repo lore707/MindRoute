@@ -505,7 +505,7 @@ export function LandingCinematic({ data, mode = "landing" }: { data: LandingData
           </div>
           <div className="lc-footer-col">
             <div className="lc-footer-head">{t("footer.productHead")}</div>
-            <Link href="/profiling" className="lc-footer-link">{t("footer.productStart")}</Link>
+            <Link href="/start" className="lc-footer-link">{t("footer.productStart")}</Link>
             <Link href="/privacy" className="lc-footer-link">{t("footer.privacy")}</Link>
           </div>
           <div className="lc-footer-col">

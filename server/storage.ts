@@ -14,6 +14,12 @@ export interface IStorage {
   setItineraryPublicToken(id: number, token: string): Promise<void>;
  updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
   updateItineraryTrip(id: number, updatedDays: any[], tripMeta: any): Promise<void>;
+  // Raffinamento L2: rigenera l'intero itinerario v2 e ne riscrive i campi
+  // (giorni + meta + profilo accumulato + testi top-level). L'id/URL resta stabile.
+  updateItineraryRefine(id: number, patch: {
+    days: any[]; tripMeta: any; profilingInput: any;
+    whyYours?: string; tripSummary?: string; closingMessage?: string; heroImageUrl?: string;
+  }): Promise<void>;
   getUserItineraries(userId: number): Promise<any[]>;
   createTraitSnapshot(snapshot: InsertTraitSnapshot): Promise<TraitSnapshot>;
   getTraitSnapshots(userId: number): Promise<TraitSnapshot[]>;
@@ -108,6 +114,25 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     if (idx >= 0) {
       this.itineraries[idx] = { ...this.itineraries[idx], days: updatedDays, tripMeta };
     }
+  }
+
+  async updateItineraryRefine(id: number, patch: {
+    days: any[]; tripMeta: any; profilingInput: any;
+    whyYours?: string; tripSummary?: string; closingMessage?: string; heroImageUrl?: string;
+  }): Promise<void> {
+    const idx = this.itineraries.findIndex(i => i.id === id);
+    if (idx < 0) return;
+    const prev = this.itineraries[idx] as any;
+    this.itineraries[idx] = {
+      ...prev,
+      days: patch.days,
+      tripMeta: patch.tripMeta,
+      profilingInput: patch.profilingInput,
+      whyYours: patch.whyYours ?? prev.whyYours,
+      tripSummary: patch.tripSummary ?? prev.tripSummary,
+      closingMessage: patch.closingMessage ?? prev.closingMessage,
+      heroImageUrl: patch.heroImageUrl ?? prev.heroImageUrl,
+    };
   }
 
   async getUserItineraries(userId: number): Promise<any[]> {

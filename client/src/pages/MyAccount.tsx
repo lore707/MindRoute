@@ -428,7 +428,7 @@ export default function MyAccount() {
     atlas,
     atlasLoading,
     settings,
-    onNewItinerary: () => setLocation("/profiling"),
+    onNewItinerary: () => setLocation("/start"),
     onSecondaryCta: () => {
       // "Genera dal profilo": apre il modal se abbiamo abbastanza segnale
       // (≥2 snapshot). Altrimenti — invece di un no-op (la vecchia ancora

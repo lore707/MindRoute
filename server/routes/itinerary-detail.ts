@@ -7,6 +7,23 @@ import { storage } from "../storage";
 import { api } from "@shared/routes";
 import { requireAuth } from "../auth";
 import { itineraryLimiter } from "../rate-limiter";
+import { computeCoverage } from "@shared/profile-coverage";
+import { generateItineraryV2ForDestination } from "../matching-engine-v2";
+import { enrichItineraryV2, buildTripMetaV2 } from "./itinerary-gen-v2";
+import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
+
+// Ricostruisce la stringa `constraints` dai raffinamenti L2 nel formato che il
+// prompt v2 già sa leggere (accommodation/food/pace/avoid). Così rispondere a
+// una domanda L2 cambia DAVVERO l'itinerario rigenerato, non solo la coverage.
+function buildConstraintsFromProfile(p: any): string {
+  const parts: string[] = [];
+  if (typeof p.accommodation === "string" && p.accommodation.trim()) parts.push(`accommodation: ${p.accommodation.trim()}`);
+  if (typeof p.food === "string" && p.food.trim()) parts.push(`food: ${p.food.trim()}`);
+  if (typeof p.pace === "string" && p.pace.trim()) parts.push(`pace: ${p.pace.trim()}`);
+  if (Array.isArray(p.avoid) && p.avoid.length) parts.push(`avoid: ${p.avoid.join(", ")}`);
+  if (typeof p._notes === "string" && p._notes.trim()) parts.push(p._notes.trim());
+  return parts.join(" | ");
+}
 
 function escapeHtml(s: string): string {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -174,6 +191,87 @@ export function registerItineraryDetailRoutes(app: Express) {
     } catch (err) {
       console.error("Errore rigenerazione giorno:", err);
       res.status(500).json({ message: "Errore durante la rigenerazione" });
+    }
+  });
+
+  // ── L2 — Raffinamento progressivo con rigenerazione ──────────────────────
+  // L'utente, DOPO aver visto il primo itinerario, risponde a una domanda più
+  // profonda (ritmo/compagnia/dove dormi/come mangi/come ti muovi/cosa eviti/
+  // partenza). Il patch viene fuso nel profilo persistito, l'itinerario v2 viene
+  // RIGENERATO per intero sulla stessa meta (più specifico) e la riga aggiornata
+  // in place: id/URL stabili. Risponde con la nuova coverage ("ti somiglia al X%").
+  const refineSchema = z.object({
+    companions: z.string().max(200).optional(),
+    accommodation: z.string().max(200).optional(),
+    food: z.string().max(200).optional(),
+    travelStyle: z.string().max(200).optional(),
+    pace: z.string().max(200).optional(),
+    departure: z.string().max(200).optional(),
+    avoid: z.array(z.string().max(80)).max(20).optional(),
+  });
+
+  app.post("/api/itinerary/:id/refine", requireAuth, itineraryLimiter, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
+      if ((itin as any).schemaVersion !== 2) {
+        return res.status(400).json({ message: "Il raffinamento è disponibile solo sugli itinerari più recenti." });
+      }
+      const patch = refineSchema.parse(req.body);
+
+      // 1) Fondi il patch nel profilo persistito (accumula tra più refine).
+      const prev = ((itin as any).profilingInput ?? {}) as Record<string, any>;
+      const merged: Record<string, any> = { ...prev };
+      for (const k of ["companions", "accommodation", "food", "travelStyle", "pace", "departure"] as const) {
+        const v = patch[k];
+        if (typeof v === "string" && v.trim()) merged[k] = v.trim();
+      }
+      if (patch.avoid) merged.avoid = patch.avoid;
+      merged.constraints = buildConstraintsFromProfile(merged);
+      merged.refinedAt = new Date().toISOString();
+
+      // 2) Rigenera l'intero itinerario v2 sulla stessa destinazione.
+      const destinationName = (itin as any).destinationName as string;
+      const userId = (req.user as any)?.id ?? null;
+      const prior = await getTraitPriorForUser(userId);
+      const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+      const rough = await generateItineraryV2ForDestination(merged as any, destinationName, priorBlock);
+      const enriched = await enrichItineraryV2(rough, destinationName, merged);
+
+      // 3) Riscrivi la riga in place (stesso id/URL).
+      await storage.updateItineraryRefine(id, {
+        days: enriched.days,
+        tripMeta: buildTripMetaV2(enriched),
+        profilingInput: merged,
+        whyYours: enriched.manifesto,
+        tripSummary: enriched.manifesto.slice(0, 200),
+        closingMessage: enriched.closing_quote,
+        heroImageUrl: enriched.hero_image_url,
+      });
+
+      res.json({ id, coverage: computeCoverage(merged) });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("Errore refine itinerario:", err);
+      res.status(500).json({ message: "Errore durante il raffinamento. Riprova." });
+    }
+  });
+
+  // Coverage corrente di un itinerario ("ti somiglia al X%") + dimensioni aperte.
+  app.get("/api/itinerary/:id/coverage", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Not found" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const profile = (itin as any).profilingInput ?? await storage.getProfilingInput() ?? {};
+      res.json({ coverage: computeCoverage(profile), schemaVersion: (itin as any).schemaVersion ?? 1 });
+    } catch (err) {
+      res.status(500).json({ message: "Errore" });
     }
   });
 

@@ -17,6 +17,7 @@ import Landing from "@/pages/Landing";
 // code-split so its JS — and heavy deps like Leaflet (Itinerary) and Recharts
 // (Account) — only download when that section is actually opened.
 const Profiling = lazy(() => import("@/pages/Profiling"));
+const QuizFast = lazy(() => import("@/pages/QuizFast"));
 const Destinations = lazy(() => import("@/pages/Destinations"));
 const Itinerary = lazy(() => import("@/pages/Itinerary"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
@@ -60,6 +61,11 @@ function Router() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/come-funziona" component={HowItWorks} />
+          {/* Onboarding L1 (fast lane) — entrata principale del funnel. */}
+          <Route path="/start">
+            <RequireAuth><QuizFast /></RequireAuth>
+          </Route>
+          {/* Quiz approfondito originale — escape hatch, ancora raggiungibile. */}
           <Route path="/profiling">
             <RequireAuth><Profiling /></RequireAuth>
           </Route>

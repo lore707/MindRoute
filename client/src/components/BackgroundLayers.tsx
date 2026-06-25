@@ -33,6 +33,7 @@ type Mode = "hero" | "map" | "form" | "minimal" | "journey";
 const ROUTE_MODE: Record<string, Mode> = {
   "/":            "hero",      // Landing: tutto al massimo
   "/destinations":"map",       // Mappa: atmosfera + grana, poche stelle, no aurora
+  "/start":       "form",      // Onboarding L1: stessa atmosfera del quiz
   "/profiling":   "form",      // Quiz: atmosfera + grana + stelle rarefatte
   "/itinerary":   "journey",   // Itinerario: stelle + aurora warm
   "/my-account":  "journey",   // Account: stessa atmosfera calda dell'itinerario (era "minimal", troppo spento)

@@ -27,6 +27,7 @@ import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight,
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
 import { ItineraryRedesign } from "@/components/ItineraryRedesign";
 import { ItineraryDashboard } from "@/components/ItineraryDashboard";
+import { RefinePanel } from "@/components/RefinePanel";
 
 // ── URL BUILDER ───────────────────────────────────────────────────────────────
 export function buildAffiliateUrls(destinationName: string, profilingInput: any, region: string, topLinks: Record<string, string>): Record<string, string> {
@@ -1045,20 +1046,30 @@ export default function Itinerary() {
     }
 
     return (
-      <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
-        <ItineraryDashboard
-          data={cinematicData}
-          itinerary={itinerary}
-          affiliateUrls={affiliateUrls}
-          profilingInput={profilingInput}
-          onSavePdf={handleSavePdf}
-          onStartOver={() => setLocation("/")}
-          onEdit={() => setShowEditor(true)}
+      <>
+        <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
+          <ItineraryDashboard
+            data={cinematicData}
+            itinerary={itinerary}
+            affiliateUrls={affiliateUrls}
+            profilingInput={profilingInput}
+            onSavePdf={handleSavePdf}
+            onStartOver={() => setLocation("/")}
+            onEdit={() => setShowEditor(true)}
+            itineraryId={itinerary.id}
+            savedMomentIds={savedMomentIds}
+            onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
+          />
+        </div>
+        {/* L2 — raffinamento progressivo con rigenerazione (solo itinerari v2). */}
+        <RefinePanel
           itineraryId={itinerary.id}
-          savedMomentIds={savedMomentIds}
-          onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
+          profilingInput={profilingInput}
+          schemaVersion={(itinerary as any).schemaVersion ?? 1}
+          lang={lang as "it" | "en"}
+          onRefined={refetch}
         />
-      </div>
+      </>
     );
   }
 

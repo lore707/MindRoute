@@ -43,10 +43,10 @@ export default function Landing() {
     <LandingCinematic
       data={{
         ...data,
-        // Evento PRE-muro auth: il CTA fa solo navigate(/profiling), il gate
+        // Evento PRE-muro auth: il CTA fa solo navigate(/start), il gate
         // <RequireAuth> scatta DOPO. Il delta con quiz_started (scelta-path, post-muro)
-        // misura il drop-off dell'auth gate.
-        onStart: () => { track("quiz_cta_click"); navigate("/profiling"); },
+        // misura il drop-off dell'auth gate. /start = onboarding L1 veloce.
+        onStart: () => { track("quiz_cta_click"); navigate("/start"); },
       }}
     />
   );

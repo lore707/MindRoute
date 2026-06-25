@@ -161,7 +161,7 @@ function dedupMomentImages(days: DayV2[], heroFallback: string): void {
   }
 }
 
-async function enrichItineraryV2(rough: ItineraryV2, destinationName: string, profilingInput?: any): Promise<ItineraryV2> {
+export async function enrichItineraryV2(rough: ItineraryV2, destinationName: string, profilingInput?: any): Promise<ItineraryV2> {
   const affCtx = buildAffiliateContext(destinationName, profilingInput);
 
   // 1. Hero image — overwrite LLM URL with real Unsplash hero.
@@ -215,8 +215,10 @@ async function enrichItineraryV2(rough: ItineraryV2, destinationName: string, pr
 
 // ── Persistence: map ItineraryV2 → DB row (schemaVersion=2) ───────────────
 
-function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: number | null, profilingInput: any): any {
-  const tripMeta: TripMetaV2 = {
+// tripMeta v2 da un itinerario arricchito — usato sia alla creazione che al
+// refine L2 (rigenerazione completa) così i due percorsi restano coerenti.
+export function buildTripMetaV2(v2: ItineraryV2): TripMetaV2 {
+  return {
     em_word: v2.em_word,
     travel_dates: v2.travel_dates,
     total_cost_bookable: v2.total_cost_bookable,
@@ -225,6 +227,10 @@ function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: num
     map_points: v2.map_points,
     highlights_v2: v2.highlights,
   };
+}
+
+function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: number | null, profilingInput: any): any {
+  const tripMeta = buildTripMetaV2(v2);
   return {
     destinationId,
     userId,
