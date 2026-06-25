@@ -15,11 +15,16 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Check, ArrowRight } from "lucide-react";
 import { computeCoverage, type CoverageDimKey } from "@shared/profile-coverage";
+import { questionThemes } from "@/pages/profiling/questionThemes";
 
 type Lang = "it" | "en";
 const L = (lang: Lang, it: string, en: string) => (lang === "it" ? it : en);
 
-type Opt = { value: string; it: string; en: string };
+// Miniatura dalla stessa libreria di scatti del quiz (questionThemes).
+const themeThumb = (key?: string) =>
+  key ? (questionThemes[key] ?? questionThemes.default).imageUrl.replace("w=1200", "w=240") : "";
+
+type Opt = { value: string; it: string; en: string; theme?: string };
 
 // Set di opzioni per ogni dimensione L2 → mappate sul campo profilo che il
 // generatore v2 sa leggere (vedi buildConstraintsFromProfile lato server).
@@ -32,45 +37,45 @@ const OPTIONS: Record<Exclude<CoverageDimKey, "destination" | "duration" | "budg
   pace: {
     field: "pace",
     opts: [
-      { value: "relaxed", it: "Più relax", en: "More relaxed" },
-      { value: "balanced", it: "Equilibrato", en: "Balanced" },
-      { value: "intense", it: "Più intense", en: "More intense" },
+      { value: "relaxed", it: "Più relax", en: "More relaxed", theme: "slowdown" },
+      { value: "balanced", it: "Equilibrato", en: "Balanced", theme: "authentic" },
+      { value: "intense", it: "Più intense", en: "More intense", theme: "adventure" },
     ],
   },
   companions: {
     field: "companions",
     opts: [
-      { value: "solo", it: "Da solo", en: "Solo" },
-      { value: "couple", it: "In coppia", en: "As a couple" },
-      { value: "friends", it: "Con amici", en: "With friends" },
-      { value: "family", it: "In famiglia", en: "With family" },
+      { value: "solo", it: "Da solo", en: "Solo", theme: "solitary" },
+      { value: "couple", it: "In coppia", en: "As a couple", theme: "intimate" },
+      { value: "friends", it: "Con amici", en: "With friends", theme: "festive" },
+      { value: "family", it: "In famiglia", en: "With family", theme: "nature" },
     ],
   },
   accommodation: {
     field: "accommodation",
     opts: [
-      { value: "hostel", it: "Ostello", en: "Hostel" },
-      { value: "budget", it: "Hotel semplice", en: "Simple hotel" },
-      { value: "boutique", it: "Boutique / Design", en: "Boutique / Design" },
-      { value: "luxury", it: "Lusso", en: "Luxury" },
+      { value: "hostel", it: "Ostello", en: "Hostel", theme: "offgrid" },
+      { value: "budget", it: "Hotel semplice", en: "Simple hotel", theme: "city" },
+      { value: "boutique", it: "Boutique / Design", en: "Boutique / Design", theme: "authentic" },
+      { value: "luxury", it: "Lusso", en: "Luxury", theme: "quietluxury" },
     ],
   },
   food: {
     field: "food",
     opts: [
-      { value: "street", it: "Street food", en: "Street food" },
-      { value: "local", it: "Locali autentici", en: "Authentic local spots" },
-      { value: "mix", it: "Un mix", en: "A mix" },
-      { value: "foodie", it: "Esperienze gastronomiche", en: "Fine dining" },
+      { value: "street", it: "Street food", en: "Street food", theme: "food" },
+      { value: "local", it: "Locali autentici", en: "Authentic local spots", theme: "authentic" },
+      { value: "mix", it: "Un mix", en: "A mix", theme: "food" },
+      { value: "foodie", it: "Esperienze gastronomiche", en: "Fine dining", theme: "quietluxury" },
     ],
   },
   movement: {
     field: "travelStyle",
     opts: [
-      { value: "fixed", it: "Base fissa", en: "Single base" },
-      { value: "two", it: "Due basi", en: "Two bases" },
-      { value: "roadtrip", it: "Road trip", en: "Road trip" },
-      { value: "discover", it: "Scoperta continua", en: "Always moving" },
+      { value: "fixed", it: "Base fissa", en: "Single base", theme: "city" },
+      { value: "two", it: "Due basi", en: "Two bases", theme: "cultural" },
+      { value: "roadtrip", it: "Road trip", en: "Road trip", theme: "roadtrip" },
+      { value: "discover", it: "Scoperta continua", en: "Always moving", theme: "discovery" },
     ],
   },
   avoid: {
@@ -382,9 +387,15 @@ function ActiveQuestion({
               key={o.value}
               onClick={() => onPickSingle(cfg, o.value)}
               data-testid={`refine-opt-${o.value}`}
-              className="w-full text-left px-4 py-3.5 rounded-xl text-[15px] border border-white/12 text-white/85 bg-white/5 hover:border-[#E94560] hover:bg-[#E94560]/10 transition-all flex items-center justify-between group"
+              className="w-full text-left pl-2 pr-4 py-2 rounded-xl text-[15px] border border-white/12 text-white/85 bg-white/5 hover:border-[#E94560] hover:bg-[#E94560]/10 transition-all flex items-center gap-3 group"
             >
-              {L(lang, o.it, o.en)}
+              {o.theme && (
+                <span
+                  className="w-12 h-12 rounded-lg bg-cover bg-center shrink-0 border border-white/10"
+                  style={{ backgroundImage: `url("${themeThumb(o.theme)}")` }}
+                />
+              )}
+              <span className="flex-1">{L(lang, o.it, o.en)}</span>
               <ArrowRight className="w-4 h-4 text-white/25 group-hover:text-[#E94560] transition-colors" />
             </button>
           ))}
