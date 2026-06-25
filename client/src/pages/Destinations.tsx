@@ -183,7 +183,7 @@ const generateItinerary = async (destId: number) => {
             track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v2" });
             clearInterval(msgInterval);
             clearPendingGen();
-            setLocation(`/itinerary/${v2Data.id ?? destId}`);
+            setLocation(`/itinerary/${v2Data.id ?? destId}?l2=1`);
             return;
           }
           console.warn("[v2] endpoint returned non-2xx, falling back to legacy stream");
@@ -231,7 +231,7 @@ const generateItinerary = async (destId: number) => {
                 track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v1" });
                 clearInterval(msgInterval);
                 clearPendingGen();
-                setLocation(`/itinerary/${data.itineraryId ?? destId}`);
+                setLocation(`/itinerary/${data.itineraryId ?? destId}?l2=1`);
                 return;
               } else if (currentEvent === "error") {
                 throw new Error(data.message);
@@ -247,7 +247,7 @@ const generateItinerary = async (destId: number) => {
 
       clearInterval(msgInterval);
       clearPendingGen();
-      setLocation(`/itinerary/${destId}`);
+      setLocation(`/itinerary/${destId}?l2=1`);
     } catch (err) {
       console.error(err);
       clearPendingGen();

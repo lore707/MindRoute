@@ -137,7 +137,11 @@ export default function QuizFast() {
     const bud = BUDGETS.find((b) => b.id === budget);
     const sens = SENSATIONS.find((s) => s.id === sensation);
     const sensLabel = sens ? `${sens.it} / ${sens.en}` : "";
-    const answers: string[] = ["path_fast"];
+    // Path marker coerente col matcher storico: meta → path_b (ha una meta),
+    // surprise → path_a (aperto). La logica delle 3 destinazioni (3 angoli per
+    // città precisa via specific_place, 3 mete dal profilo per surprise) resta
+    // quella originale di generateDestinationsOnly.
+    const answers: string[] = [mode === "meta" ? "path_b" : "path_a"];
     if (mode === "surprise" && sens) answers.push(JSON.stringify({ emotional_goals: [sensLabel], pace: "balanced" }));
     else if (mode === "meta" && city.trim()) answers.push(JSON.stringify({ specific_place: city.trim() }));
     return {
@@ -161,53 +165,31 @@ export default function QuizFast() {
   };
 
   const genMessages = lang === "it"
-    ? ["Leggo cosa cerchi…", "Scelgo il posto giusto per te…", "Costruisco i tuoi giorni…", "Cerco i momenti, non le tappe…", "Quasi pronto…"]
-    : ["Reading what you're after…", "Choosing the right place for you…", "Building your days…", "Looking for moments, not stops…", "Almost there…"];
+    ? ["Leggo cosa cerchi…", "Confronto con il tuo profilo…", "Cerco le 3 mete giuste per te…", "Quasi pronto…"]
+    : ["Reading what you're after…", "Matching your profile…", "Finding your 3 destinations…", "Almost there…"];
 
+  // Fine L1 → genera le 3 destinazioni con la logica originale (matcher) e porta
+  // a /destinations per la scelta 1-di-3. La generazione dell'itinerario e L2
+  // restano sulla pagina successiva, identiche al flusso storico.
   const runGen = async () => {
     setGenerating(true);
     let mi = 0;
     setGenMsg(genMessages[0]);
-    const iv = setInterval(() => { mi = Math.min(mi + 1, genMessages.length - 1); setGenMsg(genMessages[mi]); }, 9000);
+    const iv = setInterval(() => { mi = Math.min(mi + 1, genMessages.length - 1); setGenMsg(genMessages[mi]); }, 8000);
     try {
       const profile = buildProfile();
       setFlow("mind_profiling_input", JSON.stringify(profile));
-      track("quiz_completed", { path: mode === "meta" ? "fast_meta" : "fast_surprise" });
-
-      let destinationName = "", destinationId = 0;
-      let tagline: string | undefined, whyYours: string | undefined;
-
-      if (mode === "meta") {
-        const r = await fetch("/api/profiling/direct", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ city: city.trim(), profile }),
-        });
-        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || "direct failed");
-        const d = await r.json();
-        destinationName = d.destinationName; destinationId = d.destinationId;
-      } else {
-        const r = await fetch("/api/profiling", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(profile),
-        });
-        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || "matching failed");
-        const dests = await r.json();
-        const top = Array.isArray(dests) ? dests[0] : null;
-        if (!top) throw new Error("no destination");
-        destinationName = top.name; destinationId = top.id;
-        tagline = top.tagline ?? undefined; whyYours = top.whyYours ?? undefined;
-      }
-
-      track("generate_itinerary_started", { destination: destinationName, days: profile.days, budget: profile.budget });
-      const v2 = await fetch("/api/itinerary/generate-v2", {
+      const r = await fetch("/api/profiling", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: profile, destinationName, destinationId, tagline, whyYours }),
+        body: JSON.stringify(profile),
       });
-      if (!v2.ok) throw new Error("generation failed");
-      const data = await v2.json();
-      track("itinerary_generated", { destination: destinationName, days: profile.days, schema: "v2" });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || "matching failed");
+      const dests = await r.json();
+      if (!Array.isArray(dests) || dests.length === 0) throw new Error("no destinations");
+      setFlow("mind_destinations", JSON.stringify(dests));
+      track("quiz_completed", { path: mode === "meta" ? "fast_meta" : "fast_surprise" });
       clearInterval(iv);
-      setLocation(`/itinerary/${data.id ?? destinationId}?l2=1`);
+      setLocation("/destinations");
     } catch (err) {
       clearInterval(iv);
       setGenerating(false);
