@@ -7,3 +7,7 @@ vite.config.ts.*
 content-factory/out/
 .env
 HE-Lead-Events-Agent/
+
+# Design handoff artifacts dropped into the repo root (not part of the app)
+/README.md
+/Giorno per Giorno - Agenda.html
