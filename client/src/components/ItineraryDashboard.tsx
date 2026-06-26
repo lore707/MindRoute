@@ -50,8 +50,15 @@ type Props = {
 
 const SEG_COLORS = ["#E94560", "#D4A853", "#6FB4A8", "#9D7EBC", "#5E8CB6", "#C77B5A"];
 
-/* ── checklist (booking missions) persisted in localStorage ── */
+/* ── checklist prenotazioni (persistita in localStorage) ── */
 type ChecklistItem = { id: string; checked: boolean };
+// Voce di prenotazione concreta: la scelta già fatta (nome reale, perché, prezzo
+// stimato, distanza) + una CTA primaria + alternative. Essenziale vs consigliata.
+type BookItem = {
+  id: string; tier: "essential" | "recommended"; ic: string;
+  title: string; generic: string; facts: string[]; why?: string; day?: number | null;
+  url?: string; cta: string; provider?: string; alt: { label: string; url: string }[];
+};
 const MISSION_DEFS = [
   { id: "flight", ic: "✈️", nameKey: "itd.mis.flight", metaKey: "itd.mis.flightMeta", urlKeys: ["expedia_flights"], day: 1 },
   { id: "hotel", ic: "🏨", nameKey: "itd.mis.hotel", metaKey: "itd.mis.hotelMeta", urlKeys: ["hotels", "tablet_hotels"], day: 1 },
@@ -171,6 +178,9 @@ export function ItineraryDashboard({
   const [, setActiveMoment] = useState(0);
   // Collegamento Mappa→Giorni: il momento su cui scrollare dopo il salto.
   const [pendingMoment, setPendingMoment] = useState<string | null>(null);
+  // "Altre opzioni" aperte per voce di prenotazione (sezione Prenota).
+  const [altOpen, setAltOpen] = useState<Set<string>>(new Set());
+  const toggleAlt = (id: string) => setAltOpen(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const { checked, toggle } = useMissions(itineraryId);
 
@@ -238,24 +248,106 @@ export function ItineraryDashboard({
     return esc;
   }, [data.manifesto, data.emWord]);
 
-  // ── missions ──
-  // Risolve URL + provider canonico dalla PRIMA chiave affiliate disponibile,
-  // così l'evento affiliate_click riporta il partner reale (non l'id missione).
-  const missionUrlAndProvider = (urlKeys: readonly string[]): { url?: string; provider?: string } => {
-    for (const k of urlKeys) if (affiliateUrls[k]) return { url: affiliateUrls[k], provider: affiliateProvider(k) };
-    return {};
-  };
-  const missions = useMemo(() => MISSION_DEFS
-    .map(m => ({ ...m, ...missionUrlAndProvider(m.urlKeys) }))
-    .filter(m => !!m.url), [affiliateUrls]);
-  const doneCount = missions.filter(m => checked[m.id]).length;
-  const missionTotal = missions.length || 1;
-  const pct = Math.round((doneCount / missionTotal) * 100);
   const peakDay = days[Math.floor((dayCount - 1) / 2)]?.n ?? 1;
 
   // Vantaggio "dove dormire" calcolato dalle tappe geocodificate (grounded, non
   // dal modello): alimenta il copy concreto sul CTA alloggio.
   const stayAdvantage = useMemo(() => computeStayAdvantage(data.mapPoints), [data.mapPoints]);
+
+  // ── voci di prenotazione concrete (fonte unica: anello topbar + sezione Prenota) ──
+  const bookingItems = useMemo<BookItem[]>(() => {
+    const Lx = (it: string, en: string) => (lang === "it" ? it : en);
+    const dest = data.destination;
+    const allMoments = Object.values(data.momentsByDay).flat() as any[];
+    const ofType = (ty: string) => allMoments.filter((m) => m.type === ty);
+    const departure = (profilingInput?.departure ?? "").trim();
+    const nights = Math.max(1, dayCount - 1);
+
+    const hotelM: any = ofType("accommodation")[0];
+    const expM: any = ofType("experience").find((m) => m.ctaUrl) ?? ofType("experience")[0];
+    const foodM: any = ofType("food").find((m) => m.locationName);
+    const transferM: any = ofType("transport").find((m) => (m.dayNumber ?? 1) !== 1);
+
+    const opt = (label: string, url?: string) => (url ? [{ label, url }] : []);
+    const flightAlt = [...opt("Expedia", affiliateUrls.expedia_flights)];
+    const stayAlt = [...opt("Hotels.com", affiliateUrls.hotels), ...opt("Tablet Hotels", affiliateUrls.tablet_hotels)];
+    const expAlt = [...opt("Civitatis", affiliateUrls.civitatis), ...opt("Musement", affiliateUrls.musement), ...opt("Klook", affiliateUrls.klook), ...opt("Viator", affiliateUrls.viator)];
+    const transferAlt = [...opt("FlixBus", affiliateUrls.flixbus), ...opt("SamBoat", affiliateUrls.samboat), ...opt("Cars", affiliateUrls.expedia_cars)];
+
+    const out: BookItem[] = [];
+
+    // VOLO (essenziale)
+    out.push({
+      id: "flight", tier: "essential", ic: "✈️",
+      title: departure ? `${departure} → ${dest}` : Lx(`Il volo per ${dest}`, `Flight to ${dest}`),
+      generic: Lx("Volo", "Flight"),
+      facts: [Lx("Andata e ritorno", "Round trip"), Lx("Giorno 1", "Day 1")],
+      why: departure ? undefined : Lx("Aggiungi la partenza in L1 per la tratta esatta.", "Add your departure in L1 for the exact route."),
+      day: 1, url: affiliateUrls.expedia_flights, cta: Lx("Vedi disponibilità", "See availability"), provider: "expedia",
+      alt: flightAlt.filter((a) => a.url !== affiliateUrls.expedia_flights),
+    });
+
+    // ALLOGGIO (essenziale)
+    {
+      const facts = [`${nights} ${Lx(nights === 1 ? "notte" : "notti", nights === 1 ? "night" : "nights")}`];
+      if (stayAdvantage) facts.push(Lx(`zona ${stayAdvantage.area}`, `${stayAdvantage.area} area`), Lx(`${stayAdvantage.walkable}/${stayAdvantage.total} tappe a piedi`, `${stayAdvantage.walkable}/${stayAdvantage.total} stops on foot`));
+      if (hotelM?.ctaPrice || hotelM?.costLabel) facts.push(`${hotelM.ctaPrice || hotelM.costLabel}`);
+      out.push({
+        id: "hotel", tier: "essential", ic: "🏨",
+        title: hotelM?.locationName || Lx("Il soggiorno", "The stay"),
+        generic: Lx("Alloggio", "Stay"), facts,
+        why: stayAdvantage ? Lx("Meno trasferimenti, più viaggio.", "Fewer transfers, more trip.") : Lx("Dove dormi dà il tono al viaggio.", "Where you sleep sets the tone."),
+        day: 1, url: hotelM?.ctaUrl || affiliateUrls.hotels, cta: Lx("Vedi camere", "See rooms"), provider: hotelM?.ctaProvider || "hotels",
+        alt: stayAlt.filter((a) => a.url !== (hotelM?.ctaUrl || affiliateUrls.hotels)),
+      });
+    }
+
+    // TRASFERIMENTO (essenziale, solo se c'è un trasporto oltre il giorno 1)
+    if (transferM && (affiliateUrls.flixbus || affiliateUrls.samboat || affiliateUrls.expedia_cars)) {
+      out.push({
+        id: "transfer", tier: "essential", ic: "🚌",
+        title: transferM.locationName || transferM.title || Lx("Il trasferimento", "The transfer"),
+        generic: Lx("Trasferimento", "Transfer"),
+        facts: [transferM.kindLabel || Lx("Tra le tappe", "Between stops"), ...(transferM.dayNumber ? [Lx(`Giorno ${transferM.dayNumber}`, `Day ${transferM.dayNumber}`)] : [])],
+        day: transferM.dayNumber ?? null,
+        url: affiliateUrls.flixbus || affiliateUrls.samboat || affiliateUrls.expedia_cars,
+        cta: Lx("Vedi orari", "See schedules"), provider: "transport",
+        alt: transferAlt.filter((a) => a.url !== (affiliateUrls.flixbus || affiliateUrls.samboat || affiliateUrls.expedia_cars)),
+      });
+    }
+
+    // ESPERIENZA PRINCIPALE (consigliata)
+    if (expM) {
+      const facts: string[] = [];
+      const eDay = expM.dayNumber ?? peakDay;
+      if (eDay != null) facts.push(Lx(`Giorno ${eDay}`, `Day ${eDay}`));
+      if (expM.durationLabel) facts.push(expM.durationLabel);
+      if (expM.ctaPrice || expM.costLabel) facts.push(expM.ctaPrice || expM.costLabel);
+      const primary = expM.ctaUrl || affiliateUrls.civitatis || affiliateUrls.musement || affiliateUrls.klook || affiliateUrls.viator;
+      out.push({
+        id: "experience", tier: "recommended", ic: "🎟",
+        title: expM.locationName || expM.title || Lx("L'esperienza principale", "The main experience"),
+        generic: Lx("Esperienza", "Experience"), facts, why: Lx("Il momento da non perdere.", "The one moment not to miss."),
+        day: eDay, url: primary, cta: Lx("Vedi disponibilità", "See availability"), provider: expM.ctaProvider || "experience",
+        alt: expAlt.filter((a) => a.url !== primary),
+      });
+    }
+
+    // A TAVOLA (consigliata) — niente partner ristoranti: recensioni, non "prenota".
+    if (foodM && affiliateUrls.tripadvisor) {
+      out.push({
+        id: "food", tier: "recommended", ic: "🍽",
+        title: foodM.locationName, generic: Lx("A tavola", "Food"),
+        facts: [...(foodM.dayNumber ? [Lx(`Giorno ${foodM.dayNumber}`, `Day ${foodM.dayNumber}`)] : []), ...(foodM.costLabel ? [foodM.costLabel] : [])],
+        day: foodM.dayNumber ?? null, url: affiliateUrls.tripadvisor, cta: Lx("Vedi recensioni", "See reviews"), provider: "tripadvisor", alt: [],
+      });
+    }
+    return out;
+  }, [data.momentsByDay, data.destination, affiliateUrls, profilingInput, dayCount, stayAdvantage, peakDay, lang]);
+
+  const doneCount = bookingItems.filter((i) => checked[i.id]).length;
+  const missionTotal = bookingItems.length || 1;
+  const pct = Math.round((doneCount / missionTotal) * 100);
 
   /* ════════════ sotto-render ════════════ */
 
@@ -734,19 +826,163 @@ export function ItineraryDashboard({
     );
   };
 
-  /* ── MISSIONS / BOOK ── */
+  /* ── PRENOTA (ex-"Missioni") ──────────────────────────────────────────────
+     Riduzione dell'incertezza prima della prenotazione: ogni voce è la SCELTA
+     concreta già fatta (nome reale, perché, prezzo stimato, distanza), con UNA
+     CTA primaria + "Altre opzioni" a scomparsa. Essenziali vs Consigliate.
+     A 100% l'esito è reale: viaggio pronto + PDF + checklist. */
   const MissionsView = () => {
-    const complete = doneCount === missionTotal && missionTotal > 0;
-    const sayKey = pct === 0 ? "itd.mis.say0" : pct < 50 ? "itd.mis.say1" : pct < 90 ? "itd.mis.say2" : "itd.mis.say3";
+    const L = (it: string, en: string) => (lang === "it" ? it : en);
     const dest = data.destination;
+    const allMoments = Object.values(data.momentsByDay).flat();
+    const ofType = (ty: string) => allMoments.filter((m: any) => m.type === ty);
+    const departure = (profilingInput?.departure ?? "").trim();
+    const nights = Math.max(1, dayCount - 1);
 
-    const providerGroups: Array<{ head: string; links: Array<{ label: string; url: string }> }> = [
-      { head: t("itd.prov.flights"), links: [affiliateUrls.expedia_flights && { label: "Expedia", url: affiliateUrls.expedia_flights }].filter(Boolean) as any },
-      { head: t("itd.prov.stays"), links: [affiliateUrls.hotels && { label: "Hotels.com", url: affiliateUrls.hotels }, affiliateUrls.tablet_hotels && { label: "Tablet Hotels", url: affiliateUrls.tablet_hotels }].filter(Boolean) as any },
-      { head: t("itd.prov.experiences"), links: [affiliateUrls.civitatis && { label: "Civitatis", url: affiliateUrls.civitatis }, affiliateUrls.musement && { label: "Musement", url: affiliateUrls.musement }, affiliateUrls.klook && { label: "Klook", url: affiliateUrls.klook }, affiliateUrls.viator && { label: "Viator", url: affiliateUrls.viator }].filter(Boolean) as any },
-      { head: t("itd.prov.food"), links: [affiliateUrls.tripadvisor && { label: "Tripadvisor", url: affiliateUrls.tripadvisor }].filter(Boolean) as any },
-      { head: t("itd.prov.transport"), links: [affiliateUrls.flixbus && { label: "FlixBus", url: affiliateUrls.flixbus }, affiliateUrls.samboat && { label: "SamBoat", url: affiliateUrls.samboat }].filter(Boolean) as any },
-    ].filter(g => g.links.length > 0);
+    const hotelM: any = ofType("accommodation")[0];
+    const expM: any = ofType("experience").find((m: any) => m.ctaUrl) ?? ofType("experience")[0];
+    const foodM: any = ofType("food").find((m: any) => m.locationName);
+    const transferM: any = ofType("transport").find((m: any) => (m.dayNumber ?? 1) !== 1);
+
+    const opt = (label: string, url?: string) => (url ? [{ label, url }] : []);
+    const flightAlt = [...opt("Expedia", affiliateUrls.expedia_flights)];
+    const stayAlt = [...opt("Hotels.com", affiliateUrls.hotels), ...opt("Tablet Hotels", affiliateUrls.tablet_hotels)];
+    const expAlt = [...opt("Civitatis", affiliateUrls.civitatis), ...opt("Musement", affiliateUrls.musement), ...opt("Klook", affiliateUrls.klook), ...opt("Viator", affiliateUrls.viator)];
+    const transferAlt = [...opt("FlixBus", affiliateUrls.flixbus), ...opt("SamBoat", affiliateUrls.samboat), ...opt("Cars", affiliateUrls.expedia_cars)];
+
+    type Item = {
+      id: string; tier: "essential" | "recommended"; ic: string;
+      title: string; generic: string; facts: string[]; why?: string; day?: number | null;
+      url?: string; cta: string; provider?: string; alt: { label: string; url: string }[];
+    };
+    const items: Item[] = [];
+
+    // VOLO (essenziale)
+    items.push({
+      id: "flight", tier: "essential", ic: "✈️",
+      title: departure ? `${departure} → ${dest}` : L("Il volo per " + dest, "Flight to " + dest),
+      generic: L("Volo", "Flight"),
+      facts: [L("Andata e ritorno", "Round trip"), L("Giorno 1", "Day 1")],
+      why: departure ? undefined : L("Aggiungi la partenza in L1 per la tratta esatta.", "Add your departure in L1 for the exact route."),
+      day: 1,
+      url: affiliateUrls.expedia_flights, cta: L("Vedi disponibilità", "See availability"), provider: "expedia",
+      alt: flightAlt.filter(a => a.url !== affiliateUrls.expedia_flights),
+    });
+
+    // ALLOGGIO (essenziale)
+    {
+      const facts = [`${nights} ${L(nights === 1 ? "notte" : "notti", nights === 1 ? "night" : "nights")}`];
+      if (stayAdvantage) facts.push(L(`zona ${stayAdvantage.area}`, `${stayAdvantage.area} area`), L(`${stayAdvantage.walkable}/${stayAdvantage.total} tappe a piedi`, `${stayAdvantage.walkable}/${stayAdvantage.total} stops on foot`));
+      if (hotelM?.ctaPrice || hotelM?.costLabel) facts.push(`${hotelM.ctaPrice || hotelM.costLabel}`);
+      items.push({
+        id: "hotel", tier: "essential", ic: "🏨",
+        title: hotelM?.locationName || L("Il soggiorno", "The stay"),
+        generic: L("Alloggio", "Stay"),
+        facts,
+        why: stayAdvantage ? L("Meno trasferimenti, più viaggio.", "Fewer transfers, more trip.") : L("Dove dormi dà il tono al viaggio.", "Where you sleep sets the tone."),
+        day: 1,
+        url: hotelM?.ctaUrl || affiliateUrls.hotels, cta: L("Vedi camere", "See rooms"), provider: hotelM?.ctaProvider || "hotels",
+        alt: stayAlt.filter(a => a.url !== (hotelM?.ctaUrl || affiliateUrls.hotels)),
+      });
+    }
+
+    // TRASFERIMENTO (essenziale, solo se c'è un trasporto oltre il giorno 1)
+    if (transferM && (affiliateUrls.flixbus || affiliateUrls.samboat || affiliateUrls.expedia_cars)) {
+      items.push({
+        id: "transfer", tier: "essential", ic: "🚌",
+        title: transferM.locationName || transferM.title || L("Il trasferimento", "The transfer"),
+        generic: L("Trasferimento", "Transfer"),
+        facts: [transferM.kindLabel || L("Tra le tappe", "Between stops"), ...(transferM.dayNumber ? [L(`Giorno ${transferM.dayNumber}`, `Day ${transferM.dayNumber}`)] : [])],
+        day: transferM.dayNumber ?? null,
+        url: affiliateUrls.flixbus || affiliateUrls.samboat || affiliateUrls.expedia_cars,
+        cta: L("Vedi orari", "See schedules"), provider: "transport",
+        alt: transferAlt.filter(a => a.url !== (affiliateUrls.flixbus || affiliateUrls.samboat || affiliateUrls.expedia_cars)),
+      });
+    }
+
+    // ESPERIENZA PRINCIPALE (consigliata)
+    if (expM) {
+      const facts: string[] = [];
+      const eDay = expM.dayNumber ?? peakDay;
+      if (eDay != null) facts.push(L(`Giorno ${eDay}`, `Day ${eDay}`));
+      if (expM.durationLabel) facts.push(expM.durationLabel);
+      if (expM.ctaPrice || expM.costLabel) facts.push(expM.ctaPrice || expM.costLabel);
+      const primary = expM.ctaUrl || affiliateUrls.civitatis || affiliateUrls.musement || affiliateUrls.klook || affiliateUrls.viator;
+      items.push({
+        id: "experience", tier: "recommended", ic: "🎟",
+        title: expM.locationName || expM.title || L("L'esperienza principale", "The main experience"),
+        generic: L("Esperienza", "Experience"),
+        facts, why: L("Il momento da non perdere.", "The one moment not to miss."),
+        day: eDay,
+        url: primary, cta: L("Vedi disponibilità", "See availability"), provider: expM.ctaProvider || "experience",
+        alt: expAlt.filter(a => a.url !== primary),
+      });
+    }
+
+    // A TAVOLA (consigliata) — niente partner ristoranti: recensioni, non "prenota".
+    if (foodM && affiliateUrls.tripadvisor) {
+      items.push({
+        id: "food", tier: "recommended", ic: "🍽",
+        title: foodM.locationName,
+        generic: L("A tavola", "Food"),
+        facts: [...(foodM.dayNumber ? [L(`Giorno ${foodM.dayNumber}`, `Day ${foodM.dayNumber}`)] : []), ...(foodM.costLabel ? [foodM.costLabel] : [])],
+        day: foodM.dayNumber ?? null,
+        url: affiliateUrls.tripadvisor, cta: L("Vedi recensioni", "See reviews"), provider: "tripadvisor",
+        alt: [],
+      });
+    }
+
+    const essentials = items.filter(i => i.tier === "essential");
+    const recommended = items.filter(i => i.tier === "recommended");
+    const total = items.length || 1;
+    const done = items.filter(i => checked[i.id]).length;
+    const pctL = Math.round((done / total) * 100);
+    const complete = done === total && total > 0;
+    const sayLine = pctL === 0 ? L("Niente di confermato — parti dal volo.", "Nothing confirmed yet — start with the flight.")
+      : pctL < 50 ? L("Sei partito. La parte difficile era iniziare.", "Off you go. The hard part is starting.")
+      : pctL < 100 ? L("Ci sei quasi. Mancano poche conferme.", "Almost there. A couple of confirmations to go.")
+      : L("Tutto confermato.", "All confirmed.");
+
+    const renderItem = (it: Item) => {
+      const isDone = !!checked[it.id];
+      return (
+        <div key={it.id} className={"book-item" + (isDone ? " done" : "")}>
+          <button className={"book-check" + (isDone ? " on" : "")} onClick={() => toggle(it.id)} aria-label={it.title} />
+          <div className="book-main">
+            <div className="book-gen"><span className="ic">{it.ic}</span>{it.generic}{it.day != null && <span className="book-day">{L(`Giorno ${it.day}`, `Day ${it.day}`)}</span>}</div>
+            <div className="book-title">{it.title}</div>
+            {it.facts.length > 0 && <div className="book-facts">{it.facts.map((f, i) => <span key={i}>{f}</span>)}</div>}
+            {it.why && <div className="book-why">{it.why}</div>}
+            {it.alt.length > 0 && (
+              <div className="book-alt-wrap">
+                <button className="book-alt-toggle" onClick={() => toggleAlt(it.id)}>
+                  {altOpen.has(it.id) ? L("Nascondi alternative", "Hide alternatives") : L("Altre opzioni", "Other options")} {altOpen.has(it.id) ? "▲" : "▾"}
+                </button>
+                {altOpen.has(it.id) && (
+                  <div className="book-alt">
+                    {it.alt.map((a, i) => (
+                      <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" onClick={() => trackAffiliate(affiliateProvider(a.label), dest)}>
+                        {a.label} <ExternalLink size={11} />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="book-side">
+            {it.url ? (
+              <a className="book-cta" href={it.url} target="_blank" rel="noopener noreferrer"
+                onClick={() => { trackAffiliate(it.provider ?? "unknown", dest); if (!isDone) toggle(it.id); }}>
+                {isDone ? L("Confermato", "Confirmed") : it.cta} <ExternalLink size={13} />
+              </a>
+            ) : (
+              <button className="book-cta book-cta--soft" onClick={() => toggle(it.id)}>{isDone ? L("Confermato", "Confirmed") : L("Segna fatto", "Mark done")}</button>
+            )}
+          </div>
+        </div>
+      );
+    };
 
     return (
       <div className="view">
@@ -754,85 +990,54 @@ export function ItineraryDashboard({
         <div className="content">
           <div className={"mission-hero" + (complete ? " complete" : "")}>
             <div className="mh-top">
-              <div className="mh-pct"><em>{pct}</em>%</div>
+              <div className="mh-pct"><em>{pctL}</em>%</div>
               <div className="mh-say">
-                <div className="k">{t("itd.mis.sayK")} · {doneCount}/{missionTotal} {t("itd.mis.complete")}</div>
-                <div className="t">{t(sayKey)}</div>
+                <div className="k">{L("Viaggio pronto", "Trip ready")} · {done}/{total} {L("confermate", "confirmed")}</div>
+                <div className="t">{sayLine}</div>
               </div>
             </div>
             <div className="mtrack">
-              <div className="mtrack-fill" style={{ width: `${pct}%` }} />
-              {missions.map((_, i) => {
-                const tickPct = ((i + 1) / missionTotal) * 100;
-                return (
-                  <div key={i} className={"mtick" + (pct >= tickPct - 0.5 ? " reached" : "")} style={{ left: `${tickPct}%` }}>
-                    <span className="d" />
-                  </div>
-                );
+              <div className="mtrack-fill" style={{ width: `${pctL}%` }} />
+              {items.map((_, i) => {
+                const tickPct = ((i + 1) / total) * 100;
+                return <div key={i} className={"mtick" + (pctL >= tickPct - 0.5 ? " reached" : "")} style={{ left: `${tickPct}%` }}><span className="d" /></div>;
               })}
             </div>
             <div className="mtrack-pad" />
 
-            {complete && (
+            {complete ? (
               <div className="mdone">
                 <span className="star">✦</span>
                 <div className="tx">
-                  <div className="h">{t("itd.mis.doneH")}</div>
+                  <div className="h">{L("Tutto pronto. Non resta che partire.", "All set. Just go.")}</div>
                   <div className="s">{tx("itd.mis.doneS", { dest })}</div>
+                  <div className="book-reward-acts">
+                    <button className="book-reward-btn" onClick={onSavePdf}>⬇ {L("Scarica il PDF", "Download the PDF")}</button>
+                    <button className="book-reward-btn" onClick={() => go("practical")}>🎒 {L("Checklist bagagli", "Packing checklist")}</button>
+                  </div>
                 </div>
+              </div>
+            ) : (
+              <div className="book-prize">
+                {L("Al 100% sblocchi:", "At 100% you get:")} <b>{L("PDF definitivo", "final PDF")}</b> · <b>{L("checklist bagagli", "packing checklist")}</b> · <b>{L("viaggio pronto da partire", "a trip ready to go")}</b>
               </div>
             )}
           </div>
 
-          <div className="mission-list">
-            {missions.map(mn => {
-              const done = !!checked[mn.id];
-              const isNext = !done && missions.find(x => !checked[x.id])?.id === mn.id;
-              const dayN = mn.id === "experience" ? peakDay : mn.day;
-              return (
-                <div key={mn.id} className={"mcard" + (done ? " done" : isNext ? " next" : "")}>
-                  <button className={"mcheck" + (done ? " on" : "")} onClick={() => toggle(mn.id)} aria-label={t(mn.nameKey)} />
-                  <div className="mbody">
-                    <div className="mname"><span className="ic">{mn.ic}</span>{t(mn.nameKey)}</div>
-                    {mn.id === "hotel" && stayAdvantage ? (
-                      <div className="mmeta mmeta-adv">📍 {tx("itd.mis.hotelAdv", {
-                        area: stayAdvantage.area, walkable: stayAdvantage.walkable,
-                        total: stayAdvantage.total, min: stayAdvantage.nearestMin,
-                      })}</div>
-                    ) : (
-                      <div className="mmeta">{t(mn.metaKey)}</div>
-                    )}
-                    <div className={"mreward" + (done ? " got" : "")}>★ {done ? t("itd.mis.rewardGot") : t("itd.mis.reward")}</div>
-                  </div>
-                  <div className="mright">
-                    {dayN != null && <div className="mday">{tx("itd.mis.day", { n: dayN })}</div>}
-                    <a className="mbtn" href={mn.url} target="_blank" rel="noopener noreferrer" onClick={() => { trackAffiliate(mn.provider ?? "unknown", data.destination); if (!done) toggle(mn.id); }}>
-                      {done ? t("itd.mis.done") : t("itd.mis.book")} <ExternalLink size={13} />
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {providerGroups.length > 0 && (
-            <>
-              <div className="book-providers">
-                {providerGroups.map((g, i) => (
-                  <div key={i} className="prov-group">
-                    <div className="prov-h">{g.head}</div>
-                    {g.links.map((l, j) => (
-                      <a key={j} className="prov-link" href={l.url} target="_blank" rel="noopener noreferrer"
-                        onClick={() => trackAffiliate(affiliateProvider(l.label), data.destination)}>
-                        {l.label} <span className="ext"><ExternalLink size={12} /></span>
-                      </a>
-                    ))}
-                  </div>
-                ))}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--ink-faint)", textAlign: "center", marginTop: 18 }}>{t("itd.affiliateNote")}</div>
-            </>
+          {essentials.length > 0 && (
+            <div className="book-sec">
+              <div className="book-sec-h">{L("Essenziali", "Essentials")} <span>{L("da confermare", "to confirm")}</span></div>
+              <div className="book-list">{essentials.map(renderItem)}</div>
+            </div>
           )}
+          {recommended.length > 0 && (
+            <div className="book-sec">
+              <div className="book-sec-h book-sec-h--rec">{L("Consigliate", "Recommended")} <span>{L("alzano il viaggio", "they elevate the trip")}</span></div>
+              <div className="book-list">{recommended.map(renderItem)}</div>
+            </div>
+          )}
+
+          <div style={{ fontSize: 11, color: "var(--ink-faint)", textAlign: "center", marginTop: 20 }}>{t("itd.affiliateNote")}</div>
         </div>
       </div>
     );

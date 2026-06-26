@@ -68,9 +68,9 @@ export const itineraryDashDict: Record<string, { en: string; it: string }> = {
   "itd.prat.empty":   { en: "Practical details fill in as your itinerary is finalised.", it: "I dettagli pratici si completano man mano che l'itinerario viene finalizzato." },
 
   // ── Missions / booking ───────────────────────────────────────────────────
-  "itd.mis.eyebrow":  { en: "Make it happen", it: "Rendilo reale" },
-  "itd.mis.title":    { en: "Your booking <em>missions</em>.", it: "Le tue <em>missioni</em> di prenotazione." },
-  "itd.mis.sub":      { en: "Tick each one off as you book. Everything is pre-filled for your trip.", it: "Spunta ognuna man mano che prenoti. Tutto è già impostato per il tuo viaggio." },
+  "itd.mis.eyebrow":  { en: "The last step", it: "L'ultimo passo" },
+  "itd.mis.title":    { en: "Your trip, ready to <em>confirm</em>.", it: "Il tuo viaggio, da <em>confermare</em>." },
+  "itd.mis.sub":      { en: "I've already made the hard choices. All that's left is for you to confirm them.", it: "Le scelte difficili le ho già fatte io. A te restano solo le conferme." },
   "itd.mis.complete": { en: "complete", it: "completato" },
   "itd.mis.say0":     { en: "Nothing booked yet — start with the flight.", it: "Niente di prenotato — parti dal volo." },
   "itd.mis.say1":     { en: "Off you go. The hard part is starting.", it: "Sei partito. La parte difficile era iniziare." },
@@ -78,7 +78,7 @@ export const itineraryDashDict: Record<string, { en: string; it: string }> = {
   "itd.mis.say3":     { en: "Almost ready. One or two missions to go.", it: "Quasi pronto. Una o due missioni e ci sei." },
   "itd.mis.sayK":     { en: "Progress", it: "Progresso" },
   "itd.mis.doneH":    { en: "All set. Have a wonderful trip.", it: "Tutto pronto. Buon viaggio." },
-  "itd.mis.doneS":    { en: "Every mission complete — {dest} is waiting.", it: "Tutte le missioni completate — {dest} ti aspetta." },
+  "itd.mis.doneS":    { en: "Everything's confirmed — {dest} is ready when you are.", it: "Tutto confermato — {dest} ti aspetta, quando vuoi." },
   "itd.mis.book":     { en: "Book", it: "Prenota" },
   "itd.mis.done":     { en: "Done", it: "Fatto" },
   "itd.mis.reward":   { en: "unlocks the next step", it: "sblocca il passo dopo" },
