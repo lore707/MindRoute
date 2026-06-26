@@ -12,6 +12,20 @@ const PLAN_EDIT_TOOLS = new Set(["remove_moment", "replace_moment", "add_moment"
 
 type Msg = { role: "user" | "assistant" | "tool"; content: string };
 
+// Contesto fase-aware (dal GET /chat) che alimenta greeting + chip d'ingresso:
+// il funnel a due atti (perfeziona-prima vs consulente-durante) comunicato col
+// comportamento, non con un manuale.
+type CompanionContext = {
+  phase: "before" | "during" | "after" | "unknown";
+  dayNo?: number;
+  totalDays?: number;
+  daysToDeparture?: number;
+  destination: string | null;
+  budgetTotalPerPerson: number | null;
+  l2OpenCount: number;
+  l2NextLabel: { it: string; en: string } | null;
+};
+
 // Posizione del launcher trascinabile, persistita fra sessioni.
 const LAUNCH_POS_KEY = "mindroute-companion-pos";
 type Pos = { x: number; y: number };
@@ -44,6 +58,7 @@ export function CompanionDock() {
   const [open, setOpen] = useState(false);
   const [itineraryId, setItineraryId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [ctx, setCtx] = useState<CompanionContext | null>(null);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [hydrated, setHydrated] = useState<number | null>(null);
@@ -58,6 +73,13 @@ export function CompanionDock() {
 
   useEffect(() => {
     fetchMe().then(u => setLoggedIn(!!u));
+  }, []);
+
+  // Handoff da L2 (RefinePanel) → apri il companion come passo successivo del funnel.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("mindroute:open-companion", onOpen);
+    return () => window.removeEventListener("mindroute:open-companion", onOpen);
   }, []);
 
   useEffect(() => {
@@ -121,6 +143,7 @@ export function CompanionDock() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.messages) setMessages(data.messages);
+        if (data?.context) setCtx(data.context);
         setHydrated(itineraryId);
       })
       .catch(() => setHydrated(itineraryId));
@@ -218,15 +241,68 @@ export function CompanionDock() {
   useEffect(() => {
     if (!open || itineraryId == null || hydrated !== itineraryId || streaming) return;
     if (messages.length > 0) return; // thread non vuoto → niente brief
+    // Brief proattivo SOLO in viaggio (consulente sul posto: meteo + idea fresca).
+    // Prima di partire l'utente guida lui, con i chip d'ingresso (niente auto-send).
+    if (ctx?.phase !== "during") return;
     const key = `mindroute_proactive_${itineraryId}_${new Date().toISOString().slice(0, 10)}`;
     try { if (localStorage.getItem(key)) return; localStorage.setItem(key, "1"); } catch { /* ignore */ }
     runChat(lang === "it" ? "Aggiornami sul viaggio" : "Update me on my trip", true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, itineraryId, hydrated, messages.length, streaming, lang]);
+  }, [open, itineraryId, hydrated, messages.length, streaming, lang, ctx?.phase]);
 
   if (!loggedIn || itineraryId == null || isHiddenRoute(location)) return null;
 
   const SERIF = "'Playfair Display', Georgia, serif";
+  const itLang = lang === "it";
+  const phase = ctx?.phase ?? "before";
+  const dest = ctx?.destination ?? null;
+
+  // Sottotitolo header/FAB: dichiara il doppio ruolo del funnel.
+  const subtitle = phase === "during"
+    ? (itLang ? "Il tuo consulente sul posto" : "Your on-the-spot consultant")
+    : phase === "after"
+    ? (itLang ? "I ricordi e il prossimo viaggio" : "Your memories & next trip")
+    : (itLang ? "Perfeziona ora · ti guida in viaggio" : "Perfect it now · guides you on the road");
+
+  // Greeting fase-aware: comunica la fase del funnel a parole brevi.
+  const greeting = !ctx
+    ? t("companion.greeting")
+    : phase === "during"
+    ? (itLang
+        ? `Sei in viaggio${ctx.dayNo ? `, giorno ${ctx.dayNo}${ctx.totalDays ? `/${ctx.totalDays}` : ""}` : ""}${dest ? ` a ${dest}` : ""}. Sono qui sul posto — dimmi di cosa hai bisogno adesso. Cerco anche sul web in tempo reale.`
+        : `You're traveling${ctx.dayNo ? `, day ${ctx.dayNo}${ctx.totalDays ? `/${ctx.totalDays}` : ""}` : ""}${dest ? ` in ${dest}` : ""}. I'm here on the ground — tell me what you need now. I can search the live web too.`)
+    : phase === "after"
+    ? (itLang
+        ? `Bentornato. Salviamo i momenti che hai amato di ${dest ?? "questo viaggio"} e pensiamo al prossimo.`
+        : `Welcome back. Let's save the moments you loved from ${dest ?? "this trip"} and think about the next one.`)
+    : (itLang
+        ? `Il piano per ${dest ?? "il tuo viaggio"} c'è. Rifiniamolo insieme prima di partire — posso modificarlo davvero e cercare alternative sul web in tempo reale.`
+        : `Your plan for ${dest ?? "your trip"} is ready. Let's perfect it before you go — I can actually edit it and research real alternatives on the live web.`);
+
+  // Chip d'ingresso seminati da fase + L1/L2: portano l'utente verso le azioni
+  // giuste (rifinire/verificare prima, consulenza sul posto durante).
+  const chips: string[] = (() => {
+    if (!ctx) return [];
+    if (phase === "during") return [
+      itLang ? "Dove mangio qui vicino?" : "Where do I eat nearby?",
+      itLang ? "Che tempo fa oggi? Dammi un piano B" : "What's today's weather? Give me a plan B",
+      itLang ? "Cosa vedo a 10 minuti da me" : "What's worth seeing 10 min from me",
+      itLang ? "Trova un evento per stasera" : "Find an event for tonight",
+    ];
+    if (phase === "after") return [
+      itLang ? "Salva i momenti che ho amato" : "Save the moments I loved",
+      itLang ? "Dammi un'idea per il prossimo viaggio" : "An idea for my next trip",
+    ];
+    // before / unknown → perfeziona
+    const c: string[] = [];
+    c.push(ctx.budgetTotalPerPerson
+      ? (itLang ? `Il budget di €${Math.round(ctx.budgetTotalPerPerson)} regge davvero?` : `Does my €${Math.round(ctx.budgetTotalPerPerson)} budget really hold?`)
+      : (itLang ? "Quanto spenderò davvero?" : "What will I really spend?"));
+    if (ctx.l2OpenCount > 0) c.push(itLang ? "Cosa manca per renderlo davvero mio?" : "What's missing to make it truly mine?");
+    c.push(itLang ? "Alleggerisci il giorno più pieno" : "Lighten the busiest day");
+    c.push(itLang ? "Cerca un'alternativa sul web" : "Find an alternative on the web");
+    return c;
+  })();
 
   return (
     <>
@@ -279,7 +355,10 @@ export function CompanionDock() {
                 <span className="absolute inline-flex h-full w-full rounded-full opacity-70 animate-ping" style={{ background: "#E94560" }} />
                 <span className="relative inline-flex rounded-full w-2.5 h-2.5" style={{ background: "#E94560", boxShadow: "0 0 10px #E94560" }} />
               </span>
-              <span className="text-[17px] text-white" style={{ fontFamily: SERIF, fontStyle: "italic" }}>{t("companion.title")}</span>
+              <span className="flex flex-col leading-tight">
+                <span className="text-[17px] text-white" style={{ fontFamily: SERIF, fontStyle: "italic" }}>{t("companion.title")}</span>
+                <span className="text-[10.5px] tracking-[0.04em] text-white/45">{subtitle}</span>
+              </span>
             </div>
             <button onClick={() => setOpen(false)} aria-label={t("companion.close")} className="flex items-center justify-center w-8 h-8 rounded-full text-white/55 hover:text-white transition-colors" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
               <X className="w-4 h-4" />
@@ -288,7 +367,25 @@ export function CompanionDock() {
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {messages.length === 0 && (
-              <p className="text-[14px] text-white/60 leading-relaxed px-1" style={{ fontFamily: SERIF, fontStyle: "italic" }}>{t("companion.greeting")}</p>
+              <div className="px-1">
+                <p className="text-[14px] text-white/65 leading-relaxed" style={{ fontFamily: SERIF, fontStyle: "italic" }}>{greeting}</p>
+                {chips.length > 0 && (
+                  <div className="mt-4 flex flex-col gap-2">
+                    {chips.map((c, i) => (
+                      <button
+                        key={i}
+                        onClick={() => runChat(c)}
+                        disabled={streaming}
+                        data-testid={`companion-chip-${i}`}
+                        className="group text-left text-[13px] text-white/85 rounded-xl px-3.5 py-2.5 transition-colors disabled:opacity-40 hover:text-white"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+                      >
+                        <span style={{ color: "#E94560", marginRight: 8 }}>→</span>{c}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             {messages.map((m, i) => (
               m.role === "tool" ? (

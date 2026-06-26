@@ -352,9 +352,27 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
                             : L(lang, "L'ho riscritto sulle tue risposte. Puoi affinarlo ancora quando vuoi.", "I rewrote it around your answers. You can refine it further anytime.")}
                         </p>
                       </div>
-                      <button className="qc-continue" onClick={() => { setOpen(false); reset(); }} style={{ marginTop: 8 }}>
-                        {L(lang, "Torna al viaggio", "Back to the trip")} →
-                      </button>
+                      {/* Handoff al companion: il passo successivo del funnel — perfeziona
+                          ancora o chiedi un dettaglio, con accesso al web in tempo reale. */}
+                      <p className="qc-q-sub" style={{ justifyContent: "center", fontSize: 14, marginTop: 22 }}>
+                        {L(lang, "Vuoi limarlo ancora o chiedere un dettaglio? Il tuo compagno di viaggio può perfezionarlo con te — e cercare sul web in tempo reale.",
+                                "Want to fine-tune it or ask a detail? Your travel companion can perfect it with you — and search the live web.")}
+                      </p>
+                      <div className="qc-nav" style={{ justifyContent: "center", borderTop: "none", marginTop: 12, paddingTop: 0 }}>
+                        <button className="qc-back" onClick={() => { setOpen(false); reset(); }}>
+                          {L(lang, "Torna al viaggio", "Back to the trip")}
+                        </button>
+                        <button
+                          className="qc-continue"
+                          data-testid="refine-open-companion"
+                          onClick={() => {
+                            setOpen(false); reset();
+                            if (typeof window !== "undefined") window.dispatchEvent(new Event("mindroute:open-companion"));
+                          }}
+                        >
+                          {L(lang, "Chiedi al compagno", "Ask the companion")} →
+                        </button>
+                      </div>
                     </motion.div>
                   ) : activeDim && cfg ? (
                     <motion.div key={activeDim.key} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.4 }}>

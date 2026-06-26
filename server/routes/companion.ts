@@ -9,7 +9,29 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
-import { buildCompanionSystem, runCompanionAgent, itineraryCoords, type ChatTurn, type CompanionToolContext } from "../companion";
+import { buildCompanionSystem, runCompanionAgent, itineraryCoords, tripPhaseInfo, type ChatTurn, type CompanionToolContext } from "../companion";
+import { computeCoverage } from "@shared/profile-coverage";
+
+// Contesto leggero per i chip d'ingresso fase-aware del CompanionDock: la fase
+// del viaggio (perfeziona-prima vs consulente-durante) + i segnali L1/L2 che
+// rendono i suggerimenti su misura.
+function companionContext(itin: any) {
+  const p = itin?.profilingInput ?? {};
+  const { phase, dayNo, totalDays, daysToDeparture } = tripPhaseInfo(itin);
+  let l2OpenCount = 0;
+  let l2NextLabel: { it: string; en: string } | null = null;
+  try {
+    const cov = computeCoverage(p);
+    l2OpenCount = cov.open.length;
+    if (cov.open[0]) l2NextLabel = { it: cov.open[0].label_it, en: cov.open[0].label_en };
+  } catch { /* best-effort */ }
+  return {
+    phase, dayNo, totalDays, daysToDeparture,
+    destination: itin?.destinationName ?? null,
+    budgetTotalPerPerson: typeof p?.budgetTotalPerPerson === "number" ? p.budgetTotalPerPerson : null,
+    l2OpenCount, l2NextLabel,
+  };
+}
 
 // Same ownership rule as itinerary-detail: owner-only, legacy null-owner rows
 // stay open so historic trips keep working.
@@ -32,12 +54,14 @@ export function registerCompanionRoutes(app: Express) {
       if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
       if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
 
+      const context = companionContext(itin);
       const conv = await storage.getConversationForItinerary(userId, itinId);
-      if (!conv) return res.json({ conversationId: null, messages: [] });
+      if (!conv) return res.json({ conversationId: null, messages: [], context });
       const messages = await storage.getMessages(conv.id);
       res.json({
         conversationId: conv.id,
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        context,
       });
     } catch (err) {
       res.status(500).json({ message: "Errore" });

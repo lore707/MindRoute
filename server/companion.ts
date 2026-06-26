@@ -14,6 +14,7 @@
 
 import { client } from "./matching-engine";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "./trait-prior";
+import { computeCoverage } from "@shared/profile-coverage";
 import type { Itinerary } from "@shared/schema";
 
 const COMPANION_MODEL = "claude-haiku-4-5-20251001";
@@ -47,6 +48,66 @@ function tripPositionLine(itin: Itinerary): string | null {
   }
   const dayNo = today - startDay + 1;
   return `RIGHT NOW the user is on DAY ${dayNo} of ${totalDays} of this trip. Anchor your help to today's plan unless they ask otherwise.`;
+}
+
+// ── Phase of the journey ────────────────────────────────────────────────────
+// Machine-readable counterpart of tripPositionLine: drives the two-act funnel
+// (perfect-before vs consult-during) both in the prompt and in the UI chips.
+export type TripPhase = "before" | "during" | "after" | "unknown";
+export function tripPhaseInfo(itin: Itinerary): {
+  phase: TripPhase; dayNo?: number; totalDays?: number; daysToDeparture?: number;
+} {
+  const dates = (itin as any).tripMeta?.travel_dates as { start?: string; end?: string } | undefined;
+  if (!dates?.start) return { phase: "unknown" };
+  const start = new Date(dates.start);
+  const end = dates.end ? new Date(dates.end) : start;
+  if (isNaN(+start)) return { phase: "unknown" };
+  const dayMs = 86_400_000;
+  const startDay = Math.floor(+start / dayMs);
+  const endDay = Math.floor(+end / dayMs);
+  const today = Math.floor(+Date.now() / dayMs);
+  const totalDays = Math.max(1, endDay - startDay + 1);
+  if (today < startDay) return { phase: "before", daysToDeparture: startDay - today, totalDays };
+  if (today > endDay) return { phase: "after", totalDays };
+  return { phase: "during", dayNo: today - startDay + 1, totalDays };
+}
+
+// ── L1/L2 signal block ──────────────────────────────────────────────────────
+// What the user literally told us in the two onboarding levels, so the companion
+// is the natural continuation of the funnel — not a generic chatbot.
+//   L1 = the quick quiz (sensation/mode/duration/total budget).
+//   L2 = progressive refinement (pace/companions/lodging/food/movement/avoid…).
+// We also surface which L2 dimensions are STILL OPEN so the bot can close them
+// conversationally and re-tune the plan.
+function profilingSignalBlock(itin: Itinerary, lang: "en" | "it"): string {
+  const p = (itin as any).profilingInput as any;
+  if (!p || typeof p !== "object") return "";
+  const l1 = p._l1 ?? {};
+  const parts: string[] = [];
+  if (l1.sensation) parts.push(`feeling they're after: ${l1.sensation}`);
+  if (l1.mode) parts.push(`entry: ${l1.mode === "meta" ? "had a destination in mind" : "asked to be surprised"}`);
+  if (l1.city) parts.push(`stated place: ${l1.city}`);
+  if (typeof p.budgetTotalPerPerson === "number" && p.budgetTotalPerPerson > 0) {
+    parts.push(`TOTAL budget target: €${Math.round(p.budgetTotalPerPerson)} per person, all-in excl. flights — they care about hitting it; check the plan against it when money comes up`);
+  }
+  if (p.days) parts.push(`duration: ${p.days} days`);
+
+  let openLine = "";
+  try {
+    const cov = computeCoverage(p);
+    if (cov.open.length > 0) {
+      const labels = cov.open.map((d) => (lang === "it" ? d.label_it : d.label_en)).join(", ");
+      openLine = `\nStill UNANSWERED about them (L2 gaps — ${cov.pct}% complete): ${labels}. When it helps the trip, gently ask ONE of these and, once answered, actually re-tune the plan (you can edit it).`;
+    } else {
+      openLine = `\nTheir profile is fully filled (100%).`;
+    }
+  } catch { /* coverage best-effort */ }
+
+  if (parts.length === 0 && !openLine) return "";
+  return `\n═══════════════════════════════════════
+WHAT THEY TOLD US (their onboarding — L1 quick quiz + L2 refinement)
+═══════════════════════════════════════
+${parts.length ? "- " + parts.join("\n- ") : "(no quick-quiz detail on file)"}${openLine}`;
 }
 
 // ── Itinerary digest ───────────────────────────────────────────────────────
@@ -111,6 +172,17 @@ export async function buildCompanionSystem(opts: {
   const isV2 = (itinerary as any).schemaVersion === 2;
   const digest = isV2 ? digestV2(itinerary) : digestV1(itinerary);
   const position = tripPositionLine(itinerary);
+  const { phase } = tripPhaseInfo(itinerary);
+  const signalBlock = profilingSignalBlock(itinerary, lang);
+
+  // Two-act funnel made explicit so the companion's role is obvious to itself —
+  // and, through its behaviour, to the user.
+  const phaseMission =
+    phase === "during"
+      ? `YOUR ROLE RIGHT NOW — ON-THE-SPOT CONSULTANT. They're traveling. Be the local fixer: what to do now, where to eat nearby, weather + plan B, last-minute swaps. Lead with the present moment. Use find_nearby and web_search liberally for REAL, current places and events — never generic advice.`
+      : phase === "after"
+      ? `YOUR ROLE RIGHT NOW — they're back. Help them save the moments they loved and seed the next trip.`
+      : `YOUR ROLE RIGHT NOW — PERFECT THE TRIP BEFORE DEPARTURE. The plan exists; your job is to make it even more theirs: refine pace, swap weak moments, fill the open L2 gaps (ask one, then re-tune the plan), pressure-test the budget, and research real alternatives on the web. Be the finishing pass on their itinerary.`;
   const locLine = coords
     ? `\nThe traveller's CURRENT location is lat ${coords.lat.toFixed(4)}, lng ${coords.lng.toFixed(4)}. Use the find_nearby tool to ground "near me / right now" suggestions in real places.`
     : "";
@@ -119,9 +191,11 @@ export async function buildCompanionSystem(opts: {
     ? "Reply in ITALIAN. Warm, concise, like a knowledgeable friend — not a brochure."
     : "Reply in ENGLISH. Warm, concise, like a knowledgeable friend — not a brochure.";
 
-  return `You are MindRoute's travel companion: a personal guide who already knows this traveller and their trip, and stays with them before, during and after the journey.
+  return `You are MindRoute's travel companion: a personal guide who already knows this traveller and their trip, and stays with them before, during and after the journey. You are the THIRD act of their onboarding — L1 built the trip, L2 refined it, and you perfect and then live it with them.
 
 ${langLine}
+
+${phaseMission}
 
 How you behave:
 - You already have their itinerary below — never ask them to paste it again.
@@ -145,6 +219,7 @@ PROACTIVE BRIEF MODE — the user just opened the chat; greet them unprompted. K
 3) Do NOT re-list their existing plan. End with one inviting question.
 ═══════════════════════════════════════` : ""}
 ${priorBlock}
+${signalBlock}
 ═══════════════════════════════════════
 THEIR ITINERARY
 ═══════════════════════════════════════
