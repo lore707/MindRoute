@@ -364,6 +364,40 @@ export function ItineraryDashboard({
   const missionTotal = bookingItems.length || 1;
   const pct = Math.round((doneCount / missionTotal) * 100);
 
+  // ── Nudge proattivo del companion: il bot "compare" sull'itinerario con UNA
+  // riga contestuale (senza aprire la chat). Il dashboard calcola l'osservazione
+  // più utile dai dati reali e la passa al CompanionDock via evento window.
+  const companionNudge = useMemo<{ text: string; seed: string } | null>(() => {
+    const it = lang === "it";
+    // 1) Un giorno molto più pieno della media mentre il profilo cerca relax.
+    const counts = days.map((d) => ({ n: d.n, c: data.momentsByDay[d.n]?.length ?? 0 }));
+    const avg = counts.length ? counts.reduce((a, b) => a + b.c, 0) / counts.length : 0;
+    const busiest = counts.slice().sort((a, b) => b.c - a.c)[0];
+    const pace = String((profilingInput as any)?.pace ?? "").toLowerCase();
+    const sens = String((profilingInput as any)?._l1?.sensation ?? "").toLowerCase();
+    const relaxed = pace.includes("relax") || /relax|slow|stacc|disconn|lento|lentezza|quiet|calm/.test(sens);
+    if (relaxed && busiest && avg > 0 && busiest.c >= Math.ceil(avg * 1.4) && busiest.c >= 4) {
+      return {
+        text: it ? `Il Giorno ${busiest.n} è il più pieno, ma cercavi relax. Lo alleggerisco?` : `Day ${busiest.n} is the fullest, yet you wanted to slow down. Want me to lighten it?`,
+        seed: it ? `Il Giorno ${busiest.n} mi sembra troppo pieno per il ritmo rilassato che voglio. Puoi alleggerirlo?` : `Day ${busiest.n} feels too packed for the relaxed pace I want. Can you lighten it?`,
+      };
+    }
+    // 2) Prenotazioni essenziali ancora aperte.
+    const missEss = bookingItems.filter((i) => i.tier === "essential" && !checked[i.id]);
+    if (missEss.length > 0) {
+      return {
+        text: it ? `Ti mancano ${missEss.length} prenotazioni essenziali. Le chiudiamo?` : `${missEss.length} essential bookings still open. Shall we close them?`,
+        seed: it ? "Aiutami a completare le prenotazioni essenziali che mancano." : "Help me complete the essential bookings I'm missing.",
+      };
+    }
+    return null;
+  }, [days, data.momentsByDay, profilingInput, bookingItems, checked, lang]);
+
+  useEffect(() => {
+    if (!companionNudge || typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent("mindroute:companion-nudge", { detail: { itineraryId, ...companionNudge } }));
+  }, [companionNudge, itineraryId]);
+
   /* ════════════ sotto-render ════════════ */
 
   const ViewHead = ({ eyebrow, gold, title, sub, right }: {

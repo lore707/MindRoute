@@ -59,6 +59,8 @@ export function CompanionDock() {
   const [itineraryId, setItineraryId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [ctx, setCtx] = useState<CompanionContext | null>(null);
+  // Nudge proattivo (dal dashboard): il bot "compare" con una riga sull'itinerario.
+  const [nudge, setNudge] = useState<{ text: string; seed: string } | null>(null);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [hydrated, setHydrated] = useState<number | null>(null);
@@ -81,6 +83,21 @@ export function CompanionDock() {
     window.addEventListener("mindroute:open-companion", onOpen);
     return () => window.removeEventListener("mindroute:open-companion", onOpen);
   }, []);
+
+  // Nudge proattivo dal dashboard: il bot non aspetta l'apertura della chat — mostra
+  // una riga contestuale sopra il FAB. Una volta al giorno per viaggio, a chat chiusa.
+  useEffect(() => {
+    const onNudge = (e: Event) => {
+      const d = (e as CustomEvent).detail as { itineraryId?: number; text?: string; seed?: string };
+      if (!d?.text || !d?.seed || open) return;
+      const day = new Date().toISOString().slice(0, 10);
+      const key = `mindroute_nudge_${d.itineraryId ?? "x"}_${day}`;
+      try { if (localStorage.getItem(key)) return; } catch { /* ignore */ }
+      setNudge({ text: d.text, seed: d.seed });
+    };
+    window.addEventListener("mindroute:companion-nudge", onNudge);
+    return () => window.removeEventListener("mindroute:companion-nudge", onNudge);
+  }, [open]);
 
   useEffect(() => {
     try {
@@ -235,6 +252,26 @@ export function CompanionDock() {
     runChat(text);
   }
 
+  // Clic sul nudge → apri e semina la conversazione (un tap → il bot agisce).
+  function openFromNudge() {
+    if (!nudge || streaming || itineraryId == null) return;
+    const seed = nudge.seed;
+    const day = new Date().toISOString().slice(0, 10);
+    try {
+      localStorage.setItem(`mindroute_nudge_${itineraryId}_${day}`, "1");
+      localStorage.setItem(`mindroute_proactive_${itineraryId}_${day}`, "1"); // evita doppio con il brief automatico
+    } catch { /* ignore */ }
+    setNudge(null);
+    setHydrated(itineraryId); // l'hydrate non sovrascrive il seed
+    setOpen(true);
+    setTimeout(() => runChat(seed), 40);
+  }
+  function dismissNudge() {
+    const day = new Date().toISOString().slice(0, 10);
+    try { if (itineraryId != null) localStorage.setItem(`mindroute_nudge_${itineraryId}_${day}`, "1"); } catch { /* ignore */ }
+    setNudge(null);
+  }
+
   // Brief proattivo: alla prima apertura della chat per un viaggio (thread vuoto),
   // una volta al giorno, il bot saluta da solo con meteo + un'esperienza nuova
   // (non già nel piano) e il link affiliato. Gating per evitare spam/costi.
@@ -307,6 +344,32 @@ export function CompanionDock() {
 
   return (
     <>
+      {/* Nudge proattivo: il bot "compare" con una riga, senza aprire la chat */}
+      {!open && nudge && (
+        <div
+          className="fixed z-[111] bottom-[84px] right-5 max-w-[270px] rounded-2xl p-3.5 pr-9 cursor-pointer animate-in fade-in slide-in-from-bottom-2 duration-300"
+          style={{ background: "linear-gradient(180deg, rgba(26,14,26,0.97), rgba(13,7,13,0.98))", border: "1px solid rgba(233,69,96,0.35)", boxShadow: "0 18px 50px -18px rgba(0,0,0,0.7)", backdropFilter: "blur(12px)" }}
+          onClick={openFromNudge}
+          data-testid="companion-nudge"
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); dismissNudge(); }}
+            aria-label={t("companion.close")}
+            className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white/40 hover:text-white transition-colors"
+            style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+          >
+            <X className="w-3 h-3" />
+          </button>
+          <div className="flex items-start gap-2.5">
+            <span className="relative flex w-2 h-2 mt-1.5 shrink-0">
+              <span className="absolute inline-flex h-full w-full rounded-full opacity-70 animate-ping" style={{ background: "#E94560" }} />
+              <span className="relative inline-flex rounded-full w-2 h-2" style={{ background: "#E94560", boxShadow: "0 0 8px #E94560" }} />
+            </span>
+            <span className="text-[13px] leading-snug text-white/90">{nudge.text}</span>
+          </div>
+        </div>
+      )}
+
       {/* Launcher — pill con glow accento; etichetta su desktop, icona su mobile */}
       {!open && (
         <button
