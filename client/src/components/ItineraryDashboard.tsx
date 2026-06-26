@@ -539,11 +539,27 @@ export function ItineraryDashboard({
 
   /* ── PRACTICAL ── */
   const PracticalView = () => {
+    const L = (it: string, en: string) => (lang === "it" ? it : en);
     const budgetParsed = tryParse(itinerary.budgetSummary);
     const budgetItems: Array<{ label: string; total: string }> = Array.isArray(budgetParsed?.items) ? budgetParsed.items : [];
     const totalRow = budgetItems.find(it => /totale|total/i.test(it.label));
     const segItems = budgetItems.filter(it => it !== totalRow);
     const segTotal = segItems.reduce((a, it) => a + firstInt(it.total), 0) || 1;
+
+    // v2: budgetSummary = {total_cost_range}; il dettaglio (prenotabile ora vs
+    // stima in loco) vive in tripMeta. Senza la forma a "items" (solo v1) la card
+    // restava vuota → fallback v2 così il budget compare sempre.
+    const tripMeta = (itinerary as any).tripMeta ?? null;
+    const v2Bookable: number | null = typeof tripMeta?.total_cost_bookable === "number" ? tripMeta.total_cost_bookable : null;
+    const v2Onsite: number | null = typeof tripMeta?.total_cost_onsite_estimate === "number" ? tripMeta.total_cost_onsite_estimate : null;
+    const v2Range: string | null = budgetParsed?.total_cost_range || tripMeta?.total_cost_range || null;
+    const v2Total: string | null = v2Range || (v2Bookable != null ? `€${Math.round(v2Bookable + (v2Onsite ?? 0))}` : null);
+    const v2Segs = ([
+      v2Bookable != null ? { label: L("Prenotabile ora", "Bookable now"), total: v2Bookable } : null,
+      v2Onsite != null ? { label: L("In loco (stima)", "On-site (est.)"), total: v2Onsite } : null,
+    ].filter(Boolean) as Array<{ label: string; total: number }>);
+    const v2SegTotal = v2Segs.reduce((a, s) => a + s.total, 0) || 1;
+    const hasV2Budget = budgetItems.length === 0 && !!v2Total;
 
     const gettingParsed = tryParse(itinerary.gettingThere);
     const steps: any[] = Array.isArray(gettingParsed?.steps) ? gettingParsed.steps : [];
@@ -553,7 +569,7 @@ export function ItineraryDashboard({
       ? packParsed.items
       : (itinerary.packingList ? String(itinerary.packingList).split(/[,;]/).map((s: string) => ({ label: s.trim() })).filter((x: any) => x.label.length > 1) : []);
 
-    const hasAny = budgetItems.length || itinerary.gettingThere || itinerary.bestTime || packItems.length;
+    const hasAny = budgetItems.length || hasV2Budget || itinerary.gettingThere || itinerary.bestTime || packItems.length;
 
     return (
       <div className="view">
@@ -590,6 +606,44 @@ export function ItineraryDashboard({
                         ))}
                       </div>
                     </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Budget v2 (moment-based): range + prenotabile-ora vs stima-in-loco */}
+            {hasV2Budget && (
+              <div className="card">
+                <div className="card-head"><span className="ic">💰</span>{t("itd.prat.budget")}</div>
+                <div className="budget">
+                  {v2Total && (
+                    <div className="budget-total">
+                      <span className="l">{t("itd.prat.total")}</span>
+                      <span className="v"><em>{v2Total}</em></span>
+                    </div>
+                  )}
+                  {v2Segs.length > 0 ? (
+                    <>
+                      <div className="budget-bar">
+                        {v2Segs.map((s, i) => (
+                          <div key={i} className="budget-seg" style={{ width: `${(s.total / v2SegTotal) * 100}%`, background: SEG_COLORS[i % SEG_COLORS.length] }} />
+                        ))}
+                      </div>
+                      <div className="budget-legend">
+                        {v2Segs.map((s, i) => (
+                          <div key={i} className="budget-row">
+                            <span className="sw" style={{ background: SEG_COLORS[i % SEG_COLORS.length] }} />
+                            <span className="nm">{s.label}</span>
+                            <span className="amt">€{Math.round(s.total)}</span>
+                            <span className="pct">{Math.round((s.total / v2SegTotal) * 100)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="det" style={{ fontSize: 13, color: "var(--ink-dim)", lineHeight: 1.6 }}>
+                      {L("Stima complessiva del viaggio, voli esclusi.", "Overall trip estimate, flights excluded.")}
+                    </div>
                   )}
                 </div>
               </div>

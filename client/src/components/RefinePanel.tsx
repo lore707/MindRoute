@@ -179,11 +179,14 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Blocca lo scroll del body mentre l'overlay è aperto.
+  // Blocca lo scroll del body SOLO mentre l'overlay è aperto, ripristinando il
+  // valore precedente alla chiusura/smontaggio. Evita di toccare il body quando
+  // chiuso (così non blocca mai lo scroll delle pagine).
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    document.body.style.overflow = open ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    if (typeof document === "undefined" || !open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
   }, [open]);
 
   // Refine disponibile solo sugli itinerari moment-based (v2).
