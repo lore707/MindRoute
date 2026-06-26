@@ -84,6 +84,9 @@ export default function QuizFast() {
   const [sensation, setSensation] = useState<string | null>(null);
   const [duration, setDuration] = useState<string | null>(null);
   const [budget, setBudget] = useState<string | null>(null);
+  // Budget totale a persona opzionale (€, tutto incluso): se compilato, l'AI lo
+  // scompone e ne verifica la fattibilità in fase di generazione.
+  const [budgetTotal, setBudgetTotal] = useState("");
 
   const [generating, setGenerating] = useState(false);
   const [genMsg, setGenMsg] = useState("");
@@ -144,6 +147,9 @@ export default function QuizFast() {
     const answers: string[] = [mode === "meta" ? "path_b" : "path_a"];
     if (mode === "surprise" && sens) answers.push(JSON.stringify({ emotional_goals: [sensLabel], pace: "balanced" }));
     else if (mode === "meta" && city.trim()) answers.push(JSON.stringify({ specific_place: city.trim() }));
+    // Cifra totale opzionale: solo numeri, >0.
+    const totalNum = parseInt(budgetTotal.replace(/[^\d]/g, ""), 10);
+    const hasTotal = Number.isFinite(totalNum) && totalNum > 0;
     return {
       answers,
       days: dur?.days ?? 7,
@@ -154,12 +160,14 @@ export default function QuizFast() {
       travelStyle: "",
       constraints: "",
       lang: currentLang,
+      ...(hasTotal ? { budgetTotalPerPerson: totalNum } : {}),
       _l1: {
         mode,
         city: mode === "meta" ? city.trim() : undefined,
         sensation: mode === "surprise" ? sensLabel : undefined,
         durationId: duration ?? undefined,
         budgetId: budget ?? undefined,
+        budgetTotalPerPerson: hasTotal ? totalNum : undefined,
       },
     } as Record<string, any>;
   };
@@ -357,11 +365,33 @@ export default function QuizFast() {
                         </div>
                       ))}
                     </div>
+                    {current === "budget" && (
+                      <div style={{ maxWidth: 720, marginTop: 18 }}>
+                        <label className="qc-q-sub" style={{ display: "block", fontSize: 13.5, marginBottom: 8 }}>
+                          {L(lang, "Hai una cifra in testa? ", "Got a number in mind? ")}
+                          <em>{L(lang, "Budget totale a persona, tutto incluso (opzionale)", "Total budget per person, all-in (optional)")}</em>
+                        </label>
+                        <div style={{ position: "relative", maxWidth: 320 }}>
+                          <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", color: "var(--qc-ink-faint)", fontSize: 18, pointerEvents: "none" }}>€</span>
+                          <input
+                            type="text" inputMode="numeric" value={budgetTotal}
+                            onChange={(e) => setBudgetTotal(e.target.value.replace(/[^\d]/g, ""))}
+                            placeholder={L(lang, "es. 1500", "e.g. 1500")}
+                            data-testid="fast-budget-total" className="qc-precise-input"
+                            style={{ fontSize: 18, padding: "16px 22px 16px 36px" }}
+                          />
+                        </div>
+                        <p className="qc-q-sub" style={{ fontSize: 12, marginTop: 8, color: "var(--qc-ink-faint)" }}>
+                          {L(lang, "La useremo come traccia: la scomponiamo e verifichiamo che regga davvero. Voli esclusi.",
+                                  "We'll use it as a target: we break it down and check it actually holds. Flights excluded.")}
+                        </p>
+                      </div>
+                    )}
                     <div className="qc-nav">
                       <button className="qc-back" onClick={goBack} data-testid="fast-back">← {L(lang, "Indietro", "Back")}</button>
                       {current === "budget" && (
                         <span className="qc-q-sub" style={{ fontSize: 13, maxWidth: 320 }}>
-                          {L(lang, "Scegli e parte la generazione.", "Pick one and generation starts.")}
+                          {L(lang, "Scegli la fascia e parte la generazione.", "Pick a tier and generation starts.")}
                         </span>
                       )}
                     </div>

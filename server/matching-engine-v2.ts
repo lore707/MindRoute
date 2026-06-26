@@ -223,6 +223,31 @@ export function buildPromptV2(input: ProfilingInput, priorBlock = ""): string {
 function v2OutputSection(input: ProfilingInput): string {
   const lang = input.lang === "it" ? "Italian" : "English";
   const days = Math.min(input.days, 14);
+  const budgetTarget = typeof input.budgetTotalPerPerson === "number" && input.budgetTotalPerPerson > 0
+    ? Math.round(input.budgetTotalPerPerson) : null;
+  const budgetTargetBlock = budgetTarget ? `
+7b. TARGET BUDGET (traveler-stated — TREAT AS THE BUDGET SPINE)
+   - The traveler set a TOTAL budget of €${budgetTarget} per person for the WHOLE trip,
+     everything included EXCEPT international flights.
+   - DECOMPOSE it logically: split €${budgetTarget} across lodging, food, activities/
+     experiences and local transport in proportions that fit ${days} days AND this
+     destination's REAL price level — a cheap country and an expensive one must never
+     produce the same split. Per-day moment costs and the lodging tier you pick must add
+     up toward this figure, not drift from it.
+   - VERIFY feasibility before committing. First compute the realistic bottom-up cost.
+     Then:
+       • If €${budgetTarget} is ACHIEVABLE here for ${days} days, tune your choices
+         (lodging tier, dining style, how many paid experiences) so that
+         total_cost_bookable + total_cost_onsite_estimate land within ~10% of it, and make
+         total_cost_range bracket €${budgetTarget}.
+       • If it is UNREALISTIC — too low to be safe/decent, or far more than is honestly
+         spendable here — do NOT fake the numbers to match. Produce the nearest HONEST
+         range, let total_cost_range reflect reality, and lean the itinerary toward the
+         value/level that figure actually buys.
+   - Honesty over flattery: a confidently-wrong budget destroys trust. Every number must
+     survive a sanity check against everything plausible for THIS place, THESE days, THIS
+     style.
+` : "";
   return `
 ═══════════════════════════════════════════════════════════════════════════
 MOMENT STRUCTURE RULES — v2 schema (moment-based itinerary)
@@ -362,6 +387,7 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
    - total_cost_bookable = sum of cost_bookable_total across all days.
    - total_cost_onsite_estimate = sum of cost_onsite_estimate across all days.
    - total_cost_range = display-ready string, e.g. "€1.800–2.400/pp".
+${budgetTargetBlock}
 
 8. TRANSPORT_TO_NEXT
    - On every moment EXCEPT the last of the day, include transport_to_next.

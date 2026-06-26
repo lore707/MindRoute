@@ -31,6 +31,9 @@ export interface ProfilingInput {
   travelStyle?: string;
   constraints?: string;
   lang?: string;
+  // Budget totale a persona dichiarato in L1 (€, tutto incluso, voli esclusi).
+  // Opzionale: se presente il generatore lo scompone e ne verifica la fattibilità.
+  budgetTotalPerPerson?: number;
 }
 
 const affiliateLinksSchema = z.record(z.string(), z.string()).optional();
@@ -187,7 +190,7 @@ export function buildPrompt(input: ProfilingInput, priorBlock = "", groundingBlo
 USER PROFILE — READ EVERY LINE CAREFULLY
 ═══════════════════════════════════════
 Path: ${path}
-Budget: ${budgetText} — ABSOLUTE CONSTRAINT. Never violate this under any circumstance.
+Budget: ${budgetText} — ABSOLUTE CONSTRAINT. Never violate this under any circumstance.${typeof input.budgetTotalPerPerson === "number" && input.budgetTotalPerPerson > 0 ? `\nStated total budget: €${input.budgetTotalPerPerson} per person, all-in EXCLUDING international flights — never propose a destination structurally incompatible with this figure for the given days; verify the math.` : ""}
 Departing from: ${input.departure} | Days: ${days} | Period: ${period}
 Travel companions: ${input.companions || "not specified"}
 Travel style preference: ${travelStyle}

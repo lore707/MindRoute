@@ -622,6 +622,12 @@ export function ItineraryDashboard({
                       <span className="v"><em>{v2Total}</em></span>
                     </div>
                   )}
+                  {typeof (profilingInput as any)?.budgetTotalPerPerson === "number" && (
+                    <div className="det" style={{ fontSize: 12, color: "var(--ink-faint)", margin: "-6px 0 12px", lineHeight: 1.5 }}>
+                      {L(`Obiettivo che hai indicato: €${Math.round((profilingInput as any).budgetTotalPerPerson)}/persona — scomposto e verificato qui sopra.`,
+                         `Your stated target: €${Math.round((profilingInput as any).budgetTotalPerPerson)}/person — broken down and sanity-checked above.`)}
+                    </div>
+                  )}
                   {v2Segs.length > 0 ? (
                     <>
                       <div className="budget-bar">

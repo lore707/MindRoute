@@ -369,6 +369,8 @@ export const profilingRequestSchema = z.object({
   constraints: z.string().optional(),
   travelStyle: z.string().optional(),
   lang: z.string().optional(),
+  // Budget totale a persona dichiarato in L1 (€, tutto incluso, voli esclusi).
+  budgetTotalPerPerson: z.number().positive().optional(),
 });
 export type ProfilingRequest = z.infer<typeof profilingRequestSchema>;
 // Session storage for connect-pg-simple.
