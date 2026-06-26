@@ -741,17 +741,45 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
     const latRange = (maxLat - minLat) || 0.001;
     const lngRange = (maxLng - minLng) || 0.001;
     mapCenter = { lat: (minLat + maxLat) / 2, lng: (minLng + maxLng) / 2 };
+    // Join punto↔momento: arricchisce ogni tappa coi dati ricchi del momento
+    // (foto, durata, ora migliore, prenotazione) per la card operativa della
+    // mappa-viaggio. Match per luogo/titolo nel giorno, fallback per inclusione.
+    const norm = (s: string) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const findMoment = (day: number | undefined, label: string): CinMoment | undefined => {
+      if (day == null) return undefined;
+      const list = momentsByDay[day] ?? [];
+      const nl = norm(label);
+      if (!nl) return undefined;
+      let mm = list.find(m => (m.locationName && norm(m.locationName) === nl) || (m.title && norm(m.title) === nl));
+      if (!mm && nl.length >= 4) mm = list.find(m => (m.locationName && norm(m.locationName).includes(nl)) || (m.title && norm(m.title).includes(nl)));
+      return mm;
+    };
     // x/y resta per il vecchio SVG cinematic; lat/lng/day/slot per Leaflet.
-    mapPoints = allPoints.map(p => ({
-      x: 60 + ((p.lng - minLng) / lngRange) * 280,
-      y: 60 + (1 - (p.lat - minLat) / latRange) * 280,
-      label: p.label,
-      lat: p.lat,
-      lng: p.lng,
-      day: p.day,
-      slot: p.slot,
-      category: p.category,
-    }));
+    mapPoints = allPoints.map(p => {
+      const mm = findMoment(p.day, p.label);
+      return {
+        x: 60 + ((p.lng - minLng) / lngRange) * 280,
+        y: 60 + (1 - (p.lat - minLat) / latRange) * 280,
+        label: p.label,
+        lat: p.lat,
+        lng: p.lng,
+        day: p.day,
+        slot: p.slot,
+        category: p.category,
+        momentId: mm?.id,
+        imageUrl: mm?.imageUrl,
+        durationLabel: mm?.durationLabel,
+        bestTime: mm?.startTime,
+        kindLabel: mm?.kindLabel,
+        desc: mm?.desc,
+        bookable: !!mm?.ctaUrl,
+        ctaUrl: mm?.ctaUrl,
+        cta: mm?.cta,
+        ctaProvider: mm?.ctaProvider,
+        ctaPrice: mm?.ctaPrice,
+        type: mm?.type,
+      };
+    });
   }
 
   return {

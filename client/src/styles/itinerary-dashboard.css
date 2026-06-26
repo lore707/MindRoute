@@ -440,10 +440,55 @@
   background:var(--accent);border:2.5px solid #fff;box-shadow:0 6px 18px -4px rgba(0,0,0,.85),0 0 0 3px rgba(233,69,96,.3);display:grid;place-items:center;transition:transform .2s}
 .account-dash .rmap-pin span{transform:rotate(-45deg);font-weight:700;font-size:15px;color:#fff;line-height:1}
 .account-dash .rmap-pin-wrap:hover .rmap-pin{transform:rotate(45deg) scale(1.12)}
+/* tappa numerata del percorso del giorno: cerchio accent, numero dritto */
+.account-dash .rmap-pin--num{border-radius:50%;transform:none;width:32px;height:32px;background:var(--accent)}
+.account-dash .rmap-pin--num span{transform:none;font-size:15px}
+.account-dash .rmap-pin-wrap:hover .rmap-pin--num{transform:scale(1.14)}
+/* ancora alloggio: cerchio oro più grande, glifo casa */
+.account-dash .rmap-pin--hotel{border-radius:50%;transform:none;width:38px;height:38px;background:var(--gold);
+  box-shadow:0 7px 20px -4px rgba(0,0,0,.9),0 0 0 4px rgba(212,168,83,.35)}
+.account-dash .rmap-pin--hotel span{transform:none;color:#1a1208;font-size:19px}
+.account-dash .rmap-pin-wrap:hover .rmap-pin--hotel{transform:scale(1.1)}
+/* anello oro = tappa prenotabile */
+.account-dash .rmap-pin--book{box-shadow:0 6px 18px -4px rgba(0,0,0,.85),0 0 0 3px rgba(212,168,83,.7)}
 /* pin salvato: cerchio oro, stella dritta */
 .account-dash .rmap-pin--saved{border-radius:50%;transform:none;background:var(--gold)}
 .account-dash .rmap-pin--saved span{transform:none;color:#1a1208}
 .account-dash .rmap-pin-wrap:hover .rmap-pin--saved{transform:scale(1.12)}
+/* chip-motore (vicino all'alloggio / se piove): on = oro */
+.account-dash .rmap-chip--engine.on{background:var(--gold);border-color:var(--gold);color:#1a1208}
+
+/* card operativa: pannello a destra (desktop), bottom-sheet (mobile) */
+.account-dash .rmap-card{position:absolute;z-index:640;right:14px;bottom:14px;width:clamp(260px,30vw,320px);
+  background:rgba(13,7,13,.94);backdrop-filter:blur(16px);border:1px solid var(--stroke-2);border-radius:18px;overflow:hidden;
+  box-shadow:0 30px 70px -24px rgba(0,0,0,.85);animation:it-cardin .25s ease}
+@keyframes it-cardin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.account-dash .rmap-card-x{position:absolute;top:10px;right:10px;z-index:2;width:28px;height:28px;border-radius:50%;
+  background:rgba(13,7,13,.6);border:1px solid var(--stroke-2);color:var(--ink-dim);display:grid;place-items:center;font-size:13px;cursor:pointer}
+.account-dash .rmap-card-x:hover{color:var(--ink);border-color:var(--accent)}
+.account-dash .rmap-card-img{height:130px;background-size:cover;background-position:center}
+.account-dash .rmap-card-body{padding:14px 16px 16px}
+.account-dash .rmap-card-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}
+.account-dash .rmap-card-day{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--accent);
+  background:rgba(233,69,96,.12);border:1px solid rgba(233,69,96,.4);padding:3px 9px;border-radius:99px}
+.account-dash .rmap-card-kind{font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--ink-faint)}
+.account-dash .rmap-card-t{font-family:var(--serif);font-size:19px;line-height:1.18;color:var(--ink);margin-bottom:9px;text-wrap:balance}
+.account-dash .rmap-card-facts{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink-dim);margin-bottom:10px}
+.account-dash .rmap-card-desc{font-size:12.5px;line-height:1.5;color:var(--ink-dim);margin-bottom:13px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.account-dash .rmap-card-acts{display:flex;flex-wrap:wrap;gap:7px}
+.account-dash .rmap-card-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;text-decoration:none;cursor:pointer;
+  padding:8px 12px;border-radius:9px;border:1px solid var(--stroke-2);background:rgba(255,255,255,.04);color:var(--ink-dim);transition:all .16s}
+.account-dash .rmap-card-btn:hover{color:var(--ink);border-color:var(--accent)}
+.account-dash .rmap-card-btn--p{background:var(--accent);border-color:var(--accent);color:#fff}
+.account-dash .rmap-card-btn--p:hover{color:#fff;filter:brightness(1.07)}
+.account-dash .rmap-card-btn--book{background:rgba(212,168,83,.16);border-color:color-mix(in srgb,var(--gold) 55%,transparent);color:var(--gold)}
+.account-dash .rmap-card-btn--book:hover{color:#1a1208;background:var(--gold)}
+@media(max-width:640px){
+  .account-dash .rmap-card{left:10px;right:10px;bottom:10px;width:auto}
+  .account-dash .rmap-card-img{height:104px}
+}
+
 /* marker "vicino a me": pallino blu pulsante */
 .account-dash .rmap-me{width:16px;height:16px;border-radius:50%;background:#4c9be8;border:2px solid #fff;box-shadow:0 0 0 4px rgba(76,155,232,.35)}
 

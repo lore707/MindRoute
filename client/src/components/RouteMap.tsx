@@ -1,17 +1,17 @@
 /**
- * RouteMap.tsx
+ * RouteMap.tsx — mappa-viaggio (non "GIS")
  * ───────────────────────────────────────────────────────────────
- * Mappa reale (Leaflet + tile CARTO dark) della sezione itinerario. Mostra TUTTO
- * ciò che il viaggio nomina — alloggio, esperienze, food, monumenti/musei, spiagge
- * — con pin categorizzati (icona + colore) invece di una linea-percorso astratta
- * (rimossa: non è un tragitto reale). Sopra ai pin del piano l'utente può:
- *   · filtrare per giorno e per categoria
- *   · cercare QUALSIASI luogo (Nominatim) e salvarlo "per dopo" (DB, per viaggio)
- *   · espandere la mappa a tutto schermo
- *   · centrare sulla propria posizione ("vicino a me")
+ * La mappa RACCONTA il viaggio, non mostra solo punti:
+ *   · default su UN giorno alla volta → 🏨 alloggio come partenza, tappe
+ *     NUMERATE 1→2→3 in sequenza, linea direzionale del percorso;
+ *   · click su una tappa → CARD operativa (foto, durata, ora migliore,
+ *     distanza dall'alloggio, [Apri nel giorno] [Google Maps] [Prenota]);
+ *   · filtri-motore: per giorno, "vicino all'alloggio" (~15 min a piedi),
+ *     "se piove" (al chiuso); + ricerca/salva, vicino-a-me, full-screen.
+ *   · collegamento alle altre sezioni: "Apri nel giorno" porta al Giorno
+ *     corrispondente (onOpenDay) → stesso viaggio, prospettive diverse.
  *
- * Costo €0 (tile CARTO, geocoding Nominatim, attribution OSM). Caricato in lazy da
- * ItineraryDashboard così `leaflet` (~150KB) entra nel bundle solo all'apertura.
+ * Costo €0 (tile CARTO, geocoding Nominatim, OSM). Lazy da ItineraryDashboard.
  * ─────────────────────────────────────────────────────────────── */
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import L from "leaflet";
@@ -26,6 +26,19 @@ export type RoutePoint = {
   day?: number;
   slot?: string;
   category?: string;
+  // Campi ricchi (join col momento) per la card operativa.
+  momentId?: string;
+  imageUrl?: string;
+  durationLabel?: string;
+  bestTime?: string;
+  kindLabel?: string;
+  desc?: string;
+  bookable?: boolean;
+  ctaUrl?: string;
+  cta?: string;
+  ctaProvider?: string;
+  ctaPrice?: string;
+  type?: string;
 };
 
 type SavedPlace = {
@@ -45,6 +58,12 @@ type Props = {
   itineraryId?: number;
   t: (k: string) => string;
   lang: "it" | "en";
+  /** Giorno iniziale (collegamento dalla sezione Giorni). null = tutti. */
+  initialDay?: number | null;
+  /** Sync del giorno attivo verso il dashboard. */
+  onDayChange?: (day: number | null) => void;
+  /** "Apri nel giorno": porta alla sezione Giorni su quel giorno/momento. */
+  onOpenDay?: (day: number, momentId?: string) => void;
 };
 
 // Categoria → colore + glifo. Coerenti con i token editoriali del dashboard.
@@ -57,6 +76,7 @@ const CAT: Record<PlaceCategory, { color: string; glyph: string }> = {
   custom:     { color: "#E94560", glyph: "•" },
 };
 const ALL_CATS: PlaceCategory[] = ["lodging", "experience", "food", "sight", "beach", "custom"];
+const ROUTE_COLOR = "#E94560";
 
 function normCat(c?: string | null): PlaceCategory {
   return (c && (ALL_CATS as string[]).includes(c)) ? (c as PlaceCategory) : "custom";
@@ -72,39 +92,63 @@ const catLabel = (c: PlaceCategory, lang: "it" | "en") => {
   return (lang === "it" ? it : en)[c];
 };
 
-// Pin categorizzato (divIcon brandizzato, niente marker default di Leaflet).
-function catIcon(cat: PlaceCategory) {
+// Ordine delle fasce per numerare le tappe in sequenza nel giorno.
+const SLOT_ORDER: Record<string, number> = { morning: 0, mattina: 0, lunch: 1, pranzo: 1, afternoon: 2, pomeriggio: 2, evening: 3, sera: 3, night: 4, notte: 4 };
+const slotRank = (s?: string) => (s != null && SLOT_ORDER[s.toLowerCase()] != null ? SLOT_ORDER[s.toLowerCase()] : 9);
+
+// distanza in metri (haversine).
+function distMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371000, toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+function walkLabel(m: number, lang: "it" | "en"): string {
+  const min = Math.max(1, Math.round(m / 80)); // ~80 m/min a piedi
+  if (min <= 60) return lang === "it" ? `${min} min a piedi` : `${min} min walk`;
+  return `${(m / 1000).toFixed(1)} km`;
+}
+
+// Pin categorizzato (overview / vista "Tutti").
+function catIcon(cat: PlaceCategory, bookable?: boolean) {
   const { color, glyph } = CAT[cat];
   return L.divIcon({
     className: "rmap-pin-wrap",
-    html: `<div class="rmap-pin" style="background:${color}"><span>${glyph}</span></div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-    popupAnchor: [0, -16],
+    html: `<div class="rmap-pin${bookable ? " rmap-pin--book" : ""}" style="background:${color}"><span>${glyph}</span></div>`,
+    iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16],
   });
 }
-
-// Pin "salvato dall'utente": stella oro, forma a cerchio per distinguerlo dai
-// pin del piano.
+// Tappa numerata del percorso del giorno.
+function numIcon(n: number, bookable?: boolean) {
+  return L.divIcon({
+    className: "rmap-pin-wrap",
+    html: `<div class="rmap-pin rmap-pin--num${bookable ? " rmap-pin--book" : ""}" style="background:${ROUTE_COLOR}"><span>${n}</span></div>`,
+    iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -18],
+  });
+}
+// Ancora: l'alloggio = da dove parte ogni giornata.
+function hotelIcon() {
+  return L.divIcon({
+    className: "rmap-pin-wrap",
+    html: `<div class="rmap-pin rmap-pin--hotel" style="background:${CAT.lodging.color}"><span>⌂</span></div>`,
+    iconSize: [38, 38], iconAnchor: [19, 19], popupAnchor: [0, -20],
+  });
+}
 function savedIcon() {
   return L.divIcon({
     className: "rmap-pin-wrap",
     html: `<div class="rmap-pin rmap-pin--saved"><span>★</span></div>`,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-    popupAnchor: [0, -16],
+    iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16],
   });
 }
-
 function meIcon() {
   return L.divIcon({ className: "rmap-me-wrap", html: `<div class="rmap-me"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
 }
-
 function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-export default function RouteMap({ points, center, destination, itineraryId, lang }: Props) {
+export default function RouteMap({ points, center, destination, itineraryId, lang, initialDay = null, onDayChange, onOpenDay }: Props) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -113,26 +157,35 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
   const searchLayer = useRef<L.LayerGroup | null>(null);
   const meLayer = useRef<L.LayerGroup | null>(null);
 
-  const [activeDay, setActiveDay] = useState<number | null>(null);
+  const days = useMemo(() => {
+    const s = new Set<number>();
+    points.forEach((p) => { if (typeof p.day === "number") s.add(p.day); });
+    return Array.from(s).sort((a, b) => a - b);
+  }, [points]);
+
+  // Default: il primo giorno (racconta un percorso), non "Tutti" (vista GIS).
+  const [activeDay, setActiveDay] = useState<number | null>(initialDay ?? days[0] ?? null);
   const [activeCats, setActiveCats] = useState<Set<PlaceCategory>>(new Set());
+  const [nearLodging, setNearLodging] = useState(false);
+  const [rainPlan, setRainPlan] = useState(false);
+  const [selected, setSelected] = useState<RoutePoint | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [saved, setSaved] = useState<SavedPlace[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Array<{ label: string; address: string; lat: number; lng: number }>>([]);
   const [searching, setSearching] = useState(false);
 
-  // refs per accedere allo stato aggiornato dentro gli handler dei popup Leaflet.
   const savedRef = useRef(saved);
   savedRef.current = saved;
-
   const dayWord = lang === "it" ? "Giorno" : "Day";
 
-  // Giorni e categorie presenti (per i filtri).
-  const days = useMemo(() => {
-    const s = new Set<number>();
-    points.forEach((p) => { if (typeof p.day === "number") s.add(p.day); });
-    return Array.from(s).sort((a, b) => a - b);
-  }, [points]);
+  const setDay = (d: number | null) => { setActiveDay(d); setSelected(null); onDayChange?.(d); };
+
+  // Alloggio (ancora): il pin lodging del giorno attivo, altrimenti globale.
+  const lodgingPt = useMemo(() => {
+    return points.find((p) => normCat(p.category) === "lodging" && (activeDay == null || p.day === activeDay))
+      ?? points.find((p) => normCat(p.category) === "lodging");
+  }, [points, activeDay]);
 
   const presentCats = useMemo(() => {
     const s = new Set<PlaceCategory>();
@@ -143,8 +196,10 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
   const visible = useMemo(() => points.filter((p) => {
     if (activeDay != null && p.day !== activeDay) return false;
     if (activeCats.size > 0 && !activeCats.has(normCat(p.category))) return false;
+    if (nearLodging && lodgingPt && distMeters(lodgingPt, p) > 1200) return false; // ~15 min a piedi
+    if (rainPlan) { const c = normCat(p.category); if (c === "beach" || c === "experience") return false; } // euristica "al chiuso"
     return true;
-  }), [points, activeDay, activeCats]);
+  }), [points, activeDay, activeCats, nearLodging, rainPlan, lodgingPt]);
 
   // ── load saved places ──
   useEffect(() => {
@@ -153,7 +208,7 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     fetch(`/api/itinerary/${itineraryId}/saved-places`, { credentials: "include" })
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => { if (!cancelled && Array.isArray(d)) setSaved(d); })
-      .catch(() => { /* mappa funziona comunque senza salvati */ });
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [itineraryId]);
 
@@ -161,8 +216,7 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     if (!itineraryId) return;
     try {
       const r = await fetch(`/api/itinerary/${itineraryId}/saved-places`, {
-        method: "POST",
-        credentials: "include",
+        method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(p),
       });
@@ -172,7 +226,7 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
       mapRef.current?.closePopup();
       searchLayer.current?.clearLayers();
       setResults([]);
-    } catch { /* ignore */ }
+    } catch {}
   }
 
   async function removeSaved(id: number) {
@@ -182,22 +236,18 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
       if (!r.ok) return;
       setSaved((prev) => prev.filter((s) => s.id !== id));
       mapRef.current?.closePopup();
-    } catch { /* ignore */ }
+    } catch {}
   }
 
   // ── init mappa ──
   useEffect(() => {
     if (!elRef.current || mapRef.current) return;
     const first = points[0] ?? (center ? { lat: center.lat, lng: center.lng } : null);
-    const map = L.map(elRef.current, {
-      zoomControl: true,
-      attributionControl: true,
-      scrollWheelZoom: false,
-    }).setView(first ? [first.lat, first.lng] : [41.9, 12.5], 13);
+    const map = L.map(elRef.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false })
+      .setView(first ? [first.lat, first.lng] : [41.9, 12.5], 13);
 
     L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      subdomains: "abcd",
-      maxZoom: 20,
+      subdomains: "abcd", maxZoom: 20,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(map);
 
@@ -208,8 +258,6 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     mapRef.current = map;
     setTimeout(() => map.invalidateSize(), 80);
 
-    // Wiring dei bottoni dentro i popup (delegato via evento popupopen): salva,
-    // salva-con-categoria, rimuovi.
     map.on("popupopen", (e: any) => {
       const root: HTMLElement = e.popup.getElement();
       if (!root) return;
@@ -218,11 +266,8 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
           const row = btn.closest<HTMLElement>(".rmap-save-row");
           if (!row) return;
           savePlace({
-            label: row.dataset.label || "",
-            lat: parseFloat(row.dataset.lat || "0"),
-            lng: parseFloat(row.dataset.lng || "0"),
-            category: (btn.dataset.cat as PlaceCategory) || "custom",
-            address: row.dataset.address || undefined,
+            label: row.dataset.label || "", lat: parseFloat(row.dataset.lat || "0"), lng: parseFloat(row.dataset.lng || "0"),
+            category: (btn.dataset.cat as PlaceCategory) || "custom", address: row.dataset.address || undefined,
           });
         };
       });
@@ -232,68 +277,58 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
 
     if (!first && destination) {
       let cancelled = false;
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(destination)}`, {
-        headers: { Accept: "application/json" },
-      })
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(destination)}`, { headers: { Accept: "application/json" } })
         .then((r) => r.json())
         .then((d) => {
           if (cancelled || !Array.isArray(d) || !d[0]) return;
           const lat = parseFloat(d[0].lat), lng = parseFloat(d[0].lon);
           if (!isNaN(lat) && !isNaN(lng)) map.setView([lat, lng], 12, { animate: true });
         })
-        .catch(() => { /* default view */ });
+        .catch(() => {});
       return () => { cancelled = true; map.remove(); mapRef.current = null; };
     }
-
     return () => { map.remove(); mapRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── redraw pin del piano al cambio filtri ──
+  // ── redraw pin del piano: percorso numerato del giorno + ancora alloggio ──
   useEffect(() => {
     const map = mapRef.current, layer = planLayer.current;
     if (!map || !layer) return;
     layer.clearLayers();
 
-    const dirLabel = lang === "it" ? "Apri in Google Maps" : "Open in Google Maps";
-    const saveLabel = lang === "it" ? "Salva" : "Save";
+    const singleDay = activeDay != null;
+    const lodging = visible.find((p) => normCat(p.category) === "lodging");
+    const stops = visible.filter((p) => normCat(p.category) !== "lodging");
+    const ordered = singleDay ? [...stops].sort((a, b) => slotRank(a.slot) - slotRank(b.slot)) : stops;
+
+    // Linea del percorso: alloggio → tappe in ordine. Alone + accent direzionale.
     const latlngs: L.LatLngTuple[] = [];
-
-    visible.forEach((p) => {
-      latlngs.push([p.lat, p.lng]);
-      const cat = normCat(p.category);
-      const meta = [p.day != null ? `${dayWord} ${p.day}` : "", p.slot ?? ""].filter(Boolean).join(" · ");
-      const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`;
-      const saveRow = itineraryId
-        ? `<div class="rmap-save-row" data-lat="${p.lat}" data-lng="${p.lng}" data-label="${escapeHtml(p.label)}">` +
-          `<button class="rmap-cat rmap-cat--wide" data-cat="${cat}" title="${saveLabel}">☆ ${saveLabel}</button></div>`
-        : "";
-      const html =
-        `<div class="rmap-pop">` +
-        `<div class="rmap-pop-t">${escapeHtml(p.label || destination)}</div>` +
-        (meta ? `<div class="rmap-pop-m">${escapeHtml(meta)}</div>` : "") +
-        `<a class="rmap-pop-a" href="${gmaps}" target="_blank" rel="noopener noreferrer">${dirLabel} ↗</a>` +
-        saveRow +
-        `</div>`;
-      L.marker([p.lat, p.lng], { icon: catIcon(cat), keyboard: false })
-        .bindPopup(html, { closeButton: true, className: "rmap-popup" })
-        .addTo(layer);
-    });
-
-    // Linea del percorso: collega le tappe nell'ordine dell'itinerario (giorno →
-    // fascia). I tracciati vettoriali stanno nell'overlayPane → restano sotto i
-    // pin (markerPane). Alone scuro + linea accent così la costruzione del
-    // viaggio si legge a colpo d'occhio.
+    if (lodging) latlngs.push([lodging.lat, lodging.lng]);
+    ordered.forEach((p) => latlngs.push([p.lat, p.lng]));
     if (latlngs.length > 1) {
-      L.polyline(latlngs, { color: "#000", weight: 7, opacity: 0.28, lineCap: "round", lineJoin: "round" }).addTo(layer);
-      L.polyline(latlngs, { color: "#E94560", weight: 3, opacity: 0.92, dashArray: "1 9", lineCap: "round", lineJoin: "round" }).addTo(layer);
+      L.polyline(latlngs, { color: "#000", weight: 8, opacity: 0.3, lineCap: "round", lineJoin: "round" }).addTo(layer);
+      L.polyline(latlngs, { color: ROUTE_COLOR, weight: 3.5, opacity: 0.95, dashArray: singleDay ? undefined : "1 9", lineCap: "round", lineJoin: "round" }).addTo(layer);
     }
 
-    // Auto-fit solo quando cambiano i punti visibili (non sui salvati).
+    const openCard = (p: RoutePoint) => { setSelected(p); map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: 0.5 }); };
+
+    // Ancora alloggio.
+    if (lodging) {
+      L.marker([lodging.lat, lodging.lng], { icon: hotelIcon(), keyboard: false, zIndexOffset: 1200 })
+        .on("click", () => openCard(lodging)).addTo(layer);
+    }
+    // Tappe: numerate (giorno singolo) o categorizzate (vista "Tutti").
+    ordered.forEach((p, i) => {
+      const icon = singleDay ? numIcon(i + 1, p.bookable) : catIcon(normCat(p.category), p.bookable);
+      L.marker([p.lat, p.lng], { icon, keyboard: false }).on("click", () => openCard(p)).addTo(layer);
+    });
+
     if (latlngs.length === 1) map.setView(latlngs[0], 15, { animate: true });
-    else if (latlngs.length > 1) map.fitBounds(L.latLngBounds(latlngs), { padding: [48, 48], maxZoom: 16 });
+    else if (latlngs.length > 1) map.fitBounds(L.latLngBounds(latlngs), { padding: [60, 60], maxZoom: 16 });
     else if (center) map.setView([center.lat, center.lng], 12);
-  }, [visible, center, destination, lang, itineraryId, dayWord]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, activeDay, center]);
 
   // ── redraw pin salvati ──
   useEffect(() => {
@@ -311,13 +346,11 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
         `<a class="rmap-pop-a" href="${gmaps}" target="_blank" rel="noopener noreferrer">${gmapsLabel} ↗</a>` +
         `<button class="rmap-del" data-id="${s.id}">✕ ${removeLabel}</button>` +
         `</div>`;
-      L.marker([s.lat, s.lng], { icon: savedIcon(), keyboard: false })
-        .bindPopup(html, { closeButton: true, className: "rmap-popup" })
-        .addTo(layer);
+      L.marker([s.lat, s.lng], { icon: savedIcon(), keyboard: false }).bindPopup(html, { closeButton: true, className: "rmap-popup" }).addTo(layer);
     });
   }, [saved, lang]);
 
-  // ── search (Nominatim), biased verso la destinazione ──
+  // ── search (Nominatim) ──
   async function runSearch(e?: FormEvent) {
     e?.preventDefault();
     const q = query.trim();
@@ -325,23 +358,14 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     setSearching(true);
     try {
       const bias = center ? `&lat=${center.lat}&lon=${center.lng}` : "";
-      const r = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&q=${encodeURIComponent(q)}${bias}`,
-        { headers: { Accept: "application/json" } },
-      );
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&q=${encodeURIComponent(q)}${bias}`, { headers: { Accept: "application/json" } });
       const d = await r.json();
       const list = (Array.isArray(d) ? d : []).map((it: any) => ({
         label: (it.name || it.display_name || "").split(",")[0],
-        address: it.display_name || "",
-        lat: parseFloat(it.lat),
-        lng: parseFloat(it.lon),
+        address: it.display_name || "", lat: parseFloat(it.lat), lng: parseFloat(it.lon),
       })).filter((x: any) => !isNaN(x.lat) && !isNaN(x.lng));
       setResults(list);
-    } catch {
-      setResults([]);
-    } finally {
-      setSearching(false);
-    }
+    } catch { setResults([]); } finally { setSearching(false); }
   }
 
   function pickResult(res: { label: string; address: string; lat: number; lng: number }) {
@@ -349,8 +373,7 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     if (!map || !layer) return;
     layer.clearLayers();
     const saveLabel = lang === "it" ? "Salva come" : "Save as";
-    const chips = ALL_CATS.map((c) =>
-      `<button class="rmap-cat" data-cat="${c}" title="${escapeHtml(catLabel(c, lang))}">${CAT[c].glyph}</button>`).join("");
+    const chips = ALL_CATS.map((c) => `<button class="rmap-cat" data-cat="${c}" title="${escapeHtml(catLabel(c, lang))}">${CAT[c].glyph}</button>`).join("");
     const saveRow = itineraryId
       ? `<div class="rmap-save-row" data-lat="${res.lat}" data-lng="${res.lng}" data-label="${escapeHtml(res.label)}" data-address="${escapeHtml(res.address)}">` +
         `<span class="rmap-save-lbl">${saveLabel}</span>${chips}</div>`
@@ -358,12 +381,8 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     const html =
       `<div class="rmap-pop">` +
       `<div class="rmap-pop-t">${escapeHtml(res.label)}</div>` +
-      (res.address ? `<div class="rmap-pop-m">${escapeHtml(res.address)}</div>` : "") +
-      saveRow +
-      `</div>`;
-    const m = L.marker([res.lat, res.lng], { icon: catIcon("custom"), keyboard: false })
-      .bindPopup(html, { closeButton: true, className: "rmap-popup" })
-      .addTo(layer);
+      (res.address ? `<div class="rmap-pop-m">${escapeHtml(res.address)}</div>` : "") + saveRow + `</div>`;
+    const m = L.marker([res.lat, res.lng], { icon: catIcon("custom"), keyboard: false }).bindPopup(html, { closeButton: true, className: "rmap-popup" }).addTo(layer);
     map.flyTo([res.lat, res.lng], 16, { duration: 0.6 });
     m.openPopup();
     setResults([]);
@@ -379,12 +398,10 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
         L.marker([latitude, longitude], { icon: meIcon(), keyboard: false }).addTo(layer);
         map.flyTo([latitude, longitude], 15, { duration: 0.6 });
       },
-      () => { /* permesso negato: nessun marker */ },
-      { enableHighAccuracy: true, timeout: 8000 },
+      () => {}, { enableHighAccuracy: true, timeout: 8000 },
     );
   }
 
-  // ── fullscreen: re-misura la mappa al toggle + chiusura con Esc ──
   useEffect(() => {
     const map = mapRef.current;
     if (map) setTimeout(() => map.invalidateSize(), 60);
@@ -395,77 +412,102 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
   }, [fullscreen]);
 
   function toggleCat(c: PlaceCategory) {
-    setActiveCats((prev) => {
-      const next = new Set(prev);
-      next.has(c) ? next.delete(c) : next.add(c);
-      return next;
-    });
+    setActiveCats((prev) => { const next = new Set(prev); next.has(c) ? next.delete(c) : next.add(c); return next; });
   }
+
+  // ── card operativa per la tappa selezionata ──
+  const selDist = selected && lodgingPt && selected !== lodgingPt ? walkLabel(distMeters(lodgingPt, selected), lang) : null;
+  const card = selected && (
+    <div className="rmap-card" data-testid="rmap-card">
+      <button className="rmap-card-x" onClick={() => setSelected(null)} aria-label={lang === "it" ? "Chiudi" : "Close"}>✕</button>
+      {selected.imageUrl && <div className="rmap-card-img" style={{ backgroundImage: `url("${selected.imageUrl}")` }} />}
+      <div className="rmap-card-body">
+        <div className="rmap-card-meta">
+          {typeof selected.day === "number" && <span className="rmap-card-day">{dayWord} {selected.day}</span>}
+          {selected.kindLabel && <span className="rmap-card-kind">{selected.kindLabel}</span>}
+        </div>
+        <div className="rmap-card-t">{selected.label}</div>
+        <div className="rmap-card-facts">
+          {selected.bestTime && <span>🕒 {selected.bestTime}</span>}
+          {selected.durationLabel && <span>⏱ {selected.durationLabel}</span>}
+          {selDist && <span>🏨 {selDist}</span>}
+        </div>
+        {selected.desc && <div className="rmap-card-desc">{selected.desc}</div>}
+        <div className="rmap-card-acts">
+          {typeof selected.day === "number" && onOpenDay && (
+            <button className="rmap-card-btn rmap-card-btn--p" onClick={() => onOpenDay(selected.day!, selected.momentId)}>
+              {lang === "it" ? "Apri nel giorno" : "Open in the day"} →
+            </button>
+          )}
+          {selected.bookable && selected.ctaUrl && (
+            <a className="rmap-card-btn rmap-card-btn--book" href={selected.ctaUrl} target="_blank" rel="noopener noreferrer">
+              {selected.cta || (lang === "it" ? "Prenota" : "Book")}{selected.ctaPrice ? ` · ${selected.ctaPrice}` : ""}
+            </a>
+          )}
+          <a className="rmap-card-btn" href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`} target="_blank" rel="noopener noreferrer">
+            {lang === "it" ? "Google Maps" : "Google Maps"} ↗
+          </a>
+          {itineraryId && (
+            <button className="rmap-card-btn" onClick={() => savePlace({ label: selected.label, lat: selected.lat, lng: selected.lng, category: normCat(selected.category) })}>
+              ☆ {lang === "it" ? "Salva" : "Save"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div ref={wrapRef} className={"rmap-wrap" + (fullscreen ? " rmap-wrap--full" : "")}>
       {/* toolbar: ricerca + posizione + fullscreen */}
       <div className="rmap-toolbar">
         <form className="rmap-search" onSubmit={runSearch}>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+          <input value={query} onChange={(e) => setQuery(e.target.value)}
             placeholder={lang === "it" ? "Cerca un posto…" : "Search a place…"}
-            aria-label={lang === "it" ? "Cerca un posto" : "Search a place"}
-          />
-          <button type="submit" className="rmap-icbtn" title={lang === "it" ? "Cerca" : "Search"}>
-            {searching ? "…" : "⌕"}
-          </button>
+            aria-label={lang === "it" ? "Cerca un posto" : "Search a place"} />
+          <button type="submit" className="rmap-icbtn" title={lang === "it" ? "Cerca" : "Search"}>{searching ? "…" : "⌕"}</button>
         </form>
         <button className="rmap-icbtn" onClick={locateMe} title={lang === "it" ? "Vicino a me" : "Near me"}>◎</button>
-        <button className="rmap-icbtn" onClick={() => setFullscreen((v) => !v)} title={lang === "it" ? "Schermo intero" : "Fullscreen"}>
-          {fullscreen ? "✕" : "⤢"}
-        </button>
+        <button className="rmap-icbtn" onClick={() => setFullscreen((v) => !v)} title={lang === "it" ? "Schermo intero" : "Fullscreen"}>{fullscreen ? "✕" : "⤢"}</button>
       </div>
 
       {results.length > 0 && (
         <ul className="rmap-results">
           {results.map((r, i) => (
-            <li key={i}>
-              <button onClick={() => pickResult(r)}>
-                <span className="rr-t">{r.label}</span>
-                <span className="rr-a">{r.address}</span>
-              </button>
-            </li>
+            <li key={i}><button onClick={() => pickResult(r)}><span className="rr-t">{r.label}</span><span className="rr-a">{r.address}</span></button></li>
           ))}
         </ul>
       )}
 
-      {/* filtri giorno + categoria */}
-      {(days.length > 1 || presentCats.length > 1) && (
-        <div className="rmap-filter">
-          {days.length > 1 && (
-            <>
-              <button className={"rmap-chip" + (activeDay == null ? " on" : "")} onClick={() => setActiveDay(null)}>
-                {lang === "it" ? "Tutti" : "All"}
-              </button>
-              {days.map((d) => (
-                <button key={d} className={"rmap-chip" + (activeDay === d ? " on" : "")} onClick={() => setActiveDay(d)}>
-                  {(lang === "it" ? "G" : "D") + d}
-                </button>
-              ))}
-            </>
-          )}
-          {presentCats.length > 1 && presentCats.map((c) => (
-            <button
-              key={c}
-              className={"rmap-chip rmap-chip--cat" + (activeCats.has(c) ? " on" : "")}
-              style={activeCats.has(c) ? { background: CAT[c].color, borderColor: CAT[c].color } : { borderColor: CAT[c].color }}
-              onClick={() => toggleCat(c)}
-              title={catLabel(c, lang)}
-            >
-              {CAT[c].glyph} {catLabel(c, lang)}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* filtri: giorno + motore (vicino all'alloggio / se piove) + categoria */}
+      <div className="rmap-filter">
+        {days.length > 1 && (
+          <>
+            <button className={"rmap-chip" + (activeDay == null ? " on" : "")} onClick={() => setDay(null)}>{lang === "it" ? "Tutti" : "All"}</button>
+            {days.map((d) => (
+              <button key={d} className={"rmap-chip" + (activeDay === d ? " on" : "")} onClick={() => setDay(d)}>{(lang === "it" ? "G" : "D") + d}</button>
+            ))}
+          </>
+        )}
+        {lodgingPt && (
+          <button className={"rmap-chip rmap-chip--engine" + (nearLodging ? " on" : "")} onClick={() => setNearLodging((v) => !v)} title={lang === "it" ? "Entro ~15 min a piedi dall'alloggio" : "Within ~15 min walk of your stay"}>
+            🏨 {lang === "it" ? "Vicino all'alloggio" : "Near your stay"}
+          </button>
+        )}
+        <button className={"rmap-chip rmap-chip--engine" + (rainPlan ? " on" : "")} onClick={() => setRainPlan((v) => !v)} title={lang === "it" ? "Mostra le tappe al coperto" : "Show indoor stops"}>
+          🌧 {lang === "it" ? "Se piove" : "Rain plan"}
+        </button>
+        {presentCats.length > 1 && presentCats.map((c) => (
+          <button key={c} className={"rmap-chip rmap-chip--cat" + (activeCats.has(c) ? " on" : "")}
+            style={activeCats.has(c) ? { background: CAT[c].color, borderColor: CAT[c].color } : { borderColor: CAT[c].color }}
+            onClick={() => toggleCat(c)} title={catLabel(c, lang)}>
+            {CAT[c].glyph} {catLabel(c, lang)}
+          </button>
+        ))}
+      </div>
 
       <div ref={elRef} className="rmap" />
+      {card}
     </div>
   );
 }

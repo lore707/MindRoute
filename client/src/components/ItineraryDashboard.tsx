@@ -169,6 +169,8 @@ export function ItineraryDashboard({
   const [activeDay, setActiveDay] = useState<number>(days[0]?.n ?? 1);
   const [openDay, setOpenDay] = useState<number | null>(days[0]?.n ?? null);
   const [, setActiveMoment] = useState(0);
+  // Collegamento Mappa→Giorni: il momento su cui scrollare dopo il salto.
+  const [pendingMoment, setPendingMoment] = useState<string | null>(null);
 
   const { checked, toggle } = useMissions(itineraryId);
 
@@ -183,6 +185,17 @@ export function ItineraryDashboard({
   };
 
   function go(id: ViewId) { setView(id); window.scrollTo({ top: 0, behavior: "auto" }); }
+
+  // Dopo un salto Mappa→Giorni, porta in vista il momento corrispondente.
+  useEffect(() => {
+    if (view !== "days" || !pendingMoment) return;
+    const id = pendingMoment;
+    const tmr = setTimeout(() => {
+      document.getElementById(`m-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setPendingMoment(null);
+    }, 120);
+    return () => clearTimeout(tmr);
+  }, [view, pendingMoment, activeDay]);
 
   useEffect(() => {
     const onScroll = () => setStuck(window.scrollY > 40);
@@ -430,6 +443,11 @@ export function ItineraryDashboard({
                   <div className="ag-dh-meta">
                     {sel.date && <span className="ag-dh-chip">{sel.date}</span>}
                     <span className="ag-dh-chip">{tappe} {tappe === 1 ? t("itd.fact.moment") : t("itd.fact.moments")} · {L("4 fasce", "4 bands")}</span>
+                    {/* Collegamento Giorni→Mappa: vedi il percorso di QUESTO giorno. */}
+                    <button className="ag-dh-chip" style={{ cursor: "pointer", color: "var(--ag-accent)", borderColor: "color-mix(in srgb, var(--ag-accent) 45%, transparent)" }}
+                      onClick={() => { setActiveDay(sel.n); go("map"); }} data-testid="day-see-on-map">
+                      🗺 {L("Vedi il percorso sulla mappa", "See the route on the map")}
+                    </button>
                   </div>
                   {sel.sub && <div className="ag-dh-sub">{sel.sub}</div>}
                 </div>
@@ -452,7 +470,7 @@ export function ItineraryDashboard({
                   </div>
                   <div className="ag-moments">
                     {arr.map((m, i) => (
-                      <div className="ag-m" key={i}>
+                      <div className="ag-m" key={i} id={m.id ? `m-${m.id}` : undefined}>
                         <div className="ag-mtop">
                           {m.startTime && <span className="ag-mtime tnum">{m.startTime}</span>}
                           {m.kindLabel && <span className="ag-kind">{m.kindLabel}</span>}
@@ -502,10 +520,16 @@ export function ItineraryDashboard({
     const geo = data.geometry;
     const noteKey = geo?.walkable ? "itd.map.compact" : "itd.map.spread";
     const note = geo ? tx(noteKey, { km: Math.max(1, Math.round(geo.spanKm)), min: geo.walkMinutes }) : "";
-    // Solo le tappe con coordinate reali finiscono sulla mappa Leaflet.
+    // Solo le tappe con coordinate reali finiscono sulla mappa Leaflet. Passiamo
+    // anche i campi ricchi (foto/durata/ora/cta) per la card operativa.
     const routePoints = (data.mapPoints ?? [])
       .filter((p) => typeof p.lat === "number" && typeof p.lng === "number")
-      .map((p) => ({ lat: p.lat!, lng: p.lng!, label: p.label, day: p.day, slot: p.slot, category: p.category }));
+      .map((p) => ({
+        lat: p.lat!, lng: p.lng!, label: p.label, day: p.day, slot: p.slot, category: p.category,
+        momentId: p.momentId, imageUrl: p.imageUrl, durationLabel: p.durationLabel, bestTime: p.bestTime,
+        kindLabel: p.kindLabel, desc: p.desc, bookable: p.bookable, ctaUrl: p.ctaUrl, cta: p.cta,
+        ctaProvider: p.ctaProvider, ctaPrice: p.ctaPrice, type: p.type,
+      }));
     // La mappa si renderizza sempre: con tappe → percorso; senza → centro città
     // (RouteMap geocodifica la destinazione come fallback). Mai un vicolo cieco.
     return (
@@ -526,7 +550,13 @@ export function ItineraryDashboard({
                 )}
               </div>
               <Suspense fallback={<div className="rmap-loading">{t("itd.map.loading")}</div>}>
-                <RouteMap points={routePoints} center={data.mapCenter} destination={data.destination} itineraryId={itineraryId} t={t} lang={lang as "it" | "en"} />
+                <RouteMap
+                  points={routePoints} center={data.mapCenter} destination={data.destination}
+                  itineraryId={itineraryId} t={t} lang={lang as "it" | "en"}
+                  initialDay={activeDay}
+                  onDayChange={(d) => { if (d != null) setActiveDay(d); }}
+                  onOpenDay={(day, momentId) => { setActiveDay(day); setOpenDay(day); setActiveMoment(0); if (momentId) setPendingMoment(momentId); go("days"); }}
+                />
               </Suspense>
             </div>
           ) : (
