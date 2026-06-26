@@ -6,11 +6,12 @@
  */
 export const itineraryDashDict: Record<string, { en: string; it: string }> = {
   // ── Sidebar ──────────────────────────────────────────────────────────────
-  "itd.nav.overview": { en: "Overview", it: "Panoramica" },
-  "itd.nav.days":     { en: "Days", it: "Giorni" },
-  "itd.nav.map":      { en: "Map", it: "Mappa" },
-  "itd.nav.practical":{ en: "Practical", it: "Pratica" },
-  "itd.nav.missions": { en: "Book", it: "Prenota" },
+  // Etichette = l'azione mentale dell'utente (compagno di viaggio), non la struttura.
+  "itd.nav.overview": { en: "Vision", it: "Visione" },
+  "itd.nav.days":     { en: "Journey", it: "Percorso" },
+  "itd.nav.map":      { en: "Explore", it: "Esplora" },
+  "itd.nav.practical":{ en: "Prepare", it: "Preparati" },
+  "itd.nav.missions": { en: "Confirm", it: "Conferma" },
   "itd.back":         { en: "Dashboard", it: "Dashboard" },
 
   // ── Topbar ───────────────────────────────────────────────────────────────
