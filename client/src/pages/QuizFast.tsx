@@ -62,6 +62,9 @@ const BUDGETS: (Opt & { code: string })[] = [
   { id: "nonpunto", it: "Non è il punto", en: "Not the point", emoji: "💎", theme: "quietluxury", code: "unlimited", meta_it: "il meglio, senza pensieri", meta_en: "the best, no thinking" },
 ];
 
+// Partenze comuni (Italia): un tap riempie il campo. Resta free-text per altre.
+const DEPARTURE_SUGGESTIONS = ["Milano", "Roma", "Bergamo", "Bologna", "Venezia", "Napoli"];
+
 const CITY_SUGGESTIONS: { name: string; theme: string }[] = [
   { name: "Lisbona", theme: "europe" }, { name: "Tokyo", theme: "asia" },
   { name: "Parigi", theme: "romantic" }, { name: "Bali", theme: "beach" },
@@ -81,6 +84,9 @@ export default function QuizFast() {
 
   const [mode, setMode] = useState<Mode | null>(null);
   const [city, setCity] = useState("");
+  // Aeroporto/città di partenza: serve a tracciare la tratta volo corretta
+  // nell'itinerario (matching-engine usa input.departure per IATA + link voli).
+  const [departure, setDeparture] = useState("");
   const [sensation, setSensation] = useState<string | null>(null);
   const [duration, setDuration] = useState<string | null>(null);
   const [budget, setBudget] = useState<string | null>(null);
@@ -155,7 +161,7 @@ export default function QuizFast() {
       days: dur?.days ?? 7,
       leaveDate: "",
       budget: bud?.code ?? "medium",
-      departure: "",
+      departure: departure.trim(),
       companions: "",
       travelStyle: "",
       constraints: "",
@@ -205,7 +211,10 @@ export default function QuizFast() {
     }
   };
 
-  const canContinueCity = city.trim().length >= 2;
+  const hasDeparture = departure.trim().length >= 2;
+  // Per proseguire (ramo "meta") servono meta + aeroporto di partenza: senza
+  // partenza l'itinerario non traccia la tratta volo corretta.
+  const canContinueCity = city.trim().length >= 2 && hasDeparture;
 
   // ── Sfondo (sempre montato) ───────────────────────────────────────────────
   const Bg = (
@@ -322,6 +331,34 @@ export default function QuizFast() {
                         </div>
                       ))}
                     </div>
+
+                    {/* Aeroporto/città di partenza — necessario per la tratta volo corretta */}
+                    <div style={{ marginTop: 24 }}>
+                      <label className="qc-q-sub" style={{ display: "block", fontSize: 14, marginBottom: 8 }}>
+                        ✈️ {L(lang, "Da dove parti?", "Where do you fly from?")} <em>{L(lang, "serve per il volo giusto", "needed for the right flight")}</em>
+                      </label>
+                      <input
+                        value={departure}
+                        onChange={(e) => setDeparture(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" && canContinueCity) goNext(); }}
+                        placeholder={L(lang, "Es: Milano, Roma, MXP…", "e.g. Milan, Rome, MXP…")}
+                        data-testid="fast-departure-input" className="qc-precise-input" style={{ fontSize: 17, padding: "16px 22px" }}
+                      />
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                        {DEPARTURE_SUGGESTIONS.map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => setDeparture(d)}
+                            data-testid={`fast-departure-${d}`}
+                            className={`qc-back ${departure === d ? "selected" : ""}`}
+                            style={departure === d ? { borderColor: "var(--qc-accent)", color: "var(--qc-accent)" } : undefined}
+                          >
+                            {d}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="qc-nav">
                       <button className="qc-back" onClick={goBack} data-testid="fast-back">← {L(lang, "Indietro", "Back")}</button>
                       <button className="qc-continue" onClick={goNext} disabled={!canContinueCity} data-testid="fast-city-continue">
@@ -338,7 +375,7 @@ export default function QuizFast() {
                     ? { eyebrow: L(lang, "L'emozione", "The feeling"), titleA: L(lang, "Che sensazione stai ", "What feeling are you "), titleB: L(lang, "cercando?", "after?"), sub: L(lang, "È la domanda più MindRoute di tutte. Niente filtri.", "The most MindRoute question of all. No filters."), opts: SENSATIONS, sel: sensation, pick: (id: string) => { setSensation(id); setTimeout(goNext, 260); } }
                     : current === "duration"
                     ? { eyebrow: L(lang, "Il tempo", "Time"), titleA: L(lang, "Quanto tempo ", "How much time "), titleB: L(lang, "hai?", "do you have?"), sub: "", opts: DURATIONS, sel: duration, pick: (id: string) => { setDuration(id); setTimeout(goNext, 260); } }
-                    : { eyebrow: L(lang, "Il budget", "Budget"), titleA: L(lang, "Quanto ti va di ", "How much do you feel like "), titleB: L(lang, "spendere?", "spending?"), sub: L(lang, "Serve solo per il tono. Il resto lo affiniamo dopo.", "Just for the tone. We refine the rest later."), opts: BUDGETS, sel: budget, pick: (id: string) => { setBudget(id); setTimeout(runGen, 280); } };
+                    : { eyebrow: L(lang, "Il budget", "Budget"), titleA: L(lang, "Quanto ti va di ", "How much do you feel like "), titleB: L(lang, "spendere?", "spending?"), sub: L(lang, "Serve solo per il tono. Il resto lo affiniamo dopo.", "Just for the tone. We refine the rest later."), opts: BUDGETS, sel: budget, pick: (id: string) => { setBudget(id); if (mode === "surprise" && !hasDeparture) return; setTimeout(runGen, 280); } };
                 return (
                   <>
                     <div className="qc-q-head">
@@ -365,6 +402,27 @@ export default function QuizFast() {
                         </div>
                       ))}
                     </div>
+                    {current === "budget" && mode === "surprise" && (
+                      <div style={{ maxWidth: 720, marginTop: 18 }}>
+                        <label className="qc-q-sub" style={{ display: "block", fontSize: 14, marginBottom: 8 }}>
+                          ✈️ {L(lang, "Da dove parti?", "Where do you fly from?")} <em>{L(lang, "serve per il volo giusto", "needed for the right flight")}</em>
+                        </label>
+                        <input
+                          value={departure}
+                          onChange={(e) => setDeparture(e.target.value)}
+                          placeholder={L(lang, "Es: Milano, Roma, MXP…", "e.g. Milan, Rome, MXP…")}
+                          data-testid="fast-departure-input" className="qc-precise-input" style={{ fontSize: 17, padding: "16px 22px", maxWidth: 360 }}
+                        />
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                          {DEPARTURE_SUGGESTIONS.map((d) => (
+                            <button key={d} onClick={() => setDeparture(d)} data-testid={`fast-departure-${d}`}
+                              className="qc-back" style={departure === d ? { borderColor: "var(--qc-accent)", color: "var(--qc-accent)" } : undefined}>
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {current === "budget" && (
                       <div style={{ maxWidth: 720, marginTop: 18 }}>
                         <label className="qc-q-sub" style={{ display: "block", fontSize: 13.5, marginBottom: 8 }}>
@@ -390,8 +448,10 @@ export default function QuizFast() {
                     <div className="qc-nav">
                       <button className="qc-back" onClick={goBack} data-testid="fast-back">← {L(lang, "Indietro", "Back")}</button>
                       {current === "budget" && (
-                        <span className="qc-q-sub" style={{ fontSize: 13, maxWidth: 320 }}>
-                          {L(lang, "Scegli la fascia e parte la generazione.", "Pick a tier and generation starts.")}
+                        <span className="qc-q-sub" style={{ fontSize: 13, maxWidth: 340, color: mode === "surprise" && !hasDeparture ? "var(--qc-accent)" : undefined }}>
+                          {mode === "surprise" && !hasDeparture
+                            ? L(lang, "Inserisci la partenza, poi scegli la fascia.", "Add your departure, then pick a tier.")
+                            : L(lang, "Scegli la fascia e parte la generazione.", "Pick a tier and generation starts.")}
                         </span>
                       )}
                     </div>
