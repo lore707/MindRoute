@@ -189,6 +189,21 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
+  // Rete di sicurezza: qualunque cosa accada, allo smontaggio del componente il
+  // body torna scrollabile (così l'overlay non può MAI lasciare la pagina bloccata).
+  useEffect(() => {
+    return () => { if (typeof document !== "undefined") document.body.style.overflow = ""; };
+  }, []);
+
+  // Esc chiude l'overlay — non si resta mai "intrappolati".
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) { setOpen(false); reset(); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, busy]);
+
   // Refine disponibile solo sugli itinerari moment-based (v2).
   if (schemaVersion !== 2) return null;
 
@@ -305,17 +320,23 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
           >
             {Bg}
 
-            {/* close */}
+            {/* close — visibile e solido così non si resta intrappolati */}
             <button
               onClick={closePanel}
               data-testid="refine-close"
-              className="qc-back"
-              style={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}
+              style={{
+                position: "fixed", top: 18, right: 18, zIndex: 20,
+                display: "inline-flex", alignItems: "center", gap: 8,
+                padding: "10px 18px", borderRadius: 999,
+                background: "rgba(233,69,96,0.92)", color: "#fff", fontWeight: 600, fontSize: 13,
+                border: "1px solid rgba(255,255,255,0.25)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.6)",
+              }}
             >
               ✕ {L(lang, "Chiudi", "Close")}
             </button>
 
-            <div className="qc-stage">
+            {/* click sull'area scura (fuori dal contenuto) = chiudi */}
+            <div className="qc-stage" onClick={(e) => { if (e.target === e.currentTarget && !busy) { setOpen(false); reset(); } }}>
               <div className="qc-container" style={{ paddingLeft: 56 }}>
                 {/* header strip con progress ottimistico */}
                 <div className="qc-header-strip">
