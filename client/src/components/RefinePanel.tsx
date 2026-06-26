@@ -1,14 +1,17 @@
 // ─────────────────────────────────────────────────────────────────────────
-// RefinePanel.tsx — Onboarding L2 (raffinamento progressivo post-generazione)
+// RefinePanel.tsx — Onboarding L2 (questionario sequenziale post-generazione)
 //
-// NON è un questionario: è "migliora questo viaggio". L'utente vede già
-// l'itinerario; sopra appare un invito ("ti somiglia al X%") e, a sua richiesta,
-// UNA domanda profonda alla volta (ritmo/compagnia/dove dormi/come mangi/come ti
-// muovi/cosa eviti/da dove parti). Ogni risposta → POST /refine → RIGENERAZIONE
-// completa dell'itinerario sulla stessa meta → coverage che sale.
+// L'utente vede già il primo itinerario; sopra appare un invito ("ti somiglia
+// al X%") e, a sua richiesta, risponde a TUTTE le domande L2 aperte una in fila
+// all'altra (ritmo/compagnia/dove dormi/come mangi/come ti muovi/cosa eviti/da
+// dove parti). Le risposte si accumulano in locale: NESSUNA rigenerazione tra
+// una domanda e l'altra. Solo alla fine parte UNA singola POST /refine con tutti
+// i campi → una rigenerazione completa sulla stessa meta → coverage che sale.
 //
 // La % è onesta: copertura reale del profilo (shared/profile-coverage.ts), la
-// stessa calcolata server-side. Parte ~55% (solo L1) e arriva a 100%.
+// stessa calcolata server-side. Parte ~55% (solo L1) e arriva a 100%. Durante il
+// questionario mostriamo la % OTTIMISTICA (profilo + bozza) così la barra cresce
+// a ogni risposta, prima ancora di rigenerare.
 // ─────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useMemo, useState } from "react";
@@ -25,11 +28,12 @@ const themeThumb = (key?: string) =>
   key ? (questionThemes[key] ?? questionThemes.default).imageUrl.replace("w=1200", "w=240") : "";
 
 type Opt = { value: string; it: string; en: string; theme?: string };
+type DimField = "pace" | "companions" | "accommodation" | "food" | "travelStyle" | "departure" | "avoid";
 
 // Set di opzioni per ogni dimensione L2 → mappate sul campo profilo che il
 // generatore v2 sa leggere (vedi buildConstraintsFromProfile lato server).
 const OPTIONS: Record<Exclude<CoverageDimKey, "destination" | "duration" | "budget">, {
-  field: "pace" | "companions" | "accommodation" | "food" | "travelStyle" | "departure" | "avoid";
+  field: DimField;
   multi?: boolean;
   text?: boolean;
   opts?: Opt[];
@@ -109,16 +113,37 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [dimKey, setDimKey] = useState<CoverageDimKey | null>(null);
+  const [done, setDone] = useState(false);
+
+  // ── Stato del questionario sequenziale ────────────────────────────────────
+  // Le risposte si accumulano qui (keyed by campo profilo). Si invia tutto in
+  // una sola POST /refine alla fine.
+  const [draft, setDraft] = useState<Record<string, any>>({});
+  const [idx, setIdx] = useState(0);
   const [multiSel, setMultiSel] = useState<string[]>([]);
   const [textVal, setTextVal] = useState("");
-  const [justDone, setJustDone] = useState(false);
+
+  // Le dimensioni aperte vengono "congelate" all'apertura: non rigeneriamo finché
+  // non finisce, quindi coverage.open resta stabile durante tutto il flusso.
+  const queue = coverage.open;
+  const total = queue.length;
+  const activeDim = queue[idx] ?? null;
+  const isLast = idx >= total - 1;
+
+  // % ottimistica: profilo persistito + risposte già date in bozza.
+  const optimistic = useMemo(
+    () => computeCoverage({ ...(profilingInput ?? {}), ...draft }),
+    [profilingInput, draft],
+  );
+
+  const reset = () => { setDraft({}); setIdx(0); setMultiSel([]); setTextVal(""); setErr(""); setDone(false); };
 
   // Apertura automatica al primo arrivo dal funnel veloce (?l2=1).
   useEffect(() => {
     if (typeof window === "undefined") return;
     const p = new URLSearchParams(window.location.search);
     if (p.get("l2") === "1" && coverage.open.length > 0) {
+      reset();
       setOpen(true);
       // pulisci il flag così un reload non riapre
       p.delete("l2");
@@ -131,19 +156,12 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
   // Refine disponibile solo sugli itinerari moment-based (v2).
   if (schemaVersion !== 2) return null;
 
-  const nextDim = coverage.open[0] ?? null;
-  const activeDim = dimKey
-    ? coverage.dims.find((d) => d.key === dimKey) ?? null
-    : nextDim;
+  const openPanel = () => { reset(); setOpen(true); };
+  const closePanel = () => { if (!busy) { setOpen(false); reset(); } };
 
-  const startDim = (key: CoverageDimKey) => {
-    setDimKey(key);
-    setMultiSel([]);
-    setTextVal("");
-    setErr("");
-  };
-
-  const submit = async (patch: Record<string, any>) => {
+  // Invio finale: una sola chiamata con tutte le risposte → una rigenerazione.
+  const finalize = async (patch: Record<string, any>) => {
+    if (Object.keys(patch).length === 0) { setOpen(false); reset(); return; }
     setBusy(true);
     setErr("");
     try {
@@ -154,9 +172,7 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
       });
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || "refine failed");
       await onRefined();
-      setDimKey(null);
-      setJustDone(true);
-      setTimeout(() => setJustDone(false), 2200);
+      setDone(true);
     } catch (e: any) {
       setErr(L(lang, "Non sono riuscito a rigenerare. Riprova.", "Couldn't regenerate. Try again."));
     } finally {
@@ -164,26 +180,43 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
     }
   };
 
-  const pickSingle = (cfg: (typeof OPTIONS)[keyof typeof OPTIONS], value: string) => {
-    submit({ [cfg.field]: value });
-  };
-  const submitMulti = (cfg: (typeof OPTIONS)[keyof typeof OPTIONS]) => {
-    submit({ [cfg.field]: multiSel });
-  };
-  const submitText = (cfg: (typeof OPTIONS)[keyof typeof OPTIONS]) => {
-    if (textVal.trim().length < 2) return;
-    submit({ [cfg.field]: textVal.trim() });
+  // Passa alla prossima domanda, oppure rigenera se era l'ultima.
+  const advance = (nextDraft: Record<string, any>) => {
+    setMultiSel([]);
+    setTextVal("");
+    if (isLast) finalize(nextDraft);
+    else setIdx((i) => i + 1);
   };
 
+  // Handlers per i tre tipi di domanda — accumulano nel draft, non inviano.
+  const pickSingle = (field: DimField, value: string) => {
+    const nextDraft = { ...draft, [field]: value };
+    setDraft(nextDraft);
+    advance(nextDraft);
+  };
+  const confirmMulti = (field: DimField) => {
+    const nextDraft = multiSel.length ? { ...draft, [field]: multiSel } : { ...draft };
+    setDraft(nextDraft);
+    advance(nextDraft);
+  };
+  const confirmText = (field: DimField) => {
+    const v = textVal.trim();
+    const nextDraft = v.length >= 2 ? { ...draft, [field]: v } : { ...draft };
+    setDraft(nextDraft);
+    advance(nextDraft);
+  };
+  const skip = () => advance({ ...draft });
+
   const pct = coverage.pct;
-  const complete = coverage.open.length === 0;
+  const optimisticPct = optimistic.pct;
+  const allDone = coverage.open.length === 0;
 
   // ── Banner fisso (sempre visibile finché il profilo non è pieno) ──────────
   const Banner = (
     <motion.button
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      onClick={() => { setOpen(true); if (nextDim) startDim(nextDim.key); }}
+      onClick={openPanel}
       data-testid="refine-open"
       className="fixed z-[120] bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_12px_40px_rgba(233,69,96,0.35)] border border-[#E94560]/40 cursor-pointer"
       style={{ background: "linear-gradient(120deg, rgba(20,12,18,0.92), rgba(40,16,28,0.92))", backdropFilter: "blur(10px)" }}
@@ -193,15 +226,17 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
       </span>
       <span className="text-left">
         <span className="block text-[13px] font-semibold text-white leading-tight">
-          {complete
+          {allDone
             ? L(lang, "Questo viaggio ti somiglia al 100%", "This trip is 100% you")
             : L(lang, `Ti somiglia al ${pct}%`, `${pct}% you`)}
         </span>
-        {!complete && (
-          <span className="block text-[11px] text-white/55 leading-tight">{L(lang, "Tocca per migliorarlo", "Tap to improve it")}</span>
+        {!allDone && (
+          <span className="block text-[11px] text-white/55 leading-tight">
+            {L(lang, `${total} domande per renderlo tuo`, `${total} questions to make it yours`)}
+          </span>
         )}
       </span>
-      {!complete && (
+      {!allDone && (
         <span className="ml-1 w-14 h-1.5 rounded-full bg-white/15 overflow-hidden">
           <span className="block h-full bg-[#E94560]" style={{ width: `${pct}%` }} />
         </span>
@@ -221,7 +256,7 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[130] flex items-end sm:items-center justify-center"
           >
-            <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={() => !busy && setOpen(false)} />
+            <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" onClick={closePanel} />
             <motion.div
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -235,18 +270,23 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
                   <span className="text-[11px] tracking-[0.18em] uppercase text-[#E94560] font-semibold">
                     {L(lang, "Migliora il viaggio", "Improve the trip")}
                   </span>
+                  {!busy && !done && total > 0 && (
+                    <span className="text-[11px] text-white/40">
+                      {L(lang, `Domanda ${Math.min(idx + 1, total)} di ${total}`, `Question ${Math.min(idx + 1, total)} of ${total}`)}
+                    </span>
+                  )}
                 </div>
-                <button onClick={() => !busy && setOpen(false)} className="text-white/40 hover:text-white transition-colors" data-testid="refine-close">
+                <button onClick={closePanel} className="text-white/40 hover:text-white transition-colors" data-testid="refine-close">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* progress */}
+              {/* progress — durante il questionario mostra la % ottimistica */}
               <div className="flex items-center gap-2 mb-5">
                 <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                  <motion.span className="block h-full bg-[#E94560]" animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }} />
+                  <motion.span className="block h-full bg-[#E94560]" animate={{ width: `${optimisticPct}%` }} transition={{ duration: 0.5 }} />
                 </div>
-                <span className="text-[12px] font-semibold text-white/70 tabular-nums">{pct}%</span>
+                <span className="text-[12px] font-semibold text-white/70 tabular-nums">{optimisticPct}%</span>
               </div>
 
               {busy ? (
@@ -257,16 +297,20 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
                   </p>
                   <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
                 </div>
-              ) : complete ? (
+              ) : done || allDone ? (
                 <div className="py-8 text-center">
                   <div className="w-12 h-12 rounded-full bg-[#E94560]/15 flex items-center justify-center mx-auto mb-4">
                     <Check className="w-6 h-6 text-[#E94560]" />
                   </div>
-                  <h3 className="text-[18px] font-semibold text-white mb-2">{L(lang, "Profilo completo", "Profile complete")}</h3>
+                  <h3 className="text-[18px] font-semibold text-white mb-2">
+                    {coverage.open.length === 0 ? L(lang, "Profilo completo", "Profile complete") : L(lang, "Viaggio aggiornato", "Trip updated")}
+                  </h3>
                   <p className="text-[13px] text-white/55 max-w-[320px] mx-auto">
-                    {L(lang, "Questo viaggio ti somiglia al 100%. Ogni risposta che dai resta nel tuo profilo per i prossimi viaggi.", "This trip is 100% you. Everything you answer stays in your profile for next trips.")}
+                    {coverage.open.length === 0
+                      ? L(lang, "Questo viaggio ti somiglia al 100%. Ogni risposta resta nel tuo profilo per i prossimi viaggi.", "This trip is 100% you. Everything you answer stays in your profile for next trips.")
+                      : L(lang, "L'ho riscritto sulle tue risposte. Puoi affinarlo ancora quando vuoi.", "I rewrote it around your answers. You can refine it further anytime.")}
                   </p>
-                  <button onClick={() => setOpen(false)} className="mt-6 px-6 py-3 rounded-xl bg-[#E94560] text-white font-medium hover:brightness-110 transition-all">
+                  <button onClick={() => { setOpen(false); reset(); }} className="mt-6 px-6 py-3 rounded-xl bg-[#E94560] text-white font-medium hover:brightness-110 transition-all">
                     {L(lang, "Torna al viaggio", "Back to the trip")}
                   </button>
                 </div>
@@ -275,62 +319,57 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
                   dimKey={activeDim.key}
                   question={lang === "it" ? activeDim.question_it : activeDim.question_en}
                   lang={lang}
+                  isLast={isLast}
                   multiSel={multiSel}
                   setMultiSel={setMultiSel}
                   textVal={textVal}
                   setTextVal={setTextVal}
                   onPickSingle={pickSingle}
-                  onSubmitMulti={submitMulti}
-                  onSubmitText={submitText}
-                  remaining={coverage.open.length}
+                  onConfirmMulti={confirmMulti}
+                  onConfirmText={confirmText}
+                  onSkip={skip}
                 />
               ) : null}
 
               {err && <p className="mt-4 text-[12px] text-[#E94560] text-center">{err}</p>}
 
-              {!busy && !complete && (
+              {!busy && !done && !allDone && activeDim && (
                 <p className="mt-5 text-center text-[11px] text-white/35">
-                  {L(lang, `Ancora ${coverage.open.length} per il 100% · puoi fermarti quando vuoi`, `${coverage.open.length} more to 100% · stop whenever you like`)}
+                  {L(lang, "Rispondi a tutte: la generazione parte alla fine · puoi saltare quello che non ti interessa", "Answer them all: generation runs at the end · skip anything you don't care about")}
                 </p>
               )}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {justDone && !open && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="fixed z-[120] bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full bg-[#E94560] text-white text-[12px] font-medium shadow-lg"
-        >
-          {L(lang, "Viaggio aggiornato ✓", "Trip updated ✓")}
-        </motion.div>
-      )}
     </>
   );
 }
 
 // ── Domanda attiva ──────────────────────────────────────────────────────────
 function ActiveQuestion({
-  dimKey, question, lang, multiSel, setMultiSel, textVal, setTextVal,
-  onPickSingle, onSubmitMulti, onSubmitText, remaining,
+  dimKey, question, lang, isLast, multiSel, setMultiSel, textVal, setTextVal,
+  onPickSingle, onConfirmMulti, onConfirmText, onSkip,
 }: {
   dimKey: CoverageDimKey;
   question: string;
   lang: Lang;
+  isLast: boolean;
   multiSel: string[];
   setMultiSel: (v: string[]) => void;
   textVal: string;
   setTextVal: (v: string) => void;
-  onPickSingle: (cfg: any, value: string) => void;
-  onSubmitMulti: (cfg: any) => void;
-  onSubmitText: (cfg: any) => void;
-  remaining: number;
+  onPickSingle: (field: DimField, value: string) => void;
+  onConfirmMulti: (field: DimField) => void;
+  onConfirmText: (field: DimField) => void;
+  onSkip: () => void;
 }) {
   const cfg = (OPTIONS as any)[dimKey];
   if (!cfg) return null;
+
+  const primaryLabel = isLast
+    ? L(lang, "Genera il viaggio", "Generate the trip")
+    : L(lang, "Continua", "Continue");
 
   return (
     <div>
@@ -342,17 +381,19 @@ function ActiveQuestion({
             autoFocus
             value={textVal}
             onChange={(e) => setTextVal(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") onSubmitText(cfg); }}
+            onKeyDown={(e) => { if (e.key === "Enter") onConfirmText(cfg.field); }}
             placeholder={L(lang, "La tua città di partenza…", "Your departure city…")}
             data-testid="refine-text"
             className="w-full px-4 py-3.5 rounded-xl text-[15px] bg-white/5 border border-white/15 focus:border-[#E94560] outline-none text-white transition-all"
           />
           <button
-            onClick={() => onSubmitText(cfg)}
-            disabled={textVal.trim().length < 2}
-            className="mt-4 w-full py-3 rounded-xl bg-[#E94560] text-white font-medium disabled:opacity-40 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+            onClick={() => onConfirmText(cfg.field)}
+            className="mt-4 w-full py-3 rounded-xl bg-[#E94560] text-white font-medium hover:brightness-110 transition-all flex items-center justify-center gap-2"
           >
-            {L(lang, "Rigenera", "Regenerate")} <ArrowRight className="w-4 h-4" />
+            {primaryLabel} <ArrowRight className="w-4 h-4" />
+          </button>
+          <button onClick={onSkip} className="mt-3 w-full text-[12px] text-white/40 hover:text-white/70 transition-colors">
+            {L(lang, "Salta questa domanda", "Skip this question")}
           </button>
         </div>
       ) : cfg.multi ? (
@@ -373,11 +414,10 @@ function ActiveQuestion({
             })}
           </div>
           <button
-            onClick={() => onSubmitMulti(cfg)}
-            disabled={multiSel.length === 0}
-            className="mt-5 w-full py-3 rounded-xl bg-[#E94560] text-white font-medium disabled:opacity-40 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+            onClick={() => onConfirmMulti(cfg.field)}
+            className="mt-5 w-full py-3 rounded-xl bg-[#E94560] text-white font-medium hover:brightness-110 transition-all flex items-center justify-center gap-2"
           >
-            {L(lang, "Rigenera", "Regenerate")} <ArrowRight className="w-4 h-4" />
+            {multiSel.length === 0 ? L(lang, "Niente da evitare", "Nothing to avoid") : primaryLabel} <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       ) : (
@@ -385,7 +425,7 @@ function ActiveQuestion({
           {cfg.opts.map((o: Opt) => (
             <button
               key={o.value}
-              onClick={() => onPickSingle(cfg, o.value)}
+              onClick={() => onPickSingle(cfg.field, o.value)}
               data-testid={`refine-opt-${o.value}`}
               className="w-full text-left pl-2 pr-4 py-2 rounded-xl text-[15px] border border-white/12 text-white/85 bg-white/5 hover:border-[#E94560] hover:bg-[#E94560]/10 transition-all flex items-center gap-3 group"
             >
@@ -399,6 +439,9 @@ function ActiveQuestion({
               <ArrowRight className="w-4 h-4 text-white/25 group-hover:text-[#E94560] transition-colors" />
             </button>
           ))}
+          <button onClick={onSkip} className="mt-2 w-full text-[12px] text-white/40 hover:text-white/70 transition-colors">
+            {L(lang, "Salta questa domanda", "Skip this question")}
+          </button>
         </div>
       )}
     </div>
