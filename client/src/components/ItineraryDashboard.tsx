@@ -184,6 +184,21 @@ export function ItineraryDashboard({
 
   const { checked, toggle } = useMissions(itineraryId);
 
+  // Collegamento "prenoto → il progresso si aggiorna": un CTA di prenotazione (dai
+  // Giorni o dalla card sulla Mappa) marca confermata la voce corrispondente nella
+  // sezione Prenota — stesse viste, stesso viaggio.
+  const bookIdForMoment = (type?: string, day?: number | null): string | null => {
+    if (type === "transport") return (day && day > 1) ? "transfer" : "flight";
+    if (type === "accommodation") return "hotel";
+    if (type === "experience") return "experience";
+    if (type === "food") return "food";
+    return null;
+  };
+  const markBooked = (type?: string, day?: number | null) => {
+    const id = bookIdForMoment(type, day);
+    if (id && !checked[id]) toggle(id);
+  };
+
   const isMobile = useMemo(() => typeof window !== "undefined" && window.innerWidth < 768, []);
   const heroW = isMobile ? 1100 : 1900;
   const cardW = isMobile ? 560 : 800;
@@ -589,7 +604,7 @@ export function ItineraryDashboard({
                         {m.cta && m.ctaUrl && (
                           <div className="ag-acts">
                             <a className="ag-btn-book" href={m.ctaUrl} target="_blank" rel="noopener noreferrer"
-                              onClick={() => trackAffiliate(m.ctaProvider ?? "unknown", data.destination)}>
+                              onClick={() => { trackAffiliate(m.ctaProvider ?? "unknown", data.destination); markBooked(m.type, sel.n); }}>
                               {m.cta}{m.ctaPrice && <span className="ag-price">· {m.ctaPrice}</span>}
                               <ExternalLink size={12} className="ag-ext" />
                             </a>
@@ -648,6 +663,7 @@ export function ItineraryDashboard({
                   initialDay={activeDay}
                   onDayChange={(d) => { if (d != null) setActiveDay(d); }}
                   onOpenDay={(day, momentId) => { setActiveDay(day); setOpenDay(day); setActiveMoment(0); if (momentId) setPendingMoment(momentId); go("days"); }}
+                  onBook={(type, day) => markBooked(type, day)}
                 />
               </Suspense>
             </div>

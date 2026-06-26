@@ -64,6 +64,8 @@ type Props = {
   onDayChange?: (day: number | null) => void;
   /** "Apri nel giorno": porta alla sezione Giorni su quel giorno/momento. */
   onOpenDay?: (day: number, momentId?: string) => void;
+  /** "Prenota" dalla card → aggiorna il progresso nella sezione Prenota. */
+  onBook?: (type?: string, day?: number) => void;
 };
 
 // Categoria → colore + glifo. Coerenti con i token editoriali del dashboard.
@@ -148,7 +150,7 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-export default function RouteMap({ points, center, destination, itineraryId, lang, initialDay = null, onDayChange, onOpenDay }: Props) {
+export default function RouteMap({ points, center, destination, itineraryId, lang, initialDay = null, onDayChange, onOpenDay, onBook }: Props) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -440,7 +442,8 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
             </button>
           )}
           {selected.bookable && selected.ctaUrl && (
-            <a className="rmap-card-btn rmap-card-btn--book" href={selected.ctaUrl} target="_blank" rel="noopener noreferrer">
+            <a className="rmap-card-btn rmap-card-btn--book" href={selected.ctaUrl} target="_blank" rel="noopener noreferrer"
+              onClick={() => onBook?.(selected.type, selected.day)}>
               {selected.cta || (lang === "it" ? "Prenota" : "Book")}{selected.ctaPrice ? ` · ${selected.ctaPrice}` : ""}
             </a>
           )}
