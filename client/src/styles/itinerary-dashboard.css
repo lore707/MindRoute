@@ -395,6 +395,8 @@
 
 .account-dash .rmap-wrap{position:relative}
 .account-dash .rmap{width:100%;height:clamp(360px,52vh,560px);background:#11161f}
+/* basemap CARTO dark schiarito+contrastato: strade ed etichette leggibili, mood notturno preservato */
+.account-dash .rmap .leaflet-tile{filter:brightness(1.5) contrast(1.08) saturate(1.22)}
 .account-dash .rmap-loading{display:grid;place-items:center;height:clamp(360px,52vh,560px);color:var(--ink-dim);font-family:var(--serif);font-style:italic;font-size:14px}
 
 /* fullscreen: la mappa esce dal flusso e copre il viewport */
@@ -434,9 +436,9 @@
 .account-dash .rmap-sw.rmap-line{width:16px;height:2px;border-radius:2px;margin-left:12px}
 
 /* pin numerati */
-.account-dash .rmap-pin{width:30px;height:30px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);
-  background:var(--accent);border:2px solid #fff;box-shadow:0 6px 16px -4px rgba(0,0,0,.7);display:grid;place-items:center;transition:transform .2s}
-.account-dash .rmap-pin span{transform:rotate(-45deg);font-weight:700;font-size:14px;color:#fff;line-height:1}
+.account-dash .rmap-pin{width:34px;height:34px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);
+  background:var(--accent);border:2.5px solid #fff;box-shadow:0 6px 18px -4px rgba(0,0,0,.85),0 0 0 3px rgba(233,69,96,.3);display:grid;place-items:center;transition:transform .2s}
+.account-dash .rmap-pin span{transform:rotate(-45deg);font-weight:700;font-size:15px;color:#fff;line-height:1}
 .account-dash .rmap-pin-wrap:hover .rmap-pin{transform:rotate(45deg) scale(1.12)}
 /* pin salvato: cerchio oro, stella dritta */
 .account-dash .rmap-pin--saved{border-radius:50%;transform:none;background:var(--gold)}

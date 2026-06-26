@@ -280,6 +280,15 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
         .addTo(layer);
     });
 
+    // Linea del percorso: collega le tappe nell'ordine dell'itinerario (giorno →
+    // fascia). I tracciati vettoriali stanno nell'overlayPane → restano sotto i
+    // pin (markerPane). Alone scuro + linea accent così la costruzione del
+    // viaggio si legge a colpo d'occhio.
+    if (latlngs.length > 1) {
+      L.polyline(latlngs, { color: "#000", weight: 7, opacity: 0.28, lineCap: "round", lineJoin: "round" }).addTo(layer);
+      L.polyline(latlngs, { color: "#E94560", weight: 3, opacity: 0.92, dashArray: "1 9", lineCap: "round", lineJoin: "round" }).addTo(layer);
+    }
+
     // Auto-fit solo quando cambiano i punti visibili (non sui salvati).
     if (latlngs.length === 1) map.setView(latlngs[0], 15, { animate: true });
     else if (latlngs.length > 1) map.fitBounds(L.latLngBounds(latlngs), { padding: [48, 48], maxZoom: 16 });
