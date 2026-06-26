@@ -241,9 +241,10 @@ export function CompanionDock() {
   useEffect(() => {
     if (!open || itineraryId == null || hydrated !== itineraryId || streaming) return;
     if (messages.length > 0) return; // thread non vuoto → niente brief
-    // Brief proattivo SOLO in viaggio (consulente sul posto: meteo + idea fresca).
-    // Prima di partire l'utente guida lui, con i chip d'ingresso (niente auto-send).
-    if (ctx?.phase !== "during") return;
+    // Apertura PROATTIVA in ogni fase: il bot non aspetta e non chiede "come posso
+    // aiutarti" — apre con un'osservazione che solo la sua memoria rende possibile
+    // (vedi PROACTIVE OPENER lato server). Una volta al giorno per non spammare.
+    if (!ctx) return; // aspetta il contesto/fase prima di aprire
     const key = `mindroute_proactive_${itineraryId}_${new Date().toISOString().slice(0, 10)}`;
     try { if (localStorage.getItem(key)) return; localStorage.setItem(key, "1"); } catch { /* ignore */ }
     runChat(lang === "it" ? "Aggiornami sul viaggio" : "Update me on my trip", true);

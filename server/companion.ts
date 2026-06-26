@@ -15,6 +15,7 @@
 import { client } from "./matching-engine";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "./trait-prior";
 import { computeCoverage } from "@shared/profile-coverage";
+import { computeAccountInsights, continentOf } from "./account-insights";
 import type { Itinerary } from "@shared/schema";
 
 const COMPANION_MODEL = "claude-haiku-4-5-20251001";
@@ -158,6 +159,33 @@ function digestV1(itin: Itinerary): string {
   ].filter(Boolean).join("\n");
 }
 
+// ── Memoria dell'intero ecosistema ─────────────────────────────────────────
+// Ciò che il companion sa dell'utente ATTRAVERSO MindRoute (non solo il viaggio
+// aperto): quanti viaggi, dove gravita, durata tipica, mete recenti. È la base
+// per fare lo "specchio" — osservazioni che solo la sua memoria rende possibili.
+function crossTripBlock(trips: Itinerary[], currentId: number | undefined): string {
+  if (!Array.isArray(trips) || trips.length <= 1) return ""; // primo viaggio → niente storico
+  const ins = computeAccountInsights(trips);
+  const recent = [...trips]
+    .sort((a, b) => +new Date((b as any).createdAt ?? 0) - +new Date((a as any).createdAt ?? 0))
+    .filter((t) => t.id !== currentId)
+    .slice(0, 8)
+    .map((t) => { const c = continentOf(t); return `${t.destinationName ?? "?"}${c ? ` (${c})` : ""}`; });
+  const lines: string[] = [];
+  lines.push(`Trips planned in MindRoute so far: ${ins.patterns.tripCount}.`);
+  if (ins.patterns.topContinent && ins.patterns.topContinentRatio != null)
+    lines.push(`Gravitates toward ${ins.patterns.topContinent} (${Math.round(ins.patterns.topContinentRatio * 100)}% of trips).`);
+  if (ins.patterns.avgDays != null)
+    lines.push(`Typical length ~${Math.round(ins.patterns.avgDays)} days${ins.patterns.shortTripBias ? " (leans short)" : ins.patterns.longTripBias ? " (leans long)" : ""}.`);
+  if (recent.length) lines.push(`Recent destinations: ${recent.join(" · ")}.`);
+  return `
+═══════════════════════════════════════
+WHAT YOU KNOW ABOUT THEM ACROSS MINDROUTE (their history — be the mirror only you can be)
+═══════════════════════════════════════
+${lines.join("\n")}
+Use this to name real patterns ("your last trips were all coastal / low-nightlife / nature…") and to make proposals only your memory makes possible. Stay light: observe, don't lecture, and never force it when it doesn't fit.`;
+}
+
 export async function buildCompanionSystem(opts: {
   itinerary: Itinerary;
   userId: number | null;
@@ -165,8 +193,10 @@ export async function buildCompanionSystem(opts: {
   lang: "en" | "it";
   coords?: { lat: number; lng: number } | null;
   proactive?: boolean;
+  trips?: Itinerary[];
 }): Promise<string> {
-  const { itinerary, userId, userName, lang, coords, proactive } = opts;
+  const { itinerary, userId, userName, lang, coords, proactive, trips } = opts;
+  const crossBlock = crossTripBlock(trips ?? [], (itinerary as any).id);
   const prior = await getTraitPriorForUser(userId);
   const priorBlock = prior ? formatTraitPriorBlock(prior) : "";
   const isV2 = (itinerary as any).schemaVersion === 2;
@@ -204,6 +234,7 @@ How you behave:
 - When the user wants to keep or remember a place/activity that is part of their plan, call save_moment with that moment's id (the [id:...] tag in the plan below) so it lands in their saved collection. Only the moments listed below have ids; never invent one.
 - You can ACTUALLY edit the plan: remove_moment drops a moment, replace_moment swaps one, add_moment adds a new stop, and regenerate_day rebuilds a WHOLE day from scratch (use it when they want a whole day reworked — "make day 3 relaxed", "redo day 2 around food"). Propose the change in words first; only call the tool once the user clearly agrees ("yes", "do it", "redo it"). For anything "near me / nearby", call find_nearby first and use a REAL place + its coordinates. After editing, tell them it's done — the plan refreshes on their screen.
 - Keep replies short by default (a few sentences). Expand only when they ask for detail.
+- TONE — you OBSERVE, REMEMBER and SUGGEST. Speak little; but when you speak, say something only your memory of THIS traveller makes possible. The traveller is the protagonist: frame insight as "here's what I've learned about you", never "look how clever I am". Never fake intimacy ("I missed you", "so glad you're back") — it reads artificial. No "How can I help?" — that puts the work on them; you already know enough to lead.
 - BOOKING LINKS ARE MANDATORY: whenever you PROPOSE or RECOMMEND something bookable — a place, activity, tour, restaurant, hotel, swap or added stop — you MUST call get_booking_link (pass its category and name) and include the EXACT url it returns in the same reply, as a clear "Book it: <url>". Never invent a URL, and never propose a bookable thing without its link. Only purely free/walk-in things (a public square, a stroll) need no link.
 - You can SEARCH THE WEB (web_search) for real, current info: actual restaurants and their reviews, monuments and sights, events happening during the trip, "what's the best X in <place>". Use it when the itinerary and find_nearby aren't enough, and prefer real named places over generic advice. When you recommend a real place found via search, still call get_booking_link to hand over its booking link.
 - For WEATHER, you have a real forecast: call get_weather instead of guessing. Use it to advise on a day (beach vs indoors, rain plan, what to pack) — proactively when it clearly matters.
@@ -213,11 +244,15 @@ ${userName ? `\nThe traveller's name is ${userName}.` : ""}
 ${position ? `\n${position}` : ""}${locLine}
 ${proactive ? `
 ═══════════════════════════════════════
-PROACTIVE BRIEF MODE — the user just opened the chat; greet them unprompted. Keep it SHORT and warm (max ~6 lines):
-1) Call get_weather and give the weather for today/the trip + one practical tip (what to wear, beach-or-indoors).
-2) Then propose exactly ONE fresh EXPERIENCE that is NOT already in their itinerary below — research it for real (web_search and/or find_nearby) so it's a named, bookable thing that fits their profile, and call get_booking_link for its link. Frame it as a bonus idea ("and if you want something extra…").
-3) Do NOT re-list their existing plan. End with one inviting question.
+PROACTIVE OPENER — the user just opened you. Do NOT wait, and NEVER open with "how can I help". Lead with ONE precise observation only YOU could make (from their profile, THIS plan, or their history across MindRoute), then offer ONE concrete next step. ~3–5 lines, no re-listing the plan.
+${phase === "during"
+  ? `· During the trip: call get_weather and lead with today (weather + one practical tip). Optionally add ONE fresh, real, bookable idea near them (find_nearby / web_search, then get_booking_link).`
+  : phase === "after"
+  ? `· After the trip: don't pitch anything. In one short message ask the three reflection questions — what they'd do again, what they'd skip, the single best moment — and tell them their answers sharpen their profile for next time.`
+  : `· Before departure: scan THIS plan against what you know about them and surface the SINGLE most useful thing — a day that contradicts their stated pace ("Day X looks busier than the relaxed rhythm you wanted — want me to slow it down?"), a key booking still missing close to departure, a budget that won't hold, or a cross-trip pattern worth naming. Then offer to act (you can actually edit the plan).`}
+End with one short, low-pressure question.
 ═══════════════════════════════════════` : ""}
+${crossBlock}
 ${priorBlock}
 ${signalBlock}
 ═══════════════════════════════════════

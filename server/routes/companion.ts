@@ -116,7 +116,10 @@ export function registerCompanionRoutes(app: Express) {
         .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
       const userName = (req.user as any)?.name ?? null;
-      const system = await buildCompanionSystem({ itinerary: itin, userId, userName, lang, coords, proactive });
+      // Memoria dell'ecosistema: tutti i viaggi dell'utente (best-effort) così il
+      // companion può fare lo "specchio" e proposte che solo la sua memoria consente.
+      const trips = userId ? await storage.getUserItineraries(userId).catch(() => []) : [];
+      const system = await buildCompanionSystem({ itinerary: itin, userId, userName, lang, coords, proactive, trips });
 
       // Persist the user turn before streaming so it isn't lost on disconnect.
       await storage.addMessage({ conversationId, role: "user", content: message });
