@@ -212,7 +212,7 @@ export default function QuizFast() {
 
   if (generating) {
     return (
-      <div className="qc-root" style={{ position: "relative", minHeight: "100vh" }}>
+      <div className="quiz-cinematic" style={{ position: "relative", minHeight: "100vh" }}>
         {Bg}
         <div style={{ position: "relative", zIndex: 5, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", textAlign: "center" }}>
           <div style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid #E94560", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
@@ -227,7 +227,7 @@ export default function QuizFast() {
   const progressPct = ((stepIdx + (current === "mode" ? 0 : 1)) / total) * 100;
 
   return (
-    <div className="qc-root" style={{ position: "relative", minHeight: "100vh" }}>
+    <div className="quiz-cinematic" style={{ position: "relative", minHeight: "100vh" }}>
       {Bg}
       <FlowNav />
       <div className="qc-stage">
