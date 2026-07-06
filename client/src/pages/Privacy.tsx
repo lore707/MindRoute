@@ -37,6 +37,7 @@ export default function Privacy() {
               <li>{it ? "Generare destinazioni di viaggio personalizzate in base al tuo profilo psicologico" : "Generate personalized travel destinations based on your psychological profile"}</li>
               <li>{it ? "Creare itinerari di viaggio su misura" : "Create tailored travel itineraries"}</li>
               <li>{it ? "Prevenire abusi del servizio tramite rate limiting" : "Prevent service abuse via rate limiting"}</li>
+              <li>{it ? "Solo se acconsenti esplicitamente (checkbox dedicata), inviarti email relative ai tuoi viaggi: promemoria di prenotazione, consigli pre-partenza e un breve check-in post-viaggio. Puoi revocare il consenso in qualsiasi momento dal link presente in ogni email o scrivendoci." : "Only if you explicitly consent (dedicated checkbox), send you emails about your trips: booking reminders, pre-departure tips and a short post-trip check-in. You can withdraw consent at any time via the link in every email or by contacting us."}</li>
             </ul>
           </section>
 
@@ -47,16 +48,17 @@ export default function Privacy() {
 
           <section>
             <h2 className="text-lg sm:text-xl font-bold text-white mb-3">{it ? "5. Cookie" : "5. Cookies"}</h2>
-            <p className="mb-3">{it ? "MindRoute non utilizza cookie propri di profilazione o tracciamento. Il sito utilizza esclusivamente:" : "MindRoute does not use its own profiling or tracking cookies. The site uses only:"}</p>
+            <p className="mb-3">{it ? "Il sito utilizza:" : "The site uses:"}</p>
             <ul className="space-y-2 list-disc pl-5">
               <li><strong className="text-white">{it ? "Cookie tecnici essenziali" : "Essential technical cookies"}</strong> — {it ? "necessari per il funzionamento del servizio (preferenza lingua, stato della sessione)." : "necessary for the service to function (language preference, session state)."}</li>
-              <li><strong className="text-white">{it ? "Cookie di terze parti" : "Third-party cookies"}</strong> — {it ? "i link affiliate presenti negli itinerari (Booking.com, Hotels.com, GetYourGuide, Viator, Klook, TripAdvisor, Expedia e altri) possono impostare cookie sui loro siti quando vi accedi tramite i nostri link. MindRoute non ha controllo su questi cookie. Ti invitiamo a consultare le privacy policy dei singoli servizi." : "affiliate links in itineraries (Booking.com, Hotels.com, GetYourGuide, Viator, Klook, TripAdvisor, Expedia and others) may set cookies on their sites when accessed through our links. MindRoute has no control over these cookies. Please consult the privacy policies of each service."}</li>
+              <li><strong className="text-white">{it ? "Cookie statistici (Google Analytics 4)" : "Analytics cookies (Google Analytics 4)"}</strong> — {it ? "attivi SOLO se accetti dal banner dei cookie. Se rifiuti, la misurazione avviene senza cookie e senza identificarti (Google Consent Mode). Puoi cambiare idea cancellando i dati di navigazione del sito." : "active ONLY if you accept via the cookie banner. If you decline, measurement is cookieless and does not identify you (Google Consent Mode). You can change your mind by clearing the site's browsing data."}</li>
+              <li><strong className="text-white">{it ? "Cookie di terze parti" : "Third-party cookies"}</strong> — {it ? "i link affiliate presenti negli itinerari (Hotels.com, Expedia, Viator, Klook, Civitatis, Musement, TripAdvisor, FlixBus e altri) possono impostare cookie sui loro siti quando vi accedi tramite i nostri link. MindRoute non ha controllo su questi cookie. Ti invitiamo a consultare le privacy policy dei singoli servizi." : "affiliate links in itineraries (Hotels.com, Expedia, Viator, Klook, Civitatis, Musement, TripAdvisor, FlixBus and others) may set cookies on their sites when accessed through our links. MindRoute has no control over these cookies. Please consult the privacy policies of each service."}</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-lg sm:text-xl font-bold text-white mb-3">{it ? "6. Conservazione dei dati" : "6. Data Retention"}</h2>
-            <p>{it ? "I dati di profilazione e l'indirizzo IP non vengono conservati in modo persistente. Vengono eliminati automaticamente al riavvio del server o al termine della sessione di utilizzo." : "Profiling data and IP addresses are not stored persistently. They are automatically deleted on server restart or at the end of the usage session."}</p>
+            <p>{it ? "Le risposte al quiz e gli itinerari generati sono conservati insieme al tuo account per permetterti di ritrovarli e per migliorare i suggerimenti futuri. Vengono eliminati definitivamente quando cancelli l'account (dalla pagina Account). Gli indirizzi IP sono usati solo per il rate limiting e non vengono conservati oltre la finestra tecnica necessaria." : "Quiz answers and generated itineraries are stored with your account so you can revisit them and to improve future suggestions. They are permanently deleted when you delete your account (from the Account page). IP addresses are used only for rate limiting and are not retained beyond the necessary technical window."}</p>
           </section>
 
           <section>

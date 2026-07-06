@@ -597,6 +597,10 @@
   background:none;border:none;color:var(--ink-faint);font-size:12px;cursor:pointer;padding:10px 4px}
 .account-dash .it-dates-skip:hover{color:var(--ink-dim)}
 .account-dash .it-dates-err{margin-top:12px;font-size:12.5px;color:var(--accent)}
+.account-dash .it-dates-optin{display:flex;align-items:flex-start;gap:9px;margin-top:14px;cursor:pointer}
+.account-dash .it-dates-optin input{margin-top:2px;width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex:none}
+.account-dash .it-dates-optin span{font-size:12px;line-height:1.5;color:var(--ink-dim)}
+.account-dash .it-dates-optin a{color:var(--gold);text-decoration:underline;text-underline-offset:2px}
 @media (max-width:640px){
   .account-dash .it-dates-form{width:100%}
   .account-dash .it-dates-field{flex:1 1 42%}

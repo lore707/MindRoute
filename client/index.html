@@ -62,6 +62,15 @@
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
+      // Consent Mode v2: default NEGATO finché l'utente non accetta il cookie
+      // banner (GDPR). Deve stare PRIMA di gtag('config'). Se il consenso era
+      // già stato dato in una visita precedente, lo ripristiniamo subito.
+      gtag('consent', 'default', { analytics_storage: 'denied', ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+      try {
+        if (localStorage.getItem('mindroute_cookie_consent') === 'accepted') {
+          gtag('consent', 'update', { analytics_storage: 'granted' });
+        }
+      } catch (e) { /* private mode */ }
       gtag('js', new Date());
       gtag('config', 'G-XJC8RN21Z6');
       (function () {

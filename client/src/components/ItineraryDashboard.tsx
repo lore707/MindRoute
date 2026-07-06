@@ -179,6 +179,8 @@ function TravelDatesBanner({ itineraryId, tripMeta, lang, onConfirmed }: {
   const [dismissed, setDismissed] = useState(false);
   const [from, setFrom] = useState<string>(tripMeta?.travel_dates?.start ?? "");
   const [to, setTo] = useState<string>(tripMeta?.travel_dates?.end ?? "");
+  // Opt-in email GDPR: MAI pre-spuntata. Il consenso è contestuale al viaggio.
+  const [emailOptIn, setEmailOptIn] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -189,7 +191,9 @@ function TravelDatesBanner({ itineraryId, tripMeta, lang, onConfirmed }: {
     if (!valid || saving) return;
     setSaving(true); setErr(null);
     try {
-      await apiRequest("PATCH", `/api/itinerary/${itineraryId}/travel-dates`, { start: from, end: to });
+      await apiRequest("PATCH", `/api/itinerary/${itineraryId}/travel-dates`, {
+        start: from, end: to, ...(emailOptIn ? { emailOptIn: true } : {}),
+      });
       onConfirmed?.();
     } catch {
       setErr(L("Non è stato possibile salvare le date. Riprova.", "Couldn't save the dates. Try again."));
@@ -224,6 +228,15 @@ function TravelDatesBanner({ itineraryId, tripMeta, lang, onConfirmed }: {
           </button>
         </div>
       </div>
+      <label className="it-dates-optin">
+        <input type="checkbox" checked={emailOptIn} onChange={(e) => setEmailOptIn(e.target.checked)} />
+        <span>
+          {L("Avvisami via email quando è il momento di prenotare e per consigli su questo viaggio.",
+             "Email me when it's time to book, plus tips for this trip.")}
+          {" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer">{L("Privacy", "Privacy")}</a>
+        </span>
+      </label>
       {err && <div className="it-dates-err">{err}</div>}
     </section>
   );

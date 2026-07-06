@@ -232,6 +232,13 @@ export interface TripMetaV2 {
   // che rende gli insight sul profilo REALI e non sognati. Assente = planned.
   trip_status?: "planned" | "confirmed" | "skipped";
   trip_status_at?: string;
+  // Consenso GDPR alle email di follow-up per QUESTO viaggio (promemoria di
+  // prenotazione T-21, pratica pre-partenza, check-in post-viaggio). Raccolto
+  // con la checkbox del banner date; il timestamp è la prova del consenso.
+  // Per-viaggio (non per-utente) così il consenso è contestuale e revocabile
+  // viaggio per viaggio; niente colonna su users = niente db:push.
+  email_opt_in?: boolean;
+  email_opt_in_at?: string;
   total_cost_bookable: number;
   total_cost_onsite_estimate: number;
   total_cost_range: string;

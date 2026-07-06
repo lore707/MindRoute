@@ -269,6 +269,9 @@ export function registerItineraryDetailRoutes(app: Express) {
   const travelDatesSchema = z.object({
     start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data di inizio non valida"),
     end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data di fine non valida"),
+    // Consenso opzionale alle email di follow-up su QUESTO viaggio (GDPR:
+    // opt-in esplicito, mai default). Registrato con timestamp come prova.
+    emailOptIn: z.boolean().optional(),
   }).refine((d) => d.end >= d.start, { message: "La data di fine deve essere ≥ inizio", path: ["end"] });
 
   app.patch("/api/itinerary/:id/travel-dates", requireAuth, async (req, res) => {
@@ -277,14 +280,20 @@ export function registerItineraryDetailRoutes(app: Express) {
       const itin = await storage.getItineraryById(id);
       if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
       if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
-      const { start, end } = travelDatesSchema.parse(req.body);
+      const { start, end, emailOptIn } = travelDatesSchema.parse(req.body);
       const prevMeta = ((itin as any).tripMeta ?? {}) as Record<string, any>;
-      const merged = {
+      const merged: Record<string, any> = {
         ...prevMeta,
         travel_dates: { start, end },
         travel_dates_confirmed: true,
         travel_dates_confirmed_at: new Date().toISOString(),
       };
+      // Solo un consenso ESPLICITO viene registrato; l'assenza della checkbox
+      // non tocca lo stato precedente (un true già dato non viene azzerato).
+      if (emailOptIn === true) {
+        merged.email_opt_in = true;
+        merged.email_opt_in_at = new Date().toISOString();
+      }
       await storage.updateItineraryTripMeta(id, merged);
       res.json({ ok: true, travel_dates: merged.travel_dates });
     } catch (err) {
