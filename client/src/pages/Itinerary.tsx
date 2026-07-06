@@ -1134,6 +1134,7 @@ export default function Itinerary() {
             itineraryId={itinerary.id}
             savedMomentIds={savedMomentIds}
             onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
+            onDatesConfirmed={refetch}
           />
         </div>
         {/* L2 — raffinamento progressivo con rigenerazione (solo itinerari v2). */}

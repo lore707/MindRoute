@@ -221,6 +221,12 @@ export type PlaceCategory =
 export interface TripMetaV2 {
   em_word?: string;
   travel_dates?: { start: string; end: string };
+  // true SOLO quando l'utente ha consolidato a mano le date reali del viaggio
+  // (non le date derivate/placeholder della generazione). È il prerequisito per
+  // sapere quando un viaggio è "passato" → abilita il check-in "ci sei andato?".
+  travel_dates_confirmed?: boolean;
+  // ISO timestamp del momento in cui l'utente ha confermato le date reali.
+  travel_dates_confirmed_at?: string;
   total_cost_bookable: number;
   total_cost_onsite_estimate: number;
   total_cost_range: string;

@@ -22,6 +22,7 @@ import {
   ExternalLink, Pencil, Printer, Share2, RotateCcw, Heart, ArrowLeft,
 } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
+import { apiRequest } from "@/lib/queryClient";
 import { useI18n } from "@/lib/i18n";
 import type { ItineraryData, Moment } from "./ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
@@ -46,6 +47,7 @@ type Props = {
   itineraryId?: number;
   savedMomentIds?: Set<string>;
   onToggleSaved?: (momentId: string, moment: Moment) => void;
+  onDatesConfirmed?: () => void;
 };
 
 const SEG_COLORS = ["#E94560", "#D4A853", "#6FB4A8", "#9D7EBC", "#5E8CB6", "#C77B5A"];
@@ -162,9 +164,73 @@ function computeStayAdvantage(mapPoints: ItineraryData["mapPoints"]): StayAdvant
   return { area: anchor.label, nearestMin: walkMin(nearest), walkable, total: stops.length };
 }
 
+/* ── Date reali del viaggio ──
+ * Il quiz spesso cattura solo il mese → le date generate sono un placeholder.
+ * Qui l'utente consolida QUANDO parte davvero: è il prerequisito perché il
+ * sistema sappia quando il viaggio è passato (→ "ci sei andato?"). Si mostra
+ * finché non sono confermate; dopo la conferma sparisce.
+ */
+function TravelDatesBanner({ itineraryId, tripMeta, lang, onConfirmed }: {
+  itineraryId?: number; tripMeta: any; lang: string; onConfirmed?: () => void;
+}) {
+  const L = (it: string, en: string) => (lang === "it" ? it : en);
+  const confirmed = tripMeta?.travel_dates_confirmed === true;
+  const [dismissed, setDismissed] = useState(false);
+  const [from, setFrom] = useState<string>(tripMeta?.travel_dates?.start ?? "");
+  const [to, setTo] = useState<string>(tripMeta?.travel_dates?.end ?? "");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  if (confirmed || dismissed || !itineraryId) return null;
+
+  const valid = !!from && !!to && to >= from;
+  const save = async () => {
+    if (!valid || saving) return;
+    setSaving(true); setErr(null);
+    try {
+      await apiRequest("PATCH", `/api/itinerary/${itineraryId}/travel-dates`, { start: from, end: to });
+      onConfirmed?.();
+    } catch {
+      setErr(L("Non è stato possibile salvare le date. Riprova.", "Couldn't save the dates. Try again."));
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="sec it-dates-banner">
+      <div className="it-dates-in">
+        <div className="it-dates-copy">
+          <div className="it-dates-eyebrow">{L("Quando parti davvero?", "When are you actually going?")}</div>
+          <p className="it-dates-sub">
+            {L("Fissa le date reali: il tuo compagno di viaggio saprà a che punto sei — e a viaggio finito potrà chiederti com'è andata.",
+               "Set your real dates: your travel companion will know where you are — and once the trip is over it can ask how it went.")}
+          </p>
+        </div>
+        <div className="it-dates-form">
+          <label className="it-dates-field">
+            <span>{L("Partenza", "Departure")}</span>
+            <input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} />
+          </label>
+          <label className="it-dates-field">
+            <span>{L("Rientro", "Return")}</span>
+            <input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
+          </label>
+          <button className="it-dates-save" disabled={!valid || saving} onClick={save}>
+            {saving ? L("Salvo…", "Saving…") : L("Conferma date", "Confirm dates")}
+          </button>
+          <button className="it-dates-skip" onClick={() => setDismissed(true)}>
+            {L("Non ora", "Not now")}
+          </button>
+        </div>
+      </div>
+      {err && <div className="it-dates-err">{err}</div>}
+    </section>
+  );
+}
+
 export function ItineraryDashboard({
   data, itinerary, affiliateUrls, profilingInput,
-  onSavePdf, onStartOver, onEdit, onShare, itineraryId, savedMomentIds, onToggleSaved,
+  onSavePdf, onStartOver, onEdit, onShare, itineraryId, savedMomentIds, onToggleSaved, onDatesConfirmed,
 }: Props) {
   const { t, lang } = useI18n();
   const [, setLocation] = useLocation();
@@ -452,6 +518,12 @@ export function ItineraryDashboard({
         </section>
 
         <div className="content">
+          <TravelDatesBanner
+            itineraryId={itineraryId}
+            tripMeta={(itinerary as any)?.tripMeta}
+            lang={lang}
+            onConfirmed={onDatesConfirmed}
+          />
           {data.manifesto && (
             <section className="sec">
               <div className="sec-head">

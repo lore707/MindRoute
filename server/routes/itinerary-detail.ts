@@ -261,6 +261,41 @@ export function registerItineraryDetailRoutes(app: Express) {
     }
   });
 
+  // ── Date reali del viaggio ────────────────────────────────────────────────
+  // L'utente consolida QUANDO parte davvero (il quiz spesso cattura solo il mese
+  // → travel_dates è un placeholder derivato). Solo dopo questo, il sistema sa
+  // quando il viaggio è "passato" e può chiedere "ci sei andato?" — prerequisito
+  // dell'analisi del profilo REALE. Fonde start/end in tripMeta e alza il flag.
+  const travelDatesSchema = z.object({
+    start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data di inizio non valida"),
+    end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data di fine non valida"),
+  }).refine((d) => d.end >= d.start, { message: "La data di fine deve essere ≥ inizio", path: ["end"] });
+
+  app.patch("/api/itinerary/:id/travel-dates", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const { start, end } = travelDatesSchema.parse(req.body);
+      const prevMeta = ((itin as any).tripMeta ?? {}) as Record<string, any>;
+      const merged = {
+        ...prevMeta,
+        travel_dates: { start, end },
+        travel_dates_confirmed: true,
+        travel_dates_confirmed_at: new Date().toISOString(),
+      };
+      await storage.updateItineraryTripMeta(id, merged);
+      res.json({ ok: true, travel_dates: merged.travel_dates });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("Errore aggiornamento date viaggio:", err);
+      res.status(500).json({ message: "Errore nel salvataggio delle date" });
+    }
+  });
+
   // Coverage corrente di un itinerario ("ti somiglia al X%") + dimensioni aperte.
   app.get("/api/itinerary/:id/coverage", requireAuth, async (req, res) => {
     try {
