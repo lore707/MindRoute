@@ -28,6 +28,7 @@ export type Trip = {
   size?: "l" | "m" | "s";    // mosaic size — if omitted, auto-cycles
   img: string;
   href?: string;
+  taken?: boolean;           // viaggio EFFETTIVAMENTE fatto (trip_status="confirmed")
 };
 export type StatCell = { value: string; label: string; sub?: string; goldNum?: boolean };
 export type SettingRow = { label: string; value: string; href?: string };

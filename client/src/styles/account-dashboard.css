@@ -240,6 +240,14 @@
 .account-dash .c-card .ph{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .8s ease}
 .account-dash .c-card:hover .ph{transform:scale(1.05)}
 .account-dash .c-card .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,7,13,.05),rgba(13,7,13,.5) 55%,rgba(13,7,13,.95))}
+/* Badge "Fatto" sui viaggi realmente compiuti (trip_status=confirmed) */
+.account-dash .c-card.taken{border-color:rgba(111,180,168,.55)}
+.account-dash .c-card.taken:hover{border-color:rgba(111,180,168,.8)}
+.account-dash .c-taken{position:absolute;top:16px;right:16px;z-index:3;
+  display:inline-flex;align-items:center;gap:5px;padding:5px 11px 5px 9px;border-radius:999px;
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#0d070d;
+  background:var(--teal);box-shadow:0 6px 18px -6px rgba(111,180,168,.7)}
+.account-dash .c-taken::before{content:"✓";font-size:11px;font-weight:900;line-height:1}
 .account-dash .c-body{position:absolute;inset:0;padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;z-index:2}
 .account-dash .c-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:600}
 .account-dash .c-top .when{display:flex;align-items:center;gap:7px}

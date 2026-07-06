@@ -244,8 +244,9 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   );
 
   const TripCard = ({ tr }: { tr: AccountData["trips"][number] }) => (
-    <a className="c-card" href={tr.href ?? "#"}>
+    <a className={"c-card" + (tr.taken ? " taken" : "")} href={tr.href ?? "#"}>
       <div className="ph" style={{ backgroundImage: bg(tr.img, cardW) }} />
+      {tr.taken && <span className="c-taken">{lang === "it" ? "Fatto" : "Been there"}</span>}
       <div className="c-body">
         <div className="c-top">
           <span className="when">{tr.date}<span className="region">{regionLabel(tr.continent)}</span></span>

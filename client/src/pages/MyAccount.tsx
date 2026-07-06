@@ -14,6 +14,7 @@ import { useI18n } from "@/lib/i18n";
 import { type PortraitData } from "@/components/AccountPortrait";
 import { type AtlasData } from "@/components/AccountAtlas";
 import { deriveTraitLabels } from "@/lib/trait-labels";
+import { getTripStatus } from "@shared/trip-status";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 import { fetchMe } from "@/hooks/use-auth";
 import { setFlow } from "@/lib/flow-storage";
@@ -43,6 +44,7 @@ type AccountInsights = {
     budgetBookableEur: number | null;
     topContinent: { continent: string; label: string; count: number } | null;
     avgTripDays: number | null;
+    tripsConfirmed?: number;
   };
   patterns: {
     topContinent: string | null;
@@ -263,6 +265,13 @@ export default function MyAccount() {
     return trips[0]?.heroImageUrl ?? FALLBACK_HERO_IMG;
   }, [trips]);
 
+  // Viaggi EFFETTIVAMENTE fatti (trip_status="confirmed"): il numero "reale"
+  // dietro tutti gli altri. Client-side dai tripMeta già presenti nei trips.
+  const tripsConfirmed = useMemo(
+    () => trips.filter(t => getTripStatus(t) === "confirmed").length,
+    [trips],
+  );
+
   const heroStats = useMemo(() => {
     const destinations = new Set(trips.map(t => t.destinationName ?? "").filter(Boolean));
     const continents = new Set(trips.map(t => t.continent).filter(Boolean));
@@ -291,7 +300,10 @@ export default function MyAccount() {
   const profileByline = (() => {
     const tripsCount = trips.length;
     const tripsLabel = tripsCount === 1 ? "viaggio" : "viaggi";
-    const base = `Distillato dai tuoi <strong>${tripsCount} ${tripsLabel}</strong>`;
+    const confirmedClause = tripsConfirmed > 0
+      ? ` · <strong>${tripsConfirmed} realmente ${tripsConfirmed === 1 ? "fatto" : "fatti"}</strong>`
+      : "";
+    const base = `Distillato dai tuoi <strong>${tripsCount} ${tripsLabel}</strong>${confirmedClause}`;
     if (!traitHistory?.delta) return base;
     const top = Object.entries(traitHistory.delta)
       .map(([k, v]) => ({ k, abs: Math.abs(v as number), v: v as number }))
@@ -336,6 +348,7 @@ export default function MyAccount() {
     continent: normalizeContinent(t.continentLabel ?? t.continent),
     img: t.heroImageUrl ?? FALLBACK_HERO_IMG,
     href: `/itinerary/${t.id}`,
+    taken: getTripStatus(t) === "confirmed",
   })), [trips, lang]);
 
   // Stats novelistic — 4 numeri grandi. Costruite da trips + insights.
@@ -349,10 +362,14 @@ export default function MyAccount() {
     return [
       {
         value: String(trips.length),
-        label: "Viaggi completati",
-        sub: firstTrip && lastTrip && firstTrip.id !== lastTrip.id
-          ? `Da ${(firstTrip.destinationName ?? "").split(",")[0]} a ${(lastTrip.destinationName ?? "").split(",")[0]}`
-          : undefined,
+        label: lang === "en" ? "Trips planned" : "Viaggi immaginati",
+        sub: tripsConfirmed > 0
+          ? (lang === "en"
+              ? `${tripsConfirmed} actually taken`
+              : `${tripsConfirmed} ${tripsConfirmed === 1 ? "realmente fatto" : "realmente fatti"}`)
+          : firstTrip && lastTrip && firstTrip.id !== lastTrip.id
+            ? `Da ${(firstTrip.destinationName ?? "").split(",")[0]} a ${(lastTrip.destinationName ?? "").split(",")[0]}`
+            : undefined,
       },
       {
         value: String(totalDays),
@@ -371,7 +388,7 @@ export default function MyAccount() {
         goldNum: true,
       },
     ];
-  }, [trips, insights]);
+  }, [trips, insights, tripsConfirmed, lang]);
 
   const statsNarrative = useMemo(() => {
     const totalDays = trips.reduce((acc, t) => acc + (Array.isArray(t.days) ? t.days.length : 0), 0);

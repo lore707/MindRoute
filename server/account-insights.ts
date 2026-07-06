@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import type { Itinerary } from "@shared/schema";
+import { getTripStatus } from "@shared/trip-status";
 
 export type Continent = "europe" | "asia" | "americas" | "africa" | "middleeast" | "oceania";
 
@@ -170,6 +171,7 @@ export interface WrappedStats {
   budgetBookableEur: number | null;   // somma tripMeta.total_cost_bookable, null se nessun trip v2
   topContinent: { continent: Continent; label: string; count: number } | null;
   avgTripDays: number | null;
+  tripsConfirmed: number;             // viaggi EFFETTIVAMENTE fatti (trip_status="confirmed")
 }
 
 // ── Pattern signals fed to Haiku ─────────────────────────────────────────
@@ -228,12 +230,15 @@ export function computeAccountInsights(trips: Itinerary[]): AccountInsights {
     topContinentRatio = tripCount > 0 ? count / tripCount : null;
   }
 
+  const tripsConfirmed = trips.filter(t => getTripStatus(t) === "confirmed").length;
+
   const stats: WrappedStats = {
     destinationsExplored: tripCount,
     daysImagined,
     budgetBookableEur,
     topContinent,
     avgTripDays: avgTripDays !== null ? Math.round(avgTripDays * 10) / 10 : null,
+    tripsConfirmed,
   };
 
   const patterns: PatternSignals = {
