@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
 import { apiRequest } from "@/lib/queryClient";
+import { shouldAskCheckin } from "@shared/trip-status";
 import { useI18n } from "@/lib/i18n";
 import type { ItineraryData, Moment } from "./ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
@@ -217,6 +218,61 @@ function TravelDatesBanner({ itineraryId, tripMeta, lang, onConfirmed }: {
           </label>
           <button className="it-dates-save" disabled={!valid || saving} onClick={save}>
             {saving ? L("Salvo…", "Saving…") : L("Conferma date", "Confirm dates")}
+          </button>
+          <button className="it-dates-skip" onClick={() => setDismissed(true)}>
+            {L("Non ora", "Not now")}
+          </button>
+        </div>
+      </div>
+      {err && <div className="it-dates-err">{err}</div>}
+    </section>
+  );
+}
+
+/* ── Check-in "ci sei andato?" ──
+ * A viaggio finito (date reali confermate + fine passata) e ancora senza
+ * risposta, chiediamo se il viaggio è stato fatto. È il segnale che rende reali
+ * gli insight sul profilo. Dopo la risposta sparisce (trip_status ≠ planned).
+ */
+function TripCheckinBanner({ itineraryId, itinerary, lang, onAnswered }: {
+  itineraryId?: number; itinerary: any; lang: string; onAnswered?: () => void;
+}) {
+  const L = (it: string, en: string) => (lang === "it" ? it : en);
+  const [dismissed, setDismissed] = useState(false);
+  const [saving, setSaving] = useState<null | "confirmed" | "skipped">(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  if (dismissed || !itineraryId || !shouldAskCheckin(itinerary)) return null;
+
+  const answer = async (status: "confirmed" | "skipped") => {
+    if (saving) return;
+    setSaving(status); setErr(null);
+    try {
+      await apiRequest("PATCH", `/api/itinerary/${itineraryId}/trip-status`, { status });
+      onAnswered?.();
+    } catch {
+      setErr(L("Non è stato possibile salvare. Riprova.", "Couldn't save. Try again."));
+      setSaving(null);
+    }
+  };
+
+  const dest = itinerary?.destinationName ?? L("questo viaggio", "this trip");
+  return (
+    <section className="sec it-checkin-banner">
+      <div className="it-dates-in">
+        <div className="it-dates-copy">
+          <div className="it-dates-eyebrow">{L(`Ci sei andato/a a ${dest}?`, `Did you make it to ${dest}?`)}</div>
+          <p className="it-dates-sub">
+            {L("Dimmelo e il tuo profilo di viaggiatore diventa reale: le prossime proposte impareranno da dove sei stato davvero, non solo da ciò che sognavi.",
+               "Tell me and your traveller profile becomes real: your next matches learn from where you actually went, not just what you dreamed.")}
+          </p>
+        </div>
+        <div className="it-dates-form">
+          <button className="it-dates-save" disabled={!!saving} onClick={() => answer("confirmed")}>
+            {saving === "confirmed" ? L("Salvo…", "Saving…") : L("Sì, ci sono stato/a", "Yes, I went")}
+          </button>
+          <button className="it-checkin-no" disabled={!!saving} onClick={() => answer("skipped")}>
+            {saving === "skipped" ? L("Salvo…", "Saving…") : L("No, saltato", "No, skipped it")}
           </button>
           <button className="it-dates-skip" onClick={() => setDismissed(true)}>
             {L("Non ora", "Not now")}
@@ -523,6 +579,12 @@ export function ItineraryDashboard({
             tripMeta={(itinerary as any)?.tripMeta}
             lang={lang}
             onConfirmed={onDatesConfirmed}
+          />
+          <TripCheckinBanner
+            itineraryId={itineraryId}
+            itinerary={itinerary}
+            lang={lang}
+            onAnswered={onDatesConfirmed}
           />
           {data.manifesto && (
             <section className="sec">

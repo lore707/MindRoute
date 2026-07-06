@@ -227,6 +227,11 @@ export interface TripMetaV2 {
   travel_dates_confirmed?: boolean;
   // ISO timestamp del momento in cui l'utente ha confermato le date reali.
   travel_dates_confirmed_at?: string;
+  // Stato del viaggio: "planned" (default, esiste solo il piano) → "confirmed"
+  // (l'utente ha detto che ci è andato) | "skipped" (non ci è andato). È l'asse
+  // che rende gli insight sul profilo REALI e non sognati. Assente = planned.
+  trip_status?: "planned" | "confirmed" | "skipped";
+  trip_status_at?: string;
   total_cost_bookable: number;
   total_cost_onsite_estimate: number;
   total_cost_range: string;

@@ -138,6 +138,10 @@ export function registerCompanionRoutes(app: Express) {
         },
         saveDays: (days) => storage.updateItineraryMapPoints(itinId, days),
         saveTrip: (days, tripMeta) => storage.updateItineraryTrip(itinId, days, tripMeta),
+        setTripStatus: async (status) => {
+          const merged = { ...((itin as any).tripMeta ?? {}), trip_status: status, trip_status_at: new Date().toISOString() };
+          await storage.updateItineraryTripMeta(itinId, merged);
+        },
       };
 
       const full = await runCompanionAgent({

@@ -552,3 +552,33 @@ export function emaAggregate(snapshots: TraitVector[], alpha = 0.3): TraitVector
   }
   return agg;
 }
+
+/**
+ * EMA pesata: come emaAggregate ma ogni snapshot porta un peso `w` che scala
+ * quanto muove il profilo. Serve al trait-prior per far contare i viaggi
+ * EFFETTIVAMENTE FATTI (preferenza rivelata) più di quelli solo generati
+ * (intenzione). Peso alto → alpha effettivo più alto → lo snapshot tira di più
+ * l'aggregato verso di sé. L'ordine (recency) è preservato; il peso lo modula.
+ * alpha effettivo per passo = clamp(baseAlpha * w, 0.05, 0.85).
+ */
+export function emaAggregateWeighted(
+  snapshots: { vector: TraitVector; weight: number }[],
+  baseAlpha = 0.3,
+): TraitVector {
+  if (snapshots.length === 0) return { ...NEUTRAL_VECTOR };
+  if (snapshots.length < 3) return { ...snapshots[snapshots.length - 1].vector };
+
+  let agg = { ...snapshots[0].vector };
+  for (let i = 1; i < snapshots.length; i++) {
+    const { vector: s, weight } = snapshots[i];
+    const a = Math.min(0.85, Math.max(0.05, baseAlpha * (weight > 0 ? weight : 0.05)));
+    agg = {
+      exposure:  a * s.exposure  + (1 - a) * agg.exposure,
+      comfort:   a * s.comfort   + (1 - a) * agg.comfort,
+      social:    a * s.social    + (1 - a) * agg.social,
+      matter:    a * s.matter    + (1 - a) * agg.matter,
+      structure: a * s.structure + (1 - a) * agg.structure,
+    };
+  }
+  return agg;
+}

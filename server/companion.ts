@@ -16,6 +16,7 @@ import { client } from "./matching-engine";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "./trait-prior";
 import { computeCoverage } from "@shared/profile-coverage";
 import { computeAccountInsights, continentOf } from "./account-insights";
+import { getTripStatus } from "@shared/trip-status";
 import type { Itinerary } from "@shared/schema";
 
 const COMPANION_MODEL = "claude-haiku-4-5-20251001";
@@ -203,6 +204,10 @@ export async function buildCompanionSystem(opts: {
   const digest = isV2 ? digestV2(itinerary) : digestV1(itinerary);
   const position = tripPositionLine(itinerary);
   const { phase } = tripPhaseInfo(itinerary);
+  const status = getTripStatus(itinerary);
+  // A viaggio finito e non ancora confermato, il bot deve prima capire SE ci è
+  // andato (set_trip_status) — è il segnale che rende reali gli insight.
+  const needsCheckin = phase === "after" && status === "planned";
   const signalBlock = profilingSignalBlock(itinerary, lang);
 
   // Two-act funnel made explicit so the companion's role is obvious to itself —
@@ -211,7 +216,9 @@ export async function buildCompanionSystem(opts: {
     phase === "during"
       ? `YOUR ROLE RIGHT NOW — ON-THE-SPOT CONSULTANT. They're traveling. Be the local fixer: what to do now, where to eat nearby, weather + plan B, last-minute swaps. Lead with the present moment. Use find_nearby and web_search liberally for REAL, current places and events — never generic advice.`
       : phase === "after"
-      ? `YOUR ROLE RIGHT NOW — they're back. Help them save the moments they loved and seed the next trip.`
+      ? (needsCheckin
+        ? `YOUR ROLE RIGHT NOW — the trip's dates have passed but you don't yet know if they actually went. FIRST find out: gently ask whether they made it (one light question). When they answer, call set_trip_status ("confirmed" if they went, "skipped" if they didn't) — this is what makes their profile real, not just planned. If they went, then help them save the moments they loved and reflect; if they didn't, no guilt — just note it and offer to seed the next trip.`
+        : `YOUR ROLE RIGHT NOW — they're back. Help them save the moments they loved and seed the next trip.`)
       : `YOUR ROLE RIGHT NOW — PERFECT THE TRIP BEFORE DEPARTURE. The plan exists; your job is to make it even more theirs: refine pace, swap weak moments, fill the open L2 gaps (ask one, then re-tune the plan), pressure-test the budget, and research real alternatives on the web. Be the finishing pass on their itinerary.`;
   const locLine = coords
     ? `\nThe traveller's CURRENT location is lat ${coords.lat.toFixed(4)}, lng ${coords.lng.toFixed(4)}. Use the find_nearby tool to ground "near me / right now" suggestions in real places.`
@@ -247,6 +254,8 @@ ${proactive ? `
 PROACTIVE OPENER — the user just opened you. Do NOT wait, and NEVER open with "how can I help". Lead with ONE precise observation only YOU could make (from their profile, THIS plan, or their history across MindRoute), then offer ONE concrete next step. ~3–5 lines, no re-listing the plan.
 ${phase === "during"
   ? `· During the trip: call get_weather and lead with today (weather + one practical tip). Optionally add ONE fresh, real, bookable idea near them (find_nearby / web_search, then get_booking_link).`
+  : needsCheckin
+  ? `· The trip's dates have passed and you don't know yet if they went. Open by warmly asking whether they actually made it to ${itinerary.destinationName ?? "the trip"} — nothing else. When they reply, call set_trip_status (confirmed/skipped). Only after that, if they went, ask what they'd do again and their single best moment. Keep it to one short, human question now.`
   : phase === "after"
   ? `· After the trip: don't pitch anything. In one short message ask the three reflection questions — what they'd do again, what they'd skip, the single best moment — and tell them their answers sharpen their profile for next time.`
   : `· Before departure: scan THIS plan against what you know about them and surface the SINGLE most useful thing — a day that contradicts their stated pace ("Day X looks busier than the relaxed rhythm you wanted — want me to slow it down?"), a key booking still missing close to departure, a budget that won't hold, or a cross-trip pattern worth naming. Then offer to act (you can actually edit the plan).`}
@@ -354,6 +363,18 @@ const COMPANION_TOOLS = [
     },
   },
   {
+    name: "set_trip_status",
+    description:
+      "Record whether the traveller ACTUALLY went on this trip, once its dates have passed. Call it after they tell you they made it ('confirmed') or that they didn't go ('skipped'). This is what turns their profile from intention into real, revealed preference — call it as soon as their answer is clear, then continue the conversation naturally.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        status: { type: "string", description: "'confirmed' if they went on the trip, 'skipped' if they did not." },
+      },
+      required: ["status"],
+    },
+  },
+  {
     name: "add_moment",
     description:
       "Add a NEW moment/stop to a given day of the plan. Use ONLY after the user agreed. Prefer real places (call find_nearby for 'near me' additions and pass real coordinates). The day_number must be one that exists in the plan.",
@@ -393,6 +414,8 @@ export interface CompanionToolContext {
   saveDays?: (days: any[]) => Promise<void>;
   // Persiste giorni + tripMeta (per ri-allineare i pin mappa dopo un edit).
   saveTrip?: (days: any[], tripMeta: any) => Promise<void>;
+  // Registra se il viaggio è stato fatto (confirmed) o no (skipped).
+  setTripStatus?: (status: "confirmed" | "skipped") => Promise<void>;
 }
 
 // Coordinate rappresentative del viaggio: usate dal meteo quando manca il GPS.
@@ -532,6 +555,27 @@ async function executeTool(
       },
     });
     return { result: `Saved "${title}" to the traveller's collection.`, label: it ? `Salvato: ${title}` : `Saved: ${title}` };
+  }
+
+  if (name === "set_trip_status") {
+    if (ctx.userId == null) return { result: "User not logged in; cannot record trip status.", label: it ? "Non registrato" : "Not recorded" };
+    if (!ctx.setTripStatus) return { result: "Recording trip status is unavailable here.", label: it ? "Non disponibile" : "Unavailable" };
+    const raw = String(input?.status ?? "").toLowerCase();
+    const status: "confirmed" | "skipped" | null =
+      /(confirm|went|yes|si|sì|fatto|andato|ci sono)/.test(raw) ? "confirmed"
+      : /(skip|didn|not|no|non|salt|rimand)/.test(raw) ? "skipped"
+      : raw === "confirmed" ? "confirmed" : raw === "skipped" ? "skipped" : null;
+    if (!status) return { result: `Unclear status "${input?.status}". Pass "confirmed" or "skipped".`, label: it ? "Stato poco chiaro" : "Unclear status" };
+    try {
+      await ctx.setTripStatus(status);
+      (ctx.itinerary as any).tripMeta = { ...((ctx.itinerary as any).tripMeta ?? {}), trip_status: status };
+      return status === "confirmed"
+        ? { result: "Recorded: the traveller WENT on this trip. Their profile now counts this as a real trip. Continue warmly (what they'd do again, best moment).", label: it ? "Viaggio confermato" : "Trip confirmed" }
+        : { result: "Recorded: the traveller did NOT go. No guilt — acknowledge lightly and, if it fits, offer to seed the next trip.", label: it ? "Viaggio saltato" : "Trip skipped" };
+    } catch (e) {
+      console.error("[companion] set_trip_status error:", e);
+      return { result: "Couldn't record it; continue without.", label: it ? "Non registrato" : "Not recorded" };
+    }
   }
 
   if (name === "remove_moment" || name === "replace_moment" || name === "add_moment" || name === "regenerate_day") {

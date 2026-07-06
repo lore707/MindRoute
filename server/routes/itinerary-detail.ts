@@ -296,6 +296,33 @@ export function registerItineraryDetailRoutes(app: Express) {
     }
   });
 
+  // ── Stato del viaggio ("ci sei andato?") ──────────────────────────────────
+  // A viaggio finito (date reali passate) l'utente conferma se ci è andato o no.
+  // È il segnale che rende reali gli insight sul profilo (trait-prior li pesa).
+  const tripStatusSchema = z.object({
+    status: z.enum(["confirmed", "skipped"]),
+  });
+
+  app.patch("/api/itinerary/:id/trip-status", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const { status } = tripStatusSchema.parse(req.body);
+      const prevMeta = ((itin as any).tripMeta ?? {}) as Record<string, any>;
+      const merged = { ...prevMeta, trip_status: status, trip_status_at: new Date().toISOString() };
+      await storage.updateItineraryTripMeta(id, merged);
+      res.json({ ok: true, trip_status: status });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("Errore aggiornamento stato viaggio:", err);
+      res.status(500).json({ message: "Errore nel salvataggio dello stato" });
+    }
+  });
+
   // Coverage corrente di un itinerario ("ti somiglia al X%") + dimensioni aperte.
   app.get("/api/itinerary/:id/coverage", requireAuth, async (req, res) => {
     try {
