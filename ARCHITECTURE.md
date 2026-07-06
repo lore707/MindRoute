@@ -4,6 +4,18 @@ Reference document so contributors (and Claude) can skip exploration when answer
 
 For project setup, build commands and stack overview see `CLAUDE.md`.
 
+> **⚠️ 2026-07 update note.** This file predates the v2 era and is accurate for
+> the *legacy* flows only. What changed since it was written: itineraries are now
+> **moment-based (schemaVersion=2)** with `tripMeta` jsonb; onboarding is
+> two-level (**L1 `/start` QuizFast + L2 RefinePanel**); the live itinerary UI is
+> the **dashboard app-shell** (`ItineraryDashboard`), account is
+> `AccountDashboard`; there is an **AI companion** (Haiku + tools, SSE) that can
+> edit plans and record `trip_status`; affiliate URLs are rewritten server-side
+> by `server/affiliate-config.ts`. Where this file and `docs/` disagree,
+> **`docs/` wins** — start from [`docs/README.md`](docs/README.md). The sections
+> below on the image pipeline, PDF pipeline, hard invariants and pitfalls are
+> still current.
+
 ---
 
 ## User journey & data flow

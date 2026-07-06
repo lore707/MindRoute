@@ -1,6 +1,12 @@
 # MindRoute — CLAUDE.md
 
 > **For data flows, file map, schema overview, image/PDF pipelines, and hard invariants, read `ARCHITECTURE.md` first.** This file covers stack and conventions only.
+>
+> **Knowledge base:** `docs/` holds the full engineering handoff — start with
+> `docs/AI-GUIDE.md` (working rules, fragile areas) and `docs/DECISIONS.md`
+> (why things are the way they are, rejected alternatives). Security posture in
+> `docs/SECURITY.md`, GA4 event catalog in `docs/ANALYTICS.md`, priorities in
+> `docs/ROADMAP.md`. Where `ARCHITECTURE.md` and `docs/` disagree, `docs/` wins.
 
 ## What is this project
 

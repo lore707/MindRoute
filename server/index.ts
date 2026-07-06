@@ -49,6 +49,16 @@ app.use(cors((req, callback) => {
   }
   callback(null, { origin: allow, credentials: true });
 }));
+// Security headers di base. NIENTE Content-Security-Policy qui: index.html usa
+// script inline deliberati (gtag stub, pre-hero) — una CSP va progettata con i
+// nonce, non improvvisata (vedi docs/SECURITY.md). Questi tre sono a rischio zero.
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
+
 const httpServer = createServer(app);
 const PgSession = connectPgSimple(session);
 
