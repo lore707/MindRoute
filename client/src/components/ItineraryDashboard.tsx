@@ -882,13 +882,29 @@ export function ItineraryDashboard({
 
     const gettingParsed = tryParse(itinerary.gettingThere);
     const steps: any[] = Array.isArray(gettingParsed?.steps) ? gettingParsed.steps : [];
+    // Testo libero SOLO se il campo non è JSON: i placeholder "{}" delle righe
+    // v2 storiche finivano a schermo grezzi nella card "Come arrivare".
+    const gettingFree: string = steps.length === 0 && itinerary.gettingThere && !(gettingParsed && typeof gettingParsed === "object")
+      ? String(itinerary.gettingThere) : "";
 
     const packParsed = tryParse(itinerary.packingList);
     const packItems: any[] = Array.isArray(packParsed?.items)
       ? packParsed.items
+      : (packParsed && typeof packParsed === "object")
+      ? [] // JSON senza items (placeholder "{}") → niente card, non "{}"
       : (itinerary.packingList ? String(itinerary.packingList).split(/[,;]/).map((s: string) => ({ label: s.trim() })).filter((x: any) => x.label.length > 1) : []);
 
-    const hasAny = budgetItems.length || hasV2Budget || itinerary.gettingThere || itinerary.bestTime || packItems.length;
+    // Date ISO "2025-06-15 → 2025-06-22" (righe v2 storiche in bestTime):
+    // formatta in modo umano invece di stampare il raw.
+    const bestTimeText: string = (() => {
+      const raw = String(itinerary.bestTime ?? "");
+      const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})\s*→\s*(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return raw;
+      const fmt = new Intl.DateTimeFormat(lang === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
+      return `${fmt.format(new Date(`${m[1]}-${m[2]}-${m[3]}T12:00:00Z`))} → ${fmt.format(new Date(`${m[4]}-${m[5]}-${m[6]}T12:00:00Z`))}`;
+    })();
+
+    const hasAny = budgetItems.length || hasV2Budget || steps.length || gettingFree || itinerary.bestTime || packItems.length;
 
     return (
       <div className="view">
@@ -976,7 +992,7 @@ export function ItineraryDashboard({
 
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               {/* Getting there */}
-              {(steps.length > 0 || itinerary.gettingThere) && (
+              {(steps.length > 0 || gettingFree) && (
                 <div className="card">
                   <div className="card-head"><span className="ic">✈️</span>{t("itd.prat.arrive")}</div>
                   <div className="arrive">
@@ -988,7 +1004,7 @@ export function ItineraryDashboard({
                           <div className="det">{s.method}{s.duration ? ` · ${s.duration}` : ""}{s.cost ? ` · ${s.cost}` : ""}</div>
                         </div>
                       </div>
-                    )) : <div className="det" style={{ fontSize: 13, color: "var(--ink-dim)", lineHeight: 1.6 }}>{itinerary.gettingThere}</div>}
+                    )) : <div className="det" style={{ fontSize: 13, color: "var(--ink-dim)", lineHeight: 1.6 }}>{gettingFree}</div>}
                   </div>
                 </div>
               )}
@@ -998,7 +1014,7 @@ export function ItineraryDashboard({
                 <div className="card">
                   <div className="card-head"><span className="ic">📅</span>{t("itd.prat.when")}</div>
                   <div className="when-card">
-                    <div className="when-legend">{itinerary.bestTime}</div>
+                    <div className="when-legend">{bestTimeText}</div>
                   </div>
                 </div>
               )}

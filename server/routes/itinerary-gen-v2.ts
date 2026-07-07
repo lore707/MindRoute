@@ -164,6 +164,19 @@ function dedupMomentImages(days: DayV2[], heroFallback: string): void {
 export async function enrichItineraryV2(rough: ItineraryV2, destinationName: string, profilingInput?: any): Promise<ItineraryV2> {
   const affCtx = buildAffiliateContext(destinationName, profilingInput);
 
+  // 0. Date di viaggio — fonte unica: la stessa finestra dei link di booking
+  //    (leaveDate, o +3 mesi da oggi). L'LLM le inventava senza ancora
+  //    temporale e finivano NEL PASSATO ("15/06/2025" mostrato in UI a
+  //    luglio 2026). Placeholder finché travel_dates_confirmed !== true.
+  if (affCtx.checkin && affCtx.checkout) {
+    rough.travel_dates = { start: affCtx.checkin, end: affCtx.checkout };
+    const start = new Date(affCtx.checkin + "T12:00:00Z");
+    for (const d of rough.days) {
+      const dd = new Date(start); dd.setUTCDate(dd.getUTCDate() + (d.day_number - 1));
+      (d as any).date = dd.toISOString().split("T")[0];
+    }
+  }
+
   // 1. Hero image — overwrite LLM URL with real Unsplash hero.
   const heroData = await fetchUnsplashHero(destinationName);
   const heroUrl = heroData?.url ?? rough.hero_image_url;
@@ -229,6 +242,19 @@ export function buildTripMetaV2(v2: ItineraryV2): TripMetaV2 {
   };
 }
 
+// Colonna legacy budgetSummary come {items:[{label,total}]} — il formato che
+// Redesign (share) e Dashboard sanno già disegnare come barre. Prima era un
+// blob {total_cost_range} che nessun parser riconosceva → JSON grezzo a schermo.
+function buildLegacyBudgetSummary(v2: ItineraryV2, lang: "it" | "en"): string {
+  const eur = (n: number) => `€${Math.round(n)}`;
+  const items: Array<{ label: string; total: string }> = [];
+  if (v2.total_cost_bookable) items.push({ label: lang === "it" ? "Prenotabile ora" : "Bookable now", total: eur(v2.total_cost_bookable) });
+  if (v2.total_cost_onsite_estimate) items.push({ label: lang === "it" ? "In loco (stima)" : "On-site (est.)", total: eur(v2.total_cost_onsite_estimate) });
+  if (!items.length) return "";
+  items.push({ label: lang === "it" ? "Totale" : "Total", total: eur((v2.total_cost_bookable ?? 0) + (v2.total_cost_onsite_estimate ?? 0)) });
+  return JSON.stringify({ items });
+}
+
 function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: number | null, profilingInput: any): any {
   const tripMeta = buildTripMetaV2(v2);
   return {
@@ -237,11 +263,14 @@ function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: num
     createdAt: new Date().toISOString(),
     days: v2.days,
     // Legacy text columns kept populated for backward-compat readers.
-    // budgetSummary/packingList/etc. mapped from v2 fields where applicable.
-    budgetSummary: JSON.stringify({ total_cost_range: v2.total_cost_range }),
-    packingList: "{}",
-    bestTime: v2.travel_dates ? `${v2.travel_dates.start} → ${v2.travel_dates.end}` : "",
-    gettingThere: "{}",
+    // budgetSummary nel formato {items:[…]} che i reader sanno disegnare;
+    // packingList/gettingThere vuoti (i placeholder "{}" finivano A SCHERMO
+    // grezzi su share page e vista Pratica); bestTime vuoto per v2 — le date
+    // vere vivono in tripMeta.travel_dates e hanno già il loro pannello.
+    budgetSummary: buildLegacyBudgetSummary(v2, profilingInput?.lang === "it" ? "it" : "en"),
+    packingList: "",
+    bestTime: "",
+    gettingThere: "",
     closingMessage: v2.closing_quote,
     destinationName: v2.destination,
     tripSummary: v2.manifesto.slice(0, 200),

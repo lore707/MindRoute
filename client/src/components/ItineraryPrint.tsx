@@ -77,6 +77,8 @@ export function ItineraryPrint({ data, itinerary, affiliateUrls, profilingInput,
           return { rows: rows.map((r: any) => ({ ...r, pc: Math.max(1, Math.round((r.amt / sum) * 100)) })), total: String(total) };
         }
       }
+      // JSON valido ma senza items (righe v2 storiche): range o niente, mai il blob.
+      if (p && typeof p === "object") return p.total_cost_range ? { text: String(p.total_cost_range) } : null;
     } catch { /* free-form */ }
     return { text: String(raw) };
   })();
@@ -89,6 +91,7 @@ export function ItineraryPrint({ data, itinerary, affiliateUrls, profilingInput,
       if (p?.steps?.length) {
         return { legs: p.steps.map((s: any) => ({ r: `${s.from} → ${s.to}`, dd: [s.method, s.duration, s.cost].filter(Boolean).join(" · ") })) };
       }
+      if (p && typeof p === "object") return null; // placeholder "{}" → niente card
     } catch { /* free-form */ }
     return { text: String(raw) };
   })();
@@ -99,6 +102,7 @@ export function ItineraryPrint({ data, itinerary, affiliateUrls, profilingInput,
     try {
       const p = typeof raw === "string" ? JSON.parse(raw) : raw;
       if (p?.items?.length) return p.items.map((i: any) => `${i.emoji ?? ""} ${i.label ?? i}`.trim());
+      if (p && typeof p === "object") return []; // placeholder "{}" → lista vuota
     } catch { /* free-form */ }
     return String(raw).split(/[,;]/).map(s => s.trim()).filter(s => s.length > 1);
   })();

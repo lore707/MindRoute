@@ -200,6 +200,11 @@ export function ItineraryRedesign({
         const total = totalRow ? (totalRow.total ?? totalRow.perPerson) : `€${rows.reduce((s: number, r: any) => s + r.amt, 0)}`;
         if (rows.length) return { rows, total: String(total) };
       }
+      // JSON valido ma senza items (righe v2 storiche con {total_cost_range}):
+      // mostra il range se c'è, mai il blob JSON grezzo a schermo.
+      if (parsed && typeof parsed === "object") {
+        return parsed.total_cost_range ? { text: String(parsed.total_cost_range) } : null;
+      }
     } catch { /* free-form */ }
     return { text: String(raw) };
   }, [itinerary?.budgetSummary]);
@@ -213,6 +218,9 @@ export function ItineraryRedesign({
       if (parsed?.steps?.length) {
         return { legs: parsed.steps.map((s: any) => ({ route: `${s.from} → ${s.to}`, det: [s.method, s.duration, s.cost].filter(Boolean).join(" · ") })) };
       }
+      // JSON valido ma senza steps (placeholder "{}" delle righe v2 storiche):
+      // niente card, non il blob grezzo.
+      if (parsed && typeof parsed === "object") return null;
     } catch { /* free-form */ }
     return { text: String(raw) };
   }, [itinerary?.gettingThere]);
@@ -224,6 +232,8 @@ export function ItineraryRedesign({
     try {
       const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
       if (parsed?.items?.length) return parsed.items.map((it: any) => `${it.emoji ?? ""} ${it.label ?? it}`.trim());
+      // JSON valido ma senza items (placeholder "{}"): lista vuota, non "{}".
+      if (parsed && typeof parsed === "object") return [];
     } catch { /* free-form */ }
     return String(raw).split(/[,;]/).map(s => s.trim()).filter(s => s.length > 1);
   }, [itinerary?.packingList]);
