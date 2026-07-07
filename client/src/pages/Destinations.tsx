@@ -60,7 +60,7 @@ const [isGenerating, setIsGenerating] = useState(false);
     setGenMessage(lang === "it" ? "Riprendo il tuo itinerario…" : "Resuming your itinerary…");
 
     const startedAt = Date.now();
-    const MAX_MS = 150_000; // ~2.5 min: oltre, qualcosa è andato storto → retry
+    const MAX_MS = 360_000; // 6 min: le generazioni reali durano 2-3.5 min — a 2.5 il poller dichiarava "interrotta" itinerari che stavano arrivando
     const tick = async () => {
       if (!alive) return;
       try {
@@ -309,7 +309,7 @@ if (destinations.length === 0) return null;
             </div>
           </div>
           <p className="text-white/25 text-xs text-center">
-            {lang === "it" ? "Gli itinerari personalizzati richiedono circa 90 secondi" : "Personalized itineraries take about 90 seconds"}
+            {lang === "it" ? "Gli itinerari personalizzati richiedono un paio di minuti — i posti veri chiedono tempo" : "Personalised itineraries take a couple of minutes — real places take time"}
           </p>
         </div>
       </div>

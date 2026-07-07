@@ -102,7 +102,8 @@ const planBV2Schema = z.object({
   alternative: z.string(),
 });
 
-const momentV2Schema: z.ZodType<MomentV2> = z.object({
+// Input `any`: i campi immagine hanno default('') quindi l'input ammette l'assenza.
+const momentV2Schema: z.ZodType<MomentV2, z.ZodTypeDef, any> = z.object({
   id: z.string(),
   type: momentTypeSchema,
   title_evocative: z.string(),
@@ -123,8 +124,8 @@ const momentV2Schema: z.ZodType<MomentV2> = z.object({
   location_address: z.string().optional(),
   location_lat: z.number().optional(),
   location_lng: z.number().optional(),
-  image_url: z.string(),
-  image_alt: z.string(),
+  image_url: z.string().default(""), // non richiesto all'LLM: riempito dall'enrichment
+  image_alt: z.string().default(""), // come image_url: non più richiesto all'LLM
   booking: bookingInfoV2Schema.optional(),
   description: z.string(),
   why_this: z.string(),
@@ -151,14 +152,14 @@ const dayRoleSchema = looseEnum<DayRole>(
   },
 );
 
-const dayV2Schema: z.ZodType<DayV2> = z.object({
+const dayV2Schema: z.ZodType<DayV2, z.ZodTypeDef, any> = z.object({
   day_number: z.number(),
   date: z.string().optional(),
   role: dayRoleSchema.optional(),
   arc: z.string(),
   title_evocative: z.string(),
   subtitle: z.string(),
-  hero_image_url: z.string(),
+  hero_image_url: z.string().default(""), // idem: foto reali attaccate dopo
   weather_forecast: weatherForecastV2Schema.optional(),
   energy_level: energyLevelSchema,
   energy_note: z.string().optional(),
@@ -186,7 +187,7 @@ export const itineraryV2Schema = z.object({
   country: z.string(),
   duration_days: z.number(),
   travel_dates: z.object({ start: z.string(), end: z.string() }).optional(),
-  hero_image_url: z.string(),
+  hero_image_url: z.string().default(""), // idem: foto reali attaccate dopo
   manifesto: z.string(),
   em_word: z.string().optional(),
   highlights: z.array(highlightV2Schema),
@@ -339,13 +340,8 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
    • Any moment without a coherent partner → honest prose.
 
 3. MOMENT IMAGE
-   - Every moment has its own image_url. NEVER reuse the same image for two
-     different moments in the same itinerary. Each moment.image_url must be
-     unique and visually distinct.
-   - Use REAL Unsplash URLs only: "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop".
-     Never invent IDs. If unsure, prefer the destination's most-photographed landmark
-     for accommodation moments and generic scenes (food plate, beach view, mountain trail)
-     for the rest — never invent IDs the LLM is unsure of.
+   - Do NOT include any image_url or hero_image_url fields. Real photos are
+     attached by the system afterwards — any URL you write is discarded.
 
 4. WHY_THIS — psychological anchor
    - Always reference a specific element from the user's profile/chips.
@@ -440,7 +436,6 @@ Exactly ${days} days in the "days" array.
   "country": "Country name only",
   "duration_days": ${days},
   "travel_dates": { "start": "YYYY-MM-DD", "end": "YYYY-MM-DD" },
-  "hero_image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=1600&h=900&fit=crop",
   "manifesto": "Long evocative quote — why this place is yours. 2–3 sentences, sensory, specific.",
   "em_word": "single word from manifesto to italicize for emphasis",
   "highlights": [
@@ -457,7 +452,6 @@ Exactly ${days} days in the "days" array.
       "arc": "Arrival",
       "title_evocative": "Left Milan Behind — The Southern Edge Begins",
       "subtitle": "Train south, ferry to the island, first dinner under the cliffs.",
-      "hero_image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=1200&h=600&fit=crop",
       "energy_level": "medium",
       "energy_note": "Heavy travel day — keep evening soft",
       "walking_distance_km": 3.5,
@@ -476,7 +470,6 @@ Exactly ${days} days in the "days" array.
           "cost_min": 850,
           "cost_max": 1100,
           "cost_note": "round-trip per person",
-          "image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop",
           "image_alt": "Aircraft above clouds",
           "booking": {
             "provider": "expedia",
@@ -496,7 +489,6 @@ Exactly ${days} days in the "days" array.
           "time_label": "lunch",
           "cost_min": 12,
           "cost_max": 20,
-          "image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop",
           "image_alt": "Simple plate by the water",
           "description": "A plate and a coffee by the water — pure pacing, no plans. You've just landed.",
           "why_this": "Your 'slow arrivals' note: don't schedule the first meal, just land into it.",
@@ -510,7 +502,6 @@ Exactly ${days} days in the "days" array.
           "time_label": "afternoon",
           "cost_min": 0,
           "cost_max": 8,
-          "image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop",
           "image_alt": "Coastal road to the neighbourhood",
           "description": "Short hop to the neighbourhood, then a slow first wander to get your bearings before dark.",
           "why_this": "Light on purpose — you're tired with bags, no heavy activity on arrival.",
@@ -531,7 +522,6 @@ Exactly ${days} days in the "days" array.
           "location_address": "Battery Point, Hobart TAS",
           "location_lat": -42.8923,
           "location_lng": 147.3315,
-          "image_url": "https://images.unsplash.com/photo-[REAL_ID]?w=800&h=500&fit=crop",
           "image_alt": "Guesthouse exterior at dusk",
           "booking": {
             "provider": "hotels",
@@ -626,15 +616,25 @@ ${violations.map((v) => `- ${v.id}: ${v.issue}`).join("\n")}
 CURRENT ITINERARY JSON:
 ${JSON.stringify(itinerary)}
 
-Return the FULL corrected itinerary as a SINGLE JSON object, identical v2 schema, ALL text fields in ${langName}. JSON only, no prose, start with { end with }.`;
+Return ONLY the corrected moments, as a JSON array: [{...moment}, ...] — one object per flagged id, SAME id, identical moment schema, ALL text fields in ${langName}. Do NOT return the days or the rest of the itinerary. JSON only, no prose, start with [ end with ].`;
 
+  // Output mirato (solo i momenti corretti, ~1-2K token) invece dell'intero
+  // itinerario ri-emesso (~15-20K token): quando la CoV scatta non raddoppia
+  // più il tempo di generazione, e i momenti NON flaggati restano davvero
+  // byte-per-byte intatti (la ri-emissione completa li ri-campionava tutti).
   const msg = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 24000,
+    max_tokens: 4000,
     messages: [{ role: "user", content: prompt }],
   });
   const text = msg.content.filter((b) => b.type === "text").map((b) => (b as any).text).join("");
-  return itineraryV2Schema.parse(JSON.parse(extractJson(text)));
+  const corrected = z.array(momentV2Schema).parse(JSON.parse(extractJson(text)));
+  const byId = new Map(corrected.map((m) => [m.id, m]));
+  const flagged = new Set(violations.map((v) => v.id));
+  for (const day of itinerary.days) {
+    day.moments = day.moments.map((m) => (flagged.has(m.id) && byId.has(m.id) ? byId.get(m.id)! : m));
+  }
+  return itinerary;
 }
 
 // ── V2 generation entry point ─────────────────────────────────────────────

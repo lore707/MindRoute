@@ -12,7 +12,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { itineraryLimiter } from "../rate-limiter";
 import { generateItineraryV2ForDestination, type ItineraryV2 } from "../matching-engine-v2";
-import { fetchUnsplashHero, fetchMomentImage, fetchDayImageWithFallback, buildDestinationPhotoPool, mapWithConcurrency } from "../unsplash";
+import { fetchUnsplashHero, fetchDayImageWithFallback, buildDestinationPhotoPool, mapWithConcurrency } from "../unsplash";
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
@@ -82,15 +82,18 @@ async function enrichMoment(
   dayNumber: number,
   heroFallback: string,
   affCtx: AffiliateContext,
+  nextPoolImage?: () => string | null,
 ): Promise<MapPointV2 | null> {
   // Booking: rewrite the LLM-emitted affiliate_url with the canonical one for
   // its provider (or drop the booking if the provider isn't monetizable).
   rewriteMomentBooking(moment, affCtx);
 
   // Image: LLM URLs are unreliable (fake photo IDs return 404). Always
-  // overwrite with a real Unsplash fetch keyed on location + type.
-  const realImg = await fetchMomentImage(moment.location_name, moment.type, destinationName);
-  moment.image_url = realImg ?? heroFallback;
+  // overwrite with a real photo. Le foto vengono da un POOL geo-concreto
+  // deduplicato (2-3 search totali) invece di una search Unsplash PER momento:
+  // ~28 chiamate in meno a generazione — il free tier è 50/ora e ci stavamo
+  // dentro a malapena — e decine di secondi risparmiati.
+  moment.image_url = nextPoolImage?.() ?? heroFallback;
 
   // Geocode: only if we have a location_name and the LLM didn't already
   // provide coords. Bias the query with the city so Nominatim doesn't
@@ -130,16 +133,27 @@ function momentTypeToCategory(type: string): PlaceCategory {
   }
 }
 
+// Allocatore di foto dal pool: ogni chiamata restituisce una foto non ancora
+// usata (o null quando il pool è esaurito → il chiamante usa il day hero).
+function makePoolAllocator(pool: Array<{ id: string; url: string }>): () => string | null {
+  let i = 0;
+  return () => (i < pool.length ? pool[i++].url : null);
+}
+
 // Enrichment di UN solo giorno (companion regenerate_day): immagine del giorno,
 // immagine + geocode per ogni momento, ricalcolo costi. Mutua il giorno in place.
 export async function enrichDayV2(day: DayV2, destinationName: string, profilingInput?: any): Promise<void> {
   const affCtx = buildAffiliateContext(destinationName, profilingInput);
-  const heroData = await fetchUnsplashHero(destinationName);
+  const [heroData, pool] = await Promise.all([
+    fetchUnsplashHero(destinationName),
+    buildDestinationPhotoPool(destinationName, 8),
+  ]);
   const heroUrl = heroData?.url ?? "";
   const dayImg = await fetchDayImageWithFallback(`${day.title_evocative} ${day.arc}`, destinationName);
   day.hero_image_url = dayImg ?? heroUrl;
+  const nextImg = makePoolAllocator(pool);
   for (const m of day.moments) {
-    await enrichMoment(m, destinationName, day.day_number, day.hero_image_url, affCtx);
+    await enrichMoment(m, destinationName, day.day_number, day.hero_image_url, affCtx, nextImg);
   }
   recomputeDayCosts(day);
 }
@@ -161,7 +175,22 @@ function dedupMomentImages(days: DayV2[], heroFallback: string): void {
   }
 }
 
-export async function enrichItineraryV2(rough: ItineraryV2, destinationName: string, profilingInput?: any): Promise<ItineraryV2> {
+// Prefetch avviabile PRIMA/insieme alla chiamata LLM (la destinazione è nota
+// dall'inizio): hero + pool foto viaggiano in parallelo ai ~2-3 minuti di
+// generazione invece di accodarsi dopo.
+export function prefetchDestinationImages(destinationName: string) {
+  return {
+    hero: fetchUnsplashHero(destinationName).catch(() => null),
+    pool: buildDestinationPhotoPool(destinationName, 30).catch(() => [] as Array<{ id: string; url: string }>),
+  };
+}
+
+export async function enrichItineraryV2(
+  rough: ItineraryV2,
+  destinationName: string,
+  profilingInput?: any,
+  prefetch?: ReturnType<typeof prefetchDestinationImages>,
+): Promise<ItineraryV2> {
   const affCtx = buildAffiliateContext(destinationName, profilingInput);
 
   // 0. Date di viaggio — fonte unica: la stessa finestra dei link di booking
@@ -178,9 +207,11 @@ export async function enrichItineraryV2(rough: ItineraryV2, destinationName: str
   }
 
   // 1. Hero image — overwrite LLM URL with real Unsplash hero.
-  const heroData = await fetchUnsplashHero(destinationName);
+  const pf = prefetch ?? prefetchDestinationImages(destinationName);
+  const [heroData, pool] = await Promise.all([pf.hero, pf.pool]);
   const heroUrl = heroData?.url ?? rough.hero_image_url;
   rough.hero_image_url = heroUrl;
+  const nextImg = makePoolAllocator(pool);
 
   // 2. Per-day enrichment, capped at 2 days in flight to avoid burst on
   //    Nominatim (1 req/sec) and Unsplash (50 req/hr per-IP free tier).
@@ -196,7 +227,7 @@ export async function enrichItineraryV2(rough: ItineraryV2, destinationName: str
     // (1 req/sec per host) — concurrency lives at the day-level (2 days in
     // parallel × 1 moment serial = 2 Nominatim req/sec, safe).
     for (const m of day.moments) {
-      const mp = await enrichMoment(m, destinationName, day.day_number, day.hero_image_url, affCtx);
+      const mp = await enrichMoment(m, destinationName, day.day_number, day.hero_image_url, affCtx, nextImg);
       if (mp) allMapPoints.push(mp);
     }
 
@@ -326,8 +357,11 @@ export function registerItineraryGenV2Routes(app: Express) {
           priorBlock += `\n\nTRIP ANGLE (mandatory): The traveler chose the "${tagline.trim()}" way to live ${destinationName}. Shape the ENTIRE itinerary around this character — every day, every moment must clearly express it. ${typeof whyYours === "string" && whyYours.trim() ? `Why it fits them: ${whyYours.trim()}` : ""}`.trim();
         }
         gen = (async () => {
+          // Hero + pool foto partono ORA, in parallelo alla generazione LLM
+          // (~2-3 min): quando l'enrichment ne ha bisogno sono già risolti.
+          const prefetch = prefetchDestinationImages(destinationName);
           const rough = await generateItineraryV2ForDestination(input, destinationName, priorBlock);
-          const enriched = await enrichItineraryV2(rough, destinationName, input);
+          const enriched = await enrichItineraryV2(rough, destinationName, input, prefetch);
           const insertRow = itineraryV2ToInsert(enriched, destIdNum, userId, input);
           const saved = await storage.createItinerary(insertRow);
           recordRecentDestination(destinationName).catch(() => {});

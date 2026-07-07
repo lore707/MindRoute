@@ -14,8 +14,8 @@ export const residualDict: Record<string, { en: string; it: string }> = {
   // ── Destinations ─────────────────────────────────────────────────────────
   "res.dest.building": { en: "Building your itinerary", it: "Costruendo il tuo itinerario" },
   "res.dest.timeNote": {
-    en: "Personalised itineraries take about 90 seconds",
-    it: "Gli itinerari personalizzati richiedono circa 90 secondi",
+    en: "Personalised itineraries take a couple of minutes — real places take time",
+    it: "Gli itinerari personalizzati richiedono un paio di minuti — i posti veri chiedono tempo",
   },
   "res.dest.yourMatches": { en: "Your 3 matches", it: "Le tue 3 mete" },
   "res.dest.subtitle": {
