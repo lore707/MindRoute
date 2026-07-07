@@ -347,7 +347,7 @@ export function CompanionDock() {
       {/* Nudge proattivo: il bot "compare" con una riga, senza aprire la chat */}
       {!open && nudge && (
         <div
-          className="fixed z-[111] bottom-[84px] right-5 max-w-[270px] rounded-2xl p-3.5 pr-9 cursor-pointer animate-in fade-in slide-in-from-bottom-2 duration-300"
+          className="fixed z-[111] bottom-[84px] right-5 max-md:bottom-[140px] max-w-[270px] rounded-2xl p-3.5 pr-9 cursor-pointer animate-in fade-in slide-in-from-bottom-2 duration-300"
           style={{ background: "linear-gradient(180deg, rgba(26,14,26,0.97), rgba(13,7,13,0.98))", border: "1px solid rgba(233,69,96,0.35)", boxShadow: "0 18px 50px -18px rgba(0,0,0,0.7)", backdropFilter: "blur(12px)" }}
           onClick={openFromNudge}
           data-testid="companion-nudge"
@@ -378,7 +378,8 @@ export function CompanionDock() {
           onPointerMove={onLauncherPointerMove}
           onPointerUp={onLauncherPointerUp}
           aria-label={t("companion.open")}
-          className="group fixed bottom-5 right-5 z-[110] flex items-center gap-2.5 rounded-full transition-[transform,box-shadow] hover:-translate-y-0.5 active:scale-95 h-14 w-14 sm:w-auto sm:pl-4 sm:pr-5 justify-center cursor-grab active:cursor-grabbing touch-none select-none"
+          // max-md: sopra la bottom-nav delle dashboard (≤767px copriva PREPARE/CONFIRM)
+          className="group fixed bottom-5 right-5 max-md:bottom-[76px] z-[110] flex items-center gap-2.5 rounded-full transition-[transform,box-shadow] hover:-translate-y-0.5 active:scale-95 h-14 w-14 sm:w-auto sm:pl-4 sm:pr-5 justify-center cursor-grab active:cursor-grabbing touch-none select-none"
           style={{
             background: "radial-gradient(circle at 35% 30%, #ff5d76, #E94560 48%, #b42a40)",
             color: "#fff",

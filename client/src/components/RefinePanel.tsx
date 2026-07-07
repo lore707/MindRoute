@@ -269,7 +269,10 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
       animate={{ opacity: 1, y: 0 }}
       onClick={openPanel}
       data-testid="refine-open"
-      className="fixed z-[120] bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_12px_40px_rgba(233,69,96,0.35)] border border-[#E94560]/40 cursor-pointer"
+      // Ancorato a sinistra (libero dalla sidebar), NON al centro: al centro
+      // copriva le card del piano; su phone sta sopra la bottom-nav (≤767px)
+      // e non collide col companion FAB/toast che vivono a destra.
+      className="fixed z-[120] bottom-5 left-24 max-md:left-4 max-md:bottom-[76px] flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_12px_40px_rgba(233,69,96,0.35)] border border-[#E94560]/40 cursor-pointer"
       style={{ background: "linear-gradient(120deg, rgba(20,12,18,0.92), rgba(40,16,28,0.92))", backdropFilter: "blur(10px)" }}
     >
       <span className="relative flex items-center justify-center w-9 h-9 rounded-full bg-[#E94560]/15">
