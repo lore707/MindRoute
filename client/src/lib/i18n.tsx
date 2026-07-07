@@ -407,6 +407,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "dest.why": { en: "Why this place feels like yours", it: "Perché questo posto ti somiglia" },
   "dest.experience": { en: "Experience Preview", it: "Anteprima dell'esperienza" },
   "dest.practical": { en: "Practical Info", it: "Info pratiche" },
+  "dest.cta": { en: "Build my days here", it: "Costruisci i miei giorni qui" },
   "dest.choose": { en: "Continue with", it: "Continua con" },
   "dest.slot.direct":   { en: "Direct match",     it: "Risposta diretta" },
   "dest.slot.lateral":  { en: "Lateral angle",    it: "Angolo laterale" },

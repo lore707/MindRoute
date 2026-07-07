@@ -430,6 +430,17 @@ if (destinations.length === 0) return null;
                   {dest.practicalInfo}
                 </p>
               </div>
+
+              {/* CTA esplicita: la card era cliccabile ma non lo DICEVA — il
+                  click più importante del funnel restava senza affordance.
+                  Div, non button: l'azione è il click sulla card (evita
+                  interactive annidato). */}
+              <div
+                className="mt-4 flex items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold transition-all duration-300 group-hover:bg-[#E94560] group-hover:text-white"
+                style={{ border: "1px solid rgba(233,69,96,0.55)", color: "#F2899A" }}
+              >
+                {t("dest.cta")} <span aria-hidden>→</span>
+              </div>
             </div>
           </motion.div>
         ))}
