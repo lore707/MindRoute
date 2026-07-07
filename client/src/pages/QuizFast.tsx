@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { pressable } from "@/lib/pressable";
 import { useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
 import "@/styles/quiz-cinematic.css";
@@ -266,7 +267,7 @@ export default function QuizFast() {
                     <h1 className="qc-q-title">{L(lang, "Da dove ", "Where do we ")}<em>{L(lang, "partiamo?", "start?")}</em></h1>
                   </div>
                   <div className="qc-q1-cards">
-                    <div
+                    <div {...pressable}
                       className={`qc-card ${mode === "meta" ? "selected" : ""}`}
                       onMouseEnter={() => hoverBg("city")} onMouseLeave={() => hoverBg()}
                       onClick={() => chooseMode("meta")} data-testid="fast-mode-meta"
@@ -282,7 +283,7 @@ export default function QuizFast() {
                         </div>
                       </div>
                     </div>
-                    <div
+                    <div {...pressable}
                       className={`qc-card ${mode === "surprise" ? "selected" : ""}`}
                       onMouseEnter={() => hoverBg("anywhere")} onMouseLeave={() => hoverBg()}
                       onClick={() => chooseMode("surprise")} data-testid="fast-mode-surprise"
@@ -319,7 +320,7 @@ export default function QuizFast() {
                     />
                     <div className="qc-options qc-options-twocol" style={{ marginTop: 16 }}>
                       {CITY_SUGGESTIONS.map((c) => (
-                        <div
+                        <div {...pressable}
                           key={c.name}
                           className={`qc-option ${city === c.name ? "selected" : ""}`}
                           onMouseEnter={() => hoverBg(c.theme)} onMouseLeave={() => hoverBg(CITY_SUGGESTIONS.find((x) => x.name === city)?.theme)}
@@ -385,7 +386,7 @@ export default function QuizFast() {
                     </div>
                     <div className="qc-options" style={{ maxWidth: 720 }}>
                       {cfg.opts.map((o: any) => (
-                        <div
+                        <div {...pressable}
                           key={o.id}
                           className={`qc-option ${cfg.sel === o.id ? "selected" : ""}`}
                           onMouseEnter={() => hoverBg(o.theme)}

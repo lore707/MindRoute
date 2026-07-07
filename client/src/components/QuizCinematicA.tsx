@@ -23,6 +23,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useMemo, useState } from "react";
+import { pressable } from "@/lib/pressable";
 import { useI18n } from "@/lib/i18n";
 import { BgGrain, StepRail, HeaderStrip, SideCard, FooterNav, BgPhotos } from "./QuizCinematic";
 
@@ -257,7 +258,7 @@ function Q1({ answers, setAnswers, onNext, onBack, hasBack }: { answers: Answers
             const dis = !sel && isFull;
             const rank = sel ? selected.indexOf(v.id) + 1 : null;
             return (
-              <div key={v.id} data-cat={v.cat}
+              <div {...pressable} key={v.id} data-cat={v.cat}
                 className={"qc-option" + (sel ? " selected" : "") + (dis ? " disabled" : "")}
                 onClick={() => !dis && toggle(v.id)}
                 onMouseEnter={() => setHoverId(v.id)} onMouseLeave={() => setHoverId(null)}>
@@ -319,7 +320,7 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
               const dis = !sel && isFull;
               const rank = sel ? selected.indexOf(n.id) + 1 : null;
               return (
-                <div key={n.id} data-cat={n.cat}
+                <div {...pressable} key={n.id} data-cat={n.cat}
                   className={"qc-option" + (sel ? " selected" : "") + (dis ? " disabled" : "")}
                   onClick={() => !dis && toggle(n.id)}
                   onMouseEnter={() => setHoverId(n.id)} onMouseLeave={() => setHoverId(null)}>
@@ -384,7 +385,7 @@ function Q3({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
             {DRAINS.map((d) => {
               const sel = selected.includes(d.id);
               return (
-                <div key={d.id} data-cat={d.cat}
+                <div {...pressable} key={d.id} data-cat={d.cat}
                   className={"qc-option" + (sel ? " selected" : "")}
                   onClick={() => toggle(d.id)}>
                   <div className="qc-option-ic">{d.ic}</div>
@@ -601,7 +602,7 @@ function Q7({ answers, setAnswers, onNext, onBack }: { answers: AnswersA; setAns
       <div className="qc-q-grid">
         <div className="qc-options">
           {DISTANCES.map((d) => (
-            <div key={d.id} data-cat={d.cat}
+            <div {...pressable} key={d.id} data-cat={d.cat}
               className={"qc-option" + (selected === d.id ? " selected" : "")}
               onClick={() => setAnswers({ ...answers, distance: d.id })}
               onMouseEnter={() => setHoverId(d.id)} onMouseLeave={() => setHoverId(null)}>

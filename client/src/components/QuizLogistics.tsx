@@ -17,6 +17,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { pressable } from "@/lib/pressable";
 import { useI18n } from "@/lib/i18n";
 
 const tx = (t: (k: string) => string, key: string, vars: Record<string, string | number>) => {
@@ -478,7 +479,7 @@ function ChapterFrame({
           <Section num="1." title={t("ql.s1.title")} hint={t("ql.s1.hint")} status={budgetObj ? t("ql.status.set") : t("ql.status.open")} filled={!!budgetObj}>
             <div className="ql-budget-scale">
               {TIERS.map((tier) => (
-                <div key={tier.id} className={"ql-tier " + (answers.budget === tier.id ? "on" : "")} onClick={() => update("budget", tier.id as LogisticsAnswers["budget"])}>
+                <div {...pressable} key={tier.id} className={"ql-tier " + (answers.budget === tier.id ? "on" : "")} onClick={() => update("budget", tier.id as LogisticsAnswers["budget"])}>
                   <div className="ql-dots">
                     {[1, 2, 3, 4].map((i) => <div key={i} className={"ql-dot " + (i <= tier.dots ? "fill" : "")} />)}
                   </div>
@@ -492,7 +493,7 @@ function ChapterFrame({
                 <span className="l">{t("ql.s1.est.label")}</span>
                 <span className="v">{estCost ?? t("ql.s1.est.empty")}</span>
               </div>
-              <div className={"ql-toggle-row " + (answers.openWallet ? "on" : "")} onClick={() => update("openWallet", !answers.openWallet)}>
+              <div {...pressable} className={"ql-toggle-row " + (answers.openWallet ? "on" : "")} onClick={() => update("openWallet", !answers.openWallet)}>
                 <div className="ql-toggle-sw" />
                 <span>{t("ql.s1.open.wallet")}</span>
               </div>
@@ -503,7 +504,7 @@ function ChapterFrame({
           <Section num="2." title={t("ql.s2.title")} hint={t("ql.s2.hint")} status={whenStatus} filled={whenFilled}>
             <div className="ql-when-tabs">
               {([["dates", t("ql.when.dates")], ["month", t("ql.when.month")], ["period", t("ql.when.period")]] as const).map(([k, l]) => (
-                <div key={k} className={"ql-when-tab " + (whenMode === k ? "on" : "")} onClick={() => update("whenMode", k)}>{l}</div>
+                <div {...pressable} key={k} className={"ql-when-tab " + (whenMode === k ? "on" : "")} onClick={() => update("whenMode", k)}>{l}</div>
               ))}
             </div>
 
@@ -551,10 +552,10 @@ function ChapterFrame({
           <Section num="3." title={t("ql.s3.title")} hint={t("ql.s3.hint")} status={durObj ? t("ql.status.set") : t("ql.status.open")} filled={!!durObj}>
             <div className="ql-dur-row">
               {DURATIONS.map((d) => (
-                <div key={d.id} className={"ql-dur " + (answers.duration === d.id ? "on" : "")} onClick={() => update("duration", d.id as LogisticsAnswers["duration"])}>
+                <div {...pressable} key={d.id} className={"ql-dur " + (answers.duration === d.id ? "on" : "")} onClick={() => update("duration", d.id as LogisticsAnswers["duration"])}>
                   <div className="ql-dur-bars">
                     {d.bars.map((b, i) => (
-                      <div
+                      <div {...pressable}
                         key={i}
                         className={"ql-dur-bar " + (b ? "fill" : "")}
                         style={{ height: b ? `${8 + i * 3}px` : `${4 + i}px`, opacity: b ? 1 : 0.35 }}
@@ -572,7 +573,7 @@ function ChapterFrame({
           <Section num="4." title={t("ql.s4.title")} hint={t("ql.s4.hint")} status={whoObj ? t(`ql.who.${whoObj.id}.lbl`) : t("ql.status.open")} filled={!!whoObj}>
             <div className="ql-who-row">
               {WHO_OPTIONS.map((w) => (
-                <div key={w.id} className={"ql-who " + (answers.who === w.id ? "on" : "")} onClick={() => pickWho(w.id)}>
+                <div {...pressable} key={w.id} className={"ql-who " + (answers.who === w.id ? "on" : "")} onClick={() => pickWho(w.id)}>
                   <div className="ql-who-avatar">{w.svg}</div>
                   <div>
                     <div className="ql-who-lbl">{t(`ql.who.${w.id}.lbl`)}</div>
@@ -719,7 +720,7 @@ function ChapterTexture({
               {MOVE_OPTIONS.map((m) => {
                 const stem = m.id === "twostops" ? "two" : m.id === "discovery" ? "disc" : "base";
                 return (
-                  <div key={m.id} className={"ql-move " + (answers.move === m.id ? "on" : "")} onClick={() => update("move", m.id as LogisticsAnswers["move"])}>
+                  <div {...pressable} key={m.id} className={"ql-move " + (answers.move === m.id ? "on" : "")} onClick={() => update("move", m.id as LogisticsAnswers["move"])}>
                     <div className="ql-move-diagram"><MoveDiagram id={m.id} /></div>
                     <div>
                       <div className="ql-move-lbl">{t(`ql.move.${stem}.lbl`)}</div>
@@ -874,7 +875,7 @@ function TierStripList({
         const meta = keyPrefix ? t(`${keyPrefix}.${stem}.meta`) : s.meta;
         const range = keyPrefix ? t(`${keyPrefix}.${stem}.range`) : s.range;
         return (
-          <div key={s.id} className={"ql-strip " + (selected === s.id ? "on" : "")} onClick={() => onPick(s.id)}>
+          <div {...pressable} key={s.id} className={"ql-strip " + (selected === s.id ? "on" : "")} onClick={() => onPick(s.id)}>
             <div className="ql-strip-grade">
               {s.mixed
                 ? <span className="ql-strip-mix">mix</span>

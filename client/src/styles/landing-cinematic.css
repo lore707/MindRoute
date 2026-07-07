@@ -445,3 +445,8 @@
   .lc-footer-mark{font-size:20px}
   .lc-footer-base{flex-direction:column;align-items:flex-start;gap:4px}
 }
+
+/* ── Focus visibile da tastiera (floor a11y) ── */
+.lc-hero-thumb:focus-visible,
+.lc-final-thumb:focus-visible{outline:2px solid var(--lc-accent);outline-offset:3px}
+.landing-cinematic button:focus-visible{outline:2px solid var(--lc-accent);outline-offset:3px}

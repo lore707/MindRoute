@@ -16,6 +16,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { pressable } from "@/lib/pressable";
 import { useI18n } from "@/lib/i18n";
 
 // Mappa nome-inglese (identità memorizzata in answers, letta dalle mappe di
@@ -300,7 +301,7 @@ function Q1({ answers, onPick, onBack, hasBackFromQ1 }: { answers: Answers; onPi
 function PathCard({ kind, selected, onClick }: { kind: "guided" | "intentional"; selected: boolean; onClick: () => void }) {
   const { t } = useI18n();
   if (kind === "guided") return (
-    <div className={"qc-card qc-card-guided" + (selected ? " selected" : "")} onClick={onClick}>
+    <div {...pressable} className={"qc-card qc-card-guided" + (selected ? " selected" : "")} onClick={onClick}>
       <div className="qc-card-img" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1400&q=85&auto=format)" }} />
       <div className="qc-card-num">A</div>
       <div className="qc-card-body">
@@ -315,7 +316,7 @@ function PathCard({ kind, selected, onClick }: { kind: "guided" | "intentional";
     </div>
   );
   return (
-    <div className={"qc-card qc-card-intentional" + (selected ? " selected" : "")} onClick={onClick}>
+    <div {...pressable} className={"qc-card qc-card-intentional" + (selected ? " selected" : "")} onClick={onClick}>
       <div className="qc-card-img" style={{ backgroundImage: "url(https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1400&q=85&auto=format)" }} />
       <div className="qc-pin-overlay">
         <div className="qc-pin" />
@@ -365,7 +366,7 @@ function Q2({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
       <div className="qc-q-grid">
         <div className="qc-options">
           {REGIONS.map(r => (
-            <div key={r.id} data-region={r.id}
+            <div {...pressable} key={r.id} data-region={r.id}
               className={"qc-option" + (answers.region === r.name ? " selected" : "")}
               onClick={() => setAnswers({ ...answers, region: r.name })}
               onMouseEnter={() => setHoverId(r.id)} onMouseLeave={() => setHoverId(null)}>
@@ -528,7 +529,7 @@ function Q4({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
             const dis = !sel && isFull;
             const rank = sel ? selected.indexOf(m.name) + 1 : null;
             return (
-              <div key={m.id} data-cat={m.cat}
+              <div {...pressable} key={m.id} data-cat={m.cat}
                 className={"qc-option" + (sel ? " selected" : "") + (dis ? " disabled" : "")}
                 onClick={() => !dis && toggle(m.name)}
                 onMouseEnter={() => setHoverId(m.id)} onMouseLeave={() => setHoverId(null)}>
@@ -666,7 +667,7 @@ function Q6({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
             const dis = !sel && isFull;
             const rank = sel ? selected.indexOf(e.name) + 1 : null;
             return (
-              <div key={e.id} data-cat={e.cat}
+              <div {...pressable} key={e.id} data-cat={e.cat}
                 className={"qc-option" + (sel ? " selected" : "") + (dis ? " disabled" : "")}
                 onClick={() => !dis && toggle(e.name)}
                 onMouseEnter={() => setHoverId(e.id)} onMouseLeave={() => setHoverId(null)}>
@@ -742,7 +743,7 @@ function Q7({ answers, setAnswers, onNext, onBack }: { answers: Answers; setAnsw
           {AVOIDS.map(a => {
             const isSel = selected.includes(a.name);
             return (
-              <div key={a.id} data-cat={a.cat}
+              <div {...pressable} key={a.id} data-cat={a.cat}
                 className={"qc-option" + (isSel ? " selected" : "")}
                 onClick={() => toggle(a.name)}>
                 <div className="qc-option-ic">{a.ic}</div>

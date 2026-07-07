@@ -387,3 +387,8 @@
   .ql-bg-stage,.ql-tier,.ql-month-cell,.ql-dur,.ql-who,.ql-move,.ql-strip,.ql-q-continue,.ql-topo-marker{transition:none !important;animation:none !important}
   .ql-q-continue::after{animation:none !important}
 }
+
+/* ── Focus visibile da tastiera sui controlli custom (floor a11y) ── */
+.ql-tier:focus-visible,.ql-toggle-row:focus-visible,.ql-when-tab:focus-visible,
+.ql-dur:focus-visible,.ql-who:focus-visible,.ql-move:focus-visible,
+.ql-strip:focus-visible{outline:2px solid #E94560;outline-offset:3px}

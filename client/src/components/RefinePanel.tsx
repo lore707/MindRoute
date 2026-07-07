@@ -19,6 +19,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { pressable } from "@/lib/pressable";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import "@/styles/quiz-cinematic.css";
@@ -424,7 +425,7 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
                             {cfg.opts.map((o: Opt) => {
                               const sel = multiSel.includes(o.value);
                               return (
-                                <div
+                                <div {...pressable}
                                   key={o.value}
                                   className={`qc-option ${sel ? "selected" : ""}`}
                                   onClick={() => setMultiSel(sel ? multiSel.filter((v) => v !== o.value) : [...multiSel, o.value])}
@@ -450,7 +451,7 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
                         <div style={{ maxWidth: 720 }}>
                           <div className="qc-options">
                             {cfg.opts.map((o: Opt) => (
-                              <div
+                              <div {...pressable}
                                 key={o.value}
                                 className={`qc-option ${picked === o.value ? "selected" : ""}`}
                                 onMouseEnter={() => hoverBg(o.theme)} onMouseLeave={() => hoverBg()}

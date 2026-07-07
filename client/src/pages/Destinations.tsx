@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { useTraitRecognition } from "@/hooks/use-trait-recognition";
 import { RecognitionBanner } from "@/components/RecognitionBanner";
 import { unsplashSized } from "@/lib/img";
+import { pressable } from "@/lib/pressable";
 import { getFlow, setPendingGen, getPendingGen, clearPendingGen } from "@/lib/flow-storage";
 import { track } from "@/lib/analytics";
 import { FlowNav } from "@/components/FlowNav";
@@ -364,8 +365,9 @@ if (destinations.length === 0) return null;
             }}
             transition={{ delay: index * 0.1 }}
             onClick={() => handleSelect(dest.id)}
+            {...pressable}
             data-testid={`card-dest-${dest.id}`}
-            className="group relative flex flex-col h-full rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer"
+            className="group relative flex flex-col h-full rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E94560] focus-visible:outline-offset-4"
             style={{
               background: "rgba(255,255,255,0.04)",
               border: `1px solid ${selectedId === dest.id ? "#E94560" : "rgba(255,255,255,0.10)"}`,

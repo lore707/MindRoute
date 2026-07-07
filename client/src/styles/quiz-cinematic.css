@@ -384,3 +384,9 @@
   .qc-bg-photo,.qc-card-img,.qc-tcard-img,.qc-card-arrow,.qc-continue,.qc-option,.qc-card{transition:none !important;animation:none !important}
   .qc-pin,.qc-pin::after,.qc-continue::after{animation:none !important}
 }
+
+/* ── Focus visibile da tastiera (floor a11y): stesse card/option che si
+   cliccano col mouse devono mostrare dove sei quando navighi con Tab. ── */
+.qc-card:focus-visible,
+.qc-option:focus-visible{outline:2px solid var(--qc-accent);outline-offset:3px;border-radius:inherit}
+.quiz-cinematic button:focus-visible{outline:2px solid var(--qc-accent);outline-offset:3px}

@@ -15,6 +15,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useState } from "react";
+import { pressable } from "@/lib/pressable";
 import { Link } from "wouter";
 import { useI18n } from "@/lib/i18n";
 import { unsplashSized } from "@/lib/img";
@@ -230,7 +231,7 @@ export function LandingCinematic({ data, mode = "landing" }: { data: LandingData
               <span className="num">{(heroIdx + 1).toString().padStart(2, "0")} / {data.heroPhotos.length.toString().padStart(2, "0")}</span>
             </div>
             {data.heroPhotos.map((p, i) => (
-              <div key={i} className={"lc-hero-thumb" + (heroIdx === i ? " active" : "")} onClick={() => setHeroIdx(i)}>
+              <div {...pressable} key={i} className={"lc-hero-thumb" + (heroIdx === i ? " active" : "")} onClick={() => setHeroIdx(i)}>
                 <div className="lc-hero-thumb-img" style={{ backgroundImage: `url(${unsplashSized(p.img, W.thumb)})` }} />
                 <div className="lc-hero-thumb-body">
                   <div className="lc-hero-thumb-name">{p.name}</div>
@@ -488,7 +489,7 @@ export function LandingCinematic({ data, mode = "landing" }: { data: LandingData
         </div>
         <div className="lc-final-thumbs">
           {data.finalPhotos.map((_, i) => (
-            <div key={i} className={"lc-final-thumb" + (finalIdx === i ? " active" : "")} onClick={() => setFinalIdx(i)}>
+            <div {...pressable} key={i} className={"lc-final-thumb" + (finalIdx === i ? " active" : "")} onClick={() => setFinalIdx(i)}>
               <div className="lc-final-thumb-fill" />
             </div>
           ))}
