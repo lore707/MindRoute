@@ -46,7 +46,9 @@
 .mr-agenda .ag-daytab .ag-dn{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ag-ink-faint);font-weight:600}
 .mr-agenda .ag-daytab.on .ag-dn{color:var(--ag-accent)}
 .mr-agenda .ag-daytab .ag-dttl{font-family:var(--ag-serif);font-size:15px;margin-top:4px;line-height:1.15}
-.mr-agenda .ag-daytab .ag-dact{position:absolute;top:11px;right:12px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ag-ink-ghost);font-weight:600}
+/* max-width + ellipsis: gli archi lunghi ("Peak I — the sea below…")
+   finivano sopra "DAY n" (overlap). Il nome completo resta nel day header. */
+.mr-agenda .ag-daytab .ag-dact{position:absolute;top:11px;right:12px;max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ag-ink-ghost);font-weight:600}
 
 /* ── Day header ── */
 .mr-agenda .ag-dayhead{margin-bottom:24px}

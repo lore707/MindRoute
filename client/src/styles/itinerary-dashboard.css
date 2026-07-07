@@ -454,8 +454,10 @@
 .account-dash .rmap-wrap--full{position:fixed;inset:0;z-index:4000;background:#0b0e14}
 .account-dash .rmap-wrap--full .rmap{height:100vh;border-radius:0}
 
-/* toolbar: ricerca + posizione + fullscreen */
-.account-dash .rmap-toolbar{position:absolute;top:14px;left:14px;z-index:620;display:flex;gap:6px;align-items:center;max-width:calc(100% - 28px)}
+/* toolbar: ricerca + posizione + fullscreen.
+   left:64px, non 14: a top-left c'è lo zoom di Leaflet (+/−) e la search
+   vi finiva sotto (overlap). */
+.account-dash .rmap-toolbar{position:absolute;top:14px;left:64px;z-index:620;display:flex;gap:6px;align-items:center;max-width:calc(100% - 78px)}
 .account-dash .rmap-search{display:flex;align-items:center;background:rgba(13,7,13,.78);backdrop-filter:blur(10px);border:1px solid var(--stroke-2);border-radius:999px;overflow:hidden}
 .account-dash .rmap-search input{background:transparent;border:0;outline:0;color:var(--ink);font-size:13px;padding:8px 12px;width:clamp(120px,30vw,240px)}
 .account-dash .rmap-search input::placeholder{color:var(--ink-faint)}
@@ -465,7 +467,7 @@
 .account-dash .rmap-search .rmap-icbtn{border:0;background:transparent;width:32px}
 
 /* risultati ricerca */
-.account-dash .rmap-results{position:absolute;top:56px;left:14px;z-index:620;width:clamp(220px,40vw,340px);margin:0;padding:6px;list-style:none;
+.account-dash .rmap-results{position:absolute;top:56px;left:64px;z-index:620;width:clamp(220px,40vw,340px);margin:0;padding:6px;list-style:none;
   background:rgba(13,7,13,.92);backdrop-filter:blur(12px);border:1px solid var(--stroke-2);border-radius:14px;box-shadow:0 24px 60px -20px rgba(0,0,0,.85);max-height:280px;overflow:auto}
 .account-dash .rmap-results li button{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:9px;padding:8px 10px;cursor:pointer;transition:background .15s}
 .account-dash .rmap-results li button:hover{background:rgba(255,255,255,.06)}

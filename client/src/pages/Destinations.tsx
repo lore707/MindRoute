@@ -386,9 +386,13 @@ if (destinations.length === 0) return null;
               <div className="absolute bottom-5 left-5 md:bottom-6 md:left-6 z-20 text-white pr-5">
                 {dest.slotRole && (
                   <span
-                    className="inline-block mb-1.5 text-[10px] font-sans font-bold uppercase tracking-[2.5px] md:tracking-[3px]"
+                    className="inline-block mb-1.5 text-[10px] font-sans font-bold uppercase tracking-[2.5px] md:tracking-[3px] rounded-full px-2.5 py-1"
                     style={{
-                      color: dest.slotRole === "surprise" ? "#E94560" : "rgba(255,255,255,0.75)",
+                      /* pill scura dietro il testo: sui cieli chiari delle foto
+                         il badge nudo (soprattutto il corallo) era illeggibile */
+                      color: dest.slotRole === "surprise" ? "#F2899A" : "rgba(255,255,255,0.9)",
+                      background: "rgba(20,10,16,0.55)",
+                      backdropFilter: "blur(4px)",
                     }}
                     data-testid={`slot-role-${dest.slotRole}`}
                   >

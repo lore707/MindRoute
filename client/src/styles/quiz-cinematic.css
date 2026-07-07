@@ -294,7 +294,7 @@
 /* Mobile landscape / large phone ≤700px */
 @media (max-width:700px){
   .qc-container{padding:0 18px}
-  .qc-stage{padding:56px 0 72px}
+  .qc-stage{padding:76px 0 72px}
   .qc-sticky-head{top:56px;padding:10px 0 14px;margin-bottom:14px}
   .qc-sticky-head .qc-header-strip{margin-bottom:8px}
   .qc-q-head{margin-bottom:24px}
@@ -347,7 +347,7 @@
 /* Small phone ≤480px */
 @media (max-width:480px){
   .qc-container{padding:0 14px}
-  .qc-stage{padding:52px 0 64px}
+  .qc-stage{padding:72px 0 64px}
   .qc-sticky-head{top:52px;padding:8px 0 12px;margin-bottom:12px}
   .qc-q-head{margin-bottom:20px}
   .qc-pace-stage{padding:26px 18px;gap:22px;border-radius:18px}

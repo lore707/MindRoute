@@ -319,7 +319,9 @@
 .account-dash .pick:hover .ph{transform:scale(1.05)}
 .account-dash .pick .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,7,13,.25) 0%,rgba(13,7,13,.2) 38%,rgba(13,7,13,.8) 72%,rgba(13,7,13,.97) 100%)}
 .account-dash .pick-top{position:absolute;top:22px;left:24px;right:24px;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.account-dash .pick-tag{display:inline-flex;align-items:center;gap:9px;padding:8px 16px 8px 13px;border-radius:999px;background:rgba(212,168,83,.18);border:1px solid rgba(212,168,83,.5);backdrop-filter:blur(10px);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:600}
+/* fondo scuro pieno, non velo dorato: sui cieli chiari delle foto il testo
+   oro era illeggibile (contrasto) */
+.account-dash .pick-tag{display:inline-flex;align-items:center;gap:9px;padding:8px 16px 8px 13px;border-radius:999px;background:rgba(20,10,16,.62);border:1px solid rgba(212,168,83,.5);backdrop-filter:blur(6px);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#E7C87F;font-weight:600}
 .account-dash .pick-tag .s{font-size:12px}
 .account-dash .pick-body{position:relative;z-index:2;padding:30px 32px 30px}
 .account-dash .pick-meta{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:600;margin-bottom:9px}

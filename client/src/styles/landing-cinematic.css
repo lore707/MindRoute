@@ -272,6 +272,10 @@
 @media (max-width:980px){
   .lc-container{padding:0 22px}
   .lc-hero-content{grid-template-columns:1fr;padding:0 24px 56px;gap:32px}
+  /* Sotto i 980px i thumb passano in riga a fondo hero, esattamente dove
+     sta l'indicatore SCROLL: si sovrapponevano. L'indicatore è ridondante
+     quando il contenuto sfora già il viewport → via. */
+  .lc-hero-scroll{display:none}
   .lc-hero-thumbs{flex-direction:row;width:100%;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:6px}
   .lc-hero-thumbs::-webkit-scrollbar{display:none}
   .lc-hero-thumb{flex:0 0 180px;scroll-snap-align:start}
