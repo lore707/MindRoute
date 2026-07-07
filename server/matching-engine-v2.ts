@@ -97,10 +97,16 @@ const transportToNextV2Schema = z.object({
   note: z.string().optional(),
 });
 
-const planBV2Schema = z.object({
-  trigger: z.string(),
-  alternative: z.string(),
-});
+// Tollerante alla forma "prosa": nei blocchi paralleli il modello a volte
+// emette plan_b come stringa secca ("Se piove: Museo X") — la riconduciamo a
+// {trigger:"", alternative} invece di far fallire l'intero parse.
+const planBV2Schema = z.preprocess(
+  (v) => (typeof v === "string" ? { trigger: "", alternative: v } : v),
+  z.object({
+    trigger: z.string().default(""),
+    alternative: z.string(),
+  }),
+);
 
 // Input `any`: i campi immagine hanno default('') quindi l'input ammette l'assenza.
 const momentV2Schema: z.ZodType<MomentV2, z.ZodTypeDef, any> = z.object({
@@ -164,8 +170,8 @@ const dayV2Schema: z.ZodType<DayV2, z.ZodTypeDef, any> = z.object({
   energy_level: energyLevelSchema,
   energy_note: z.string().optional(),
   walking_distance_km: z.number().optional(),
-  cost_bookable_total: z.number(),
-  cost_onsite_estimate: z.number(),
+  cost_bookable_total: z.number().default(0), // ricalcolato sempre server-side
+  cost_onsite_estimate: z.number().default(0),
   moments: z.array(momentV2Schema).min(2).max(6),
 });
 
@@ -637,15 +643,127 @@ Return ONLY the corrected moments, as a JSON array: [{...moment}, ...] — one o
   return itinerary;
 }
 
+// ── Generazione parallela: scheletro + blocchi di giorni concorrenti ───────
+// Il tempo di una chiamata LLM è ~lineare nei token EMESSI: un itinerario di
+// 7 giorni (~15-20K token) in una sola chiamata costa 3+ minuti di attesa.
+// Qui: 1 chiamata breve produce lo SCHELETRO del viaggio (arco narrativo,
+// ruoli §2b, highlights, manifesto), poi N chiamate PARALLELE scrivono i
+// giorni a blocchi — ognuna riceve il prompt di precisione COMPLETO (identico
+// al percorso storico) + lo scheletro condiviso per coerenza. Qualsiasi
+// errore → fallback trasparente alla singola chiamata storica: il caso
+// peggiore è la lentezza di prima, mai una qualità diversa in silenzio.
+
+const skeletonDayV2Schema = z.object({
+  day_number: z.number(),
+  role: dayRoleSchema.optional(),
+  arc: z.string(),
+  title_evocative: z.string(),
+  subtitle: z.string().default(""),
+  energy_level: energyLevelSchema.optional(),
+});
+
+const skeletonV2Schema = z.object({
+  destination: z.string(),
+  country: z.string(),
+  duration_days: z.number(),
+  manifesto: z.string(),
+  em_word: z.string().optional(),
+  highlights: z.array(highlightV2Schema),
+  total_cost_range: z.string(),
+  closing_quote: z.string(),
+  days: z.array(skeletonDayV2Schema),
+});
+
+function partitionDays(n: number, chunks = 3): number[][] {
+  const size = Math.ceil(n / chunks);
+  const groups: number[][] = [];
+  for (let start = 1; start <= n; start += size) {
+    groups.push(Array.from({ length: Math.min(size, n - start + 1) }, (_, i) => start + i));
+  }
+  return groups;
+}
+
+async function callSonnetJson(prompt: string, maxTokens: number): Promise<any> {
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: maxTokens,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const text = message.content.filter((b) => b.type === "text").map((b) => (b as any).text).join("");
+  return JSON.parse(extractJson(text));
+}
+
+async function generateItineraryV2Parallel(input: ProfilingInput, basePrompt: string): Promise<ItineraryV2> {
+  const langName = input.lang === "it" ? "Italian" : "English";
+  const days = Math.min(input.days, 14);
+
+  const skeletonPrompt = `${basePrompt}
+
+═══════════════════════════════════════════════════════════════════════════
+OVERRIDE FOR THIS RESPONSE — TRIP SKELETON ONLY (first pass of a two-pass build)
+═══════════════════════════════════════════════════════════════════════════
+Ignore the REQUIRED JSON OUTPUT above for THIS response. Return ONLY the trip
+skeleton — NO moments — as STRICT JSON:
+{
+  "destination": "City, Region, Country",
+  "country": "Country name only",
+  "duration_days": ${days},
+  "manifesto": "Long evocative quote — why this place is yours. 2-3 sentences, sensory, specific.",
+  "em_word": "single word from manifesto to italicize",
+  "highlights": [ 4 items: { "icon": "emoji", "name": "...", "description": "1 short evocative sentence" } ],
+  "total_cost_range": "€min-max/pp",
+  "closing_quote": "...",
+  "days": [ exactly ${days} items: { "day_number": 1, "role": "arrivo|apice|esplorazione|riposo|decantazione|trasferimento|partenza", "arc": "...", "title_evocative": "...", "subtitle": "...", "energy_level": "low|medium|high" } ]
+}
+Every rule above (day roles §2b, arc doctrine, precision, grounding) applies
+to this skeleton. ALL text in ${langName}. JSON only, start with { end with }.`;
+
+  const skeleton = skeletonV2Schema.parse(await callSonnetJson(skeletonPrompt, 3000));
+  if (skeleton.days.length !== days) throw new Error(`skeleton has ${skeleton.days.length} days, expected ${days}`);
+
+  const skeletonJson = JSON.stringify(skeleton);
+  const chunkSchema = z.object({ days: z.array(dayV2Schema) });
+  const chunks = await Promise.all(partitionDays(days).map(async (dayNums) => {
+    const chunkPrompt = `${basePrompt}
+
+═══════════════════════════════════════════════════════════════════════════
+OVERRIDE FOR THIS RESPONSE — FULL DAYS ${dayNums.join(", ")} ONLY (second pass)
+═══════════════════════════════════════════════════════════════════════════
+The trip skeleton is already FIXED (do NOT change roles, arcs or titles):
+${skeletonJson}
+
+Ignore the REQUIRED JSON OUTPUT above for THIS response. Write ONLY the full
+day objects for days ${dayNums.join(", ")} — every field of the day schema
+(2-6 moments each, per-day costs, energy, transports) — as STRICT JSON:
+{"days":[ ...one complete day object per requested day... ]}
+- Follow each day's skeleton role and the CTA doctrine (§2) for that role.
+- Keep continuity with neighbouring days as sketched in the skeleton, but do
+  NOT re-plan days outside ${dayNums.join(", ")}.
+- Do NOT reuse a venue/place that clearly belongs to another day's theme.
+- Do NOT include any image_url / hero_image_url (attached later by the system).
+- plan_b and transport_to_next, when present, MUST be objects exactly as in
+  the schema above (plan_b = {"trigger","alternative"}), never plain strings.
+ALL text in ${langName}. JSON only, start with { end with }.`;
+    const parsed = chunkSchema.parse(await callSonnetJson(chunkPrompt, 12000));
+    const got = parsed.days.map((d) => d.day_number).sort((a, b) => a - b).join(",");
+    if (got !== dayNums.join(",")) throw new Error(`chunk mismatch: wanted ${dayNums.join(",")}, got ${got}`);
+    return parsed.days;
+  }));
+
+  const allDays = chunks.flat().sort((a, b) => a.day_number - b.day_number);
+  return itineraryV2Schema.parse({
+    ...skeleton,
+    hero_image_url: "",
+    days: allDays,
+    // Ricalcolati comunque da enrichItineraryV2 su base per-momento.
+    total_cost_bookable: 0,
+    total_cost_onsite_estimate: 0,
+  });
+}
+
 // ── V2 generation entry point ─────────────────────────────────────────────
 
-export async function generateItineraryV2ForDestination(
-  input: ProfilingInput,
-  destinationName: string,
-  priorBlock = ""
-): Promise<ItineraryV2> {
-  const prompt = buildPromptV2({ ...input, _destinationOverride: destinationName } as any, priorBlock);
-
+async function generateItineraryV2SingleCall(prompt: string): Promise<ItineraryV2> {
   // Higher max_tokens than v1: each day has 2–6 moments with ~15 fields each,
   // plus day-level fields (weather, energy, costs). 24K leaves headroom for
   // 7-day trips with 5 moments avg without truncation.
@@ -665,7 +783,31 @@ export async function generateItineraryV2ForDestination(
     .replace(/```\n?/g, "")
     .trim();
 
-  let itinerary = itineraryV2Schema.parse(JSON.parse(cleanJson));
+  return itineraryV2Schema.parse(JSON.parse(cleanJson));
+}
+
+export async function generateItineraryV2ForDestination(
+  input: ProfilingInput,
+  destinationName: string,
+  priorBlock = ""
+): Promise<ItineraryV2> {
+  const prompt = buildPromptV2({ ...input, _destinationOverride: destinationName } as any, priorBlock);
+  const days = Math.min(input.days, 14);
+
+  let itinerary: ItineraryV2;
+  if (days >= 4) {
+    try {
+      const t0 = Date.now();
+      itinerary = await generateItineraryV2Parallel(input, prompt);
+      console.log(`[v2 parallel] ${days} days generated in ${Math.round((Date.now() - t0) / 1000)}s`);
+    } catch (e) {
+      console.warn("[v2 parallel] fallback to single-call:", e instanceof Error ? e.message : e);
+      itinerary = await generateItineraryV2SingleCall(prompt);
+    }
+  } else {
+    // 1-3 giorni: output già piccolo, il parallelismo non ripaga.
+    itinerary = await generateItineraryV2SingleCall(prompt);
+  }
 
   // Chain of Verification (2B): controllo anti-pattern + correzione mirata.
   try {
