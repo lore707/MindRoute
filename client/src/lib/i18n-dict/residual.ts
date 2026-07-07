@@ -126,7 +126,7 @@ export const residualDict: Record<string, { en: string; it: string }> = {
   "res.ivr.nav.book": { en: "Book", it: "Prenota" },
   "res.ivr.saving": { en: "Saving…", it: "Salvo…" },
   "res.ivr.done": { en: "Done", it: "Fine" },
-  "res.ivr.customize": { en: "Customize", it: "Personalizza" },
+  "res.ivr.customize": { en: "Customise", it: "Personalizza" },
   "res.ivr.bookAll": { en: "Book everything →", it: "Prenota tutto →" },
   "res.ivr.editRibbon": {
     en: "You're <strong>customizing</strong> your itinerary — open a day, edit stops, drag to reorder, add or remove. Everything saves itself.",

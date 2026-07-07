@@ -400,17 +400,24 @@ export default function MyAccount() {
     }
     const n = trips.length;
     const cities = destinations.size;
+    // Plurali a mano (niente ICU, vedi DECISIONS #8): "1 times"/"1 cieli" leggeva rotto.
+    const times = lang === "en" ? (n === 1 ? "once" : `${n} times`) : (n === 1 ? "una volta" : `${n} volte`);
+    const skies = lang === "en"
+      ? (cities === 1 ? "a single sky" : `${cities} different skies`)
+      : (cities === 1 ? "un solo cielo" : `${cities} cieli diversi`);
+    const daysW = lang === "en" ? (totalDays === 1 ? "day" : "days") : (totalDays === 1 ? "giorno" : "giorni");
     return lang === "en"
-      ? `You set off ${n} times. You imagined ${totalDays} days elsewhere, under ${cities} different skies. Keep going.`
-      : `Sei partito ${n} volte. Hai immaginato ${totalDays} giorni altrove, sotto ${cities} cieli diversi. Continua così.`;
+      ? `You set off ${times}. You imagined ${totalDays} ${daysW} elsewhere, under ${skies}. Keep going.`
+      : `Sei partito ${times}. Hai immaginato ${totalDays} ${daysW} altrove, sotto ${skies}. Continua così.`;
   }, [trips, lang]);
   const statsBold = useMemo(() => {
     if (trips.length === 0) return [];
     const totalDays = trips.reduce((acc, t) => acc + (Array.isArray(t.days) ? t.days.length : 0), 0);
     const destinations = new Set(trips.map(t => t.destinationName ?? "").filter(Boolean)).size;
+    const n = trips.length;
     return lang === "en"
-      ? [`${trips.length} times`, `${totalDays} days`, `${destinations} different skies`]
-      : [`${trips.length} volte`, `${totalDays} giorni`, `${destinations} cieli diversi`];
+      ? [n === 1 ? "once" : `${n} times`, `${totalDays} ${totalDays === 1 ? "day" : "days"}`, destinations === 1 ? "a single sky" : `${destinations} different skies`]
+      : [n === 1 ? "una volta" : `${n} volte`, `${totalDays} ${totalDays === 1 ? "giorno" : "giorni"}`, destinations === 1 ? "un solo cielo" : `${destinations} cieli diversi`];
   }, [trips, lang]);
 
   // Settings: rapida lista neutrale. Email è auto-aggiunto dal componente

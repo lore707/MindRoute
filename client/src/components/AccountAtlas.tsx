@@ -61,11 +61,14 @@ export function AccountAtlas({
   loading,
   narrative,
   narrativeBold,
+  hideHead,
 }: {
   data: AtlasData | null;
   loading?: boolean;
   narrative?: string;
   narrativeBold?: string[];
+  /** true quando l'host ha già un header con lo stesso titolo (AccountDashboard). */
+  hideHead?: boolean;
 }) {
   const { t } = useI18n();
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -149,6 +152,9 @@ export function AccountAtlas({
   return (
     <section className="ac-atlas-sec" id="ac-atlas">
       <div className="ac-container">
+        {/* Header interno soppresso quando l'host (AccountDashboard) ha già la
+            sua ViewHead con lo stesso titolo: compariva due volte di fila. */}
+        {!hideHead && (
         <div className="ac-atlas-head">
           <div>
             <div className="ac-eyebrow gold"><span className="d" />{t("acd.atlasc.eyebrow")}</div>
@@ -158,13 +164,18 @@ export function AccountAtlas({
           </div>
           <p className="ac-atlas-sub">{t("acd.atlasc.sub")}</p>
         </div>
+        )}
 
         <div className="ac-atlas-map-shell">
           {loading && (
             <div className="ac-atlas-state"><span className="ac-atlas-spin" />{t("acd.atlasc.loading")}</div>
           )}
           {!loading && places.length === 0 && (
-            <div className="ac-atlas-state">{t("acd.atlasc.empty")}</div>
+            <div className="ac-atlas-state">
+              {/* Se i viaggi ci sono ma non geolocalizzati, "genera il primo
+                  itinerario" mentirebbe: copy dedicata. */}
+              {t(data && data.unlocated.length > 0 ? "acd.atlasc.emptyUnplaced" : "acd.atlasc.empty")}
+            </div>
           )}
           {places.length > 0 && <div ref={mapEl} className="ac-atlas-map" />}
 

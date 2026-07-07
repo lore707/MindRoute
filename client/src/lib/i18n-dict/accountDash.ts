@@ -75,7 +75,7 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   // ── Home · pointers ─────────────────────────────────────────────────────
   "acd.point.portraitK": { en: "Your portrait", it: "Il tuo ritratto" },
   "acd.point.atlasK":    { en: "Your atlas", it: "Il tuo atlante" },
-  "acd.point.atlasV":    { en: "<em class='gold'>{m} continents</em>, {d} places touched.", it: "<em class='gold'>{m} continenti</em>, {d} mete toccate." },
+  "acd.point.atlasV":    { en: "<em class='gold'>{m} {mu}</em>, {d} {du} {tv}.", it: "<em class='gold'>{m} {mu}</em>, {d} {du} {tv}." },
   "acd.point.portraitFallback": { en: "Your traveller profile takes shape with every trip.", it: "Il tuo profilo viaggiatore prende forma a ogni viaggio." },
 
   // ── Resume view ─────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   // ── Collection view ─────────────────────────────────────────────────────
   "acd.coll.eyebrow":  { en: "The collection", it: "La collezione" },
   "acd.coll.title":    { en: "My <em class='gold'>trips</em>.", it: "I miei <em class='gold'>viaggi</em>." },
-  "acd.coll.sub":      { en: "{n} itineraries · over {d} dreamed days. Search, filter, reopen.", it: "{n} itinerari · oltre {d} giorni di sogno. Cerca, filtra, riapri." },
+  "acd.coll.sub":      { en: "{n} {nu} · {d} dreamed {dw}. Search, filter, reopen.", it: "{n} {nu} · {d} {dw} di sogno. Cerca, filtra, riapri." },
   "acd.coll.search":   { en: "Search destination…", it: "Cerca destinazione…" },
   "acd.coll.empty":    { en: "No trips in this region… yet.", it: "Nessun viaggio in questa regione… ancora." },
   "acd.region.all":    { en: "All", it: "Tutti" },
@@ -137,6 +137,10 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.unit.place":      { en: "place", it: "meta" },
   "acd.unit.continents": { en: "continents", it: "continenti" },
   "acd.unit.continent":  { en: "continent", it: "continente" },
+  "acd.unit.itineraries":{ en: "itineraries", it: "itinerari" },
+  "acd.unit.itinerary":  { en: "itinerary", it: "itinerario" },
+  "acd.unit.touched":    { en: "touched", it: "toccate" },
+  "acd.unit.touchedOne": { en: "touched", it: "toccata" },
 
   // ── AccountAtlas (Leaflet map component, shared) ────────────────────────
   "acd.atlasc.eyebrow":  { en: "Your atlas", it: "Il tuo atlante" },
@@ -144,6 +148,7 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.atlasc.sub":      { en: "Every place you imagined, on a single map. A story told by the places you opened.", it: "Ogni meta che hai immaginato, su una sola mappa. Una storia raccontata dai luoghi che hai aperto." },
   "acd.atlasc.loading":  { en: "Drawing your map…", it: "Disegniamo la tua mappa…" },
   "acd.atlasc.empty":    { en: "Your map fills in as soon as you generate your first itinerary.", it: "La tua mappa si popolerà appena genererai il primo itinerario." },
+  "acd.atlasc.emptyUnplaced": { en: "We couldn’t pin your places on the map yet — they’re listed just below.", it: "Non siamo ancora riusciti a posizionare le tue mete sulla mappa — le trovi elencate qui sotto." },
   "acd.atlasc.statTrips":      { en: "Trips", it: "Viaggi" },
   "acd.atlasc.statDays":       { en: "Days", it: "Giorni" },
   "acd.atlasc.statPlaces":     { en: "Places", it: "Mete" },

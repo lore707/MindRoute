@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { TraitVector, Axis } from "@shared/traits";
+import { useI18n } from "@/lib/i18n";
 
 interface TraitHistoryResponse {
   snapshots: any[];
@@ -79,6 +80,7 @@ function deriveDominantTraitChip(
  */
 export function useTraitRecognition(): TraitRecognition {
   const [state, setState] = useState<TraitRecognition>(EMPTY);
+  const { lang } = useI18n();
 
   useEffect(() => {
     let cancelled = false;
@@ -104,10 +106,12 @@ export function useTraitRecognition(): TraitRecognition {
           chips.push({ kind: "continent", label: `${pct}% ${ai.patterns.topContinent}` });
         }
         if (ai?.patterns.avgDays !== null && ai?.patterns.avgDays !== undefined) {
-          const n = ai.patterns.avgDays;
-          if (ai.patterns.shortTripBias) chips.push({ kind: "duration", label: `media ${n.toFixed(0)}g · viaggi brevi` });
-          else if (ai.patterns.longTripBias) chips.push({ kind: "duration", label: `media ${n.toFixed(0)}g · viaggi lunghi` });
-          else chips.push({ kind: "duration", label: `media ${n.toFixed(1)}g` });
+          // Parole intere, mai "7.0g": il chip parlava in sigla ed era criptico.
+          const n = Math.round(ai.patterns.avgDays);
+          const avg = lang === "it" ? `in media ${n} giorni` : `avg ${n} days`;
+          if (ai.patterns.shortTripBias) chips.push({ kind: "duration", label: `${avg} · ${lang === "it" ? "viaggi brevi" : "short trips"}` });
+          else if (ai.patterns.longTripBias) chips.push({ kind: "duration", label: `${avg} · ${lang === "it" ? "viaggi lunghi" : "long trips"}` });
+          else chips.push({ kind: "duration", label: avg });
         }
 
         const traitChip = deriveDominantTraitChip(th.current, th.axes);
@@ -126,7 +130,7 @@ export function useTraitRecognition(): TraitRecognition {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [lang]);
 
   return state;
 }

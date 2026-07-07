@@ -387,7 +387,7 @@ export function ItineraryRedesign({
         <div className="cmd-r">
           {!readOnly && (
             <button className={"cmd-edit" + (editing ? " on" : "")} onClick={editing ? finishEditing : toggleEdit} disabled={saving}>
-              <span className="pen">✎</span>{saving ? (lang === "it" ? "Salvo…" : "Saving…") : editing ? (lang === "it" ? "Fine" : "Done") : (lang === "it" ? "Personalizza" : "Customize")}
+              <span className="pen">✎</span>{saving ? (lang === "it" ? "Salvo…" : "Saving…") : editing ? (lang === "it" ? "Fine" : "Done") : (lang === "it" ? "Personalizza" : "Customise")}
             </button>
           )}
           {checklist.length > 0 && (

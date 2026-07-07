@@ -562,8 +562,12 @@ export function ItineraryDashboard({
           <div className="it-hero-in">
             <div className="it-kick">
               <span>{t("itd.hero.kick")}</span>
-              <span className="sep" />
-              <span className="built">{data.subtitle}</span>
+              {/* data.subtitle è "Your MindRoute · July 2026": qui teniamo solo
+                  la parte data, altrimenti il kick leggeva "YOUR MINDROUTE —
+                  YOUR MINDROUTE · JULY 2026" (doppione). */}
+              {data.subtitle.includes("·") && (
+                <><span className="sep" /><span className="built">{data.subtitle.split("·").slice(1).join("·").trim()}</span></>
+              )}
             </div>
             <h1 className="it-hero-title">{data.destination}</h1>
             {data.country && <div className="it-hero-sub">{data.country}</div>}
@@ -692,7 +696,7 @@ export function ItineraryDashboard({
             </div>
             {onEdit && (
               <button className="ag-cmd-edit" onClick={onEdit}>
-                <Pencil size={14} />{L("Personalizza", "Customize")}
+                <Pencil size={14} />{L("Personalizza", "Customise")}
               </button>
             )}
           </div>

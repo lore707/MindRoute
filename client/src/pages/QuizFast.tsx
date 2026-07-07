@@ -241,7 +241,9 @@ export default function QuizFast() {
     );
   }
 
-  const total = steps.length;
+  // Prima della scelta del ramo steps=["mode"] e il contatore leggeva "1 / 1":
+  // entrambi i rami hanno 4 passi, quindi mostriamo 4 da subito.
+  const total = mode ? steps.length : 4;
   const progressPct = ((stepIdx + (current === "mode" ? 0 : 1)) / total) * 100;
 
   return (

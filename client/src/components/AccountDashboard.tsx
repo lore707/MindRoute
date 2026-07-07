@@ -425,7 +425,13 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
               <div className="pic gold"><Icon name="atlas" /></div>
               <div className="pm">
                 <div className="pk">{t("acd.point.atlasK")}</div>
-                <Html as="div" className="pv" html={tx("acd.point.atlasV", { m: counts.continents, d: counts.places })} />
+                <Html as="div" className="pv" html={tx("acd.point.atlasV", {
+                  m: counts.continents,
+                  mu: t(counts.continents === 1 ? "acd.unit.continent" : "acd.unit.continents"),
+                  d: counts.places,
+                  du: t(counts.places === 1 ? "acd.unit.place" : "acd.unit.places"),
+                  tv: t(counts.places === 1 ? "acd.unit.touchedOne" : "acd.unit.touched"),
+                })} />
               </div>
               <span className="arrow">→</span>
             </div>
@@ -604,7 +610,12 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
         gold
         eyebrow={t("acd.coll.eyebrow")}
         title={t("acd.coll.title")}
-        sub={tx("acd.coll.sub", { n: data.trips.length, d: counts.days })}
+        sub={tx("acd.coll.sub", {
+          n: data.trips.length,
+          nu: t(data.trips.length === 1 ? "acd.unit.itinerary" : "acd.unit.itineraries"),
+          d: counts.days,
+          dw: t(counts.days === 1 ? "acd.unit.day" : "acd.unit.days"),
+        })}
         right={<button className="btn-p" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>}
       />
       <div className="content">
@@ -650,6 +661,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
               loading={data.atlasLoading}
               narrative={data.statsNarrative}
               narrativeBold={data.statsBold}
+              hideHead
             />
           </Suspense>
         </div>
