@@ -27,10 +27,22 @@ without breaking things that took months to get right.
 - **Port 5000** everywhere. Render firewalls everything else.
 - **ESM only.** No `require()`. Dynamic `import()` for lazy/runtime loading.
 - The day-image field is **`dayImageUrl`** (with `Url`). Never `dayImage`.
-- The LLM's image URLs are **always overridden** by real Unsplash fetches — LLM
-  photo IDs are hallucinated.
+- The LLM emits **no image URLs at all** (since 2026-07 the prompt forbids
+  them; the zod schema defaults them to `""`). Day heroes are fetched per-day
+  via `fetchDayImageWithFallback`; **moment images come from one deduplicated
+  photo pool** (`buildDestinationPhotoPool`, 2-3 searches per generation) —
+  never reintroduce per-moment Unsplash searches (~28 calls ≈ the whole free
+  tier of 50/hr).
 - Per-day Unsplash fetches use `mapWithConcurrency(days, 3, …)`, **never
   `Promise.all`** (burst 429 even under hourly quota).
+- **UI floor (from the 2026-07 design audit):** every clickable `<div>`
+  (quiz options/cards, landing thumbs, destination cards) must spread
+  `pressable` from `client/src/lib/pressable.ts` and have a `:focus-visible`
+  style — the funnel was once un-completable by keyboard. Badges/labels over
+  photos need a dark pill/scrim behind the text, never bare accent color.
+- `tripMeta.travel_dates` placeholders are **server-derived** (same window as
+  the booking links: leaveDate or today+3 months) — never trust LLM dates,
+  they landed in the past.
 - Every user-visible string goes through `t()` (`client/src/lib/i18n.tsx` +
   `i18n-dict/` modules). AI-generated content is **monolingual and frozen at
   creation** — `itineraries.lang` forces the reader UI to that language; don't
@@ -75,7 +87,8 @@ predates them and is the only sanctioned duplicate).
 | Area | Why fragile |
 |---|---|
 | `server/matching-engine*.ts` prompts | Precision doctrine (TILT_M_O, TILT_C_R, verification gates) balances mainstream vs offbeat **bidirectionally**. Tweaking one sentence can bias all matches. Test with contrasting profiles. |
-| `server/routes/itinerary-gen-v2.ts` enrichment | Order matters: LLM output → affiliate rewrite (`rewriteMomentBooking`) → geocode → images → cost recompute (`recomputeDayCosts` always overrides LLM arithmetic). |
+| V2 parallel generation (`generateItineraryV2Parallel`) | Trips ≥4 days: 1 short skeleton call + 3 concurrent day-chunk calls (~115s vs ~220s single-call). Each chunk gets the FULL precision prompt + the shared skeleton. Any zod/merge error falls back **transparently** to the single-call path — if generations get slow again, check the logs for `[v2 parallel] fallback` before assuming Anthropic latency. CoV correction is targeted (returns only flagged moments), never a full re-emission. |
+| `server/routes/itinerary-gen-v2.ts` enrichment | Order matters: LLM output → affiliate rewrite (`rewriteMomentBooking`) → geocode → images (day hero per-day, moments from the photo pool prefetched in parallel with the LLM call) → cost recompute (`recomputeDayCosts` always overrides LLM arithmetic). Legacy columns get real shapes now: `budgetSummary` as `{items:[…]}`, empty strings for packing/gettingThere — never `"{}"` placeholders (they rendered raw on the public share page). |
 | View functions in `ItineraryDashboard.tsx` / `AccountDashboard.tsx` | They are invoked conditionally (`view === "days" && DaysView()`), so they **must not call hooks** — hooks belong in the parent component body. Violating this crashes on tab switch. |
 | `client/index.html` | Hand-tuned LCP: inline pre-hero shell, preloaded hero URL, deferred gtag, `<!--OG:START/END-->` markers rewritten server-side for share pages. Every byte there is deliberate. |
 | Frontend performance setup | Route-level code splitting, PDF renderer behind dynamic import, `unsplashSized()` for every Unsplash URL. Do not re-import heavy modules statically into the main bundle (bundle went 785→151KB gz; keep it that way). |

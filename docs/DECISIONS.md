@@ -185,6 +185,41 @@ claims"; a single hallucinated restaurant costs more trust than ten generic tips
 `content-factory/` (`npm run content` → branded IG/TikTok carousels). They share
 the repo for convenience only — **no code coupling**. Don't import across.
 
+## 14. V2 generation split: skeleton + parallel day-chunks (2026-07)
+
+**Decision:** for trips ≥4 days, `generateItineraryV2ForDestination` runs one
+short skeleton call (roles, arcs, manifesto, highlights) then 3 concurrent
+Sonnet calls that write the days in blocks, each with the full precision
+prompt + the shared skeleton. Any failure falls back to the historical
+single call.
+
+**Why:** LLM latency is ~linear in emitted tokens; the single ~20K-token call
+took 3.5+ min — the single worst moment of the funnel (users watched a spinner
+past the promised wait). Measured after: ~115s total vs ~220s.
+
+**Rejected:** smaller/faster model (quality is the product); streaming
+(same completion time); trimming prose (the prose *is* the value).
+
+**Consequences:** ~2x input-token cost per generation (the precision prompt is
+sent 4x) — acceptable at current volume, revisit with prompt caching if volume
+grows. Cross-chunk consistency rests on the skeleton; the CoV check still runs
+on the merged result. The CoV *correction* now returns only the flagged
+moments (targeted patch), never a full re-emission.
+
+## 15. Path B has no long-form quiz anymore (2026-07)
+
+**Decision:** the deep-quiz path picker routes "I already have a direction"
+to `/start?mode=meta` (the ~4-tap fast lane). The 7-question cinematic +
+logistics remains only as Path A's depth tool (portrait, retake quiz).
+
+**Why:** a user who already knows the destination gets no value from 7
+psychological questions before naming it; Path A had the fast lane while
+Path B still funnelled into the long form.
+
+**Consequences:** `QuizCinematic` Q2–Q7 (region picker etc.) is now reachable
+only if `onSelectIntentional` is not passed — currently never in production.
+Candidate for the dead-code list if this holds.
+
 ## Known bottlenecks / scalability concerns (when growth comes)
 
 1. **Global `profilingInputs` slot** — a single-row table used as fallback for
