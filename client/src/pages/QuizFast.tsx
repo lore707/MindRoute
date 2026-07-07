@@ -105,6 +105,14 @@ export default function QuizFast() {
   const [stepIdx, setStepIdx] = useState(0);
   const current = steps[stepIdx];
 
+  // /start?mode=meta|surprise → salta il bivio (usato dal path picker del
+  // quiz profondo: "ho già una direzione" atterra qui già instradato).
+  useEffect(() => {
+    const m = new URLSearchParams(window.location.search).get("mode");
+    if (m === "meta" || m === "surprise") { setMode(m); setStepIdx(1); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Sfondo crossfade (doppio buffer) ─────────────────────────────────────
   const [activeImg, setActiveImg] = useState(themeImg(STEP_DEFAULT_THEME.mode));
   const [imgA, setImgA] = useState(activeImg);

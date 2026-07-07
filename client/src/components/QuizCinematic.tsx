@@ -90,6 +90,9 @@ type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export interface QuizCinematicProps {
   onComplete?: (a: Answers) => void;
   onSelectGuided?: () => void;
+  /** Se presente, la scelta "ho già una direzione" esce qui (es. fast lane
+   *  /start?mode=meta) invece di proseguire nel cinematic lungo Q2–Q7. */
+  onSelectIntentional?: () => void;
   onBackFromQ1?: () => void;
   initialAnswers?: Answers;
   initialStep?: Step;
@@ -98,6 +101,7 @@ export interface QuizCinematicProps {
 export function QuizCinematic({
   onComplete,
   onSelectGuided,
+  onSelectIntentional,
   onBackFromQ1,
   initialAnswers,
   initialStep = 1,
@@ -128,6 +132,7 @@ export function QuizCinematic({
   function pickPath(p: "guided" | "intentional") {
     setAnswers({ ...answers, path: p });
     if (p === "guided") { onSelectGuided?.(); return; }
+    if (onSelectIntentional) { onSelectIntentional(); return; }
     setStep(2);
   }
   function back() {

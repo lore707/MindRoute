@@ -1206,6 +1206,12 @@ const profilingPayload = {
         <QuizCinematic
         initialAnswers={cinematicAnswers}
         initialStep={cinematicStep}
+        onSelectIntentional={() => {
+          // Path B ("ho già una direzione") non passa più dal cinematic lungo
+          // Q2–Q7 + logistica: chi ha già una meta va sulla fast lane (~4 tap,
+          // stessa parità di Path A). Il quiz profondo resta la via di Path A.
+          setLocation("/start?mode=meta");
+        }}
         onComplete={(a) => {
           setCinematicAnswers(a);
           const regionLabel    = a.region   ? (cinematicRegionToOld[a.region] ?? a.region) : "";
