@@ -39,14 +39,12 @@ export async function getRecentDestinationNames(limit = 15): Promise<string[]> {
 
 export async function recordRecentDestination(destinationName: string) {
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destinationName)}&format=json&limit=1&accept-language=en`, { headers: { "User-Agent": "MindRoute/1.0 (recent destinations)" } });
-    const d = await r.json();
-    if (!d?.[0]) return;
-    const { lat, lon, country_code } = d[0];
-    const flag = Array.from((country_code as string).toUpperCase()).map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join('');
+    const { geocodeDestination } = await import("./geocode-place");
+    const place = await geocodeDestination(destinationName);
+    if (!place) return; // unlocated: skip rather than store a wrong pin
     const { db } = await import("./db");
     const { recentDestinations } = await import("@shared/schema");
-    await db.insert(recentDestinations).values({ destinationName, flag, lat: parseFloat(lat), lon: parseFloat(lon) });
+    await db.insert(recentDestinations).values({ destinationName, flag: place.flag, lat: place.lat, lon: place.lng });
   } catch (e) {
     console.error("recordRecentDestination error:", e);
   }

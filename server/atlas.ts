@@ -6,7 +6,8 @@
 //   1. recentDestinations table  — already maps destinationName → lat/lon
 //      (written after every generation). A warm, persistent cache.
 //   2. in-memory cache           — survives within the server process.
-//   3. live Nominatim geocode    — capped + polite; results are persisted back
+//   3. live geocode (geocode-place.ts, Nominatim area-filtered → Wikipedia
+//      IT fallback) — capped + polite; results are persisted back
 //      into recentDestinations with an OLD createdAt so they act purely as a
 //      coord cache and never pollute the recency-based landing feed / matcher.
 //
@@ -15,7 +16,8 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { storage } from "./storage";
-import { continentOf, CONTINENT_LABEL_IT } from "./account-insights";
+import { continentOf, continentLabel } from "./account-insights";
+import { geocodeDestination } from "./geocode-place";
 
 export interface AtlasPlace {
   name: string;             // short city label
@@ -24,8 +26,8 @@ export interface AtlasPlace {
   lng: number;
   trips: number;            // itineraries to this place
   days: number;             // total days across them
-  lastDate: string | null;  // "mag 2026"
-  continent: string | null; // IT label
+  lastDate: string | null;  // "mag 2026" / "May 2026" (per request lang)
+  continent: string | null; // localized label
   heroImageUrl: string | null;
   href: string;             // most recent itinerary
 }
@@ -36,12 +38,15 @@ export interface AtlasResponse {
   stats: { trips: number; days: number; cities: number; continents: number };
 }
 
-const MONTH_IT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
-function shortDate(iso: string | Date | null | undefined): string | null {
+const MONTH = {
+  it: ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"],
+  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+};
+function shortDate(iso: string | Date | null | undefined, lang: "en" | "it"): string | null {
   if (!iso) return null;
   const d = iso instanceof Date ? iso : new Date(iso);
   if (isNaN(d.getTime())) return null;
-  return `${MONTH_IT[d.getMonth()]} ${d.getFullYear()}`;
+  return `${MONTH[lang][d.getMonth()]} ${d.getFullYear()}`;
 }
 
 function norm(name: string): string {
@@ -55,27 +60,6 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 // In-memory geocode cache (process lifetime). null = known-unresolvable.
 const memCache = new Map<string, { lat: number; lng: number } | null>();
-
-async function geocodeLive(query: string): Promise<{ coords: { lat: number; lng: number } | null; flag: string }> {
-  try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=en`,
-      { headers: { "User-Agent": "MindRoute/1.0 (account atlas)" } },
-    );
-    const d = await r.json();
-    if (!d?.[0]) return { coords: null, flag: "🌍" };
-    const lat = parseFloat(d[0].lat);
-    const lng = parseFloat(d[0].lon);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { coords: null, flag: "🌍" };
-    const cc = (d[0].country_code as string | undefined)?.toUpperCase();
-    const flag = cc
-      ? Array.from(cc).map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join("")
-      : "🌍";
-    return { coords: { lat, lng }, flag };
-  } catch {
-    return { coords: null, flag: "🌍" };
-  }
-}
 
 interface Group {
   fullName: string;
@@ -91,7 +75,7 @@ interface Group {
 
 const MAX_LIVE_GEOCODES = 12;
 
-export async function buildAtlas(userId: number): Promise<AtlasResponse> {
+export async function buildAtlas(userId: number, lang: "en" | "it" = "it"): Promise<AtlasResponse> {
   const trips = await storage.getUserItineraries(userId); // desc by id (newest first)
 
   // ── group by destination (newest trip per group wins for hero/href/date) ──
@@ -119,8 +103,8 @@ export async function buildAtlas(userId: number): Promise<AtlasResponse> {
         city: cityOf(full),
         trips: 1,
         days: dayCount,
-        lastDate: shortDate(t.createdAt),
-        continent: cont ? CONTINENT_LABEL_IT[cont] : null,
+        lastDate: shortDate(t.createdAt, lang),
+        continent: cont ? continentLabel(cont, lang) : null,
         heroImageUrl: t.heroImageUrl ?? null,
         href: `/itinerary/${t.id}`,
         cacheDate: created && !isNaN(created.getTime()) ? created : new Date(Date.now() - 90 * 86400_000),
@@ -164,11 +148,12 @@ export async function buildAtlas(userId: number): Promise<AtlasResponse> {
   for (const g of toGeocode) {
     if (budget <= 0) { unlocated.push(g.city); continue; }
     budget -= 1;
-    const { coords, flag } = await geocodeLive(g.fullName);
+    const hit = await geocodeDestination(g.fullName);
+    const coords = hit ? { lat: hit.lat, lng: hit.lng } : null;
     memCache.set(norm(g.fullName), coords);
     if (coords) {
       places.push(toPlace(g, coords));
-      void persistCoord(g.fullName, coords, flag, g.cacheDate);
+      void persistCoord(g.fullName, coords, hit!.flag, g.cacheDate);
     } else {
       unlocated.push(g.city);
     }
