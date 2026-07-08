@@ -386,7 +386,11 @@ export default function QuizFast() {
                     ? { eyebrow: L(lang, "L'emozione", "The feeling"), titleA: L(lang, "Che sensazione stai ", "What feeling are you "), titleB: L(lang, "cercando?", "after?"), sub: L(lang, "È la domanda più MindRoute di tutte. Niente filtri.", "The most MindRoute question of all. No filters."), opts: SENSATIONS, sel: sensation, pick: (id: string) => { setSensation(id); setTimeout(goNext, 260); } }
                     : current === "duration"
                     ? { eyebrow: L(lang, "Il tempo", "Time"), titleA: L(lang, "Quanto tempo ", "How much time "), titleB: L(lang, "hai?", "do you have?"), sub: "", opts: DURATIONS, sel: duration, pick: (id: string) => { setDuration(id); setTimeout(goNext, 260); } }
-                    : { eyebrow: L(lang, "Il budget", "Budget"), titleA: L(lang, "Quanto ti va di ", "How much do you feel like "), titleB: L(lang, "spendere?", "spending?"), sub: L(lang, "Serve solo per il tono. Il resto lo affiniamo dopo.", "Just for the tone. We refine the rest later."), opts: BUDGETS, sel: budget, pick: (id: string) => { setBudget(id); if (mode === "surprise" && !hasDeparture) return; setTimeout(runGen, 280); } };
+                    // Ultima domanda: il chip SELEZIONA soltanto — la generazione parte
+                    // dal bottone esplicito qui sotto. Prima il chip auto-generava, ma
+                    // chi tornava indietro o compilava partenza/cifra DOPO la scelta
+                    // restava senza alcun tasto "avanti".
+                    : { eyebrow: L(lang, "Il budget", "Budget"), titleA: L(lang, "Quanto ti va di ", "How much do you feel like "), titleB: L(lang, "spendere?", "spending?"), sub: L(lang, "Serve solo per il tono. Il resto lo affiniamo dopo.", "Just for the tone. We refine the rest later."), opts: BUDGETS, sel: budget, pick: (id: string) => { setBudget(id); } };
                 return (
                   <>
                     <div className="qc-q-head">
@@ -458,13 +462,20 @@ export default function QuizFast() {
                     )}
                     <div className="qc-nav">
                       <button className="qc-back" onClick={goBack} data-testid="fast-back">← {L(lang, "Indietro", "Back")}</button>
-                      {current === "budget" && (
-                        <span className="qc-q-sub" style={{ fontSize: 13, maxWidth: 340, color: mode === "surprise" && !hasDeparture ? "var(--qc-accent)" : undefined }}>
-                          {mode === "surprise" && !hasDeparture
-                            ? L(lang, "Inserisci la partenza, poi scegli la fascia.", "Add your departure, then pick a tier.")
-                            : L(lang, "Scegli la fascia e parte la generazione.", "Pick a tier and generation starts.")}
-                        </span>
-                      )}
+                      {current === "budget" ? (
+                        <button
+                          className="qc-continue"
+                          onClick={runGen}
+                          disabled={!budget || (mode === "surprise" && !hasDeparture)}
+                          data-testid="fast-generate"
+                        >
+                          {!budget
+                            ? L(lang, "Scegli una fascia", "Pick a tier")
+                            : mode === "surprise" && !hasDeparture
+                            ? L(lang, "Inserisci la partenza", "Add your departure")
+                            : L(lang, "Genera le destinazioni", "Generate my destinations")} →
+                        </button>
+                      ) : null}
                     </div>
                   </>
                 );

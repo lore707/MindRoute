@@ -166,18 +166,18 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
 
   const reset = () => { setDraft({}); setIdx(0); setMultiSel([]); setTextVal(""); setPicked(null); setErr(""); setDone(false); };
 
-  // Apertura automatica al primo arrivo dal funnel veloce (?l2=1).
+  // ?l2=1 (arrivo dal funnel veloce): NIENTE overlay automatico — l'utente
+  // deve prima atterrare sul SUO itinerario e godersi il risultato; il banner
+  // "Ti somiglia al X%" resta lì per l'approfondimento quando vuole lui.
+  // Qui puliamo solo il param dalla URL.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const p = new URLSearchParams(window.location.search);
-    if (p.get("l2") === "1" && coverage.open.length > 0) {
-      reset();
-      setOpen(true);
+    if (p.get("l2") === "1") {
       p.delete("l2");
       const qs = p.toString();
       window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Blocca lo scroll del body SOLO mentre l'overlay è aperto, ripristinando il
