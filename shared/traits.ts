@@ -316,24 +316,26 @@ export function categorizeSignal(
 
 // ── Structured axis readout ────────────────────────────────────────────────
 // Turns an aggregated TraitVector into per-axis facts for the "DNA" detail
-// panel and for feeding the Haiku narrative. value is 0-100, pole is the IT
-// label of the dominant side, magnitude flags how decisive the lean is.
+// panel and for feeding the Haiku narrative. value is 0-100, pole is the
+// label of the dominant side in the requested language, magnitude flags how
+// decisive the lean is (canonical IT tokens — translate at render time).
 
 export type AxisMagnitude = "neutro" | "lieve" | "chiaro" | "forte";
 
 export interface AxisReadout {
   axis: Axis;
   value: number;        // 0-100
-  poleLeft: string;     // IT
-  poleRight: string;    // IT
-  pole: string;         // IT label of dominant side ("" when neutral)
+  poleLeft: string;
+  poleRight: string;
+  pole: string;         // label of dominant side ("" when neutral)
   magnitude: AxisMagnitude;
 }
 
-export function axisReadout(vector: TraitVector): AxisReadout[] {
+export function axisReadout(vector: TraitVector, lang: "en" | "it" = "it"): AxisReadout[] {
   return (Object.keys(vector) as Axis[]).map(axis => {
+    const names = AXIS_NAMES[axis];
+    const labels = lang === "it" ? names.it : names;
     const v = vector[axis];
-    const labels = AXIS_NAMES[axis];
     const dist = Math.abs(v - 0.5);
     let magnitude: AxisMagnitude;
     if (dist <= 0.10) magnitude = "neutro";
@@ -343,9 +345,9 @@ export function axisReadout(vector: TraitVector): AxisReadout[] {
     return {
       axis,
       value: Math.round(v * 100),
-      poleLeft: labels.it.left,
-      poleRight: labels.it.right,
-      pole: magnitude === "neutro" ? "" : (v < 0.5 ? labels.it.left : labels.it.right),
+      poleLeft: labels.left,
+      poleRight: labels.right,
+      pole: magnitude === "neutro" ? "" : (v < 0.5 ? labels.left : labels.right),
       magnitude,
     };
   });

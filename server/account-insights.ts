@@ -27,6 +27,19 @@ export const CONTINENT_LABEL_IT: Record<Continent, string> = {
   oceania:    "Oceania",
 };
 
+export const CONTINENT_LABEL_EN: Record<Continent, string> = {
+  europe:     "Europe",
+  asia:       "Asia",
+  americas:   "Americas",
+  africa:     "Africa",
+  middleeast: "Middle East",
+  oceania:    "Oceania",
+};
+
+export function continentLabel(c: Continent, lang: "en" | "it"): string {
+  return (lang === "it" ? CONTINENT_LABEL_IT : CONTINENT_LABEL_EN)[c];
+}
+
 // Mappa country → continent. Costruita dai 20 country del catalogo + varianti
 // comuni (sigle, italiano, country composite). Lookup è case-insensitive e
 // tollerante a varianti perché itineraries.country viene dall'AI di matching.
@@ -190,7 +203,7 @@ export interface AccountInsights {
   patterns: PatternSignals;
 }
 
-export function computeAccountInsights(trips: Itinerary[]): AccountInsights {
+export function computeAccountInsights(trips: Itinerary[], lang: "en" | "it" = "it"): AccountInsights {
   const tripCount = trips.length;
 
   // ── days
@@ -226,7 +239,7 @@ export function computeAccountInsights(trips: Itinerary[]): AccountInsights {
   if (contEntries.length > 0) {
     contEntries.sort((a, b) => b[1] - a[1]);
     const [cont, count] = contEntries[0];
-    topContinent = { continent: cont, label: CONTINENT_LABEL_IT[cont], count };
+    topContinent = { continent: cont, label: continentLabel(cont, lang), count };
     topContinentRatio = tripCount > 0 ? count / tripCount : null;
   }
 

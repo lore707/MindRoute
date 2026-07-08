@@ -33,7 +33,7 @@ export type PortraitConfidence = "nascent" | "forming" | "solid";
 export interface PortraitChosen { name: string; date: string | null; }
 export interface PortraitRevealed { saidPole: string; chosePole: string; theme: string; }
 export interface PortraitEvolution {
-  phrase: string;                                          // ready-to-render IT sentence
+  phrase: string;                                          // ready-to-render sentence (request lang)
   points: Array<{ whenLabel: string; isNow: boolean }>;    // timeline ticks
 }
 export interface PortraitNarrative { portrait: string; paradox: string | null; }
@@ -54,23 +54,34 @@ export interface PortraitResponse {
   narrative: PortraitNarrative | null;
 }
 
-const MONTH_IT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
-function shortDate(iso: string | Date | null | undefined): string | null {
+type Lang = "en" | "it";
+
+const MONTH = {
+  it: ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"],
+  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+};
+function shortDate(iso: string | Date | null | undefined, lang: Lang): string | null {
   if (!iso) return null;
   const d = iso instanceof Date ? iso : new Date(iso);
   if (isNaN(d.getTime())) return null;
-  return `${MONTH_IT[d.getMonth()]} ${d.getFullYear()}`;
+  return `${MONTH[lang][d.getMonth()]} ${d.getFullYear()}`;
 }
 
 function monthsAgo(d: Date): number {
   return Math.max(0, Math.round((Date.now() - d.getTime()) / (30 * 24 * 3600 * 1000)));
 }
-function relativeWhenIT(d: Date): string {
+function relativeWhen(d: Date, lang: Lang): string {
   const m = monthsAgo(d);
-  if (m >= 18) return "Più di un anno fa";
-  if (m >= 10) return "Circa un anno fa";
-  if (m >= 4) return "Qualche mese fa";
-  return "Di recente";
+  if (lang === "it") {
+    if (m >= 18) return "Più di un anno fa";
+    if (m >= 10) return "Circa un anno fa";
+    if (m >= 4) return "Qualche mese fa";
+    return "Di recente";
+  }
+  if (m >= 18) return "More than a year ago";
+  if (m >= 10) return "About a year ago";
+  if (m >= 4) return "A few months ago";
+  return "Recently";
 }
 
 // ── Revealed preference: what you SAID vs what you CHOSE ────────────────────
@@ -78,7 +89,7 @@ function relativeWhenIT(d: Date): string {
 // blended with the destination the user actually committed to, so a gap between
 // the two is a genuine "revealed preference" — the divergence the trait engine
 // is explicitly designed to surface.
-function computeRevealed(snapshots: TraitSnapshot[]): PortraitRevealed | null {
+function computeRevealed(snapshots: TraitSnapshot[], lang: Lang): PortraitRevealed | null {
   const quiz = snapshots.filter(s => s.source === "quiz").map(s => s.traits as TraitVector);
   const pick = snapshots.filter(s => s.source === "pick").map(s => s.traits as TraitVector);
   if (quiz.length === 0 || pick.length === 0) return null;
@@ -94,14 +105,15 @@ function computeRevealed(snapshots: TraitSnapshot[]): PortraitRevealed | null {
   }
   if (!best) return null;
 
-  const labels = AXIS_NAMES[best.axis];
-  const saidPole = q[best.axis] < 0.5 ? labels.it.left : labels.it.right;
-  const chosePole = p[best.axis] < 0.5 ? labels.it.left : labels.it.right;
-  return { saidPole, chosePole, theme: `${labels.it.left} ↔ ${labels.it.right}` };
+  const names = AXIS_NAMES[best.axis];
+  const labels = lang === "it" ? names.it : names;
+  const saidPole = q[best.axis] < 0.5 ? labels.left : labels.right;
+  const chosePole = p[best.axis] < 0.5 ? labels.left : labels.right;
+  return { saidPole, chosePole, theme: `${labels.left} ↔ ${labels.right}` };
 }
 
 // ── Evolution: how the dominant lean shifted over time ──────────────────────
-function computeEvolution(snapshots: TraitSnapshot[]): PortraitEvolution | null {
+function computeEvolution(snapshots: TraitSnapshot[], lang: Lang): PortraitEvolution | null {
   const valid = snapshots.filter(s => s.mappingVersion === MAPPING_VERSION);
   if (valid.length < 3) return null;
 
@@ -116,27 +128,30 @@ function computeEvolution(snapshots: TraitSnapshot[]): PortraitEvolution | null 
   }
   if (!best || Math.abs(best.delta) < 0.12) return null;
 
-  const labels = AXIS_NAMES[best.axis];
+  const names = AXIS_NAMES[best.axis];
+  const labels = lang === "it" ? names.it : names;
   const firstDate = valid[0].createdAt instanceof Date ? valid[0].createdAt : new Date(valid[0].createdAt as any);
-  const when = relativeWhenIT(firstDate);
+  const when = relativeWhen(firstDate, lang);
 
   const flips = (first[best.axis] - 0.5) * (current[best.axis] - 0.5) < 0;
-  const oldPole = first[best.axis] < 0.5 ? labels.it.left : labels.it.right;
-  const newPole = current[best.axis] < 0.5 ? labels.it.left : labels.it.right;
-  const phrase = flips
-    ? `${when} cercavi ${oldPole}, oggi ${newPole}.`
-    : `Stai diventando sempre più ${newPole}.`;
+  const oldPole = first[best.axis] < 0.5 ? labels.left : labels.right;
+  const newPole = current[best.axis] < 0.5 ? labels.left : labels.right;
+  const phrase = lang === "it"
+    ? (flips ? `${when} cercavi ${oldPole}, oggi ${newPole}.` : `Stai diventando sempre più ${newPole}.`)
+    : (flips ? `${when} you sought ${oldPole}; today, ${newPole}.` : `You're becoming more and more ${newPole}.`);
 
   // Timeline ticks: first, optional middle, now.
   const points: PortraitEvolution["points"] = [];
-  const firstYear = !isNaN(firstDate.getTime()) ? String(firstDate.getFullYear()) : "inizio";
+  const firstYear = !isNaN(firstDate.getTime())
+    ? String(firstDate.getFullYear())
+    : (lang === "it" ? "inizio" : "start");
   points.push({ whenLabel: firstYear, isNow: false });
   if (valid.length >= 5) {
     const mid = valid[Math.floor(valid.length / 2)];
     const md = mid.createdAt instanceof Date ? mid.createdAt : new Date(mid.createdAt as any);
     if (!isNaN(md.getTime())) points.push({ whenLabel: String(md.getFullYear()), isNow: false });
   }
-  points.push({ whenLabel: "oggi", isNow: true });
+  points.push({ whenLabel: lang === "it" ? "oggi" : "now", isNow: true });
 
   return { phrase, points };
 }
@@ -164,8 +179,8 @@ function buildFactsBlock(p: PortraitResponse): string {
   return lines.join("\n");
 }
 
-async function generateNarrative(userId: number, p: PortraitResponse): Promise<PortraitNarrative | null> {
-  const key = `${p.snapshotCount}::${p.seek.join(",")}::${p.avoid.join(",")}::${p.chosen.length}::${p.revealed ? 1 : 0}`;
+async function generateNarrative(userId: number, p: PortraitResponse, lang: Lang): Promise<PortraitNarrative | null> {
+  const key = `${lang}::${p.snapshotCount}::${p.seek.join(",")}::${p.avoid.join(",")}::${p.chosen.length}::${p.revealed ? 1 : 0}`;
   const cached = narrativeCache.get(userId);
   if (cached && cached.key === key) return cached.value;
 
@@ -181,7 +196,9 @@ async function generateNarrative(userId: number, p: PortraitResponse): Promise<P
         "Sei l'assistente di MindRoute. Scrivi il \"ritratto\" di viaggio di una persona usando ESCLUSIVAMENTE i fatti forniti. " +
         "NON inventare destinazioni, conteggi, salvataggi, note o evoluzioni temporali non presenti nei dati. " +
         "Se un dato manca, ometti quella frase. Meglio un ritratto breve e vero che uno ricco e falso. " +
-        "Testo in italiano, seconda persona singolare, caldo e specifico. Niente aggettivi vuoti (unico, speciale, perfetto), niente emoji, niente virgolette. " +
+        (lang === "it"
+          ? "Testo in italiano, seconda persona singolare, caldo e specifico. Niente aggettivi vuoti (unico, speciale, perfetto), niente emoji, niente virgolette. "
+          : "Write in ENGLISH, second person singular, warm and specific. No empty adjectives (unique, special, perfect), no emoji, no quotation marks. ") +
         "Rispondi SOLO con un oggetto JSON valido con due campi: " +
         "\"portrait\" (2-3 frasi che sintetizzano chi è come viaggiatore, basate sui fatti) e " +
         "\"paradox\" (UNA frase evocativa su una tensione reale tra i fatti, es. comfort + offbeat; null se i fatti non ne suggeriscono una).",
@@ -211,7 +228,7 @@ async function generateNarrative(userId: number, p: PortraitResponse): Promise<P
 }
 
 // ── Public entry ────────────────────────────────────────────────────────────
-export async function buildPortrait(userId: number): Promise<PortraitResponse> {
+export async function buildPortrait(userId: number, lang: Lang = "it"): Promise<PortraitResponse> {
   const snapshots = await storage.getTraitSnapshots(userId); // asc by createdAt
   const valid = snapshots.filter(s => s.mappingVersion === MAPPING_VERSION);
   const validVectors = valid.map(s => s.traits as TraitVector);
@@ -238,11 +255,11 @@ export async function buildPortrait(userId: number): Promise<PortraitResponse> {
     }
   }
 
-  const axes = validVectors.length ? axisReadout(emaAggregate(validVectors)) : [];
+  const axes = validVectors.length ? axisReadout(emaAggregate(validVectors), lang) : [];
 
   const chosen: PortraitChosen[] = trips.slice(0, 6).map(t => ({
-    name: (t.destinationName ?? "Itinerario").split(",")[0].trim(),
-    date: shortDate(t.createdAt),
+    name: (t.destinationName ?? (lang === "it" ? "Itinerario" : "Itinerary")).split(",")[0].trim(),
+    date: shortDate(t.createdAt, lang),
   }));
 
   const continents = new Set<string>();
@@ -256,8 +273,8 @@ export async function buildPortrait(userId: number): Promise<PortraitResponse> {
     continents: continents.size,
   };
 
-  const revealed = computeRevealed(valid);
-  const evolution = computeEvolution(valid);
+  const revealed = computeRevealed(valid, lang);
+  const evolution = computeEvolution(valid, lang);
 
   const snapshotCount = valid.length;
   const confidence: PortraitConfidence =
@@ -281,6 +298,6 @@ export async function buildPortrait(userId: number): Promise<PortraitResponse> {
     narrative: null,
   };
 
-  if (available) response.narrative = await generateNarrative(userId, response);
+  if (available) response.narrative = await generateNarrative(userId, response, lang);
   return response;
 }

@@ -152,7 +152,7 @@ export default function MyAccount() {
     fetchMe().then(data => setUser(data));
 
     let cancelled = false;
-    fetch("/api/my-trips")
+    fetch(`/api/my-trips?lang=${lang}`)
       .then(r => r.ok ? r.json() : [])
       .then(data => { if (!cancelled) setTrips(Array.isArray(data) ? data : []); })
       .catch(() => { if (!cancelled) setTrips([]); })
@@ -165,7 +165,7 @@ export default function MyAccount() {
         const loadSecondary = () => {
           if (cancelled) return;
 
-          fetch("/api/me/account-insights")
+          fetch(`/api/me/account-insights?lang=${lang}`)
             .then(r => r.ok ? r.json() : null)
             .then((d: AccountInsights | null) => setInsights(d))
             .catch(() => setInsights(null));
@@ -175,18 +175,18 @@ export default function MyAccount() {
             .then((rows: SavedMoment[]) => setSavedMoments(Array.isArray(rows) ? rows : []))
             .catch(() => setSavedMoments([]));
 
-          fetch("/api/me/atlas")
+          fetch(`/api/me/atlas?lang=${lang}`)
             .then(r => r.ok ? r.json() : null)
             .then((d: AtlasData | null) => setAtlas(d))
             .catch(() => setAtlas(null))
             .finally(() => setAtlasLoading(false));
 
-          fetch("/api/me/trait-history")
+          fetch(`/api/me/trait-history?lang=${lang}`)
             .then(r => r.ok ? r.json() : null)
             .then((d: TraitHistory | null) => setTraitHistory(d))
             .catch(() => setTraitHistory(null));
 
-          fetch("/api/me/portrait")
+          fetch(`/api/me/portrait?lang=${lang}`)
             .then(r => r.ok ? r.json() : null)
             .then((d: PortraitData | null) => setPortrait(d))
             .catch(() => setPortrait(null));
@@ -202,7 +202,9 @@ export default function MyAccount() {
       });
 
     return () => { cancelled = true; };
-  }, []);
+    // lang nelle deps: i dati localizzati dal server (ritratto, atlante,
+    // insights) vanno rifetchati quando l'utente cambia lingua.
+  }, [lang]);
 
   const removeSavedMoment = async (s: SavedMoment) => {
     setSavedMoments(prev => prev.filter(x => x.id !== s.id));
@@ -295,24 +297,37 @@ export default function MyAccount() {
   const profileQuote = traitHistory?.headline
     ? traitHistory.headline
     : trips.length === 0
-      ? "Stai costruendo il tuo profilo di viaggio. Genera più itinerari per scoprire chi sei."
-      : "Il tuo profilo viaggiatore prende forma a ogni viaggio.";
+      ? (lang === "en"
+          ? "You're building your travel profile. Generate more itineraries to discover who you are."
+          : "Stai costruendo il tuo profilo di viaggio. Genera più itinerari per scoprire chi sei.")
+      : (lang === "en"
+          ? "Your traveller profile takes shape with every trip."
+          : "Il tuo profilo viaggiatore prende forma a ogni viaggio.");
   const profileByline = (() => {
     const tripsCount = trips.length;
-    const tripsLabel = tripsCount === 1 ? "viaggio" : "viaggi";
+    const tripsLabel = lang === "en"
+      ? (tripsCount === 1 ? "trip" : "trips")
+      : (tripsCount === 1 ? "viaggio" : "viaggi");
     const confirmedClause = tripsConfirmed > 0
-      ? ` · <strong>${tripsConfirmed} realmente ${tripsConfirmed === 1 ? "fatto" : "fatti"}</strong>`
+      ? (lang === "en"
+          ? ` · <strong>${tripsConfirmed} actually ${tripsConfirmed === 1 ? "taken" : "taken"}</strong>`
+          : ` · <strong>${tripsConfirmed} realmente ${tripsConfirmed === 1 ? "fatto" : "fatti"}</strong>`)
       : "";
-    const base = `Distillato dai tuoi <strong>${tripsCount} ${tripsLabel}</strong>${confirmedClause}`;
+    const base = lang === "en"
+      ? `Distilled from your <strong>${tripsCount} ${tripsLabel}</strong>${confirmedClause}`
+      : `Distillato dai tuoi <strong>${tripsCount} ${tripsLabel}</strong>${confirmedClause}`;
     if (!traitHistory?.delta) return base;
     const top = Object.entries(traitHistory.delta)
       .map(([k, v]) => ({ k, abs: Math.abs(v as number), v: v as number }))
       .sort((a, b) => b.abs - a.abs)[0];
     if (!top || top.abs < 0.06) return base;
-    const labels = traitHistory.axes[top.k]?.it;
+    const names = traitHistory.axes[top.k];
+    const labels = lang === "it" ? names?.it : names;
     if (!labels) return base;
     const dir = top.v > 0 ? labels.right : labels.left;
-    return `${base} · in evoluzione verso <strong>${dir}</strong>`;
+    return lang === "en"
+      ? `${base} · evolving toward <strong>${dir}</strong>`
+      : `${base} · in evoluzione verso <strong>${dir}</strong>`;
   })();
 
   // Continue items: la sezione "Da riprendere" (Ondata B, top 3 più vecchi

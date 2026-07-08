@@ -378,8 +378,11 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
      provider guarantees a correct link even if your URL is imperfect. (You may leave
      affiliate_url as a plain placeholder like the destination's official site.)
    - display_label — ACTION + OBJECT in the response language, naming the real place:
-     "Prenota il volo per Lisbona", "Prenota l'esperienza · Tour della Medina",
-     "Prenota l'hotel · Riad Dar Anika". Never a bare "Prenota"/"Book" or "Click here".
+     ${input.lang === "it"
+       ? `"Prenota il volo per Lisbona", "Prenota l'esperienza · Tour della Medina",
+     "Prenota l'hotel · Riad Dar Anika". Never a bare "Prenota" or "Click here".`
+       : `"Book the flight to Lisbon", "Book the experience · Medina Tour",
+     "Book the hotel · Riad Dar Anika". Never a bare "Book" or "Click here".`}
 
 7. COSTS
    - cost_bookable_total per day = sum of cost_max for all moments with
@@ -480,7 +483,7 @@ Exactly ${days} days in the "days" array.
           "booking": {
             "provider": "expedia",
             "affiliate_url": "https://www.tkqlhce.com/click-101710513-10581071?url=https://www.expedia.com/Flights-Search?leg1=from%3AMXP%2Cto%3AHBA%2Cdeparture%3A20260710%2F1&passengers=adults%3A1&trip=roundtrip&mode=search",
-            "display_label": "Prenota il volo per Hobart",
+            "display_label": "${input.lang === "it" ? "Prenota il volo per Hobart" : "Book the flight to Hobart"}",
             "status": "bookable_now"
           },
           "description": "Two long legs with one layover in Sydney. Aim for an evening MXP departure if you want to land fresh.",
@@ -532,7 +535,7 @@ Exactly ${days} days in the "days" array.
           "booking": {
             "provider": "hotels",
             "affiliate_url": "https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=Hobart&q-check-in=2026-07-10&q-check-out=2026-07-17",
-            "display_label": "Prenota l'hotel · The Nook Guesthouse",
+            "display_label": "${input.lang === "it" ? "Prenota l'hotel · The Nook Guesthouse" : "Book the hotel · The Nook Guesthouse"}",
             "status": "bookable_now"
           },
           "description": "Drop bags, take a short walk to the harbour even if it's late — first sense of the place matters.",

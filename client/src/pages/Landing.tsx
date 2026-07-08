@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { LandingCinematic, DEFAULT_LANDING_DATA, type LandingData, type MarqueeItem } from "@/components/LandingCinematic";
 import { track } from "@/lib/analytics";
+import { useI18n } from "@/lib/i18n";
 
 export default function Landing() {
   const [, navigate] = useLocation();
+  const { lang } = useI18n();
   // Start with the curated fallback set so the page paints immediately; swap
   // in the server's deduplicated Unsplash set when /api/landing-images
   // resolves. If the endpoint fails we just keep the fallback — no spinner,
@@ -28,7 +30,7 @@ export default function Landing() {
     // (2) Proof-point strip. Real recent generations mixed with curated. If
     // the endpoint fails or returns nothing, the curated default already in
     // state stays — silent fallback, never an empty strip.
-    fetch("/api/destinations-feed")
+    fetch(`/api/destinations-feed?lang=${lang}`)
       .then(r => r.ok ? r.json() : null)
       .then((items: MarqueeItem[] | null) => {
         if (cancelled || !Array.isArray(items) || items.length === 0) return;
@@ -37,7 +39,7 @@ export default function Landing() {
       .catch(() => { /* curated default stays */ });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [lang]);
 
   return (
     <LandingCinematic

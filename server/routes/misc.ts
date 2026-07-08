@@ -2,26 +2,36 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { emaAggregate, AXIS_NAMES, type TraitVector, MAPPING_VERSION } from "@shared/traits";
 import { getTraitHeadline } from "../trait-headline";
-import { computeAccountInsights, continentOf, CONTINENT_LABEL_IT } from "../account-insights";
+import { computeAccountInsights, continentOf, continentLabel } from "../account-insights";
 import { buildPortrait } from "../portrait";
 import { buildAtlas } from "../atlas";
 import { getCachedLandingImageSet } from "../landing-images";
 import { CURATED_DESTINATIONS_FEED, type DestinationsFeedItem } from "@shared/destinations-feed";
 
-// Italian relative time for the landing strip. The product is IT-first and the
-// strings rendered here are short tokens ("2 ore fa", "ieri") so we localise on
-// the server rather than shipping a date library to the client.
-function relativeTimeIT(d: Date): string {
+// Relative time for the landing strip, in the requester's UI language. The
+// strings rendered here are short tokens ("2 ore fa", "ieri") so we localise
+// on the server rather than shipping a date library to the client.
+function relativeTime(d: Date, lang: "en" | "it"): string {
+  const it = lang === "it";
   const diffMs = Date.now() - d.getTime();
-  if (diffMs < 0) return "ora";
+  if (diffMs < 0) return it ? "ora" : "now";
   const diffMin = Math.floor(diffMs / 60_000);
-  if (diffMin < 1) return "ora";
-  if (diffMin < 60) return `${diffMin} min fa`;
+  if (diffMin < 1) return it ? "ora" : "now";
+  if (diffMin < 60) return it ? `${diffMin} min fa` : `${diffMin} min ago`;
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return diffHr === 1 ? "1 ora fa" : `${diffHr} ore fa`;
+  if (diffHr < 24) {
+    if (it) return diffHr === 1 ? "1 ora fa" : `${diffHr} ore fa`;
+    return diffHr === 1 ? "1 hour ago" : `${diffHr} hours ago`;
+  }
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay === 1) return "ieri";
-  return `${diffDay} giorni fa`;
+  if (diffDay === 1) return it ? "ieri" : "yesterday";
+  return it ? `${diffDay} giorni fa` : `${diffDay} days ago`;
+}
+
+// UI language from the ?lang= query param. Defaults to IT so stale clients
+// (cached bundles that don't send the param yet) keep today's behaviour.
+function langOf(req: { query: Record<string, unknown> }): "en" | "it" {
+  return req.query.lang === "en" ? "en" : "it";
 }
 
 export function registerMiscRoutes(app: Express) {
@@ -51,8 +61,9 @@ export function registerMiscRoutes(app: Express) {
       let headline: string | null = null;
       if (validVectors.length >= 3) {
         const trips = await storage.getUserItineraries(user.id);
-        const { patterns } = computeAccountInsights(trips);
-        headline = await getTraitHeadline(user.id, current, validVectors.length, patterns);
+        const lang = langOf(req);
+        const { patterns } = computeAccountInsights(trips, lang);
+        headline = await getTraitHeadline(user.id, current, validVectors.length, patterns, lang);
       }
 
       res.json({
@@ -77,7 +88,7 @@ export function registerMiscRoutes(app: Express) {
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: "Non autenticato" });
     try {
-      const portrait = await buildPortrait(user.id);
+      const portrait = await buildPortrait(user.id, langOf(req));
       res.json(portrait);
     } catch (err) {
       console.error("portrait error:", err);
@@ -109,7 +120,7 @@ export function registerMiscRoutes(app: Express) {
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: "Non autenticato" });
     try {
-      const portrait = await buildPortrait(user.id);
+      const portrait = await buildPortrait(user.id, langOf(req));
       const text = portrait?.narrative?.portrait;
       if (!text) return res.status(404).json({ message: "Ritratto non ancora disponibile" });
       const bgRaw = typeof req.query.bg === "string" ? req.query.bg : "";
@@ -138,7 +149,7 @@ export function registerMiscRoutes(app: Express) {
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: "Non autenticato" });
     try {
-      const atlas = await buildAtlas(user.id);
+      const atlas = await buildAtlas(user.id, langOf(req));
       res.json(atlas);
     } catch (err) {
       console.error("atlas error:", err);
@@ -154,7 +165,7 @@ export function registerMiscRoutes(app: Express) {
     if (!user) return res.status(401).json({ message: "Non autenticato" });
     try {
       const trips = await storage.getUserItineraries(user.id);
-      const insights = computeAccountInsights(trips);
+      const insights = computeAccountInsights(trips, langOf(req));
       res.json(insights);
     } catch (err) {
       console.error("account-insights error:", err);
@@ -186,7 +197,7 @@ export function registerMiscRoutes(app: Express) {
         return {
           ...t,
           continent: cont,
-          continentLabel: cont ? CONTINENT_LABEL_IT[cont] : null,
+          continentLabel: cont ? continentLabel(cont, langOf(req)) : null,
         };
       });
       res.json(enriched);
@@ -278,7 +289,7 @@ export function registerMiscRoutes(app: Express) {
   // items carry a relative timestamp; curated items don't. Response is shuffled
   // with a light front-bias on real items so they're the first thing scanned
   // without the order being identical every load.
-  app.get("/api/destinations-feed", async (_req, res) => {
+  app.get("/api/destinations-feed", async (req, res) => {
     try {
       const { db } = await import("../db");
       const { recentDestinations } = await import("@shared/schema");
@@ -305,7 +316,7 @@ export function registerMiscRoutes(app: Express) {
           flag: r.flag,
           vibe: null, // no vibe persisted for real items — spec: omit, don't invent
           isRecent: true,
-          relativeTime: relativeTimeIT(new Date(r.createdAt)),
+          relativeTime: relativeTime(new Date(r.createdAt), langOf(req)),
         });
         if (realItems.length >= 20) break;
       }

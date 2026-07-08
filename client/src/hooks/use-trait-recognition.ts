@@ -38,7 +38,7 @@ export interface RecognitionChip {
 export interface TraitRecognition {
   /** Becomes true only after a fetch completes and N>=3 snapshot are available. */
   canShow: boolean;
-  /** Headline AI (one Italian sentence) — null while loading or if model fallback didn't fire. */
+  /** Headline AI (one sentence, UI language) — null while loading or if model fallback didn't fire. */
   headline: string | null;
   /** Up to 3 short chips summarizing the recognized pattern. */
   chips: RecognitionChip[];
@@ -55,6 +55,7 @@ interface BestTrait { axis: Axis; dist: number; pole: string }
 function deriveDominantTraitChip(
   current: TraitVector,
   axes: TraitHistoryResponse["axes"],
+  lang: "en" | "it",
 ): RecognitionChip | null {
   // Picks the single most off-center axis (|v - 0.5| max) and labels with its pole.
   // Neutral axes (within ±0.08) are ignored — they're not a signal.
@@ -63,7 +64,7 @@ function deriveDominantTraitChip(
     const v = current[axis];
     const dist = Math.abs(v - 0.5);
     if (dist < 0.08) return;
-    const labels = axes[axis]?.it;
+    const labels = lang === "it" ? axes[axis]?.it : axes[axis];
     if (!labels) return;
     const pole = v < 0.5 ? labels.left : labels.right;
     if (!best || dist > best.dist) best = { axis, dist, pole };
@@ -87,8 +88,8 @@ export function useTraitRecognition(): TraitRecognition {
     (async () => {
       try {
         const [thRes, aiRes] = await Promise.all([
-          fetch("/api/me/trait-history"),
-          fetch("/api/me/account-insights"),
+          fetch(`/api/me/trait-history?lang=${lang}`),
+          fetch(`/api/me/account-insights?lang=${lang}`),
         ]);
         if (cancelled) return;
         if (!thRes.ok) {
@@ -114,7 +115,7 @@ export function useTraitRecognition(): TraitRecognition {
           else chips.push({ kind: "duration", label: avg });
         }
 
-        const traitChip = deriveDominantTraitChip(th.current, th.axes);
+        const traitChip = deriveDominantTraitChip(th.current, th.axes, lang);
         if (traitChip) chips.push(traitChip);
 
         const canShow = snapshotCount >= 3 && (chips.length > 0 || !!th.headline);

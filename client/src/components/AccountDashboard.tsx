@@ -209,7 +209,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     if (sharing) return;
     setSharing(true);
     try {
-      const res = await fetch(`/api/me/portrait-card.png?bg=${encodeURIComponent(data.heroImg || "")}`);
+      const res = await fetch(`/api/me/portrait-card.png?bg=${encodeURIComponent(data.heroImg || "")}&lang=${lang}`);
       if (!res.ok) throw new Error("card");
       const blob = await res.blob();
       const file = new File([blob], "mindroute-ritratto.png", { type: "image/png" });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { LandingCinematic, DEFAULT_LANDING_DATA, type LandingData, type MarqueeItem } from "@/components/LandingCinematic";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * /come-funziona — the editorial story (how it works, manifesto, destinations,
@@ -11,6 +12,7 @@ import { LandingCinematic, DEFAULT_LANDING_DATA, type LandingData, type MarqueeI
  */
 export default function HowItWorks() {
   const [, navigate] = useLocation();
+  const { lang } = useI18n();
   const [data, setData] = useState<LandingData>(DEFAULT_LANDING_DATA);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function HowItWorks() {
       })
       .catch(() => { /* fallback already in state */ });
 
-    fetch("/api/destinations-feed")
+    fetch(`/api/destinations-feed?lang=${lang}`)
       .then(r => r.ok ? r.json() : null)
       .then((items: MarqueeItem[] | null) => {
         if (cancelled || !Array.isArray(items) || items.length === 0) return;
@@ -33,7 +35,7 @@ export default function HowItWorks() {
       .catch(() => { /* curated default stays */ });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [lang]);
 
   return (
     <LandingCinematic
