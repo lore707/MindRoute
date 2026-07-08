@@ -30,6 +30,10 @@
 
 .qc-stage{position:relative;z-index:5;padding:88px 0 100px;min-height:100vh}
 .qc-container{max-width:1400px;margin:0 auto;padding:0 56px 0 100px;width:100%;position:relative}
+/* Variante senza step-rail (overlay Refine): padding simmetrico. Stessa
+   specificità di .qc-container (una classe) e definita PRIMA delle media
+   query, così i padding mobili sotto vincono comunque. */
+.qc-container-flat{padding-left:56px}
 
 /* Step rail */
 .qc-step-rail{position:fixed;left:32px;top:50%;transform:translateY(-50%);z-index:30;display:flex;flex-direction:column;gap:14px;align-items:center}
@@ -172,7 +176,7 @@
 .qc-pace-track{position:relative;height:6px;background:rgba(255,255,255,.10);border-radius:3px}
 .qc-pace-fill{position:absolute;inset:0 auto 0 0;background:linear-gradient(to right,var(--qc-accent),rgba(233,69,96,.4));border-radius:3px;transition:width .25s ease;box-shadow:0 0 14px rgba(233,69,96,.5)}
 .qc-pace-knob{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:var(--qc-accent);border:3px solid #fbf5f0;box-shadow:0 0 0 4px rgba(233,69,96,.18),0 8px 22px rgba(233,69,96,.55);transform:translate(-50%,-50%);pointer-events:none;transition:left .25s ease}
-.qc-pace-input{position:absolute;inset:-14px 0;width:100%;height:34px;opacity:0;cursor:pointer;margin:0;-webkit-appearance:none;appearance:none}
+.qc-pace-input{position:absolute;inset:-20px 0;width:100%;height:46px;opacity:0;cursor:pointer;margin:0;-webkit-appearance:none;appearance:none;touch-action:pan-y}
 .qc-pace-stops{display:flex;justify-content:space-between;margin-top:22px;gap:10px}
 .qc-pace-stop{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 14px;min-height:44px;border-radius:12px;cursor:pointer;border:1px solid transparent;transition:all .25s}
 .qc-pace-stop span{font-family:var(--qc-serif);font-style:italic;font-size:14px;color:var(--qc-ink-dim);transition:color .25s}
@@ -294,6 +298,8 @@
 /* Mobile landscape / large phone ≤700px */
 @media (max-width:700px){
   .qc-container{padding:0 18px}
+  /* iOS zooma sugli input con font <16px: floor a 16px su mobile. */
+  .qc-precise-input,.qc-note-input{font-size:16px}
   .qc-stage{padding:76px 0 72px}
   .qc-sticky-head{top:56px;padding:10px 0 14px;margin-bottom:14px}
   .qc-sticky-head .qc-header-strip{margin-bottom:8px}

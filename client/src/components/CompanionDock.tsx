@@ -425,7 +425,7 @@ export function CompanionDock() {
                 <span className="text-[10.5px] tracking-[0.04em] text-white/45">{subtitle}</span>
               </span>
             </div>
-            <button onClick={() => setOpen(false)} aria-label={t("companion.close")} className="flex items-center justify-center w-8 h-8 rounded-full text-white/55 hover:text-white transition-colors" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+            <button onClick={() => setOpen(false)} aria-label={t("companion.close")} className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-full text-white/55 hover:text-white transition-colors" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -442,7 +442,7 @@ export function CompanionDock() {
                         onClick={() => runChat(c)}
                         disabled={streaming}
                         data-testid={`companion-chip-${i}`}
-                        className="group text-left text-[13px] text-white/85 rounded-xl px-3.5 py-2.5 transition-colors disabled:opacity-40 hover:text-white"
+                        className="group text-left text-[13px] text-white/85 rounded-xl px-3.5 py-2.5 min-h-[44px] transition-colors disabled:opacity-40 hover:text-white"
                         style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
                       >
                         <span style={{ color: "#E94560", marginRight: 8 }}>→</span>{c}
@@ -483,13 +483,13 @@ export function CompanionDock() {
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
                 placeholder={t("companion.placeholder")}
                 rows={1}
-                className="flex-1 resize-none bg-transparent text-white text-[14px] placeholder:text-white/35 outline-none max-h-28 px-2 py-2"
+                className="flex-1 resize-none bg-transparent text-white text-[16px] sm:text-[14px] placeholder:text-white/35 outline-none max-h-28 px-2 py-2"
               />
               <button
                 onClick={send}
                 disabled={streaming || !input.trim()}
                 aria-label={t("companion.send")}
-                className="w-9 h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:brightness-110 shrink-0"
+                className="w-11 h-11 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all disabled:opacity-30 hover:brightness-110 shrink-0"
                 style={{ background: "#E94560", color: "#fff", boxShadow: "0 6px 18px -6px rgba(233,69,96,0.7)" }}
               >
                 <Send className="w-4 h-4" />

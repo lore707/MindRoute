@@ -124,4 +124,6 @@
   .account-cinematic .ac-pt-paradox-text{font-size:22px}
   .account-cinematic .ac-pt-words.split{grid-template-columns:1fr;gap:18px}
   .account-cinematic .ac-pt-card::after{font-size:120px;left:24px}
+  /* toggle DNA: unico controllo della sezione — a misura di pollice */
+  .account-cinematic .ac-pt-toggle{min-height:44px;padding:11px 18px;font-size:14px}
 }

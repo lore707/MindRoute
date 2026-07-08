@@ -108,4 +108,9 @@
   .mr-agenda .ag-dayhead h2{font-size:25px}
   .mr-agenda .ag-dayhead-grid{grid-template-columns:1fr}
   .mr-agenda .ag-dh-hero{height:160px;order:-1}
+  /* floor tattile: tab giorno, CTA prenota, cuore ed edit a misura di pollice */
+  .mr-agenda .ag-daytab{min-height:56px}
+  .mr-agenda .ag-cmd-edit{min-height:44px}
+  .mr-agenda .ag-btn-book{min-height:44px;padding:10px 16px}
+  .mr-agenda .ag-fav{width:44px;height:44px}
 }

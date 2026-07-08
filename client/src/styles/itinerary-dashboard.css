@@ -292,6 +292,9 @@
 .account-dash .book-item:hover{border-color:rgba(233,69,96,.4)}
 .account-dash .book-item.done{background:linear-gradient(140deg,rgba(111,180,168,.1),rgba(13,7,13,.5));border-color:rgba(111,180,168,.3)}
 .account-dash .book-check{flex:none;width:26px;height:26px;margin-top:2px;border-radius:50%;border:2px solid var(--stroke-2);background:transparent;cursor:pointer;transition:all .18s;position:relative}
+/* Il cerchio è 26px: il ::before estende la zona tattile a ~46px senza
+   toccare il layout (il glifo ✓ vive già nell'::after). */
+.account-dash .book-check::before{content:"";position:absolute;inset:-10px;border-radius:50%}
 .account-dash .book-check:hover{border-color:var(--accent)}
 .account-dash .book-check.on{background:var(--teal);border-color:var(--teal)}
 .account-dash .book-check.on::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:#0d070d;font-size:14px;font-weight:700}
@@ -620,3 +623,35 @@
   color:var(--ink-dim);font-size:12.5px;font-weight:600;padding:10px 16px;cursor:pointer;transition:all .2s}
 .account-dash .it-checkin-no:hover:not(:disabled){color:var(--ink);border-color:var(--stroke-2)}
 .account-dash .it-checkin-no:disabled{opacity:.4;cursor:not-allowed}
+
+/* ════════════════════════════════════════════════════════════
+   FLOOR TATTILE MOBILE (≤767px) — ogni controllo del percorso
+   itinerario regge un pollice: min 44px sui bottoni di flusso,
+   40px sui chip flottanti della mappa (44 li farebbe accalcare),
+   16px sugli input (sotto, iOS zooma la pagina al focus).
+   ════════════════════════════════════════════════════════════ */
+@media (max-width:767px){
+  .account-dash .dd-nav button{min-height:44px;padding:9px 16px}
+  .account-dash .dd-fav{width:44px;height:44px}
+  .account-dash .dd-book,.account-dash .book-cta,.account-dash .mbtn{min-height:46px}
+  .account-dash .mcheck{width:44px;height:44px}
+  .account-dash .book-alt-toggle{min-height:40px;padding:8px 0;display:inline-flex;align-items:center}
+  .account-dash .book-alt a{min-height:40px;padding:8px 13px}
+  .account-dash .prov-link{min-height:44px}
+  .account-dash .book-reward-btn{min-height:42px}
+  /* mappa: toolbar + chip flottanti */
+  .account-dash .rmap-icbtn{width:42px;height:42px}
+  .account-dash .rmap-search .rmap-icbtn{width:38px}
+  .account-dash .rmap-search input{font-size:16px;padding:10px 12px}
+  .account-dash .rmap-chip{min-height:40px;padding:8px 14px;display:inline-flex;align-items:center}
+  .account-dash .rmap-results li button{min-height:44px}
+  .account-dash .rmap-card-x{width:36px;height:36px}
+  .account-dash .rmap-card-btn{min-height:42px}
+  .account-dash .rmap-cat{width:36px;height:36px;font-size:16px}
+  .account-dash .rmap-cat--wide{height:36px}
+  .account-dash .rmap-pop-a,.account-dash .rmap-del{min-height:40px}
+  /* banner date reali / check-in */
+  .account-dash .it-dates-field input{font-size:16px;padding:11px 12px}
+  .account-dash .it-dates-save,.account-dash .it-checkin-no{min-height:44px}
+  .account-dash .it-dates-skip{min-height:44px}
+}

@@ -26,7 +26,7 @@ function AuthButton() {
 
   if (user) {
     return (
-      <a href="/my-account" aria-label={user.name || t("res.layout.account")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+      <a href="/my-account" aria-label={user.name || t("res.layout.account")} className="flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] hover:opacity-80 transition-opacity">
         {user.avatar
           ? <img src={user.avatar} alt="" aria-hidden="true" className="w-7 h-7 rounded-full border border-[#E94560]/30" />
           : <div aria-hidden="true" className="w-7 h-7 rounded-full bg-[#E94560] flex items-center justify-center text-white text-[11px] font-bold">{user.name?.[0]}</div>
@@ -42,10 +42,10 @@ function AuthButton() {
     <a
       href={`/auth/google?returnTo=${encodeURIComponent(currentPath)}`}
       aria-label={t("res.layout.signIn")}
-      className="flex items-center gap-1.5 text-[12px] font-medium transition-colors"
+      className="flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-1.5 text-[12px] font-medium transition-colors"
       style={{ color: "#E94560" }}
     >
-      <User className="w-4 h-4" aria-hidden="true" />
+      <User className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
       <span className="hidden sm:inline">{t("res.layout.signIn")}</span>
     </a>
   );
@@ -129,7 +129,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
           <Link
             href="/come-funziona"
-            className="text-[12px] md:text-[13px] font-medium no-underline transition-colors hover:opacity-80 px-1.5 sm:px-2 min-h-[40px] flex items-center"
+            className="text-[12px] md:text-[13px] font-medium no-underline transition-colors hover:opacity-80 px-2 min-h-[44px] flex items-center"
             style={{ color: "var(--text-primary)", opacity: location === "/come-funziona" ? 1 : 0.72 }}
             data-testid="link-nav-how"
           >
@@ -137,7 +137,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
           <LangDropdown />
           <AuthButton />
-          <Link href="/start" className="text-[13px] font-medium no-underline px-3.5 sm:px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center justify-center gap-1.5 min-h-[40px] min-w-[40px]" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">
+          <Link href="/start" className="text-[13px] font-medium no-underline px-3.5 sm:px-5 py-2 border-[1.5px] rounded-full transition-all flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px]" style={{ color: "#E94560", borderColor: "rgba(233,69,96,0.5)", background: "rgba(233,69,96,0.08)" }} data-testid="link-nav-start">
             <Compass className="w-4 h-4 sm:hidden" />
             <span className="hidden sm:inline">{t('nav.start')}</span>
           </Link>

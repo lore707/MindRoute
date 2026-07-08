@@ -519,4 +519,12 @@
     padding:6px 6px calc(6px + env(safe-area-inset-bottom));
     background:linear-gradient(180deg,rgba(22,12,23,.94),rgba(13,7,13,.985));
     border-top:1px solid var(--stroke);backdrop-filter:blur(20px)}
+
+  /* ── floor tattile: controlli che su desktop vivono di padding compatto ── */
+  .account-dash .tb-cta{min-height:44px}
+  .account-dash .tb-brand,.account-dash .tb-av-m{width:42px;height:42px}
+  .account-dash .coll-tab{min-height:44px}
+  .account-dash .coll-search input{font-size:16px;padding:11px 16px 11px 40px}
+  .account-dash .mood-chip{min-height:48px}
+  .account-dash .dr-close{width:44px;height:44px}
 }

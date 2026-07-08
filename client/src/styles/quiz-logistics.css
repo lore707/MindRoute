@@ -341,6 +341,22 @@
 @media (max-width:700px){
   .ql-container{padding:0 18px}
   .ql-stage{padding:56px 0 72px}
+
+  /* ── Floor tattile 44px: chip, tab, stepper e slider che su desktop
+     vivono di padding compatto qui devono reggere un pollice. ── */
+  .ql-when-tab{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+  .ql-period-chip,.ql-diet-chip{min-height:44px}
+  .ql-depart-chip{min-height:40px;display:inline-flex;align-items:center;padding:8px 16px;font-size:13px}
+  .ql-note-sugg{min-height:40px;display:inline-flex;align-items:center;padding:8px 14px}
+  .ql-stepper{gap:10px}
+  .ql-stepper button{width:44px;height:44px;font-size:20px}
+  .ql-toggle-row{min-height:44px}
+  .ql-toggle-sw{width:44px;height:26px}
+  .ql-toggle-sw::after{width:22px;height:22px}
+  .ql-toggle-row.on .ql-toggle-sw::after{left:19px}
+  .ql-effort-track{height:56px}
+  .ql-effort-track input[type=range]{height:44px;bottom:-6px}
+  .ql-month-cell{min-height:48px;display:grid;place-items:center}
   .ql-sticky-head{top:56px;padding:10px 0 14px;margin-bottom:14px}
   .ql-sticky-head .ql-header-strip{margin-bottom:8px}
   .ql-q-head{margin-bottom:24px}

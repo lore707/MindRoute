@@ -331,7 +331,7 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
               style={{
                 position: "fixed", top: 18, right: 18, zIndex: 20,
                 display: "inline-flex", alignItems: "center", gap: 8,
-                padding: "10px 18px", borderRadius: 999,
+                padding: "10px 18px", minHeight: 44, borderRadius: 999,
                 background: "rgba(233,69,96,0.92)", color: "#fff", fontWeight: 600, fontSize: 13,
                 border: "1px solid rgba(255,255,255,0.25)", boxShadow: "0 8px 24px -8px rgba(0,0,0,0.6)",
               }}
@@ -341,7 +341,7 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
 
             {/* click sull'area scura (fuori dal contenuto) = chiudi */}
             <div className="qc-stage" onClick={(e) => { if (e.target === e.currentTarget && !busy) { setOpen(false); reset(); } }}>
-              <div className="qc-container" style={{ paddingLeft: 56 }}>
+              <div className="qc-container qc-container-flat">
                 {/* header strip con progress ottimistico */}
                 <div className="qc-header-strip">
                   <span className="qc-label">MindRoute</span>

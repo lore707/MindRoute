@@ -289,3 +289,24 @@
 .ivr .tl-foot .cnt{font-family:var(--serif);font-style:italic;font-size:11px;color:var(--ink-faint)}
 .ivr .tl-foot .reset{font-size:11px;color:var(--ink-faint);cursor:pointer;letter-spacing:.04em;border:0;border-bottom:1px dashed var(--stroke-strong);padding-bottom:1px;background:none}
 .ivr .tl-foot .reset:hover{color:var(--ink-dim)}
+
+/* ── Floor tattile mobile (≤767px): checklist, editor e CTA a misura di
+   pollice; input a 16px così iOS non zooma la pagina al focus. ── */
+.ivr .bc-check{position:relative}
+.ivr .bc-check::before{content:"";position:absolute;inset:-12px}
+@media (max-width:767px){
+  .ivr .btn-book,.ivr .bc-go{min-height:44px}
+  .ivr .dd-nav button{min-height:44px;padding:9px 16px}
+  .ivr .dd-fav{width:44px;height:44px}
+  .ivr .cmd-edit{min-height:44px}
+  .ivr .prov-link{min-height:44px}
+  .ivr .edit-ribbon button{min-height:40px;padding:8px 16px}
+  .ivr .slot-tools button{min-height:40px;padding:8px 13px}
+  .ivr .slot-add{min-height:46px}
+  .ivr .tl-foot .reset{min-height:40px;display:inline-flex;align-items:center}
+  .ivr .dd-slot .drag{width:28px;font-size:17px;touch-action:none}
+  .ivr .dd-timeline.editing .dd-slot{padding-left:40px}
+  .ivr .dd-timeline.editing .dd-slot .dot{left:30px}
+  .ivr .slot-edit select,.ivr .slot-edit input,.ivr .slot-edit textarea{font-size:16px}
+  .ivr .slot-edit .se-desc{font-size:14px}
+}
