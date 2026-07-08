@@ -1008,12 +1008,23 @@ export default function Itinerary() {
     } catch { return undefined; }
   };
 
+ // Gate del PDF completo: volo + alloggio confermati (tripMeta.booked, scritto
+ // dal server solo dopo il click registrato sul link di prenotazione). Senza
+ // gate superato si scarica l'ANTEPRIMA (cover + intro + Giorno 1, watermark).
+ const bookedMeta = (((itinerary as any)?.tripMeta ?? {}).booked ?? {}) as Record<string, unknown>;
+ const pdfUnlocked = !!(bookedMeta.flight && bookedMeta.hotel);
+
  const handleSavePdf = async () => {
     if (!itinerary) return;
     const dest = itinerary.destinationName ?? "Destination";
+    const preview = !pdfUnlocked;
     toast({
-      title: lang === "it" ? "Preparo il tuo PDF…" : "Preparing your PDF…",
-      description: lang === "it" ? "Qualche secondo: incorporo foto e font." : "A few seconds: embedding photos and fonts.",
+      title: lang === "it"
+        ? (preview ? "Preparo l'anteprima del PDF…" : "Preparo il tuo PDF…")
+        : (preview ? "Preparing your PDF preview…" : "Preparing your PDF…"),
+      description: preview
+        ? (lang === "it" ? "Il completo si sblocca confermando volo e alloggio nella sezione Prenota." : "The full document unlocks once you confirm flight and stay in the Book tab.")
+        : (lang === "it" ? "Qualche secondo: incorporo foto e font." : "A few seconds: embedding photos and fonts."),
     });
     try {
       // PDF vero (@react-pdf/renderer), scaricato come file — niente finestra
@@ -1024,22 +1035,25 @@ export default function Itinerary() {
       const affiliateUrls = buildAffiliateUrls(dest, profilingInput, region, topLinks);
       const data = mapItineraryToCinematic(itinerary, t, lang, affiliateUrls);
 
-      const [{ pdf }, { ItineraryPdfDoc }] = await Promise.all([
+      const [{ pdf }, { ItineraryPdfDoc, registerPdfFonts }] = await Promise.all([
         import("@react-pdf/renderer"),
         import("@/components/ItineraryPdf"),
       ]);
-      // Foto in parallelo (hero + una per giorno), best-effort.
+      registerPdfFonts(); // TTF self-hosted (/public/fonts), niente CDN
+
+      // Foto in parallelo (hero + una per giorno reso), best-effort.
+      const daysToRender = preview ? data.days.slice(0, 1) : data.days;
       const [hero, ...dayImgs] = await Promise.all([
         fetchAsDataUri(data.heroImg, 1400),
-        ...data.days.map(d => fetchAsDataUri(d.img, 1200)),
+        ...daysToRender.map(d => fetchAsDataUri(d.img, 1200)),
       ]);
       const images = {
         hero,
-        days: Object.fromEntries(data.days.map((d, i) => [d.n, dayImgs[i]])),
+        days: Object.fromEntries(daysToRender.map((d, i) => [d.n, dayImgs[i]])),
       };
 
       const blob = await pdf(
-        <ItineraryPdfDoc data={data} itinerary={itinerary} affiliateUrls={affiliateUrls} profilingInput={profilingInput} lang={lang as "it" | "en"} images={images} />
+        <ItineraryPdfDoc data={data} itinerary={itinerary} affiliateUrls={affiliateUrls} profilingInput={profilingInput} lang={lang as "it" | "en"} images={images} preview={preview} />
       ).toBlob();
 
       const slug = dest.split(",")[0].trim()
@@ -1047,7 +1061,7 @@ export default function Itinerary() {
         .replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "viaggio";
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `MindRoute-${slug}.pdf`;
+      a.download = `MindRoute-${slug}${preview ? (lang === "it" ? "-anteprima" : "-preview") : ""}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1198,6 +1212,7 @@ export default function Itinerary() {
             savedMomentIds={savedMomentIds}
             onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
             onDatesConfirmed={refetch}
+            onBookingUpdated={refetch}
           />
         </div>
         {/* L2 — raffinamento progressivo con rigenerazione (solo itinerari v2). */}

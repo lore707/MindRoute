@@ -362,6 +362,56 @@ export function registerItineraryDetailRoutes(app: Express) {
     }
   });
 
+  // ── Prenotazioni: click affiliate + conferma "ho prenotato" ─────────────
+  // Il PDF completo si sblocca con volo+alloggio CONFERMATI, ma una conferma
+  // è accettata solo se il server ha registrato il click sul link di
+  // prenotazione di quella voce: non puoi flaggare ciò che non hai mai aperto.
+  // (Certezza di prenotazione vera non esiste nel modello affiliate — il click
+  // è il segnale onesto E quello che monetizza; vedi docs/DECISIONS.md.)
+  const bookingKeySchema = z.enum(["flight", "hotel", "transfer", "experience", "food"]);
+
+  app.post("/api/itinerary/:id/affiliate-click", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const key = bookingKeySchema.parse(req.body?.key);
+      const prevMeta = ((itin as any).tripMeta ?? {}) as Record<string, any>;
+      const clicks = { ...(prevMeta.affiliate_clicks ?? {}), [key]: new Date().toISOString() };
+      await storage.updateItineraryTripMeta(id, { ...prevMeta, affiliate_clicks: clicks });
+      res.json({ ok: true, affiliate_clicks: clicks });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: "Voce non valida" });
+      res.status(500).json({ message: "Errore nel salvataggio" });
+    }
+  });
+
+  app.post("/api/itinerary/:id/booked", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const key = bookingKeySchema.parse(req.body?.key);
+      const value = z.boolean().parse(req.body?.value);
+      const prevMeta = ((itin as any).tripMeta ?? {}) as Record<string, any>;
+      if (value && !(prevMeta.affiliate_clicks ?? {})[key]) {
+        // Il gate vero è QUI, non nella UI: senza click registrato la conferma
+        // viene rifiutata anche da chi chiama l'API a mano.
+        return res.status(409).json({ message: "Apri prima il link di prenotazione di questa voce", code: "click_required" });
+      }
+      const booked = { ...(prevMeta.booked ?? {}) };
+      if (value) booked[key] = new Date().toISOString();
+      else delete booked[key];
+      await storage.updateItineraryTripMeta(id, { ...prevMeta, booked });
+      res.json({ ok: true, booked });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: "Richiesta non valida" });
+      res.status(500).json({ message: "Errore nel salvataggio" });
+    }
+  });
+
   // ── Condivisione pubblica ────────────────────────────────────────────────
   // Genera (o riusa) il token opaco e restituisce l'URL pubblico assoluto.
   app.post("/api/itinerary/:id/share", requireAuth, async (req, res) => {

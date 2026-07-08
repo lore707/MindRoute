@@ -49,12 +49,12 @@ type Props = {
   savedMomentIds?: Set<string>;
   onToggleSaved?: (momentId: string, moment: Moment) => void;
   onDatesConfirmed?: () => void;
+  onBookingUpdated?: () => void;
 };
 
 const SEG_COLORS = ["#E94560", "#D4A853", "#6FB4A8", "#9D7EBC", "#5E8CB6", "#C77B5A"];
 
 /* ── checklist prenotazioni (persistita in localStorage) ── */
-type ChecklistItem = { id: string; checked: boolean };
 // Voce di prenotazione concreta: la scelta già fatta (nome reale, perché, prezzo
 // stimato, distanza) + una CTA primaria + alternative. Essenziale vs consigliata.
 type BookItem = {
@@ -70,30 +70,49 @@ const MISSION_DEFS = [
   { id: "transfer", ic: "🚌", nameKey: "itd.mis.transfer", metaKey: "itd.mis.transferMeta", urlKeys: ["flixbus", "samboat", "expedia_cars"], day: null },
 ] as const;
 
-function useMissions(itineraryId: number | undefined) {
-  const key = `mindroute_checklist_${itineraryId ?? 0}`;
+/* Prenotazioni server-backed (tripMeta.booked / tripMeta.affiliate_clicks).
+ * Il flag "confermato" è accettato dal server SOLO se il click sul link di
+ * prenotazione di quella voce è stato registrato — niente spunte a caso, e
+ * lo stato sopravvive a device diversi (prima viveva in localStorage). */
+function useBookings(itineraryId: number | undefined, itinerary: any, onUpdated?: () => void) {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [clicked, setClicked] = useState<Record<string, boolean>>({});
   useEffect(() => {
+    const meta = (itinerary?.tripMeta ?? {}) as Record<string, any>;
+    const b = (meta.booked ?? {}) as Record<string, unknown>;
+    const c = (meta.affiliate_clicks ?? {}) as Record<string, unknown>;
+    setChecked(Object.fromEntries(Object.keys(b).map(k => [k, true])));
+    setClicked(Object.fromEntries(Object.keys(c).map(k => [k, true])));
+  }, [itineraryId, itinerary?.tripMeta]);
+
+  // Fire-and-forget con keepalive: il click apre il provider in un altro tab,
+  // la richiesta deve sopravvivere comunque.
+  const logClick = (id: string | null) => {
+    if (!itineraryId || !id) return;
+    setClicked(prev => (prev[id] ? prev : { ...prev, [id]: true }));
+    fetch(`/api/itinerary/${itineraryId}/affiliate-click`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: id }), keepalive: true,
+    }).catch(() => { /* best-effort */ });
+  };
+
+  const toggle = async (id: string) => {
     if (!itineraryId) return;
+    const next = !checked[id];
+    setChecked(prev => ({ ...prev, [id]: next })); // ottimistico
     try {
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // migrate from old array shape [{id,checked}] → record
-        if (Array.isArray(parsed)) {
-          const rec: Record<string, boolean> = {};
-          parsed.forEach((i: ChecklistItem) => { rec[i.id] = !!i.checked; });
-          setChecked(rec);
-        } else setChecked(parsed ?? {});
-      }
-    } catch { /* ignore */ }
-  }, [itineraryId]);
-  const toggle = (id: string) => setChecked(prev => {
-    const next = { ...prev, [id]: !prev[id] };
-    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* ignore */ }
-    return next;
-  });
-  return { checked, toggle };
+      const r = await fetch(`/api/itinerary/${itineraryId}/booked`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: id, value: next }),
+      });
+      if (!r.ok) throw new Error("booked failed");
+      onUpdated?.();
+    } catch {
+      setChecked(prev => ({ ...prev, [id]: !next })); // revert
+    }
+  };
+
+  return { checked, clicked, logClick, toggle };
 }
 
 /* ── safe JSON helpers ── */
@@ -299,7 +318,7 @@ function TripCheckinBanner({ itineraryId, itinerary, lang, onAnswered }: {
 
 export function ItineraryDashboard({
   data, itinerary, affiliateUrls, profilingInput,
-  onSavePdf, onStartOver, onEdit, onShare, itineraryId, savedMomentIds, onToggleSaved, onDatesConfirmed,
+  onSavePdf, onStartOver, onEdit, onShare, itineraryId, savedMomentIds, onToggleSaved, onDatesConfirmed, onBookingUpdated,
 }: Props) {
   const { t, lang } = useI18n();
   const [, setLocation] = useLocation();
@@ -317,11 +336,13 @@ export function ItineraryDashboard({
   const [altOpen, setAltOpen] = useState<Set<string>>(new Set());
   const toggleAlt = (id: string) => setAltOpen(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const { checked, toggle } = useMissions(itineraryId);
+  const { checked, clicked, logClick, toggle } = useBookings(itineraryId, itinerary, onBookingUpdated);
+  // Il PDF completo si sblocca con gli essenziali veri: volo + alloggio confermati.
+  const pdfUnlocked = !!(checked.flight && checked.hotel);
 
-  // Collegamento "prenoto → il progresso si aggiorna": un CTA di prenotazione (dai
-  // Giorni o dalla card sulla Mappa) marca confermata la voce corrispondente nella
-  // sezione Prenota — stesse viste, stesso viaggio.
+  // Un CTA di prenotazione (dai Giorni o dalla card sulla Mappa) registra il
+  // CLICK sulla voce corrispondente della sezione Prenota: è il click che
+  // sblocca la conferma manuale (e il server lo pretende).
   const bookIdForMoment = (type?: string, day?: number | null): string | null => {
     if (type === "transport") return (day && day > 1) ? "transfer" : "flight";
     if (type === "accommodation") return "hotel";
@@ -329,10 +350,7 @@ export function ItineraryDashboard({
     if (type === "food") return "food";
     return null;
   };
-  const markBooked = (type?: string, day?: number | null) => {
-    const id = bookIdForMoment(type, day);
-    if (id && !checked[id]) toggle(id);
-  };
+  const markClicked = (type?: string, day?: number | null) => logClick(bookIdForMoment(type, day));
 
   const isMobile = useMemo(() => typeof window !== "undefined" && window.innerWidth < 768, []);
   const heroW = isMobile ? 1100 : 1900;
@@ -629,8 +647,8 @@ export function ItineraryDashboard({
             <div className="kit">
               <button className="kit-btn" onClick={onSavePdf}>
                 <span className="ic"><Printer size={18} /></span>
-                <span className="t">{t("itd.kit.pdf")}</span>
-                <span className="s">{t("itd.kit.pdfSub")}</span>
+                <span className="t">{pdfUnlocked ? t("itd.kit.pdf") : (lang === "it" ? "Anteprima PDF" : "PDF preview")}</span>
+                <span className="s">{pdfUnlocked ? t("itd.kit.pdfSub") : (lang === "it" ? "il completo si sblocca con volo+alloggio" : "full version unlocks with flight+stay")}</span>
               </button>
               {onShare && (
                 <button className="kit-btn" onClick={onShare}>
@@ -789,7 +807,7 @@ export function ItineraryDashboard({
                         {m.cta && m.ctaUrl && (
                           <div className="ag-acts">
                             <a className="ag-btn-book" href={m.ctaUrl} target="_blank" rel="noopener noreferrer"
-                              onClick={() => { trackAffiliate(m.ctaProvider ?? "unknown", data.destination); markBooked(m.type, sel.n); }}>
+                              onClick={() => { trackAffiliate(m.ctaProvider ?? "unknown", data.destination); markClicked(m.type, sel.n); }}>
                               {m.cta}{m.ctaPrice && <span className="ag-price">· {m.ctaPrice}</span>}
                               <ExternalLink size={12} className="ag-ext" />
                             </a>
@@ -848,7 +866,7 @@ export function ItineraryDashboard({
                   initialDay={activeDay}
                   onDayChange={(d) => { if (d != null) setActiveDay(d); }}
                   onOpenDay={(day, momentId) => { setActiveDay(day); setOpenDay(day); setActiveMoment(0); if (momentId) setPendingMoment(momentId); go("days"); }}
-                  onBook={(type, day) => markBooked(type, day)}
+                  onBook={(type, day) => markClicked(type, day)}
                 />
               </Suspense>
             </div>
@@ -1162,14 +1180,30 @@ export function ItineraryDashboard({
 
     const renderItem = (it: Item) => {
       const isDone = !!checked[it.id];
+      // La conferma manuale si sblocca solo dopo il click sul link (il server
+      // rifiuta comunque le spunte senza click: la UI qui è solo onesta).
+      const canConfirm = isDone || !!clicked[it.id];
       return (
         <div key={it.id} className={"book-item" + (isDone ? " done" : "")}>
-          <button className={"book-check" + (isDone ? " on" : "")} onClick={() => toggle(it.id)} aria-label={it.title} />
+          <button
+            className={"book-check" + (isDone ? " on" : "") + (!canConfirm ? " locked" : "")}
+            onClick={() => { if (canConfirm) toggle(it.id); }}
+            disabled={!canConfirm}
+            title={!canConfirm ? L("Apri prima il link di prenotazione", "Open the booking link first") : undefined}
+            aria-label={it.title}
+          />
           <div className="book-main">
             <div className="book-gen"><span className="ic">{it.ic}</span>{it.generic}{it.day != null && <span className="book-day">{L(`Giorno ${it.day}`, `Day ${it.day}`)}</span>}</div>
             <div className="book-title">{it.title}</div>
             {it.facts.length > 0 && <div className="book-facts">{it.facts.map((f, i) => <span key={i}>{f}</span>)}</div>}
             {it.why && <div className="book-why">{it.why}</div>}
+            {!isDone && (
+              <div className="book-gate-hint">
+                {clicked[it.id]
+                  ? L("L'hai prenotato? Spunta la casella per confermare.", "Booked it? Tick the box to confirm.")
+                  : L("Apri il link qui accanto: la conferma si sblocca dopo.", "Open the link on the right — confirming unlocks after that.")}
+              </div>
+            )}
             {it.alt.length > 0 && (
               <div className="book-alt-wrap">
                 <button className="book-alt-toggle" onClick={() => toggleAlt(it.id)}>
@@ -1178,7 +1212,7 @@ export function ItineraryDashboard({
                 {altOpen.has(it.id) && (
                   <div className="book-alt">
                     {it.alt.map((a, i) => (
-                      <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" onClick={() => trackAffiliate(affiliateProvider(a.label), dest)}>
+                      <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" onClick={() => { trackAffiliate(affiliateProvider(a.label), dest); logClick(it.id); }}>
                         {a.label} <ExternalLink size={11} />
                       </a>
                     ))}
@@ -1190,11 +1224,11 @@ export function ItineraryDashboard({
           <div className="book-side">
             {it.url ? (
               <a className="book-cta" href={it.url} target="_blank" rel="noopener noreferrer"
-                onClick={() => { trackAffiliate(it.provider ?? "unknown", dest); if (!isDone) toggle(it.id); }}>
-                {isDone ? L("Confermato", "Confirmed") : it.cta} <ExternalLink size={13} />
+                onClick={() => { trackAffiliate(it.provider ?? "unknown", dest); logClick(it.id); }}>
+                {isDone ? L("Riapri", "Reopen") : it.cta} <ExternalLink size={13} />
               </a>
             ) : (
-              <button className="book-cta book-cta--soft" onClick={() => toggle(it.id)}>{isDone ? L("Confermato", "Confirmed") : L("Segna fatto", "Mark done")}</button>
+              <button className="book-cta book-cta--soft" onClick={() => logClick(it.id)}>{L("Fatto altrove", "Done elsewhere")}</button>
             )}
           </div>
         </div>
@@ -1236,7 +1270,9 @@ export function ItineraryDashboard({
               </div>
             ) : (
               <div className="book-prize">
-                {L("Al 100% sblocchi:", "At 100% you get:")} <b>{L("PDF definitivo", "final PDF")}</b> · <b>{L("checklist bagagli", "packing checklist")}</b> · <b>{L("viaggio pronto da partire", "a trip ready to go")}</b>
+                {pdfUnlocked
+                  ? <>{L("PDF definitivo sbloccato", "Final PDF unlocked")} — <b>{L("scaricalo dalla Panoramica", "download it from the Overview")}</b>. {L("Al 100%:", "At 100%:")} <b>{L("viaggio pronto da partire", "a trip ready to go")}</b></>
+                  : <>{L("Con", "With")} <b>{L("volo + alloggio confermati", "flight + stay confirmed")}</b> {L("sblocchi il", "you unlock the")} <b>{L("PDF definitivo", "final PDF")}</b> · {L("al 100% il viaggio è pronto da partire", "at 100% the trip is ready to go")}</>}
               </div>
             )}
           </div>
