@@ -23,6 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 import { setLastOpenedItinerary } from "@/lib/last-opened";
 import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
@@ -803,6 +804,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export default function Itinerary() {
   const { t, lang, setLang } = useI18n();
+  const { toast } = useToast();
   const [, params] = useRoute("/itinerary/:id");
   const [, setLocation] = useLocation();
   const id = params ? parseInt(params.id) : 0;
@@ -987,50 +989,110 @@ export default function Itinerary() {
   // but TS doesn't always carry the narrow through; this makes it explicit.
   if (!itinerary) return null;
 
+ // Scarica una foto e la converte in data-URI: react-pdf incorpora le immagini
+ // nel file, e una foto irraggiungibile diventa "nessuna foto" invece di far
+ // fallire l'intero documento.
+ const fetchAsDataUri = async (url: string | null | undefined, w = 1200): Promise<string | undefined> => {
+    if (!url) return undefined;
+    try {
+      const sized = url.includes("images.unsplash.com") ? url.replace(/([?&])w=\d+/, `$1w=${w}`) : url;
+      const r = await fetch(sized);
+      if (!r.ok) return undefined;
+      const blob = await r.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result));
+        fr.onerror = () => reject(fr.error);
+        fr.readAsDataURL(blob);
+      });
+    } catch { return undefined; }
+  };
+
  const handleSavePdf = async () => {
     if (!itinerary) return;
     const dest = itinerary.destinationName ?? "Destination";
-    // IMPORTANTE: apri la finestra SUBITO, nello stesso tick del click. Se la
-    // aprissimo dopo gli await (import dinamici) il browser la tratterebbe come
-    // non-user-gesture e bloccherebbe il popup. Mostriamo un placeholder e poi
-    // ci scriviamo dentro il documento finale.
-    const w = window.open("", "_blank");
-    if (!w) { window.alert(lang === "it" ? "Abilita i popup per questo sito per salvare il PDF" : "Allow pop-ups for this site to save the PDF"); return; }
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>MindRoute</title></head><body style="font-family:system-ui;background:#140a14;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><p>${lang === "it" ? "Preparo il tuo PDF…" : "Preparing your PDF…"}</p></body></html>`);
+    toast({
+      title: lang === "it" ? "Preparo il tuo PDF…" : "Preparing your PDF…",
+      description: lang === "it" ? "Qualche secondo: incorporo foto e font." : "A few seconds: embedding photos and fonts.",
+    });
     try {
-      // Keepsake stampabile (HTML/CSS stile rivista): renderToStaticMarkup +
-      // template caricati on-demand, poi iniettati nella finestra già aperta.
-      const [{ renderToStaticMarkup }, { ItineraryPrint }, cssMod] = await Promise.all([
-        import("react-dom/server"),
-        import("@/components/ItineraryPrint"),
-        import("@/styles/itinerary-pdf.css?inline"),
-      ]);
-      const pdfCss = (cssMod as any).default as string;
+      // PDF vero (@react-pdf/renderer), scaricato come file — niente finestra
+      // di stampa. Tutto caricato on-demand per non pesare sul bundle.
       const region = detectRegion(dest);
       const topLinks = itinerary.topAffiliateLinks ?? {};
       const profilingInput = (itinerary as any).profilingInput ?? null;
       const affiliateUrls = buildAffiliateUrls(dest, profilingInput, region, topLinks);
       const data = mapItineraryToCinematic(itinerary, t, lang, affiliateUrls);
-      const html = renderToStaticMarkup(
-        <ItineraryPrint data={data} itinerary={itinerary} affiliateUrls={affiliateUrls} profilingInput={profilingInput} lang={lang as "it" | "en"} />
-      );
-      // Lo script in coda al body attende load + un attimo per font/immagini,
-      // poi apre il dialog di stampa (più affidabile di w.onload dall'esterno).
-      const printScript = `<script>window.addEventListener("load",function(){setTimeout(function(){window.focus();window.print();},600);});<\/script>`;
-      w.document.open();
-      w.document.write(
-        `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">` +
-        `<title>MindRoute · ${dest}</title>` +
-        `<link rel="preconnect" href="https://fonts.googleapis.com">` +
-        `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>` +
-        `<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">` +
-        `<style>${pdfCss}</style></head><body>${html}${printScript}</body></html>`
-      );
-      w.document.close();
+
+      const [{ pdf }, { ItineraryPdfDoc }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/components/ItineraryPdf"),
+      ]);
+      // Foto in parallelo (hero + una per giorno), best-effort.
+      const [hero, ...dayImgs] = await Promise.all([
+        fetchAsDataUri(data.heroImg, 1400),
+        ...data.days.map(d => fetchAsDataUri(d.img, 1200)),
+      ]);
+      const images = {
+        hero,
+        days: Object.fromEntries(data.days.map((d, i) => [d.n, dayImgs[i]])),
+      };
+
+      const blob = await pdf(
+        <ItineraryPdfDoc data={data} itinerary={itinerary} affiliateUrls={affiliateUrls} profilingInput={profilingInput} lang={lang as "it" | "en"} images={images} />
+      ).toBlob();
+
+      const slug = dest.split(",")[0].trim()
+        .normalize("NFD").replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "viaggio";
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `MindRoute-${slug}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
     } catch (err) {
       console.error("PDF generation failed:", err);
-      try { w.close(); } catch { /* ignore */ }
-      window.alert(lang === "it" ? "Errore nella generazione del PDF" : "PDF generation failed");
+      toast({
+        title: lang === "it" ? "Errore nella generazione del PDF" : "PDF generation failed",
+        description: lang === "it" ? "Riprova tra un attimo." : "Try again in a moment.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Condivisione: chiede (o riusa) il token pubblico al server, poi share
+  // sheet nativo dove c'è, altrimenti copia il link /i/:token negli appunti.
+  const handleShare = async () => {
+    if (!itinerary) return;
+    try {
+      const r = await fetch(`/api/itinerary/${itinerary.id}/share`, { method: "POST" });
+      if (!r.ok) throw new Error("share failed");
+      const { url } = (await r.json()) as { url: string };
+      const title = `MindRoute · ${itinerary.destinationName ?? ""}`.trim();
+      if ((navigator as any).share) {
+        try {
+          await (navigator as any).share({ title, url });
+          return;
+        } catch (e: any) {
+          if (e?.name === "AbortError") return; // l'utente ha chiuso lo sheet
+          // share sheet non disponibile/fallito → si ricade sulla clipboard
+        }
+      }
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: lang === "it" ? "Link copiato" : "Link copied",
+        description: lang === "it"
+          ? "Il link pubblico del viaggio è negli appunti."
+          : "The public link to your trip is in your clipboard.",
+      });
+    } catch {
+      toast({
+        title: lang === "it" ? "Condivisione non riuscita" : "Sharing failed",
+        description: lang === "it" ? "Riprova tra un attimo." : "Try again in a moment.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1131,6 +1193,7 @@ export default function Itinerary() {
             onSavePdf={handleSavePdf}
             onStartOver={() => setLocation("/")}
             onEdit={() => setShowEditor(true)}
+            onShare={handleShare}
             itineraryId={itinerary.id}
             savedMomentIds={savedMomentIds}
             onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
@@ -1164,7 +1227,7 @@ export default function Itinerary() {
         </div>
         <div className="absolute top-6 right-4 md:right-10 z-20 flex gap-2">
           <button onClick={handleSavePdf} className="p-2.5 text-white/60 hover:text-white transition-colors bg-black/30 backdrop-blur-sm rounded-full border border-white/10"><Printer className="w-4 h-4" /></button>
-          <button className="p-2.5 text-white/60 hover:text-white transition-colors bg-black/30 backdrop-blur-sm rounded-full border border-white/10"><Share2 className="w-4 h-4" /></button>
+          <button onClick={handleShare} aria-label={lang === "it" ? "Condividi" : "Share"} className="p-2.5 text-white/60 hover:text-white transition-colors bg-black/30 backdrop-blur-sm rounded-full border border-white/10"><Share2 className="w-4 h-4" /></button>
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
