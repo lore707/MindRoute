@@ -452,14 +452,35 @@
 .account-dash .route-meta .route-stay{margin-top:12px;padding:10px 14px;border-radius:12px;border-left:2px solid var(--gold);background:linear-gradient(90deg,rgba(212,168,83,.1),transparent 90%);font-size:13px;line-height:1.5;color:var(--ink);max-width:52ch}
 
 .account-dash .rmap-wrap{position:relative}
+/* stage = solo mappa + overlay essenziali (toolbar, risultati, card):
+   tutto ciò che è absolute si ancora QUI, non al wrap (che ora contiene
+   anche barra giorni, filtri e striscia-tappe in flusso). */
+.account-dash .rmap-stage{position:relative}
 .account-dash .rmap{width:100%;height:clamp(360px,52vh,560px);background:#11161f}
 /* basemap CARTO dark schiarito+contrastato: strade ed etichette leggibili, mood notturno preservato */
 .account-dash .rmap .leaflet-tile{filter:brightness(1.5) contrast(1.08) saturate(1.22)}
 .account-dash .rmap-loading{display:grid;place-items:center;height:clamp(360px,52vh,560px);color:var(--ink-dim);font-family:var(--serif);font-style:italic;font-size:14px}
 
-/* fullscreen: la mappa esce dal flusso e copre il viewport */
-.account-dash .rmap-wrap--full{position:fixed;inset:0;z-index:4000;background:#0b0e14}
-.account-dash .rmap-wrap--full .rmap{height:100vh;border-radius:0}
+/* fullscreen: colonna a tutto viewport — barra giorni / filtri / mappa
+   (flex:1) / striscia-tappe. Safe-area per notch e home indicator. */
+.account-dash .rmap-wrap--full{position:fixed;inset:0;z-index:4000;background:#0b0e14;display:flex;flex-direction:column;overflow:hidden}
+.account-dash .rmap-wrap--full .rmap-days{padding-top:calc(12px + env(safe-area-inset-top))}
+.account-dash .rmap-wrap--full .rmap-stage{flex:1;min-height:0;display:flex;flex-direction:column}
+.account-dash .rmap-wrap--full .rmap{flex:1;height:auto;min-height:0;border-radius:0}
+.account-dash .rmap-wrap--full .rmap-strip{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+
+/* ── barra giorni: in flusso sopra la mappa, scroll orizzontale ── */
+.account-dash .rmap-days{display:flex;gap:8px;align-items:center;padding:2px 22px 12px;overflow-x:auto;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.account-dash .rmap-days::-webkit-scrollbar{display:none}
+.account-dash .rmap-day{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 16px;
+  border-radius:999px;border:1px solid var(--stroke-2);background:rgba(255,255,255,.03);
+  color:var(--ink-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;line-height:1}
+.account-dash .rmap-day .w{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);transition:color .2s}
+.account-dash .rmap-day .n{font-family:var(--serif);font-size:18px;color:var(--ink);transition:color .2s}
+.account-dash .rmap-day:hover{border-color:var(--accent);color:var(--ink)}
+.account-dash .rmap-day.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.account-dash .rmap-day.on .w,.account-dash .rmap-day.on .n{color:#fff}
 
 /* toolbar: ricerca + posizione + fullscreen.
    left:64px, non 14: a top-left c'è lo zoom di Leaflet (+/−) e la search
@@ -481,13 +502,16 @@
 .account-dash .rmap-results .rr-t{display:block;color:var(--ink);font-size:13px;font-weight:600}
 .account-dash .rmap-results .rr-a{display:block;color:var(--ink-faint);font-size:11px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* filtro giorni + categorie */
-.account-dash .rmap-filter{position:absolute;top:14px;right:14px;z-index:600;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:60%}
-.account-dash .rmap-chip{padding:6px 12px;border-radius:999px;border:1px solid var(--stroke-2);background:rgba(13,7,13,.72);backdrop-filter:blur(10px);
+/* ── filtri: riga richiudibile in flusso (motore + categorie) ── */
+.account-dash .rmap-filterrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 22px 12px}
+.account-dash .rmap-chip{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 13px;border-radius:999px;
+  border:1px solid var(--stroke-2);background:rgba(255,255,255,.03);
   color:var(--ink-dim);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;line-height:1}
 .account-dash .rmap-chip:hover{color:var(--ink);border-color:var(--accent)}
 .account-dash .rmap-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .account-dash .rmap-chip--cat.on{color:#fff}
+/* il toggle "Filtri" aperto non è un filtro attivo: stato soft, non accent pieno */
+.account-dash .rmap-chip--toggle.on{background:rgba(233,69,96,.12);border-color:var(--accent);color:var(--ink)}
 
 /* legenda */
 .account-dash .rmap-legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:13px 22px 16px;
@@ -549,6 +573,30 @@
   .account-dash .rmap-card-img{height:104px}
 }
 
+/* ── striscia-tappe del giorno: ponte narrativo mappa↔giorni ── */
+.account-dash .rmap-strip{display:flex;gap:10px;padding:14px 22px 18px;overflow-x:auto;
+  scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-top:1px solid var(--stroke)}
+.account-dash .rmap-strip::-webkit-scrollbar{display:none}
+.account-dash .rmap-stop{scroll-snap-align:center;flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  min-height:56px;max-width:250px;padding:8px 14px 8px 9px;border-radius:14px;text-align:left;
+  border:1px solid var(--stroke-2);background:rgba(255,255,255,.03);color:var(--ink-dim);cursor:pointer;transition:all .2s}
+.account-dash .rmap-stop:hover{border-color:var(--accent)}
+.account-dash .rmap-stop.on{border-color:var(--accent);background:rgba(233,69,96,.1)}
+.account-dash .rmap-stop-n{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  background:var(--accent);color:#fff;font-size:13px;font-weight:700}
+.account-dash .rmap-stop-n.h{background:var(--gold);color:#1a1208;font-size:15px}
+.account-dash .rmap-stop-img{flex:0 0 auto;width:38px;height:38px;border-radius:10px;background-size:cover;background-position:center}
+.account-dash .rmap-stop-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.account-dash .rmap-stop-t .l{font-size:12.5px;font-weight:600;color:var(--ink);max-width:150px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-dash .rmap-stop-t .m{font-size:11px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── etichetta-tratta sul percorso: "🚶 12 min" ── */
+.account-dash .rmap-leg-wrap{background:none;border:none}
+.account-dash .rmap-leg{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;
+  font-size:10.5px;font-weight:700;color:#fff;background:rgba(13,7,13,.85);
+  border:1px solid rgba(233,69,96,.55);padding:3px 8px;border-radius:999px;box-shadow:0 4px 12px -4px rgba(0,0,0,.75)}
+
 /* marker "vicino a me": pallino blu pulsante */
 .account-dash .rmap-me{width:16px;height:16px;border-radius:50%;background:#4c9be8;border:2px solid #fff;box-shadow:0 0 0 4px rgba(76,155,232,.35)}
 
@@ -579,7 +627,23 @@
 @media (max-width:768px){
   .account-dash .route-meta{padding:18px 18px 12px}
   .account-dash .route-meta .rt{font-size:21px}
-  .account-dash .rmap-filter{max-width:64%}
+}
+@media (max-width:640px){
+  .account-dash .rmap-days{padding:2px 14px 10px}
+  .account-dash .rmap-filterrow{padding:0 14px 10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .account-dash .rmap-filterrow::-webkit-scrollbar{display:none}
+  .account-dash .rmap-filterrow .rmap-chip{flex:0 0 auto}
+  .account-dash .rmap-strip{padding:12px 14px 16px}
+  .account-dash .rmap{height:clamp(320px,48vh,520px)}
+  /* 16px = niente auto-zoom di iOS al focus */
+  .account-dash .rmap-search input{font-size:16px;width:clamp(110px,38vw,220px)}
+  .account-dash .rmap-results{left:10px;right:10px;width:auto}
+}
+@media (pointer:coarse){
+  .account-dash .rmap-chip{min-height:44px;padding:0 15px}
+  /* hit-area estesa sui controlli flottanti piccoli (⌕ ◎ ⤢) senza ingrossarli */
+  .account-dash .rmap-icbtn{position:relative}
+  .account-dash .rmap-icbtn::before{content:"";position:absolute;inset:-6px;border-radius:50%}
 }
 
 /* ── Date reali del viaggio (banner Panoramica) ── */

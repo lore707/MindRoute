@@ -150,9 +150,46 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+// ── Geometria del percorso ──────────────────────────────────────────────
+// Il server risolve strade VERE (Valhalla/OSRM, cache in tripMeta). Se non
+// risponde, si disegna una curva morbida tra le tappe: mai la retta secca.
+type DayRoute = {
+  profile: "foot" | "car" | null;
+  coords: Array<[number, number]> | null;
+  legs: Array<{ t: number; m: number; mid: [number, number] }> | null;
+};
+
+// Arco quadratico tra due punti (fallback): ~14 punti con offset
+// perpendicolare proporzionale alla distanza — leggibile, dichiaratamente
+// "a volo d'uccello" ma senza tagliare la mappa con una riga dritta.
+function curvedArc(a: L.LatLngTuple, b: L.LatLngTuple): L.LatLngTuple[] {
+  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const bend = 0.18;
+  const cx = mx - dy * bend, cy = my + dx * bend;
+  const out: L.LatLngTuple[] = [];
+  for (let i = 0; i <= 14; i++) {
+    const t = i / 14, u = 1 - t;
+    out.push([u * u * a[0] + 2 * u * t * cx + t * t * b[0], u * u * a[1] + 2 * u * t * cy + t * t * b[1]]);
+  }
+  return out;
+}
+
+// Etichetta-tratta sulla linea: "12 min" (a piedi/auto). È la risposta alla
+// domanda vera della mappa: quanto ci metto dalla tappa prima?
+function legLabelIcon(minutes: number, profile: "foot" | "car"): L.DivIcon {
+  const glyph = profile === "car" ? "🚗" : "🚶";
+  return L.divIcon({
+    className: "rmap-leg-wrap",
+    html: `<span class="rmap-leg">${glyph} ${minutes} min</span>`,
+    iconSize: [0, 0], iconAnchor: [0, 0],
+  });
+}
+
 export default function RouteMap({ points, center, destination, itineraryId, lang, initialDay = null, onDayChange, onOpenDay, onBook }: Props) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const stripRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const planLayer = useRef<L.LayerGroup | null>(null);
   const savedLayer = useRef<L.LayerGroup | null>(null);
@@ -180,6 +217,10 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
   const savedRef = useRef(saved);
   savedRef.current = saved;
   const dayWord = lang === "it" ? "Giorno" : "Day";
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Percorso su strada del giorno attivo (server, cache tripMeta) + cache di sessione.
+  const [dayRoute, setDayRoute] = useState<DayRoute | null>(null);
+  const routeCache = useRef<Map<string, DayRoute>>(new Map());
 
   const setDay = (d: number | null) => { setActiveDay(d); setSelected(null); onDayChange?.(d); };
 
@@ -202,6 +243,47 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     if (rainPlan) { const c = normCat(p.category); if (c === "beach" || c === "experience") return false; } // euristica "al chiuso"
     return true;
   }), [points, activeDay, activeCats, nearLodging, rainPlan, lodgingPt]);
+
+  const filtersActive = activeCats.size > 0 || nearLodging || rainPlan;
+
+  // Punti ORDINATI del giorno intero (NON filtrati): il percorso rappresenta
+  // il piano del giorno; i filtri servono solo a esplorare i pin.
+  const dayStops = useMemo(() => {
+    if (activeDay == null) return [] as RoutePoint[];
+    const inDay = points.filter(p => p.day === activeDay);
+    const lodging = inDay.find(p => normCat(p.category) === "lodging")
+      ?? points.find(p => normCat(p.category) === "lodging");
+    const stops = inDay.filter(p => normCat(p.category) !== "lodging")
+      .sort((a, b) => slotRank(a.slot) - slotRank(b.slot));
+    return (lodging ? [lodging, ...stops] : stops).slice(0, 14);
+  }, [points, activeDay]);
+
+  // Geometria su strada dal server (cache tripMeta) + cache di sessione.
+  useEffect(() => {
+    setDayRoute(null);
+    if (activeDay == null || dayStops.length < 2 || !itineraryId) return;
+    const pts = dayStops.map(p => ({ lat: p.lat, lng: p.lng }));
+    const key = `${activeDay}:` + pts.map(p => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join(";");
+    const hit = routeCache.current.get(key);
+    if (hit) { setDayRoute(hit); return; }
+    let cancelled = false;
+    fetch(`/api/itinerary/${itineraryId}/route`, {
+      method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ day: activeDay, points: pts }),
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (cancelled) return;
+        const route: DayRoute = d && d.coords
+          ? { profile: d.profile, coords: d.coords, legs: d.legs }
+          : { profile: null, coords: null, legs: null };
+        routeCache.current.set(key, route);
+        setDayRoute(route);
+      })
+      .catch(() => { if (!cancelled) setDayRoute({ profile: null, coords: null, legs: null }); });
+    return () => { cancelled = true; };
+  }, [activeDay, dayStops, itineraryId]);
 
   // ── load saved places ──
   useEffect(() => {
@@ -304,13 +386,46 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     const stops = visible.filter((p) => normCat(p.category) !== "lodging");
     const ordered = singleDay ? [...stops].sort((a, b) => slotRank(a.slot) - slotRank(b.slot)) : stops;
 
-    // Linea del percorso: alloggio → tappe in ordine. Alone + accent direzionale.
     const latlngs: L.LatLngTuple[] = [];
     if (lodging) latlngs.push([lodging.lat, lodging.lng]);
     ordered.forEach((p) => latlngs.push([p.lat, p.lng]));
-    if (latlngs.length > 1) {
-      L.polyline(latlngs, { color: "#000", weight: 8, opacity: 0.3, lineCap: "round", lineJoin: "round" }).addTo(layer);
-      L.polyline(latlngs, { color: ROUTE_COLOR, weight: 3.5, opacity: 0.95, dashArray: singleDay ? undefined : "1 9", lineCap: "round", lineJoin: "round" }).addTo(layer);
+
+    // Linea del percorso: SOLO nella vista giorno e senza filtri attivi (coi
+    // filtri i pin sono un sottoinsieme e la linea mentirebbe). Nella vista
+    // "Tutti" niente linee: la ragnatela tra giorni diversi non racconta nulla.
+    if (singleDay && !filtersActive && dayStops.length > 1) {
+      const anchors: L.LatLngTuple[] = dayStops.map(p => [p.lat, p.lng]);
+      const draw = (path: L.LatLngTuple[], real: boolean) => {
+        L.polyline(path, { color: "#000", weight: real ? 9 : 8, opacity: 0.35, lineCap: "round", lineJoin: "round" }).addTo(layer);
+        L.polyline(path, { color: ROUTE_COLOR, weight: real ? 4 : 3, opacity: real ? 0.95 : 0.8, lineCap: "round", lineJoin: "round" }).addTo(layer);
+      };
+      if (dayRoute?.coords && dayRoute.coords.length > 1) {
+        // Strade vere (Valhalla/OSRM via server, cacheate in tripMeta).
+        draw(dayRoute.coords as L.LatLngTuple[], true);
+        const profile = dayRoute.profile === "car" ? "car" : "foot";
+        (dayRoute.legs ?? []).forEach((leg) => {
+          const min = Math.max(1, Math.round(leg.t / 60));
+          // zIndex negativo: l'etichetta sta sopra la linea ma SOTTO i pin
+          // (tappe vicine → il pin numerato resta leggibile).
+          L.marker(leg.mid as L.LatLngTuple, { icon: legLabelIcon(min, profile), keyboard: false, interactive: false, zIndexOffset: -400 }).addTo(layer);
+        });
+      } else {
+        // Fallback (o geometria in arrivo): archi morbidi + stima a piedi.
+        for (let i = 1; i < anchors.length; i++) {
+          const arc = curvedArc(anchors[i - 1], anchors[i]);
+          draw(arc, false);
+          if (dayRoute && !dayRoute.coords) {
+            const m = distMeters(
+              { lat: anchors[i - 1][0], lng: anchors[i - 1][1] },
+              { lat: anchors[i][0], lng: anchors[i][1] },
+            );
+            const min = Math.max(1, Math.round(m / 80));
+            if (min <= 90) {
+              L.marker(arc[7], { icon: legLabelIcon(min, "foot"), keyboard: false, interactive: false, zIndexOffset: -400 }).addTo(layer);
+            }
+          }
+        }
+      }
     }
 
     const openCard = (p: RoutePoint) => { setSelected(p); map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: 0.5 }); };
@@ -330,7 +445,7 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     else if (latlngs.length > 1) map.fitBounds(L.latLngBounds(latlngs), { padding: [60, 60], maxZoom: 16 });
     else if (center) map.setView([center.lat, center.lng], 12);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, activeDay, center]);
+  }, [visible, activeDay, center, dayRoute, filtersActive, dayStops]);
 
   // ── redraw pin salvati ──
   useEffect(() => {
@@ -460,57 +575,111 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     </div>
   );
 
+  const flyToStop = (p: RoutePoint) => {
+    const map = mapRef.current;
+    if (!map) return;
+    setSelected(p);
+    map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: 0.5 });
+  };
+
+  // Pin toccato sulla mappa → la striscia scorre fino alla tappa attiva
+  // (su phone se ne vedono 1-2: senza questo il sync mappa→striscia è invisibile).
+  useEffect(() => {
+    if (!selected) return;
+    const el = stripRef.current?.querySelector<HTMLElement>(".rmap-stop.on");
+    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [selected]);
+
+  const hasLodgingFirst = dayStops.length > 0 && normCat(dayStops[0].category) === "lodging";
+
   return (
     <div ref={wrapRef} className={"rmap-wrap" + (fullscreen ? " rmap-wrap--full" : "")}>
-      {/* toolbar: ricerca + posizione + fullscreen */}
-      <div className="rmap-toolbar">
-        <form className="rmap-search" onSubmit={runSearch}>
-          <input value={query} onChange={(e) => setQuery(e.target.value)}
-            placeholder={lang === "it" ? "Cerca un posto…" : "Search a place…"}
-            aria-label={lang === "it" ? "Cerca un posto" : "Search a place"} />
-          <button type="submit" className="rmap-icbtn" title={lang === "it" ? "Cerca" : "Search"}>{searching ? "…" : "⌕"}</button>
-        </form>
-        <button className="rmap-icbtn" onClick={locateMe} title={lang === "it" ? "Vicino a me" : "Near me"}>◎</button>
-        <button className="rmap-icbtn" onClick={() => setFullscreen((v) => !v)} title={lang === "it" ? "Schermo intero" : "Fullscreen"}>{fullscreen ? "✕" : "⤢"}</button>
-      </div>
-
-      {results.length > 0 && (
-        <ul className="rmap-results">
-          {results.map((r, i) => (
-            <li key={i}><button onClick={() => pickResult(r)}><span className="rr-t">{r.label}</span><span className="rr-a">{r.address}</span></button></li>
+      {/* Barra giorni — IN FLUSSO sopra la mappa (mai flottante: su phone i
+          chip si sovrapponevano a toolbar e risultati di ricerca). */}
+      {days.length > 1 && (
+        <div className="rmap-days">
+          <button className={"rmap-day" + (activeDay == null ? " on" : "")} onClick={() => setDay(null)}>
+            {lang === "it" ? "Tutti" : "All"}
+          </button>
+          {days.map((d) => (
+            <button key={d} className={"rmap-day" + (activeDay === d ? " on" : "")} onClick={() => setDay(d)}>
+              <span className="w">{dayWord}</span><span className="n">{d}</span>
+            </button>
           ))}
-        </ul>
+        </div>
       )}
 
-      {/* filtri: giorno + motore (vicino all'alloggio / se piove) + categoria */}
-      <div className="rmap-filter">
-        {days.length > 1 && (
+      {/* Filtri motore + categorie: riga richiudibile, sempre in flusso. */}
+      <div className="rmap-filterrow">
+        <button className={"rmap-chip rmap-chip--toggle" + (filtersOpen ? " on" : "")} onClick={() => setFiltersOpen(v => !v)}>
+          {lang === "it" ? "Filtri" : "Filters"}{filtersActive ? " •" : ""} {filtersOpen ? "▴" : "▾"}
+        </button>
+        {(filtersOpen || filtersActive) && (
           <>
-            <button className={"rmap-chip" + (activeDay == null ? " on" : "")} onClick={() => setDay(null)}>{lang === "it" ? "Tutti" : "All"}</button>
-            {days.map((d) => (
-              <button key={d} className={"rmap-chip" + (activeDay === d ? " on" : "")} onClick={() => setDay(d)}>{(lang === "it" ? "G" : "D") + d}</button>
+            {lodgingPt && (
+              <button className={"rmap-chip rmap-chip--engine" + (nearLodging ? " on" : "")} onClick={() => setNearLodging((v) => !v)} title={lang === "it" ? "Entro ~15 min a piedi dall'alloggio" : "Within ~15 min walk of your stay"}>
+                🏨 {lang === "it" ? "Vicino all'alloggio" : "Near your stay"}
+              </button>
+            )}
+            <button className={"rmap-chip rmap-chip--engine" + (rainPlan ? " on" : "")} onClick={() => setRainPlan((v) => !v)} title={lang === "it" ? "Mostra le tappe al coperto" : "Show indoor stops"}>
+              🌧 {lang === "it" ? "Se piove" : "Rain plan"}
+            </button>
+            {presentCats.length > 1 && presentCats.map((c) => (
+              <button key={c} className={"rmap-chip rmap-chip--cat" + (activeCats.has(c) ? " on" : "")}
+                style={activeCats.has(c) ? { background: CAT[c].color, borderColor: CAT[c].color } : { borderColor: CAT[c].color }}
+                onClick={() => toggleCat(c)} title={catLabel(c, lang)}>
+                {CAT[c].glyph} {catLabel(c, lang)}
+              </button>
             ))}
           </>
         )}
-        {lodgingPt && (
-          <button className={"rmap-chip rmap-chip--engine" + (nearLodging ? " on" : "")} onClick={() => setNearLodging((v) => !v)} title={lang === "it" ? "Entro ~15 min a piedi dall'alloggio" : "Within ~15 min walk of your stay"}>
-            🏨 {lang === "it" ? "Vicino all'alloggio" : "Near your stay"}
-          </button>
-        )}
-        <button className={"rmap-chip rmap-chip--engine" + (rainPlan ? " on" : "")} onClick={() => setRainPlan((v) => !v)} title={lang === "it" ? "Mostra le tappe al coperto" : "Show indoor stops"}>
-          🌧 {lang === "it" ? "Se piove" : "Rain plan"}
-        </button>
-        {presentCats.length > 1 && presentCats.map((c) => (
-          <button key={c} className={"rmap-chip rmap-chip--cat" + (activeCats.has(c) ? " on" : "")}
-            style={activeCats.has(c) ? { background: CAT[c].color, borderColor: CAT[c].color } : { borderColor: CAT[c].color }}
-            onClick={() => toggleCat(c)} title={catLabel(c, lang)}>
-            {CAT[c].glyph} {catLabel(c, lang)}
-          </button>
-        ))}
       </div>
 
-      <div ref={elRef} className="rmap" />
-      {card}
+      {/* Stage: mappa + soli controlli flottanti essenziali (⌕ ◎ ⤢) + card. */}
+      <div className="rmap-stage">
+        <div className="rmap-toolbar">
+          <form className="rmap-search" onSubmit={runSearch}>
+            <input value={query} onChange={(e) => setQuery(e.target.value)}
+              placeholder={lang === "it" ? "Cerca un posto…" : "Search a place…"}
+              aria-label={lang === "it" ? "Cerca un posto" : "Search a place"} />
+            <button type="submit" className="rmap-icbtn" title={lang === "it" ? "Cerca" : "Search"}>{searching ? "…" : "⌕"}</button>
+          </form>
+          <button className="rmap-icbtn" onClick={locateMe} title={lang === "it" ? "Vicino a me" : "Near me"}>◎</button>
+          <button className="rmap-icbtn" onClick={() => setFullscreen((v) => !v)} title={lang === "it" ? "Schermo intero" : "Fullscreen"}>{fullscreen ? "✕" : "⤢"}</button>
+        </div>
+
+        {results.length > 0 && (
+          <ul className="rmap-results">
+            {results.map((r, i) => (
+              <li key={i}><button onClick={() => pickResult(r)}><span className="rr-t">{r.label}</span><span className="rr-a">{r.address}</span></button></li>
+            ))}
+          </ul>
+        )}
+
+        <div ref={elRef} className="rmap" />
+        {card}
+      </div>
+
+      {/* Striscia-tappe del giorno: il ponte narrativo mappa↔giorni. Tap →
+          la mappa vola sulla tappa e apre la card operativa. */}
+      {activeDay != null && dayStops.length > 0 && (
+        <div className="rmap-strip" ref={stripRef}>
+          {dayStops.map((p, i) => {
+            const isLodging = i === 0 && hasLodgingFirst;
+            const num = hasLodgingFirst ? i : i + 1;
+            return (
+              <button key={`${p.lat}-${p.lng}-${i}`} className={"rmap-stop" + (selected === p ? " on" : "")} onClick={() => flyToStop(p)}>
+                <span className={"rmap-stop-n" + (isLodging ? " h" : "")}>{isLodging ? "⌂" : num}</span>
+                {p.imageUrl && <span className="rmap-stop-img" style={{ backgroundImage: `url("${p.imageUrl}")` }} />}
+                <span className="rmap-stop-t">
+                  <span className="l">{p.label}</span>
+                  {(p.bestTime || p.durationLabel) && <span className="m">{p.bestTime ?? p.durationLabel}</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -362,6 +362,48 @@ export function registerItineraryDetailRoutes(app: Express) {
     }
   });
 
+  // ── Percorso del giorno su strade vere ──────────────────────────────────
+  // Il client manda i punti ORDINATI del giorno; il server risolve la
+  // geometria (Valhalla/OSRM, vedi route-geometry.ts) e la CACHEA in
+  // tripMeta.routes[day] con una chiave sui punti: cambia il piano → si
+  // ricalcola, altrimenti mai più una chiamata esterna per quel giorno.
+  const routeReqSchema = z.object({
+    day: z.coerce.number().int().min(1).max(60),
+    points: z.array(z.object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    })).min(2).max(14),
+  });
+
+  app.post("/api/itinerary/:id/route", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const { day, points } = routeReqSchema.parse(req.body);
+      const key = points.map(p => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join(";");
+      const prevMeta = ((itin as any).tripMeta ?? {}) as Record<string, any>;
+      const cached = prevMeta.routes?.[String(day)];
+      if (cached && cached.key === key) return res.json(cached);
+
+      const { computeRouteGeometry } = await import("../route-geometry");
+      const geo = await computeRouteGeometry(points);
+      // null NON viene cacheato: al prossimo giro i demo server potrebbero
+      // rispondere — il client intanto disegna la curva di fallback.
+      if (!geo) return res.json({ key, profile: null, coords: null, legs: null });
+      const entry = { key, ...geo, computed_at: new Date().toISOString() };
+      await storage.updateItineraryTripMeta(id, {
+        ...prevMeta,
+        routes: { ...(prevMeta.routes ?? {}), [String(day)]: entry },
+      });
+      res.json(entry);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: "Richiesta non valida" });
+      res.status(500).json({ message: "Errore nel calcolo del percorso" });
+    }
+  });
+
   // ── Prenotazioni: click affiliate + conferma "ho prenotato" ─────────────
   // Il PDF completo si sblocca con volo+alloggio CONFERMATI, ma una conferma
   // è accettata solo se il server ha registrato il click sul link di
