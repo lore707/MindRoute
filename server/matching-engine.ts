@@ -847,7 +847,7 @@ export function buildCachedPromptParts(
   };
 }
 
-export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = "", contextOverride?: string, recentNames: string[] = []): Promise<GeneratedDestination[]> {
+export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = "", contextOverride?: string, recentNames: string[] = [], userSeenNames: string[] = [], seed?: number): Promise<GeneratedDestination[]> {
   const rawAnswers = input.answers[0] === "path_a" || input.answers[0] === "path_b"
     ? input.answers.slice(1) : input.answers;
 
@@ -871,17 +871,27 @@ export async function generateDestinationsOnly(input: ProfilingInput, priorBlock
   const budgetText = BUDGET_MAP[input.budget] || `budget: ${input.budget}`;
 
   // FRESHNESS — vary results across users/sessions without sacrificing fit.
-  // The recent list is a soft nudge (a recent pick may still win SLOT 1 if it's
-  // genuinely the best match); the exploration seed only breaks ties of equal fit.
-  const explorationSeed = Math.floor(Math.random() * 100000);
+  //  · userSeenNames = ciò che il matcher ha GIÀ MOSTRATO a QUESTO utente →
+  //    esclusione forte su tutti e 3 gli slot (è la causa radice del "sempre
+  //    le stesse"), salvo una città che l'utente nomina esplicitamente stavolta.
+  //  · recentNames = proposte globali recenti (altri utenti) → nudge morbido.
+  //  · seed = deterministico per (settimana × utente); guida la ROTAZIONE
+  //    dell'angolo/regione settimana per settimana, non è più un semplice
+  //    spareggio. Fallback random se non passato.
+  const explorationSeed = seed ?? Math.floor(Math.random() * 100000);
+  const seenBlock = userSeenNames.length
+    ? `Already shown to THIS user in recent sessions (do NOT propose these again): ${userSeenNames.join(", ")}.
+This is a HARD constraint on all 3 slots — the whole point is that returning users see somewhere new, not the same trio reworded. The ONLY exception: a city/region the user EXPLICITLY names for THIS trip (Path B) must still appear as requested. Otherwise, when one of these would have been the pick, choose the next equally-fitting alternative instead.
+`
+    : "";
   const freshnessBlock = `
 ═══════════════════════════════════════
-FRESHNESS — keep results varied across users
+FRESHNESS — keep results varied (per user AND across users)
 ═══════════════════════════════════════
-${recentNames.length ? `Recently proposed to other users (last sessions): ${recentNames.join(", ")}.
-Prefer comparably-fitting destinations the user is less likely to have just seen elsewhere. You MAY still pick one of these — but ONLY for SLOT 1 and ONLY if it is genuinely the single best match. Never fill SLOT 2 or SLOT 3 with one of them unless no equally-good alternative exists. Two different people should rarely receive an identical trio.
+${seenBlock}${recentNames.length ? `Recently proposed to other users (last sessions): ${recentNames.join(", ")}.
+Prefer comparably-fitting destinations the user is less likely to have just seen elsewhere. Two different people should rarely receive an identical trio.
 ` : `Avoid the most predictable, over-suggested picks for this profile when an equally-fitting, fresher alternative exists.
-`}Exploration seed: ${explorationSeed} — use this ONLY to break ties between options of genuinely EQUAL fit. Never let it override profile fit, hard constraints, or anti-patterns.
+`}Exploration seed: ${explorationSeed}. Among options of comparable profile fit, let this seed steer WHICH equally-good angle/region you emphasise this time, so the same profile explored again lands on a genuinely different-but-fitting trio. It must NEVER override profile fit, hard constraints, or anti-patterns — it chooses between good options, it does not manufacture bad ones.
 `;
 
   const prompt = `You are the engine of MindRoute, a psychological travel profiling platform. Your task is to generate exactly 3 destinations that are deeply, precisely matched to this specific human being.

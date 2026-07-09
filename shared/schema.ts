@@ -278,6 +278,21 @@ export const recentDestinations = pgTable("recent_destinations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Ledger PER-UTENTE di ciò che il matcher gli ha GIÀ PROPOSTO (non scelto:
+// mostrato). recentDestinations registra solo le destinazioni scelte+generate
+// ed è globale — non basta a evitare che allo stesso utente ricompaia sempre
+// lo stesso trio. Qui scriviamo ogni tripletta proposta così la prossima
+// generazione può escludere ciò che ha già visto di recente. userId nullable
+// per robustezza; una riga per destinazione proposta (semplice da leggere/dedup).
+export const proposedDestinations = pgTable("proposed_destinations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  destinationName: text("destination_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type ProposedDestination = typeof proposedDestinations.$inferSelect;
+export type InsertProposedDestination = typeof proposedDestinations.$inferInsert;
+
 // Per-user psychological trait snapshots. Written at two events:
 //   (a) profiling submit          → source = "quiz"
 //   (b) destination chosen + gen  → source = "pick" (blended with destination)

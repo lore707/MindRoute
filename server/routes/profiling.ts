@@ -4,7 +4,7 @@ import { storage } from "../storage";
 import { api } from "@shared/routes";
 import { profilingLimiter } from "../rate-limiter";
 import { generateDestinationsOnly } from "../matching-engine";
-import { getRecentDestinationNames } from "../recent-destinations";
+import { getRecentDestinationNames, getProposedNamesForUser, recordProposedForUser, weeklyExplorationSeed } from "../recent-destinations";
 import { fetchUnsplashHero } from "../unsplash";
 import { computeTraitVector, emaAggregate, synthesizeAnswersFromVector, MAPPING_VERSION, type TraitVector } from "@shared/traits";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
@@ -31,7 +31,12 @@ export function registerProfilingRoutes(app: Express) {
       });
       const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(userVec);
       const recentNames = await getRecentDestinationNames();
-      const destinations = await generateDestinationsOnly(input, priorBlock, undefined, recentNames);
+      const userSeenNames = await getProposedNamesForUser(userIdForPrior);
+      const seed = weeklyExplorationSeed(userIdForPrior);
+      const destinations = await generateDestinationsOnly(input, priorBlock, undefined, recentNames, userSeenNames, seed);
+      // Registra il trio come "già mostrato a questo utente" (fire-and-forget):
+      // la prossima generazione lo eviterà. Non attendiamo la scrittura.
+      void recordProposedForUser(userIdForPrior, destinations.map(d => d.name));
       await storage.clearAll();
       // Fetch the 3 hero images in parallel (was sequential ≈ 3× the latency).
       const heroImages = await Promise.all(destinations.map((d) => fetchUnsplashHero(d.name)));
@@ -158,7 +163,10 @@ export function registerProfilingRoutes(app: Express) {
       // 2A — coerenza col catalogo dal vettore aggregato (current).
       const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(current);
       const recentNames = await getRecentDestinationNames();
-      const destinations = await generateDestinationsOnly(input, priorBlock, contextOverride, recentNames);
+      const userSeenNames = await getProposedNamesForUser(user.id);
+      const seed = weeklyExplorationSeed(user.id);
+      const destinations = await generateDestinationsOnly(input, priorBlock, contextOverride, recentNames, userSeenNames, seed);
+      void recordProposedForUser(user.id, destinations.map(d => d.name));
       await storage.clearAll();
       // Fetch the 3 hero images in parallel (was sequential ≈ 3× the latency).
       const heroImages = await Promise.all(destinations.map((d) => fetchUnsplashHero(d.name)));
