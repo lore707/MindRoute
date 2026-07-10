@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { AFFILIATES } from "./affiliate-config";
+import { AFFILIATES, rewriteDayAffiliateLinks } from "./affiliate-config";
 import { getExperienceBank, formatExperienceBankBlock, resolveGroundingBlock } from "./experience-bank";
 import { buildTransportBlock } from "./transport-planner";
 
@@ -1426,6 +1426,7 @@ export async function generateItineraryStreamingStructured(
     const parsed = JSON.parse(cleanJson);
     const itin = parsed.itineraries?.[0];
     if (itin) {
+      rewriteDayAffiliateLinks(itin.days || [], destinationName, { checkin, checkout });
       onMeta({
         destinationName: itin.destinationName,
         tripSummary: itin.tripSummary,
@@ -1599,7 +1600,12 @@ export async function generateItineraryForDestination(
     itineraries: z.array(generatedItinerarySchema).min(1),
   }).parse(JSON.parse(cleanJson));
 
-  return parsed.itineraries[0];
+  const itin = parsed.itineraries[0];
+  // Deep-link: i bottoni del giorno cercano il posto ESATTO (nome+città), non
+  // l'intera città. Ristoranti + esperienze Viator/Klook. Deterministico.
+  const { checkin, checkout } = buildCheckinCheckout(input.leaveDate || "2025-06-15", Math.min(input.days, 14));
+  rewriteDayAffiliateLinks((itin as any).days || [], destinationName, { checkin, checkout });
+  return itin;
 }
 
 export async function generateDestinations(input: ProfilingInput): Promise<{

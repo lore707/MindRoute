@@ -57,6 +57,85 @@ export function viatorSearchUrl(text: string): string {
   return `https://www.viator.com/searchResults/all?text=${encodeURIComponent(text)}&pid=P00293604&mcid=42383&medium=link`;
 }
 
+// ── NAME-PRECISE search URLs ────────────────────────────────────────────────
+// Il difetto #1 di conversione: l'itinerario nomina "Taverna Aktaion" ma il
+// bottone apriva una ricerca dell'INTERA città. Questi builder cercano il posto
+// ESATTO (nome + città), così l'utente atterra sulla scheda giusta invece di
+// rifare la spesa da capo (e finire su Booking). Solo per i provider con
+// ricerca testuale affidabile: Viator, TripAdvisor, Klook.
+export function viatorNameUrl(name: string, city: string, ci?: string, co?: string): string {
+  const q = [name, city].filter(Boolean).join(" ");
+  const dates = ci && co ? `&startDate=${ci}&endDate=${co}` : "";
+  return `https://www.viator.com/searchResults/all?text=${encodeURIComponent(q)}&pid=P00293604&mcid=42383&medium=link${dates}`;
+}
+
+export function tripadvisorNameUrl(name: string, city: string): string {
+  const q = [name, city].filter(Boolean).join(" ");
+  return `https://www.tripadvisor.it/Search?q=${encodeURIComponent(q)}`;
+}
+
+export function klookNameUrl(name: string, city: string, ci?: string): string {
+  const q = [name, city].filter(Boolean).join(" ");
+  return `https://www.klook.com/search/?q=${encodeURIComponent(q)}&aid=${AFFILIATES.klookAid}${ci ? `&startDate=${ci}` : ""}`;
+}
+
+// Placeholder/generic labels che NON vanno trasformati in ricerca per nome
+// (cercherebbero il testo segnaposto). Solo nomi reali passano.
+function isGenericLabel(label: string, city: string): boolean {
+  const l = (label || "").trim().toLowerCase();
+  if (l.length < 3) return true;
+  if (l === city.trim().toLowerCase()) return true;
+  // Etichette-contenitore tipo "Ristoranti Volos", "Hotel a X", "Tour", "Esplora".
+  if (/^(ristoranti|ristorante|hotel|volo|voli|tour|attivit|esperienz|esplora|restaurants?)\b/.test(l)) return true;
+  return false;
+}
+
+// Riscrive IN PLACE i link giornalieri (affiliateLinks + mapPoints.affiliateUrl)
+// perché puntino al posto ESATTO nominato in affiliateLabels, non alla città.
+// Copre ristoranti (TripAdvisor, ovunque) ed esperienze su Viator/Klook. Lascia
+// intatti civitatis/musement/hotels/voli/trasporti (ricerca per nome non
+// affidabile o non pertinente). Nessun errore se i campi mancano → no-op.
+export function rewriteDayAffiliateLinks(
+  days: any[],
+  destinationName: string,
+  ctx: { checkin?: string; checkout?: string } = {},
+): void {
+  const city = (destinationName || "").split(",")[0].trim();
+  const { checkin, checkout } = ctx;
+
+  const urlForKey = (key: string, name: string): string | null => {
+    const k = key.toLowerCase();
+    if (/thefork|tripadvisor|fork/.test(k)) return tripadvisorNameUrl(name, city);
+    if (/viator|getyourguide/.test(k))      return viatorNameUrl(name, city, checkin, checkout);
+    if (/klook/.test(k))                    return klookNameUrl(name, city, checkin);
+    return null;
+  };
+
+  for (const day of days || []) {
+    const links = day?.affiliateLinks;
+    const labels = day?.affiliateLabels;
+    if (links && labels) {
+      for (const key of Object.keys(links)) {
+        const label = labels[key];
+        if (typeof label !== "string" || isGenericLabel(label, city)) continue;
+        const url = urlForKey(key, label);
+        if (url) links[key] = url;
+      }
+    }
+    // mapPoints: pin ristorante → TripAdvisor per nome; pin esperienza/luogo
+    // (Mattina/Pomeriggio) → Viator per nome. Salta Hotel/Traghetto/Noleggio.
+    for (const mp of day?.mapPoints || []) {
+      if (!mp?.label || isGenericLabel(mp.label, city)) continue;
+      const slot = (mp.slot || "").toLowerCase();
+      if (/pranzo|sera|lunch|dinner|food/.test(slot)) {
+        mp.affiliateUrl = tripadvisorNameUrl(mp.label, city);
+      } else if (/mattina|pomeriggio|morning|afternoon/.test(slot)) {
+        mp.affiliateUrl = viatorNameUrl(mp.label, city, checkin, checkout);
+      }
+    }
+  }
+}
+
 // Hotels.com via CJ click wrapper — ricerca per città (+ date opzionali). URL
 // interno lasciato grezzo come gli altri link del progetto (CJ lo tollera).
 export function hotelsComUrl(city: string, checkin?: string, checkout?: string): string {
