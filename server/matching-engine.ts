@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { AFFILIATES } from "./affiliate-config";
 import { getExperienceBank, formatExperienceBankBlock, resolveGroundingBlock } from "./experience-bank";
+import { buildTransportBlock } from "./transport-planner";
 
 export const BUDGET_MAP: Record<string, string> = {
   "low":                        "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
@@ -142,7 +143,7 @@ function buildCheckinCheckout(leaveDate: string, days: number): {
   }
 }
 
-export function buildPrompt(input: ProfilingInput, priorBlock = "", groundingBlock = ""): string {
+export function buildPrompt(input: ProfilingInput, priorBlock = "", groundingBlock = "", transportBlock = ""): string {
   const rawAnswers =
     input.answers[0] === "path_a" || input.answers[0] === "path_b"
       ? input.answers.slice(1)
@@ -197,7 +198,7 @@ Travel style preference: ${travelStyle}
 Constraints & preferences: ${input.constraints || "none"}
 ${structuredProfileBlock ? `Structured profile (JSON):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 ${(input as any)._destinationOverride ? `\nDESTINATION ALREADY CHOSEN: ${(input as any)._destinationOverride} — generate the itinerary ONLY for this specific destination. Do not suggest alternatives.` : ''}
-${bankBlock}${priorBlock}
+${bankBlock}${priorBlock}${transportBlock ? `\n${transportBlock}` : ""}
 TASK: Generate exactly 1 perfectly personalized destination with a ${days}-day itinerary.
 
 ═══════════════════════════════════════
@@ -475,9 +476,9 @@ STEP 5 — ITINERARY ARCHITECTURE
 The itinerary MUST have a clear EMOTIONAL ARC — not flat identical days but a journey with intentional rhythm.
 
 DAY 1 — DEPARTURE & ARRIVAL:
-- morning: Flight from departure. Format: "Volo [CITY] [IATA] → [DEST] [IATA], [airline if known], ~[duration], ~€[cost]/pp. [1 sentence anticipation or aerial view]." Include expedia_flights link.
-- lunch: In-flight or first local spot if short flight.
-- afternoon: Airport transfer → hotel. Transport method, ~duration, ~€cost/pp. First impression sentence. Check-in.
+- morning: The ARRIVAL JOURNEY from departure. The mode is DICTATED by the TRANSPORT PLAN block above — it may be a bus/train (overland), a flight, or a flight/ferry choice (island). NEVER assume a flight by default. Format: "[Mode] [ORIGIN] → [DEST], ~[duration], ~€[cost]/pp. [1 sentence anticipation — window landscape for ground, aerial view for flight]." Use the affiliate link key the TRANSPORT PLAN specifies (flixbus / expedia_flights / expedia_cars).
+- lunch: For a flight: in-flight or first local spot if short. For ground arrival: a stop en route or the first local spot on arrival.
+- afternoon: Transfer (station/airport/port) → hotel, OR — for a short overland trip — arrival straight into town. Transport method, ~duration, ~€cost/pp. First impression sentence. Check-in.
 - evening: First gentle dinner. Named restaurant. ~€X/pp. Sensory first contact with destination. Include tripadvisor link.
 
 DAYS 2-3 — IMMERSION:
@@ -499,13 +500,13 @@ DAY 6 — DECELERATION:
 DAY LAST — EMOTIONAL CLOSURE & DEPARTURE:
 - morning: Final experience before departure. Specific place + qualitative timing ("all'alba, prima dei bagagli") — never an invented exact hour.
 - lunch: Last meal. Named café or bar. "L'ultimo caffè a [NAME] prima dell'aeroporto."
-- afternoon: Full return journey. "Transfer [hotel] → aeroporto [IATA], [method], ~[duration], ~€[cost]/pp. Volo [dest IATA] → [home IATA], ~[duration], atterraggio [time range]." Skyscanner link.
+- afternoon: Full return journey — SAME mode as the Day-1 arrival per the TRANSPORT PLAN (ground trip returns by ground, not by air). "Transfer [hotel] → [station/airport/port], [method], ~[duration], ~€[cost]/pp. [Mode] [dest] → [home], ~[duration]." Use the same affiliate link key as Day 1 arrival.
 - evening: Arrival home. "[City] con [emotional souvenir — not a physical object]." No affiliate link needed.
 
 For trips < 7 days: compress proportionally. 4 days = Day 1 arrival / Days 2-3 peak / Day 4 closure+departure.
 
 MANDATORY SLOT RULES — every day, every slot:
-- Every morning: ≥1 affiliate link (activity or expedia_flights Day 1)
+- Every morning: ≥1 affiliate link (activity, or the Day-1 arrival key from the TRANSPORT PLAN — flixbus/expedia_flights)
 - Every lunch: ≥1 tripadvisor link (exception: in-flight Day 1)
 - Every afternoon: ≥1 affiliate link (activity, hotel, or return flight last day)
 - Every evening: ≥1 affiliate link (restaurant or tripadvisor fallback, exception: home arrival)
@@ -815,8 +816,9 @@ export function buildCachedPromptParts(
   input: ProfilingInput,
   priorBlock = "",
   groundingBlock = "",
+  transportBlock = "",
 ): { system: string; user: string } {
-  const full = buildPrompt(input, priorBlock, groundingBlock);
+  const full = buildPrompt(input, priorBlock, groundingBlock, transportBlock);
 
   // Index of the ═══ border line that sits directly above a section title.
   const headerStart = (title: string): number => {
@@ -1373,8 +1375,11 @@ export async function generateItineraryStreamingStructured(
   const days = Math.min(input.days, 14);
   const { checkin, checkout, checkinCompact, checkoutCompact } = buildCheckinCheckout(input.leaveDate, days);
 
-  const grounding = await resolveGroundingBlock(destinationName, input.lang || "en");
-  const { system, user } = buildCachedPromptParts({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding);
+  const [grounding, transport] = await Promise.all([
+    resolveGroundingBlock(destinationName, input.lang || "en"),
+    buildTransportBlock(input.departure, destinationName, input.lang || "en"),
+  ]);
+  const { system, user } = buildCachedPromptParts({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding, transport);
 
   const stream = client.messages.stream({
     model: "claude-sonnet-4-6",
@@ -1568,8 +1573,11 @@ export async function generateItineraryForDestination(
   destinationName: string,
   priorBlock = ""
 ): Promise<GeneratedItinerary> {
-  const grounding = await resolveGroundingBlock(destinationName, input.lang || "en");
-  const { system, user } = buildCachedPromptParts({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding);
+  const [grounding, transport] = await Promise.all([
+    resolveGroundingBlock(destinationName, input.lang || "en"),
+    buildTransportBlock(input.departure, destinationName, input.lang || "en"),
+  ]);
+  const { system, user } = buildCachedPromptParts({ ...input, _destinationOverride: destinationName } as any, priorBlock, grounding, transport);
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",

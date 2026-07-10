@@ -28,6 +28,12 @@ export const AFFILIATES = {
   klookAid:         envOr("AFFILIATE_KLOOK_AID",     "116532"),
   // Musement — UTM-based tracking (utm_source/medium/campaign).
   musementCampaign: envOr("AFFILIATE_MUSEMENT_CAMPAIGN", "mindroute-7388"),
+  // Ferry crossings (Sardegna/Sicilia/Corsica/isole greche…). SLOT VUOTO:
+  // SamBoat NON copre le traversate (è noleggio barche). Quando ti iscrivi a
+  // Direct Ferries / Ferryhopper, incolla qui l'URL affiliato completo (o
+  // settalo in Render → AFFILIATE_FERRY_URL) e le isole iniziano a rendere.
+  // Finché è vuoto, il traghetto resta info onesta senza link.
+  ferryUrl:         envOr("AFFILIATE_FERRY_URL", ""),
 } as const;
 
 // ── URL builders ─────────────────────────────────────────────────────────
@@ -84,6 +90,8 @@ function canonicalProvider(raw: string): string {
     trip_advisor: "tripadvisor", tripadvisor_it: "tripadvisor",
     thefork: "tripadvisor", the_fork: "tripadvisor", fork: "tripadvisor",
     flix: "flixbus", flixbus_it: "flixbus",
+    ferry: "ferry", traghetto: "ferry", nave: "ferry", ferries: "ferry",
+    direct_ferries: "ferry", directferries: "ferry", ferryhopper: "ferry",
     sam_boat: "samboat", samboat_it: "samboat",
     cars: "expedia_cars", car: "expedia_cars", expedia_car: "expedia_cars",
   };
@@ -123,6 +131,9 @@ export function resolveAffiliateUrl(rawProvider: string, ctx: AffiliateContext):
     case "viator":     return `${viatorSearchUrl(full)}${ci && co ? `&startDate=${ci}&endDate=${co}` : ""}`;
     case "tripadvisor":return `https://www.tripadvisor.it/Search?q=ristoranti+${destEncoded}`;
     case "flixbus":    return `https://www.awin1.com/cread.php?awinmid=110876&awinaffid=2830626&ued=https%3A%2F%2Fwww.flixbus.it`;
+    // Traghetti: link solo se hai configurato un affiliate (AFFILIATE_FERRY_URL).
+    // Altrimenti null → il chiamante declassa a info onesta (nessun link finto).
+    case "ferry":      return AFFILIATES.ferryUrl || null;
     case "samboat":    return `https://www.awin1.com/cread.php?awinmid=32681&awinaffid=2830626&ued=https%3A%2F%2Fwww.samboat.it%2F%3FdestinationId%3D${destEncoded}`;
     // Non monetizzabili / nessun partner → niente link canonico.
     default:           return null;
