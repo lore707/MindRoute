@@ -1,0 +1,331 @@
+/* ───────────────────────────────────────────────────────────────
+   landing-editorial.css — redesign landing 2026-07 (mockup approvato)
+   Dark-committed by design (come la landing precedente): il mockup è
+   un editoriale notturno, non segue il theme toggle.
+   Sezioni: hero+seasonal · how(4 step) · showcase · made-for-you+email ·
+   final CTA+partners · footer.
+   ─────────────────────────────────────────────────────────────── */
+
+.led {
+  --led-bg: #0b0c11;
+  --led-bg2: #101219;
+  --led-card: #14161f;
+  --led-card2: #191c27;
+  --led-line: rgba(255, 255, 255, 0.08);
+  --led-line2: rgba(255, 255, 255, 0.14);
+  --led-ink: #f5f4f2;
+  --led-ink-dim: rgba(245, 244, 242, 0.62);
+  --led-ink-faint: rgba(245, 244, 242, 0.4);
+  --led-accent: #f0435a;
+  --led-accent-2: #ff7a6e;
+  --led-grad: linear-gradient(92deg, #f0435a, #e8556b 55%, #ff7a6e);
+  --led-serif: "Playfair Display", Georgia, serif;
+  --led-sans: "DM Sans", system-ui, sans-serif;
+  background: var(--led-bg);
+  color: var(--led-ink);
+  font-family: var(--led-sans);
+  overflow-x: clip;
+}
+.led *, .led *::before, .led *::after { box-sizing: border-box; }
+.led-container { max-width: 1240px; margin: 0 auto; padding: 0 20px; }
+@media (min-width: 768px) { .led-container { padding: 0 40px; } }
+
+/* Eyebrow ✦ label */
+.led-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--led-accent); font-weight: 600;
+}
+.led-eyebrow .d { width: 5px; height: 5px; border-radius: 50%; background: var(--led-accent); box-shadow: 0 0 8px var(--led-accent); }
+
+/* Display headings — serif, em = corsivo rosa */
+.led h1, .led h2 { font-family: var(--led-serif); font-weight: 400; letter-spacing: -0.02em; }
+.led h1 em, .led h2 em, .led .led-em { font-style: italic; color: var(--led-accent); }
+
+.led-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 48px; padding: 14px 30px; border: 0; border-radius: 999px;
+  background: var(--led-grad); color: #fff; font-family: var(--led-sans);
+  font-size: 15px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  box-shadow: 0 8px 32px rgba(240, 67, 90, 0.35);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.led-btn:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 12px 40px rgba(240, 67, 90, 0.45); }
+.led-btn:active { transform: translateY(0); }
+.led-btn.ghost { background: transparent; border: 1.5px solid rgba(240, 67, 90, 0.55); color: var(--led-accent); box-shadow: none; }
+.led-btn.xl { min-height: 58px; padding: 18px 44px; font-size: 16px; }
+.led-arrow { font-family: var(--led-sans); }
+
+/* ── ① HERO ─────────────────────────────────────────────────── */
+.led-hero { position: relative; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 110px 0 40px; }
+.led-hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center 35%; }
+.led-hero-bg::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(11, 12, 17, 0.88) 0%, rgba(11, 12, 17, 0.55) 45%, rgba(11, 12, 17, 0.25) 100%),
+    linear-gradient(180deg, rgba(11, 12, 17, 0.55) 0%, rgba(11, 12, 17, 0.05) 30%, rgba(11, 12, 17, 0.92) 100%);
+}
+.led-hero-inner { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr; gap: 44px; align-items: center; }
+@media (min-width: 1024px) { .led-hero-inner { grid-template-columns: minmax(0, 1.25fr) minmax(320px, 420px); gap: 64px; } }
+
+.led-hero h1 { font-size: clamp(46px, 7vw, 96px); line-height: 1.0; margin: 22px 0 26px; color: #fff; text-shadow: 0 4px 32px rgba(0, 0, 0, 0.45); text-wrap: balance; }
+.led-hero-sub { font-size: clamp(16px, 1.5vw, 19px); line-height: 1.55; color: rgba(255, 255, 255, 0.85); max-width: 520px; margin-bottom: 34px; text-wrap: pretty; }
+.led-hero-sub em { font-style: italic; color: var(--led-accent-2); }
+.led-hero-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.led-hero-counter { font-size: 14px; color: rgba(255, 255, 255, 0.82); }
+.led-hero-counter strong { color: var(--led-accent-2); font-weight: 600; }
+
+/* Seasonal card (glass, destra) */
+.led-season { background: rgba(16, 18, 25, 0.72); backdrop-filter: blur(18px); border: 1px solid var(--led-line2); border-radius: 20px; padding: 18px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45); }
+.led-season-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 6px 14px; }
+.led-season-head .t { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: #fff; }
+.led-season-head .m { font-size: 12.5px; color: var(--led-ink-dim); text-transform: capitalize; }
+.led-season-item {
+  display: grid; grid-template-columns: 56px 1fr auto 14px; align-items: center; gap: 14px;
+  width: 100%; text-align: left; padding: 9px 10px; margin: 0; border: 0; border-radius: 14px;
+  background: transparent; color: inherit; font-family: inherit; cursor: pointer;
+  transition: background 0.16s ease;
+}
+.led-season-item:hover { background: rgba(255, 255, 255, 0.06); }
+.led-season-item + .led-season-item { border-top: 1px solid var(--led-line); }
+.led-season-thumb { width: 56px; height: 44px; border-radius: 10px; background-size: cover; background-position: center; }
+.led-season-name { font-family: var(--led-serif); font-size: 16.5px; color: #fff; line-height: 1.15; }
+.led-season-country { font-size: 12px; color: var(--led-ink-dim); margin-top: 2px; }
+.led-season-note { text-align: right; font-size: 12px; color: var(--led-ink-dim); line-height: 1.35; }
+.led-season-note .hl { display: block; color: rgba(255, 255, 255, 0.92); font-weight: 500; }
+.led-season-chev { color: var(--led-ink-faint); font-size: 14px; }
+
+/* Stats band in fondo all'hero */
+.led-stats { position: relative; z-index: 2; margin-top: 56px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--led-line); border-top: 1px solid var(--led-line); border-bottom: 1px solid var(--led-line); }
+@media (min-width: 768px) { .led-stats { grid-template-columns: repeat(4, 1fr); } }
+.led-stat { display: flex; align-items: center; gap: 14px; padding: 20px 22px; background: rgba(11, 12, 17, 0.6); backdrop-filter: blur(8px); }
+.led-stat-ico { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--led-line2); display: grid; place-items: center; color: var(--led-accent); flex: none; }
+.led-stat-n { font-family: var(--led-serif); font-size: 22px; color: #fff; line-height: 1.1; }
+.led-stat-l { font-size: 12px; color: var(--led-ink-dim); margin-top: 2px; }
+
+/* ── ② HOW IT WORKS ─────────────────────────────────────────── */
+.led-how { padding: 110px 0 70px; background: var(--led-bg); }
+.led-how-head { display: grid; gap: 18px; margin-bottom: 60px; }
+@media (min-width: 900px) { .led-how-head { grid-template-columns: 1.2fr 1fr; align-items: end; } }
+.led-how-head h2 { font-size: clamp(38px, 4.6vw, 64px); line-height: 1.05; margin-top: 16px; }
+.led-how-head p { font-size: 15.5px; line-height: 1.6; color: var(--led-ink-dim); max-width: 420px; }
+
+.led-steps { display: grid; grid-template-columns: 1fr; gap: 22px; counter-reset: ledstep; }
+@media (min-width: 700px) { .led-steps { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .led-steps { grid-template-columns: repeat(4, 1fr); } }
+.led-step { position: relative; background: linear-gradient(180deg, var(--led-card) 0%, var(--led-bg2) 100%); border: 1px solid var(--led-line); border-radius: 20px; padding: 54px 22px 24px; }
+.led-step-badge { position: absolute; top: -16px; left: 22px; min-width: 44px; height: 32px; padding: 0 12px; border-radius: 10px; background: var(--led-card2); border: 1px solid var(--led-line2); display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--led-accent); letter-spacing: 0.06em; }
+.led-step-ico { width: 58px; height: 58px; border-radius: 50%; border: 1px solid rgba(240, 67, 90, 0.35); background: rgba(240, 67, 90, 0.08); display: grid; place-items: center; color: var(--led-accent); margin-bottom: 18px; }
+.led-step-title { font-family: var(--led-serif); font-size: 21px; color: #fff; margin-bottom: 10px; }
+.led-step-desc { font-size: 14px; line-height: 1.55; color: var(--led-ink-dim); margin-bottom: 20px; min-height: 3.2em; }
+
+/* mini-mockup dentro le step card */
+.led-mini { background: rgba(11, 12, 17, 0.65); border: 1px solid var(--led-line); border-radius: 14px; padding: 14px; transform: rotate(-1.2deg); }
+.led-step:nth-child(even) .led-mini { transform: rotate(1.2deg); }
+.led-mini-q { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+.led-mini-hint { font-size: 10.5px; color: var(--led-ink-faint); margin-bottom: 10px; }
+.led-mini-opt { display: flex; align-items: center; gap: 8px; font-size: 12px; border-radius: 999px; padding: 8px 12px; margin-top: 7px; }
+.led-mini-opt.on { background: var(--led-grad); color: #fff; font-weight: 600; }
+.led-mini-opt.off { border: 1px solid var(--led-line2); color: var(--led-ink-dim); }
+.led-mini-map { position: relative; height: 108px; border-radius: 10px; background: radial-gradient(120% 130% at 20% 15%, rgba(240, 67, 90, 0.18) 0%, rgba(16, 18, 25, 0.4) 55%), var(--led-bg2); overflow: hidden; }
+.led-mini-map .pin { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: rgba(240, 67, 90, 0.75); box-shadow: 0 0 10px rgba(240, 67, 90, 0.8); }
+.led-mini-chip { position: absolute; left: 10px; bottom: 10px; right: 10px; background: rgba(20, 22, 31, 0.92); border: 1px solid var(--led-line2); border-radius: 10px; padding: 8px 10px; }
+.led-mini-chip .a { font-size: 10px; color: var(--led-ink-faint); }
+.led-mini-chip .b { font-size: 12px; color: #fff; font-weight: 600; }
+.led-mini-chip .c { font-size: 10.5px; color: var(--led-accent); font-weight: 700; }
+.led-mini-day { font-size: 11px; color: var(--led-ink-faint); }
+.led-mini-place { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+.led-mini-row { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--led-line); font-size: 11.5px; color: var(--led-ink-dim); }
+.led-mini-row .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--led-accent); align-self: center; flex: none; }
+.led-mini-row .tm { margin-left: auto; color: var(--led-ink-faint); font-size: 10.5px; }
+.led-mini-book { border-radius: 10px; overflow: hidden; }
+.led-mini-book-img { height: 74px; background-size: cover; background-position: center; }
+.led-mini-book-body { background: var(--led-card2); padding: 10px 12px; }
+.led-mini-book-body .a { font-size: 12.5px; font-weight: 600; color: #fff; }
+.led-mini-book-body .b { font-size: 10.5px; color: var(--led-ink-dim); margin: 2px 0 8px; }
+.led-mini-cta { display: inline-block; background: var(--led-grad); color: #fff; font-size: 11px; font-weight: 700; border-radius: 999px; padding: 6px 14px; }
+
+/* Fascia sotto gli step */
+.led-how-band { margin-top: 70px; display: grid; grid-template-columns: 1fr; border: 1px solid var(--led-line); border-radius: 24px; overflow: hidden; background: var(--led-card); }
+@media (min-width: 900px) { .led-how-band { grid-template-columns: 0.9fr 1.1fr; } }
+.led-how-band-img { min-height: 220px; background-size: cover; background-position: center; }
+@media (min-width: 900px) { .led-how-band-img { clip-path: ellipse(92% 130% at 0% 50%); } }
+.led-how-band-body { padding: 36px 28px; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+@media (min-width: 900px) { .led-how-band-body { padding: 44px 48px; } }
+.led-how-band-title { font-family: var(--led-serif); font-size: clamp(26px, 3vw, 36px); line-height: 1.15; color: #fff; }
+.led-how-band-title em { font-style: italic; color: var(--led-accent); }
+.led-how-band-sub { font-size: 14.5px; color: var(--led-ink-dim); max-width: 460px; line-height: 1.55; }
+.led-how-band-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 8px; }
+.led-how-band-join { font-size: 12.5px; color: var(--led-ink-faint); }
+
+/* ── ③ SHOWCASE ─────────────────────────────────────────────── */
+.led-show { padding: 100px 0; background: var(--led-bg2); }
+.led-show-top { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; margin-bottom: 80px; }
+@media (min-width: 1024px) { .led-show-top { grid-template-columns: 0.95fr 1.05fr; gap: 60px; } }
+.led-show-top h2 { font-size: clamp(38px, 4.6vw, 64px); line-height: 1.05; margin: 16px 0 18px; }
+.led-show-top > div > p { font-size: 15.5px; line-height: 1.6; color: var(--led-ink-dim); max-width: 460px; }
+.led-show-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 36px; position: relative; }
+.led-show-step { position: relative; padding-top: 18px; }
+.led-show-step::before { content: ""; position: absolute; top: 0; left: 0; right: 12px; border-top: 1px dashed var(--led-line2); }
+.led-show-step .ic { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--led-line2); background: var(--led-card); display: grid; place-items: center; color: var(--led-accent); margin-bottom: 10px; }
+.led-show-step.hot .ic { border-color: rgba(240, 67, 90, 0.6); box-shadow: 0 0 18px rgba(240, 67, 90, 0.35); }
+.led-show-step .t { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 5px; }
+.led-show-step .d { font-size: 12px; line-height: 1.5; color: var(--led-ink-dim); padding-right: 8px; }
+
+/* Featured itinerary card (Lofoten) */
+.led-feat { position: relative; border-radius: 24px; overflow: hidden; border: 1px solid var(--led-line2); min-height: 420px; display: flex; flex-direction: column; justify-content: space-between; background-size: cover; background-position: center; box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5); }
+.led-feat::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 12, 17, 0.35) 0%, rgba(11, 12, 17, 0.05) 40%, rgba(11, 12, 17, 0.88) 100%); }
+.led-feat > * { position: relative; }
+.led-feat-top { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px; }
+.led-feat-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #fff; background: rgba(20, 22, 31, 0.75); border: 1px solid rgba(240, 67, 90, 0.5); border-radius: 999px; padding: 7px 14px; backdrop-filter: blur(8px); }
+.led-feat-body { padding: 20px; }
+.led-feat-name { font-family: var(--led-serif); font-size: clamp(30px, 3.4vw, 44px); color: #fff; line-height: 1.05; }
+.led-feat-country { font-family: var(--led-serif); font-style: italic; font-size: 19px; color: var(--led-accent-2); margin: 4px 0 12px; }
+.led-feat-meta { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: #fff; background: rgba(20, 22, 31, 0.75); border: 1px solid var(--led-line2); border-radius: 999px; padding: 7px 14px; margin-bottom: 12px; backdrop-filter: blur(8px); }
+.led-feat-desc { font-size: 14px; color: rgba(255, 255, 255, 0.85); max-width: 380px; line-height: 1.55; margin-bottom: 14px; }
+.led-feat-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.led-feat-tags span { font-size: 11.5px; color: rgba(255, 255, 255, 0.85); border: 1px solid var(--led-line2); background: rgba(20, 22, 31, 0.6); border-radius: 999px; padding: 6px 12px; }
+.led-feat-days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.led-feat-days::-webkit-scrollbar { display: none; }
+.led-feat-day { flex: none; display: flex; align-items: center; gap: 9px; background: rgba(20, 22, 31, 0.85); border: 1px solid var(--led-line2); border-radius: 12px; padding: 8px 10px; backdrop-filter: blur(8px); }
+.led-feat-day-img { width: 42px; height: 34px; border-radius: 8px; background-size: cover; background-position: center; }
+.led-feat-day .a { font-size: 10px; color: var(--led-ink-faint); }
+.led-feat-day .b { font-size: 11.5px; color: #fff; font-weight: 500; max-width: 110px; }
+.led-feat-day.more { color: var(--led-ink-dim); font-size: 12px; padding: 8px 14px; }
+
+/* Grid mete reali */
+.led-show-gridhead { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+.led-show-explore { background: none; border: 0; padding: 6px 0; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--led-accent); cursor: pointer; }
+.led-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }
+.led-card { position: relative; border-radius: 18px; overflow: hidden; border: 1px solid var(--led-line); min-height: 300px; display: flex; flex-direction: column; justify-content: space-between; background-size: cover; background-position: center; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.led-card:hover { transform: translateY(-4px); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); }
+.led-card::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 12, 17, 0.3) 0%, rgba(11, 12, 17, 0) 35%, rgba(11, 12, 17, 0.9) 100%); }
+.led-card > * { position: relative; }
+.led-card-badge { align-self: flex-start; margin: 14px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; background: rgba(20, 22, 31, 0.8); border: 1px solid var(--led-line2); border-radius: 999px; padding: 6px 11px; backdrop-filter: blur(8px); }
+.led-card-body { padding: 16px; }
+.led-card-name { font-family: var(--led-serif); font-size: 23px; color: #fff; line-height: 1.1; }
+.led-card-country { font-size: 12px; color: rgba(255, 255, 255, 0.7); margin: 2px 0 8px; }
+.led-card-meta { font-size: 11.5px; color: var(--led-accent-2); margin-bottom: 6px; }
+.led-card-desc { font-size: 12.5px; line-height: 1.5; color: rgba(255, 255, 255, 0.78); }
+
+/* Quote band */
+.led-quote { margin-top: 70px; padding-top: 46px; border-top: 1px solid var(--led-line); display: grid; gap: 24px; align-items: center; }
+@media (min-width: 900px) { .led-quote { grid-template-columns: auto 1fr auto; gap: 48px; } }
+.led-quote-mark { font-family: var(--led-serif); font-size: 64px; line-height: 0.6; color: var(--led-accent); }
+.led-quote-text { font-family: var(--led-serif); font-style: italic; font-size: clamp(19px, 2vw, 25px); line-height: 1.4; color: rgba(255, 255, 255, 0.88); }
+.led-quote-stats { display: flex; gap: 34px; }
+.led-quote-stat .n { font-family: var(--led-serif); font-size: 26px; color: #fff; }
+.led-quote-stat .l { font-size: 11.5px; color: var(--led-ink-dim); margin-top: 3px; }
+
+/* ── ④ MADE FOR YOU + EMAIL ─────────────────────────────────── */
+.led-made { padding: 100px 0 60px; background: var(--led-bg); }
+.led-made-grid { display: grid; grid-template-columns: 1fr; gap: 48px; align-items: center; }
+@media (min-width: 1024px) { .led-made-grid { grid-template-columns: 0.9fr 1.1fr; gap: 64px; } }
+.led-made-grid h2 { font-size: clamp(38px, 4.6vw, 60px); line-height: 1.05; margin: 16px 0 18px; }
+.led-made-grid > div > p { font-size: 15.5px; line-height: 1.6; color: var(--led-ink-dim); max-width: 420px; }
+.led-feature { display: flex; gap: 16px; align-items: flex-start; padding: 18px 0; border-top: 1px solid var(--led-line); }
+.led-features { margin-top: 30px; }
+.led-feature .ic { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--led-line2); display: grid; place-items: center; color: var(--led-accent); flex: none; }
+.led-feature .t { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+.led-feature .d { font-size: 13px; color: var(--led-ink-dim); line-height: 1.5; }
+
+/* Product preview (dichiarata anteprima — dati demo, non utenti veri) */
+.led-preview { position: relative; background: var(--led-card); border: 1px solid var(--led-line2); border-radius: 24px; padding: 22px; box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45); }
+.led-preview-label { position: absolute; top: -12px; right: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--led-ink-dim); background: var(--led-card2); border: 1px solid var(--led-line2); border-radius: 999px; padding: 5px 12px; }
+.led-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 6px 4px 18px; flex-wrap: wrap; }
+.led-preview-head .a { font-size: 16px; font-weight: 600; color: #fff; }
+.led-preview-head .b { font-size: 12.5px; color: var(--led-ink-dim); margin-top: 3px; }
+.led-preview-match { font-size: 12px; color: var(--led-ink-dim); border: 1px solid var(--led-line2); border-radius: 999px; padding: 8px 14px; white-space: nowrap; }
+.led-preview-match strong { color: var(--led-accent); }
+.led-preview-cards { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 640px) { .led-preview-cards { grid-template-columns: repeat(3, 1fr); } }
+.led-pcard { border: 1px solid var(--led-line); border-radius: 16px; overflow: hidden; background: var(--led-bg2); display: flex; flex-direction: column; }
+.led-pcard-img { position: relative; height: 130px; background-size: cover; background-position: center; }
+.led-pcard-img .badge { position: absolute; top: 10px; left: 10px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #fff; background: var(--led-grad); border-radius: 999px; padding: 5px 10px; }
+.led-pcard-body { padding: 13px 14px 15px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.led-pcard-name { font-family: var(--led-serif); font-size: 19px; color: #fff; line-height: 1.1; }
+.led-pcard-name em { font-style: italic; font-size: 13px; color: var(--led-accent-2); margin-left: 6px; }
+.led-pcard-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.led-pcard-tags span { font-size: 10px; color: var(--led-ink-dim); border: 1px solid var(--led-line); border-radius: 999px; padding: 3px 8px; }
+.led-pcard-meta { font-size: 11px; color: var(--led-ink-dim); line-height: 1.6; }
+.led-pcard-meta strong { color: rgba(255, 255, 255, 0.9); font-weight: 600; }
+.led-pcard-cta { margin-top: auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border: 0; border-radius: 999px; font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; background: var(--led-grad); color: #fff; }
+.led-pcard-cta.ghost { background: transparent; border: 1px solid rgba(240, 67, 90, 0.5); color: var(--led-accent); }
+.led-preview-honest { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--led-ink-dim); padding: 16px 4px 0; }
+
+/* Email band */
+.led-mail { margin-top: 90px; border: 1px solid var(--led-line); border-radius: 24px; overflow: hidden; background: var(--led-card); display: grid; grid-template-columns: 1fr; }
+@media (min-width: 1024px) { .led-mail { grid-template-columns: 0.55fr 1fr 0.75fr; } }
+.led-mail-img { min-height: 180px; background-size: cover; background-position: center; position: relative; }
+@media (min-width: 1024px) { .led-mail-img { clip-path: ellipse(95% 140% at 0% 50%); } }
+.led-mail-img .env { position: absolute; right: -26px; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border-radius: 50%; background: var(--led-grad); display: none; place-items: center; color: #fff; box-shadow: 0 10px 30px rgba(240, 67, 90, 0.45); z-index: 2; }
+@media (min-width: 1024px) { .led-mail-img .env { display: grid; } }
+.led-mail-body { padding: 36px 28px; }
+@media (min-width: 1024px) { .led-mail-body { padding: 44px 40px 44px 56px; } }
+.led-mail-title { font-family: var(--led-serif); font-size: clamp(26px, 3vw, 36px); line-height: 1.15; color: #fff; margin-bottom: 12px; }
+.led-mail-title em { font-style: italic; color: var(--led-accent); }
+.led-mail-sub { font-size: 14px; color: var(--led-ink-dim); line-height: 1.55; max-width: 420px; margin-bottom: 22px; }
+.led-mail-form { display: flex; gap: 10px; max-width: 460px; }
+.led-mail-input { flex: 1; min-height: 50px; border-radius: 999px; border: 1px solid var(--led-line2); background: rgba(11, 12, 17, 0.6); color: #fff; font-family: inherit; font-size: 16px; padding: 0 20px; outline: none; transition: border-color 0.15s ease; }
+.led-mail-input::placeholder { color: var(--led-ink-faint); }
+.led-mail-input:focus { border-color: rgba(240, 67, 90, 0.6); }
+.led-mail-note { font-size: 11.5px; color: var(--led-ink-faint); margin-top: 12px; }
+.led-mail-note.ok { color: var(--led-accent-2); font-size: 13px; }
+.led-mail-note.err { color: #ffb4a8; font-size: 12.5px; }
+.led-mail-feats { padding: 28px; display: flex; flex-direction: column; gap: 18px; justify-content: center; border-top: 1px solid var(--led-line); }
+@media (min-width: 1024px) { .led-mail-feats { border-top: 0; border-left: 1px solid var(--led-line); padding: 36px 32px; } }
+.led-mail-feat { display: flex; gap: 13px; align-items: flex-start; }
+.led-mail-feat .ic { width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(240, 67, 90, 0.4); display: grid; place-items: center; color: var(--led-accent); flex: none; }
+.led-mail-feat .t { font-size: 13.5px; font-weight: 600; color: #fff; }
+.led-mail-feat .d { font-size: 12px; color: var(--led-ink-dim); margin-top: 2px; line-height: 1.45; }
+
+/* ── ⑤ FINAL CTA + PARTNERS ─────────────────────────────────── */
+.led-final { padding: 100px 0 60px; background: var(--led-bg2); }
+.led-final-grid { display: grid; grid-template-columns: 1fr; gap: 44px; align-items: center; margin-bottom: 70px; }
+@media (min-width: 1024px) { .led-final-grid { grid-template-columns: 0.55fr 1fr; gap: 64px; } }
+.led-final-img { min-height: 260px; border-radius: 24px; background-size: cover; background-position: center; border: 1px solid var(--led-line2); box-shadow: 0 30px 90px rgba(0, 0, 0, 0.45); }
+@media (min-width: 1024px) { .led-final-img { min-height: 380px; } }
+.led-final-grid h2 { font-size: clamp(40px, 5vw, 68px); line-height: 1.03; margin: 16px 0 18px; }
+.led-final-sub { font-size: 15.5px; line-height: 1.6; color: var(--led-ink-dim); max-width: 480px; margin-bottom: 30px; }
+.led-values { display: grid; grid-template-columns: 1fr; gap: 4px 32px; margin-bottom: 34px; }
+@media (min-width: 640px) { .led-values { grid-template-columns: repeat(2, 1fr); } }
+.led-value { display: flex; gap: 14px; align-items: flex-start; padding: 12px 0; }
+.led-value .ic { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--led-line2); display: grid; place-items: center; color: var(--led-accent); flex: none; }
+.led-value .t { font-family: var(--led-serif); font-size: 17px; color: #fff; margin-bottom: 3px; }
+.led-value .d { font-size: 12.5px; color: var(--led-ink-dim); line-height: 1.5; }
+.led-final-proof { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 13px; color: var(--led-ink-dim); }
+.led-final-proof .ck { color: var(--led-accent); margin-right: 6px; }
+
+/* Partner strip — wordmark testuali dei partner REALI (dottrina affiliate) */
+.led-partners { border: 1px solid var(--led-line); border-radius: 18px; padding: 22px 26px; display: flex; align-items: center; gap: 20px 36px; flex-wrap: wrap; justify-content: center; background: rgba(20, 22, 31, 0.5); }
+.led-partners-head { flex: 100%; text-align: center; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--led-ink-faint); font-weight: 600; }
+@media (min-width: 1024px) { .led-partners-head { flex: none; text-align: left; max-width: 190px; } }
+.led-partner { font-size: 17px; font-weight: 700; color: rgba(255, 255, 255, 0.45); letter-spacing: -0.01em; white-space: nowrap; transition: color 0.15s ease; }
+.led-partner:hover { color: rgba(255, 255, 255, 0.75); }
+.led-partner.serif { font-family: var(--led-serif); font-weight: 500; }
+
+/* ── FOOTER ─────────────────────────────────────────────────── */
+.led-footer { background: var(--led-bg); border-top: 1px solid var(--led-line); padding: 64px 0 28px; }
+.led-footer-grid { display: grid; grid-template-columns: 1fr; gap: 36px; margin-bottom: 46px; }
+@media (min-width: 768px) { .led-footer-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .led-footer-grid { grid-template-columns: 1.4fr 0.8fr 0.8fr 1.3fr; gap: 24px; } }
+.led-footer-mark { display: flex; align-items: center; gap: 10px; font-family: var(--led-serif); font-size: 21px; color: #fff; margin-bottom: 14px; }
+.led-footer-tagline { font-size: 13.5px; color: var(--led-ink-dim); line-height: 1.6; max-width: 260px; }
+.led-footer-tagline + .led-footer-tagline { margin-top: 10px; }
+.led-footer-head { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--led-ink-faint); font-weight: 700; margin-bottom: 16px; }
+.led-footer-link { display: block; font-size: 13.5px; color: var(--led-ink-dim); text-decoration: none; padding: 6px 0; min-height: 32px; transition: color 0.15s ease; }
+.led-footer-link:hover { color: #fff; }
+.led-footer-form { display: flex; gap: 8px; margin-top: 14px; }
+.led-footer-input { flex: 1; min-width: 0; min-height: 46px; border-radius: 999px; border: 1px solid var(--led-line2); background: rgba(20, 22, 31, 0.7); color: #fff; font-family: inherit; font-size: 16px; padding: 0 18px; outline: none; }
+.led-footer-input::placeholder { color: var(--led-ink-faint); font-size: 13.5px; }
+.led-footer-input:focus { border-color: rgba(240, 67, 90, 0.6); }
+.led-footer-send { flex: none; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--led-grad); color: #fff; font-size: 17px; cursor: pointer; display: grid; place-items: center; }
+.led-footer-socials { display: flex; gap: 10px; margin-top: 18px; }
+.led-footer-social { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--led-line2); display: grid; place-items: center; color: var(--led-ink-dim); transition: color 0.15s ease, border-color 0.15s ease; }
+.led-footer-social:hover { color: #fff; border-color: var(--led-line2); }
+.led-footer-base { border-top: 1px solid var(--led-line); padding-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap; font-size: 12px; color: var(--led-ink-faint); }
+
+/* Motion preferenze ridotte */
+@media (prefers-reduced-motion: reduce) {
+  .led * { transition: none !important; animation: none !important; }
+}

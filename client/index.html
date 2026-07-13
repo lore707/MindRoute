@@ -18,24 +18,26 @@
          with zero extra requests, before the JS bundle/stylesheet load. -->
     <style>
       #pre-hero{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;
-        justify-content:flex-end;background:#1a0e1a;overflow:hidden;
+        justify-content:center;background:#0b0c11;overflow:hidden;
         transition:opacity .6s ease}
       #pre-hero.ph-hide{opacity:0;pointer-events:none}
-      #pre-hero .ph-photo{position:absolute;inset:0;background-size:cover;background-position:center;
+      #pre-hero .ph-photo{position:absolute;inset:0;background-size:cover;background-position:center 35%;
         background-image:url("https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=900&fit=crop&crop=entropy&auto=format&q=70")}
+      /* Stesse veil del nuovo hero (.led-hero-bg::after) così il crossfade
+         pre-hero → React è invisibile. */
       #pre-hero .ph-veil{position:absolute;inset:0;background:
-        linear-gradient(to top,rgba(26,14,26,.92) 0%,rgba(26,14,26,.30) 38%,transparent 60%,rgba(26,14,26,.18) 100%),
-        linear-gradient(120deg,rgba(233,69,96,.18) 0%,transparent 45%,rgba(212,168,83,.14) 100%)}
-      #pre-hero .ph-in{position:relative;z-index:2;width:100%;max-width:1320px;margin:0 auto;padding:0 64px 60px}
+        linear-gradient(90deg,rgba(11,12,17,.88) 0%,rgba(11,12,17,.55) 45%,rgba(11,12,17,.25) 100%),
+        linear-gradient(180deg,rgba(11,12,17,.55) 0%,rgba(11,12,17,.05) 30%,rgba(11,12,17,.92) 100%)}
+      #pre-hero .ph-in{position:relative;z-index:2;width:100%;max-width:1240px;margin:0 auto;padding:0 40px}
       #pre-hero .ph-title{font-family:"Playfair Display",Georgia,serif;font-weight:400;color:#fff;
-        font-size:clamp(56px,8vw,128px);line-height:.92;letter-spacing:-.025em;margin:0 0 22px;
-        text-shadow:0 4px 32px rgba(0,0,0,.4)}
-      #pre-hero .ph-title i{color:#E94560;font-style:italic}
-      #pre-hero .ph-tag{font-family:"Playfair Display",Georgia,serif;font-style:italic;color:rgba(255,255,255,.85);
-        font-size:clamp(17px,1.4vw,20px);line-height:1.5;max-width:520px;margin:0;text-shadow:0 2px 16px rgba(0,0,0,.4)}
+        font-size:clamp(46px,7vw,96px);line-height:1.0;letter-spacing:-.02em;margin:0 0 26px;
+        text-shadow:0 4px 32px rgba(0,0,0,.45)}
+      #pre-hero .ph-title i{color:#f0435a;font-style:italic}
+      #pre-hero .ph-tag{color:rgba(255,255,255,.85);
+        font-size:clamp(16px,1.5vw,19px);line-height:1.55;max-width:520px;margin:0;text-shadow:0 2px 16px rgba(0,0,0,.4)}
       @media (max-width:768px){
-        #pre-hero .ph-in{padding:0 18px 36px}
-        #pre-hero .ph-title{font-size:clamp(40px,11vw,58px);line-height:.95;margin-bottom:14px}
+        #pre-hero .ph-in{padding:0 20px}
+        #pre-hero .ph-title{font-size:clamp(40px,11vw,58px);line-height:1.0;margin-bottom:16px}
         #pre-hero .ph-tag{font-size:15px;max-width:none}
       }
       @media (prefers-reduced-motion:reduce){#pre-hero{transition:none}}
@@ -99,8 +101,8 @@
       <div class="ph-photo"></div>
       <div class="ph-veil"></div>
       <div class="ph-in">
-        <h1 class="ph-title">Travel starts with <i>who you are.</i></h1>
-        <p class="ph-tag">Every trip starts from an emotion. MindRoute turns it into a real place: destination, itinerary and bookings ready in under 3 minutes.</p>
+        <h1 class="ph-title">Travel starts with<br /><i>who you are.</i></h1>
+        <p class="ph-tag">Answer 4 questions. Get 3 destinations chosen for your personality, with a complete itinerary ready to book.</p>
       </div>
     </div>
     <script>

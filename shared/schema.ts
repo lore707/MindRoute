@@ -406,6 +406,18 @@ export const profilingRequestSchema = z.object({
   budgetTotalPerPerson: z.number().positive().optional(),
 });
 export type ProfilingRequest = z.infer<typeof profilingRequestSchema>;
+// Newsletter opt-in dalla landing (fascia "Never miss the right moment" +
+// footer). Solo raccolta: l'invio (Resend + cron) è il TODO post-lancio di
+// project_email_followup. email unique → doppio submit = no-op.
+export const newsletterSignups = pgTable("newsletter_signups", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  lang: text("lang").notNull().default("it"),
+  source: text("source").notNull().default("landing"), // "landing" | "footer"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type NewsletterSignup = typeof newsletterSignups.$inferSelect;
+
 // Session storage for connect-pg-simple.
 // Managed by the express-session middleware, NOT by Drizzle migrations.
 // Declared here only so drizzle-kit doesn't try to drop it during db:push.

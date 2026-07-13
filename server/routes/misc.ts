@@ -361,15 +361,53 @@ export function registerMiscRoutes(app: Express) {
     }
   });
 
+  // Numeri REALI per la landing (scelta esplicita: niente social proof
+  // inventato — i contatori vengono dal DB e crescono da soli). destinationCount
+  // = mete distinte effettivamente generate. Cache 5 min: i numeri cambiano
+  // lentamente e la landing è la pagina più martellata.
   app.get("/api/stats", async (_req, res) => {
     try {
       const { db } = await import("../db");
       const { itineraries } = await import("@shared/schema");
       const { sql } = await import("drizzle-orm");
-      const result = await db.select({ count: sql<number>`count(*)::int` }).from(itineraries);
-      res.json({ itineraryCount: result[0]?.count ?? 0 });
+      const [itin, dest] = await Promise.all([
+        db.select({ count: sql<number>`count(*)::int` }).from(itineraries),
+        db.select({ count: sql<number>`count(distinct lower(trim(destination_name)))::int` }).from(itineraries),
+      ]);
+      res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+      res.json({
+        itineraryCount: itin[0]?.count ?? 0,
+        destinationCount: dest[0]?.count ?? 0,
+      });
     } catch {
-      res.json({ itineraryCount: 0 });
+      res.json({ itineraryCount: 0, destinationCount: 0 });
+    }
+  });
+
+  // Newsletter opt-in dalla landing. Doppio submit sulla stessa email = ok
+  // idempotente (onConflictDoNothing). Finché newsletter_signups non esiste in
+  // prod (serve `npm run db:push`) risponde 503 — il client mostra l'errore,
+  // non finge di aver salvato.
+  app.post("/api/newsletter", async (req, res) => {
+    const { z } = await import("zod");
+    const body = z.object({
+      email: z.string().trim().toLowerCase().email().max(254),
+      lang: z.enum(["en", "it"]).default("it"),
+      source: z.enum(["landing", "footer"]).default("landing"),
+    }).safeParse(req.body);
+    if (!body.success) {
+      return res.status(400).json({ message: "Email non valida" });
+    }
+    try {
+      const { db } = await import("../db");
+      const { newsletterSignups } = await import("@shared/schema");
+      await db.insert(newsletterSignups)
+        .values(body.data)
+        .onConflictDoNothing({ target: newsletterSignups.email });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("newsletter signup error:", err);
+      res.status(503).json({ message: "Registrazione non disponibile, riprova più tardi" });
     }
   });
 }

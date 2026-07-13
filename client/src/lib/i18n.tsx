@@ -8,6 +8,7 @@ import { accountDashDict } from "./i18n-dict/accountDash";
 import { itineraryDashDict } from "./i18n-dict/itineraryDash";
 import { residualDict } from "./i18n-dict/residual";
 import { miscDict } from "./i18n-dict/misc";
+import { landingEdDict } from "./i18n-dict/landingEd";
 
 type Lang = "en" | "it";
 
@@ -623,6 +624,7 @@ Object.assign(
   itineraryDashDict,
   residualDict,
   miscDict,
+  landingEdDict,
 );
 
 interface I18nContextType {
@@ -667,7 +669,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useI18n() {
   return useContext(I18nContext);
 }
-
 
 
 

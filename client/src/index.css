@@ -4,8 +4,8 @@
    renders them (MyAccount, Itinerary, SharedItinerary, Profiling), so Vite
    code-splits each into its route chunk. This keeps the landing's critical,
    render-blocking CSS small (was ~67KB with ~62KB unused on "/"). Only
-   landing-cinematic stays global: the landing route is eager and needs it. */
-@import "./styles/landing-cinematic.css";
+   landing-editorial stays global: the landing route is eager and needs it. */
+@import "./styles/landing-editorial.css";
 
 @tailwind base;
 @tailwind components;
