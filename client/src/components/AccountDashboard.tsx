@@ -64,6 +64,28 @@ const NAV: Array<{ id: ViewId; ic: keyof typeof ICONS; key: string }> = [
   { id: "atlas", ic: "atlas", key: "acd.nav.atlas" },
 ];
 
+// Le 5 "missioni" della checklist prenotazioni (stessi id scritti da
+// Itinerary.tsx e ItineraryRedesign.tsx in mindroute_checklist_{id}).
+const MISSIONS = ["flight", "hotel", "experience", "restaurant", "transfer"] as const;
+
+// Legge la checklist in ENTRAMBI i formati storici: array di {id,checked}
+// (Itinerary.tsx) e array di id già prenotati (ItineraryRedesign, Set
+// serializzato). Ritorna gli id fatti, o null se mai toccata.
+function readChecklistDone(itineraryId: string | number): Set<string> | null {
+  try {
+    const raw = localStorage.getItem(`mindroute_checklist_${itineraryId}`);
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (Array.isArray(p)) {
+      if (p.length === 0) return new Set();
+      if (typeof p[0] === "string") return new Set(p as string[]);
+      return new Set((p as any[]).filter(x => x?.checked).map(x => String(x.id)));
+    }
+    if (p && typeof p === "object") return new Set(Object.keys(p).filter(k => !!(p as any)[k]));
+    return null;
+  } catch { return null; }
+}
+
 /* HTML inline (i18n con <em>) */
 function Html({ html, as = "span", className }: { html: string; as?: any; className?: string }) {
   const Tag = as;
@@ -180,22 +202,15 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
 
   // "Completa le prenotazioni": viaggi con checklist (localStorage) avviata ma
   // incompleta — nudge onesto e azionabile (non mostra mai i viaggi mai aperti).
-  const MISSION_TOTAL = 5;
+  const MISSION_TOTAL = MISSIONS.length;
   const bookingNudge = useMemo(() => {
     const out: Array<{ title: string; href: string; img: string; booked: number; total: number }> = [];
     for (const tr of data.trips) {
       const m = (tr.href || "").match(/\/itinerary\/(\d+)/);
       if (!m) continue;
-      let booked = 0, has = false;
-      try {
-        const raw = localStorage.getItem(`mindroute_checklist_${m[1]}`);
-        if (raw) {
-          has = true;
-          const p = JSON.parse(raw);
-          booked = Array.isArray(p) ? p.filter((x: any) => x?.checked).length : Object.values(p).filter(Boolean).length;
-        }
-      } catch { /* ignore */ }
-      if (has && booked > 0 && booked < MISSION_TOTAL) out.push({ title: tr.dest, href: tr.href!, img: tr.img, booked, total: MISSION_TOTAL });
+      const done = readChecklistDone(m[1]);
+      const booked = done ? done.size : 0;
+      if (done && booked > 0 && booked < MISSION_TOTAL) out.push({ title: tr.dest, href: tr.href!, img: tr.img, booked, total: MISSION_TOTAL });
       if (out.length >= 3) break;
     }
     return out;
@@ -307,25 +322,17 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     const byId = (id: number) => data.trips.find(tr => tr.href?.includes(`/itinerary/${id}`));
     const trip = (lastId ? byId(lastId) : undefined) ?? data.trips[0];
     const fromFeatured = !trip && featured
-      ? { title: featured.title, img: featured.img, href: featured.href ?? "#", region: "" }
+      ? { title: featured.title, img: featured.img, href: featured.href ?? "#", region: "", date: featured.date ?? "", quote: featured.quote ?? "" }
       : null;
     const base = trip
-      ? { title: trip.dest, img: trip.img, href: trip.href ?? "#", region: regionLabel(trip.continent) }
+      ? { title: trip.dest, img: trip.img, href: trip.href ?? "#", region: regionLabel(trip.continent), date: trip.date ?? "", quote: trip.quote ?? "" }
       : fromFeatured;
     if (!base) return null;
-    let progress: { n: number; tot: number } | null = null;
     const m = base.href.match(/\/itinerary\/(\d+)/);
-    if (m) {
-      try {
-        const raw = localStorage.getItem(`mindroute_checklist_${m[1]}`);
-        if (raw) {
-          const p = JSON.parse(raw);
-          const n = Array.isArray(p) ? p.filter((x: any) => x?.checked).length : Object.values(p).filter(Boolean).length;
-          if (n > 0) progress = { n: Math.min(n, MISSION_TOTAL), tot: MISSION_TOTAL };
-        }
-      } catch { /* ignore */ }
-    }
-    return { ...base, progress };
+    const itineraryId = m ? Number(m[1]) : null;
+    const done = itineraryId != null ? readChecklistDone(itineraryId) : null;
+    const progress = done && done.size > 0 ? { n: Math.min(done.size, MISSION_TOTAL), tot: MISSION_TOTAL } : null;
+    return { ...base, itineraryId, done, progress };
   }, [data.trips, featured]);
 
   // Meteo: mappa weather_code (WMO) → chiave i18n + riga "perfetto per partire".
@@ -380,6 +387,19 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   }, [view, data.atlas]);
 
   const scrollToRecs = () => document.getElementById("h2-recs")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Card meteo (rail) — condivisa tra Home e Riprendi. Nascosta se il meteo
+  // non è disponibile (mai dati inventati).
+  const WeatherCard = () => weather ? (
+    <div className="h2-card h2-wx">
+      <div className="h2-rail-eyebrow">☀ {t("acd.h2.weatherK")}</div>
+      {weather.label && <div className="h2-wx-city">{weather.label}</div>}
+      <div className="h2-wx-temp">{weather.tempC}°C <span className="cond">{t(wxKey(weather.code))}</span></div>
+      {wxGood && <div className="h2-wx-good">{t("acd.h2.weatherGood")}</div>}
+      {/* Da Riprendi porta alle proposte in Home; il timeout lascia montare la vista. */}
+      <button className="h2-link" onClick={() => { go("home"); window.setTimeout(scrollToRecs, 80); }}>{t("acd.h2.weatherSee")} →</button>
+    </div>
+  ) : null;
 
   const HomeView = () => (
     <div className="view">
@@ -481,15 +501,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
 
           {/* ── colonna destra ── */}
           <aside className="h2-rail">
-            {weather && (
-              <div className="h2-card h2-wx">
-                <div className="h2-rail-eyebrow">☀ {t("acd.h2.weatherK")}</div>
-                {weather.label && <div className="h2-wx-city">{weather.label}</div>}
-                <div className="h2-wx-temp">{weather.tempC}°C <span className="cond">{t(wxKey(weather.code))}</span></div>
-                {wxGood && <div className="h2-wx-good">{t("acd.h2.weatherGood")}</div>}
-                <button className="h2-link" onClick={scrollToRecs}>{t("acd.h2.weatherSee")} →</button>
-              </div>
-            )}
+            {WeatherCard()}
 
             <div className="h2-card h2-portrait">
               <div className="h2-card-head">
@@ -553,67 +565,202 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     </div>
   );
 
-  /* ──────────────── RIPRENDI ──────────────── */
-  const ResumeView = () => (
-    <div className="view">
-      <ViewHead
-        eyebrow={t("acd.resume.eyebrow")}
-        title={t("acd.resume.title")}
-        sub={t("acd.resume.sub")}
-        right={<button className="btn-p" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>}
-      />
-      <div className="resume-full">
-        {featured ? (
-          <a className="rf-hero" href={featured.href ?? "#"}>
-            <div className="ph" style={{ backgroundImage: bg(featured.img, featW) }} />
-            <div className="rf-body">
-              <div className="rf-prog">
-                {featured.date && <div className="r-badge"><span className="p" />{tx("acd.resume.badge", { date: featured.date })}</div>}
-              </div>
-              <h2 className="r-name">{featured.title}</h2>
-              {featured.quote && <p className="r-quote" style={{ WebkitLineClamp: 4 }}>{featured.quote}</p>}
-              <div className="r-act">
-                <span className="btn-p">{t("acd.open")}</span>
-                <button className="btn-g" onClick={(e) => { e.preventDefault(); data.onNewItinerary?.(); }}>{t("acd.resume.continue")}</button>
-              </div>
-            </div>
-          </a>
-        ) : (
-          <div className="c-empty" style={{ border: "1px solid var(--stroke)", borderRadius: "var(--radius)" }}>{t("acd.resume.empty")}</div>
-        )}
+  /* ──────────────── RIPRENDI (redesign 2026-07 dal mockup) ──────────────── */
+  const ResumeView = () => {
+    const fc = continueCard;
+    const allSaved = data.savedMoments ?? [];
+    const fcMoments = fc?.itineraryId != null
+      ? allSaved.filter(m => m.itineraryId === fc.itineraryId && m.momentSnapshot).slice(0, 3)
+      : [];
+    const fcSavedTotal = fc?.itineraryId != null
+      ? allSaved.filter(m => m.itineraryId === fc.itineraryId).length
+      : 0;
+    // "Altri N aperti": i "da riprendere" (Ondata B) quando esistono, altrimenti
+    // i viaggi più recenti diversi dal featured. Mai match% qui: non lo abbiamo.
+    const others = resumeRest.length > 0
+      ? resumeRest.map(r => ({ title: r.title, img: r.img, href: r.href ?? "#", date: r.date ?? "", quote: r.quote ?? "", days: 0 }))
+      : data.trips
+          .filter(tr => tr.href && tr.href !== fc?.href)
+          .slice(0, 2)
+          .map(tr => ({ title: tr.dest, img: tr.img, href: tr.href!, date: tr.date ?? "", quote: tr.quote ?? "", days: daysOf(tr.duration) }));
+    const pct = fc?.progress ? Math.round((fc.progress.n / fc.progress.tot) * 100) : 0;
+    const also = picks?.picks[0];
 
-        {resumeRest.length > 0 && (
+    return (
+      <div className="view">
+        <div className="r2-head">
           <div>
-            <div className="sec-head">
-              <div>
-                <div className="sec-eyebrow">{t("acd.resume.savedEyebrow")}</div>
-                <Html as="h2" className="sec-title"
-                  html={resumeRest.length === 1 ? t("acd.resume.savedTitleOne") : tx("acd.resume.savedTitleMany", { n: resumeRest.length })} />
-              </div>
+            <div className="r2-crumbs">
+              <button onClick={() => go("home")}>✦ {t("acd.r2.crumbHome")}</button>
+              <span>/</span>
+              <span className="on">{t("acd.r2.crumb")}</span>
             </div>
-            <div className="coll-grid">
-              {resumeRest.map((tr, i) => (
-                <a key={i} className="c-card" href={tr.href ?? "#"}>
-                  <div className="ph" style={{ backgroundImage: bg(tr.img, cardW) }} />
-                  <div className="c-status">✦</div>
-                  <div className="c-body">
-                    <div className="c-top">
-                      <span className="when">{tr.date ?? ""}</span>
-                      {tr.sub && <span className="days">{tr.sub}</span>}
+            <Html as="h1" className="r2-title" html={pct > 0 ? t("acd.r2.title") : t("acd.r2.titleFresh")} />
+            <p className="r2-sub">{t("acd.r2.sub")}</p>
+          </div>
+          <button className="btn-p" onClick={data.onNewItinerary}>+ {t("acd.tb.newItin")}</button>
+        </div>
+
+        <div className="h2-grid">
+          {/* ── colonna principale ── */}
+          <div className="h2-main">
+            {fc ? (
+              <section className="r2-feat">
+                <div className="r2-feat-bg" style={{ backgroundImage: bg(fc.img, featW, 62) }} />
+                <div className="r2-feat-veil" />
+                <div className="r2-feat-in">
+                  <div className="r2-feat-copy">
+                    <div className="r2-badge">◆ {t("acd.r2.lastOpened")}{fc.date ? ` · ${fc.date}` : ""}</div>
+                    <h2 className="r2-feat-name">{fc.title}</h2>
+                    {fc.quote && <p className="r2-feat-quote">{fc.quote}</p>}
+
+                    <div className="r2-prog">
+                      <div className="r2-prog-k">{t("acd.r2.yourProgress")}</div>
+                      <div className="r2-prog-row">
+                        <div className="r2-prog-pct">
+                          <span className="n">{pct}%</span>
+                          <span className="l">{tx("acd.r2.bookingsOf", { n: fc.progress?.n ?? 0, tot: MISSION_TOTAL })}</span>
+                        </div>
+                        <div className="r2-steps">
+                          {MISSIONS.map((mid) => {
+                            const on = !!fc.done?.has(mid);
+                            return (
+                              <span key={mid} className={"r2-step" + (on ? " on" : "")}>
+                                <span className="dot">{on ? "✓" : ""}</span>
+                                <span className="sl">{t(`acd.r2.m.${mid}`)}</span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="c-name">{tr.title}</div>
-                      {tr.quote && <div className="c-blurb">{tr.quote}</div>}
+
+                    <div className="r2-meta">
+                      {fc.date && <span className="r2-meta-cell"><span className="k">{t("acd.r2.lastOpened")}</span><span className="v">{fc.date}</span></span>}
+                      {weather && <span className="r2-meta-cell"><span className="k">{t("acd.r2.metaWeather")}</span><span className="v">{weather.tempC}°C {t(wxKey(weather.code))}</span></span>}
+                      {fcSavedTotal > 0 && <span className="r2-meta-cell"><span className="k">{t("acd.r2.metaSaved")}</span><span className="v">{fcSavedTotal}</span></span>}
+                    </div>
+
+                    <div className="r2-acts">
+                      <button className="btn-p" onClick={() => setLocation(fc.href)}>{t("acd.r2.resume")} →</button>
+                      <button className="btn-g" onClick={() => setLocation(fc.href)}>{t("acd.r2.viewFull")}</button>
                     </div>
                   </div>
-                </a>
-              ))}
-            </div>
+
+                  {fcMoments.length > 0 && (
+                    <div className="r2-dontmiss">
+                      <div className="r2-dm-k">{t("acd.r2.beforeK")}</div>
+                      <div className="r2-dm-t">{t("acd.r2.beforeT")}</div>
+                      {fcMoments.map((m, i) => (
+                        <button key={i} className="r2-dm-item" onClick={() => setLocation(fc.href)}>
+                          {m.momentSnapshot?.image_url
+                            ? <span className="ph" style={{ backgroundImage: bg(m.momentSnapshot.image_url, 120) }} />
+                            : <span className="ph fallback">✦</span>}
+                          <span className="tx">
+                            <span className="a">{m.momentSnapshot?.title}</span>
+                            {m.momentSnapshot?.location_name && <span className="b">{m.momentSnapshot.location_name}</span>}
+                          </span>
+                        </button>
+                      ))}
+                      <button className="h2-link" onClick={() => setLocation(fc.href)}>{tx("acd.r2.seeSaved", { n: fcSavedTotal })} →</button>
+                    </div>
+                  )}
+                </div>
+              </section>
+            ) : (
+              <div className="c-empty" style={{ border: "1px solid var(--stroke)", borderRadius: "var(--radius)", padding: 24 }}>{t("acd.resume.empty")}</div>
+            )}
+
+            {(others.length > 0 || also) && (
+              <section>
+                <div className="r2-saved-head">
+                  <div>
+                    <div className="sec-eyebrow">{t("acd.r2.savedK")}</div>
+                    <Html as="h2" className="sec-title"
+                      html={others.length === 1 ? t("acd.r2.anotherOne") : tx("acd.r2.anotherMany", { n: others.length })} />
+                  </div>
+                  <button className="h2-link" onClick={() => go("trips")}>{t("acd.h2.viewAll")} →</button>
+                </div>
+                <div className="r2-saved-grid">
+                  {others.map((o, i) => (
+                    <button key={i} className="r2-saved" style={{ backgroundImage: bg(o.img, cardW, 62) }} onClick={() => setLocation(o.href)}>
+                      <span className="r2-saved-top">
+                        {o.date && <span className="when">{o.date}</span>}
+                        <span className="plus">＋</span>
+                      </span>
+                      <span className="r2-saved-body">
+                        <span className="nm">{o.title}</span>
+                        {o.quote && <span className="qt"><em>{t("acd.r2.youSaid")}</em> {o.quote}</span>}
+                        {o.days > 0 && <span className="dd">{o.days} {plural(o.days, "acd.unit.day", "acd.unit.days")}</span>}
+                      </span>
+                    </button>
+                  ))}
+                  {also && (
+                    <div className="r2-also">
+                      <div className="r2-dm-k">{t("acd.r2.alsoK")}</div>
+                      <div className="r2-also-t">{t("acd.r2.alsoT")}</div>
+                      <button className="r2-also-card" onClick={data.onSecondaryCta}>
+                        <span className="ph" style={{ backgroundImage: bg(also.imageUrl, 520) }}>
+                          <span className="match">{also.matchPct}% {t("acd.h2.match")}</span>
+                        </span>
+                        <span className="nm">{also.name.split(",")[0]}</span>
+                        {also.tags.length > 0 && <span className="tg">{also.tags.join(" · ")}</span>}
+                      </button>
+                      <button className="h2-link" onClick={data.onSecondaryCta}>{t("acd.r2.explore")} →</button>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
-        )}
+
+          {/* ── colonna destra ── */}
+          <aside className="h2-rail">
+            {WeatherCard()}
+
+            <div className="h2-card r2-comp">
+              <div className="h2-card-head">
+                <h3>{t("acd.r2.compK")}</h3>
+                <span className="r2-beta">BETA</span>
+              </div>
+              <div className="r2-comp-ico">
+                <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.3 8.9 8.9 0 0 1-3.2-.6L4 20.5l1.3-4.1a8 8 0 0 1-1.3-4.9A8.4 8.4 0 0 1 12.5 3.2 8.4 8.4 0 0 1 21 11.5z"/>
+                  <path d="M8.8 11.5h.01M12.5 11.5h.01M16.2 11.5h.01"/>
+                </svg>
+              </div>
+              <div className="r2-comp-t">{t("acd.r2.compT")}</div>
+              <div className="r2-comp-sub">{t("acd.r2.compSub")}</div>
+              <button className="btn-p r2-comp-cta" onClick={() => window.dispatchEvent(new Event("mindroute:open-companion"))}>
+                {t("acd.r2.compCta")} →
+              </button>
+            </div>
+
+            {fc && (
+              <div className="h2-card r2-status">
+                <div className="h2-card-head">
+                  <h3>{t("acd.r2.statusK")}</h3>
+                  <span className="r2-status-pct">{tx("acd.r2.statusPct", { pct })}</span>
+                </div>
+                <div className="r2-status-list">
+                  {MISSIONS.map((mid) => {
+                    const on = !!fc.done?.has(mid);
+                    return (
+                      <div key={mid} className={"r2-status-row" + (on ? " on" : "")}>
+                        <span className="nm">{t(`acd.r2.m.${mid}`)}</span>
+                        <span className="st">{on ? `✓ ${t("acd.r2.done")}` : `○ ${t("acd.r2.todo")}`}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <button className="h2-link" onClick={() => setLocation(fc.href)}>{t("acd.r2.manage")} →</button>
+              </div>
+            )}
+          </aside>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   /* ──────────────── RITRATTO ──────────────── */
   const PortraitView = () => {

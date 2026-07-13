@@ -466,6 +466,7 @@ export default function MyAccount() {
     statsBold,
     atlas,
     atlasLoading,
+    savedMoments,
     settings,
     onNewItinerary: () => setLocation("/start"),
     onSecondaryCta: () => {

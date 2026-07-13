@@ -57,6 +57,13 @@ export type AccountData = {
   // Quando wired sostituisce la sezione stats; atlasLoading copre il geocoding.
   atlas?: AtlasData | null;
   atlasLoading?: boolean;
+  // Momenti "cuorati" (Ondata B) — usati dalla vista Riprendi del dashboard
+  // per il pannello "Da non perdere" del viaggio in evidenza. Opzionale:
+  // AccountCinematic non li renderizza.
+  savedMoments?: Array<{
+    itineraryId: number;
+    momentSnapshot: { title: string; image_url: string | null; location_name: string | null } | null;
+  }>;
   settings: SettingRow[];      // 3-9 settings rows
   onNewItinerary?: () => void;
   onSecondaryCta?: () => void; // bottone ghost hero (es. "Genera dal profilo" o scroll-to-collection)
