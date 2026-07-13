@@ -59,7 +59,10 @@ function buildWhy(user: TraitVector, lang: "en" | "it"): string {
     : `Matches how you travel: ${poles.join(", ")}.`;
 }
 
-export async function computeDailyPick(userId: number, lang: "en" | "it"): Promise<DailyPick | null> {
+async function rankForUser(userId: number): Promise<{
+  user: TraitVector;
+  ranked: Array<{ d: typeof destinationCatalog[number]; score: number }>;
+} | null> {
   const snaps = await storage.getTraitSnapshots(userId);
   const vecs = snaps
     .filter((s) => s.mappingVersion === MAPPING_VERSION)
@@ -81,19 +84,77 @@ export async function computeDailyPick(userId: number, lang: "en" | "it"): Promi
     .filter((x) => !visited.has(x.d.name.split(",")[0].trim().toLowerCase()))
     .sort((a, b) => b.score - a.score);
 
-  if (ranked.length === 0) return null;
+  return ranked.length > 0 ? { user, ranked } : null;
+}
+
+function dayOfYear(): number {
+  const startOfYear = new Date(new Date().getFullYear(), 0, 0).getTime();
+  return Math.floor((Date.now() - startOfYear) / 86400000);
+}
+
+export async function computeDailyPick(userId: number, lang: "en" | "it"): Promise<DailyPick | null> {
+  const r = await rankForUser(userId);
+  if (!r) return null;
 
   // Rotazione giornaliera stabile tra le top-5 (stesso pick per tutto il giorno).
-  const top = ranked.slice(0, 5);
-  const startOfYear = new Date(new Date().getFullYear(), 0, 0).getTime();
-  const dayOfYear = Math.floor((Date.now() - startOfYear) / 86400000);
-  const pick = top[dayOfYear % top.length];
+  const top = r.ranked.slice(0, 5);
+  const day = dayOfYear();
+  const pick = top[day % top.length];
 
   return {
     name: pick.d.name,
     country: pick.d.country,
-    imageUrl: await dailyHero(pick.d.name, dayOfYear, pick.d.imageUrl),
-    why: buildWhy(user, lang),
+    imageUrl: await dailyHero(pick.d.name, day, pick.d.imageUrl),
+    why: buildWhy(r.user, lang),
     coherence: Math.round(pick.score * 100) / 100,
   };
+}
+
+// ── "Recommended for you today" (home dashboard, 3 card) ────────────────
+// Stesso motore del daily pick, esteso a N proposte: finestra rotante sulle
+// top-8 così le card cambiano ogni giorno senza AI né costi. matchPct è la
+// coerenza numerica dei vettori (0-100), MAI un numero inventato. Niente
+// prezzi: non abbiamo un'API prezzi, quindi non li mostriamo (scelta 2026-07).
+export interface DailyPickCard {
+  name: string;
+  country: string;
+  region: string;
+  imageUrl: string;
+  matchPct: number;
+  tags: string[];
+}
+
+export async function computeDailyPicks(
+  userId: number,
+  lang: "en" | "it",
+  n = 3,
+): Promise<{ picks: DailyPickCard[]; why: string } | null> {
+  const r = await rankForUser(userId);
+  if (!r) return null;
+
+  const pool = r.ranked.slice(0, Math.max(n, 8));
+  const day = dayOfYear();
+  const chosen: typeof pool = [];
+  for (let i = 0; i < pool.length && chosen.length < n; i++) {
+    chosen.push(pool[(day + i * Math.max(1, Math.floor(pool.length / n))) % pool.length]);
+  }
+  // Dedup di sicurezza (la finestra rotante può collidere con pool piccoli).
+  const seen = new Set<string>();
+  const picks: DailyPickCard[] = [];
+  for (const p of chosen) {
+    if (seen.has(p.d.name)) continue;
+    seen.add(p.d.name);
+    picks.push({
+      name: p.d.name,
+      country: p.d.country,
+      region: p.d.region,
+      imageUrl: await dailyHero(p.d.name, day, p.d.imageUrl),
+      matchPct: Math.round(p.score * 100),
+      tags: (p.d.keywords || []).slice(0, 3),
+    });
+  }
+  // Ordina per match discendente: la prima card è il "best match".
+  picks.sort((a, b) => b.matchPct - a.matchPct);
+
+  return { picks, why: buildWhy(r.user, lang) };
 }

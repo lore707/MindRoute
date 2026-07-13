@@ -112,6 +112,103 @@ export function registerMiscRoutes(app: Express) {
     }
   });
 
+  // GET /api/me/daily-picks — "Recommended for you today" (home dashboard,
+  // 3 card). Stesso motore del daily pick esteso a N: catalogo + coerenza
+  // vettori, zero AI, rotazione giornaliera. matchPct reale, niente prezzi.
+  app.get("/api/me/daily-picks", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const lang = req.query.lang === "it" ? "it" : "en";
+      const { computeDailyPicks } = await import("../daily-pick");
+      const out = await computeDailyPicks(user.id, lang, 3);
+      res.json(out);
+    } catch (err) {
+      console.error("daily-picks error:", err);
+      res.status(500).json({ message: "Errore nel calcolo delle proposte" });
+    }
+  });
+
+  // GET /api/weather?lat=&lon= — widget "Right now near you" della home.
+  // Open-Meteo (gratis, senza chiave) + reverse-geocode Nominatim per
+  // l'etichetta città. Senza lat/lon (geoloc negata) fa fallback sulla città
+  // di partenza dell'ultimo profiling. Cache in-memory 10 min per coordinate
+  // arrotondate: la home è la vista più aperta, Open-Meteo non va martellato.
+  const weatherCache = new Map<string, { at: number; body: any }>();
+  const revGeoCache = new Map<string, { at: number; label: string }>();
+  app.get("/api/weather", async (req, res) => {
+    try {
+      let lat = Number(req.query.lat);
+      let lon = Number(req.query.lon);
+      let label = "";
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        // Fallback: città di partenza dell'ultimo profiling (best-effort).
+        const user = (req as any).user;
+        if (!user) return res.status(400).json({ message: "Posizione mancante" });
+        const { computeProfileDefaults } = await import("../profile-defaults");
+        const departure = (await computeProfileDefaults(user.id)).departure?.trim();
+        if (!departure) return res.status(404).json({ message: "Nessuna posizione nota" });
+        const { geocodeDestination } = await import("../geocode-place");
+        const geo = await geocodeDestination(departure);
+        if (!geo) return res.status(404).json({ message: "Posizione non risolvibile" });
+        lat = geo.lat; lon = geo.lng;
+        label = departure;
+      }
+
+      const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+      const hit = weatherCache.get(key);
+      if (hit && Date.now() - hit.at < 10 * 60_000) {
+        res.set("Cache-Control", "private, max-age=600");
+        return res.json({ ...hit.body, label: label || hit.body.label });
+      }
+
+      const wr = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,is_day&timezone=auto`,
+        { signal: AbortSignal.timeout(5000) },
+      );
+      if (!wr.ok) throw new Error(`open-meteo ${wr.status}`);
+      const w = await wr.json() as any;
+      const cur = w?.current;
+      if (!cur || typeof cur.temperature_2m !== "number") throw new Error("open-meteo shape");
+
+      // Etichetta città via reverse Nominatim (cache 6h) — solo se non l'abbiamo già.
+      if (!label) {
+        const rg = revGeoCache.get(key);
+        if (rg && Date.now() - rg.at < 6 * 3600_000) {
+          label = rg.label;
+        } else {
+          try {
+            const nr = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=jsonv2&zoom=10&accept-language=it`,
+              { headers: { "User-Agent": "MindRoute/1.0 (mindroutetravel@gmail.com)" }, signal: AbortSignal.timeout(5000) },
+            );
+            if (nr.ok) {
+              const j = await nr.json() as any;
+              const a = j?.address ?? {};
+              label = a.city || a.town || a.village || a.municipality || j?.name || "";
+              if (label) revGeoCache.set(key, { at: Date.now(), label });
+            }
+          } catch { /* label vuota: il client mostra solo il meteo */ }
+        }
+      }
+
+      const body = {
+        label,
+        tempC: Math.round(cur.temperature_2m),
+        code: cur.weather_code as number,
+        isDay: cur.is_day === 1,
+      };
+      weatherCache.set(key, { at: Date.now(), body });
+      if (weatherCache.size > 500) weatherCache.delete(weatherCache.keys().next().value as string);
+      res.set("Cache-Control", "private, max-age=600");
+      res.json(body);
+    } catch (err) {
+      console.error("weather error:", err);
+      res.status(503).json({ message: "Meteo non disponibile" });
+    }
+  });
+
   // GET /api/me/portrait-card.png — Share Card 9:16 (storie IG/TikTok) col
   // Ritratto + Paradosso. Driver di crescita organica (3B). Best-effort: 404 se
   // il ritratto non è ancora disponibile (nessun segnale). `bg` opzionale = hero

@@ -15,12 +15,13 @@
  * Stili in styles/account-dashboard.css, scoped sotto `.account-dash`.
  * ─────────────────────────────────────────────────────────────── */
 
-import { useEffect, useMemo, useState, lazy, Suspense, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { unsplashSized } from "@/lib/img";
 import { FlowNavLogo } from "@/components/FlowNav";
 import LangDropdown from "@/components/LangDropdown";
 import { useI18n } from "@/lib/i18n";
+import { getLastOpenedItinerary } from "@/lib/last-opened";
 import type { AccountData } from "./AccountCinematic";
 
 const AccountAtlas = lazy(() => import("./AccountAtlas").then(m => ({ default: m.AccountAtlas })));
@@ -81,7 +82,9 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   const [ambientIdx, setAmbientIdx] = useState(0);
   const [heroIdx, setHeroIdx] = useState(0);
   const [sharing, setSharing] = useState(false);
-  const [dailyPick, setDailyPick] = useState<{ name: string; country: string; imageUrl: string; why: string } | null>(null);
+  // Home v2: 3 proposte del giorno (catalogo+vettori, zero AI) + meteo reale.
+  const [picks, setPicks] = useState<{ picks: Array<{ name: string; country: string; imageUrl: string; matchPct: number; tags: string[] }>; why: string } | null>(null);
+  const [weather, setWeather] = useState<{ label: string; tempC: number; code: number; isDay: boolean } | null>(null);
 
   // Interpolatore: t() non supporta placeholder, li sostituiamo qui.
   const tx = (key: string, vars: Record<string, string | number>) => {
@@ -143,15 +146,37 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     return { trips, days, places, continents };
   }, [data.trips, data.atlas]);
 
-  // Meta del giorno (catalogo + coerenza-vettori, server-side, zero AI).
+  // Proposte del giorno (catalogo + coerenza-vettori, server-side, zero AI).
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/me/daily-pick?lang=${lang}`)
+    fetch(`/api/me/daily-picks?lang=${lang}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (!cancelled) setDailyPick(d && d.name ? d : null); })
+      .then((d) => { if (!cancelled) setPicks(d && Array.isArray(d.picks) && d.picks.length > 0 ? d : null); })
       .catch(() => { /* best-effort */ });
     return () => { cancelled = true; };
   }, [lang]);
+
+  // Meteo "adesso vicino a te": geolocalizzazione browser (prompt una tantum),
+  // fallback server-side sulla città di partenza dell'ultimo profiling se
+  // negata/assente. Se non c'è nulla, la card semplicemente non appare.
+  useEffect(() => {
+    let cancelled = false;
+    const load = (qs: string) =>
+      fetch(`/api/weather${qs}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((w) => { if (!cancelled && w && typeof w.tempC === "number") setWeather(w); })
+        .catch(() => { /* card nascosta */ });
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => load(`?lat=${pos.coords.latitude.toFixed(3)}&lon=${pos.coords.longitude.toFixed(3)}`),
+        () => load(""),
+        { timeout: 5000, maximumAge: 30 * 60_000 },
+      );
+    } else {
+      load("");
+    }
+    return () => { cancelled = true; };
+  }, []);
 
   // "Completa le prenotazioni": viaggi con checklist (localStorage) avviata ma
   // incompleta — nudge onesto e azionabile (non mostra mai i viaggi mai aperti).
@@ -260,53 +285,122 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     </a>
   );
 
-  /* ──────────────── HOME ──────────────── */
+  /* ──────────────── HOME (redesign 2026-07 dal mockup) ──────────────── */
+
+  // Saluto per fascia oraria + riga stagionale (onesta: nessun claim meteo qui,
+  // il meteo vero sta nella card della colonna destra).
+  const hour = new Date().getHours();
+  const greetKey = hour < 12 ? "acd.h2.morning" : hour < 18 ? "acd.h2.afternoon" : "acd.h2.evening";
+  const seasonKey = (() => {
+    const m = new Date().getMonth();
+    if (m >= 2 && m <= 4) return "acd.h2.season.spring";
+    if (m >= 5 && m <= 7) return "acd.h2.season.summer";
+    if (m >= 8 && m <= 10) return "acd.h2.season.autumn";
+    return "acd.h2.season.winter";
+  })();
+
+  // Card "Continua il tuo viaggio": ultimo itinerario aperto (localStorage) →
+  // featured "da riprendere" → viaggio più recente. Progresso REALE dalla
+  // checklist prenotazioni (mai percentuali inventate).
+  const continueCard = useMemo(() => {
+    const lastId = getLastOpenedItinerary();
+    const byId = (id: number) => data.trips.find(tr => tr.href?.includes(`/itinerary/${id}`));
+    const trip = (lastId ? byId(lastId) : undefined) ?? data.trips[0];
+    const fromFeatured = !trip && featured
+      ? { title: featured.title, img: featured.img, href: featured.href ?? "#", region: "" }
+      : null;
+    const base = trip
+      ? { title: trip.dest, img: trip.img, href: trip.href ?? "#", region: regionLabel(trip.continent) }
+      : fromFeatured;
+    if (!base) return null;
+    let progress: { n: number; tot: number } | null = null;
+    const m = base.href.match(/\/itinerary\/(\d+)/);
+    if (m) {
+      try {
+        const raw = localStorage.getItem(`mindroute_checklist_${m[1]}`);
+        if (raw) {
+          const p = JSON.parse(raw);
+          const n = Array.isArray(p) ? p.filter((x: any) => x?.checked).length : Object.values(p).filter(Boolean).length;
+          if (n > 0) progress = { n: Math.min(n, MISSION_TOTAL), tot: MISSION_TOTAL };
+        }
+      } catch { /* ignore */ }
+    }
+    return { ...base, progress };
+  }, [data.trips, featured]);
+
+  // Meteo: mappa weather_code (WMO) → chiave i18n + riga "perfetto per partire".
+  const wxKey = (code: number) =>
+    code === 0 ? "acd.h2.wx.clear"
+    : code <= 2 ? "acd.h2.wx.partly"
+    : code === 3 ? "acd.h2.wx.cloudy"
+    : code <= 48 ? "acd.h2.wx.fog"
+    : code <= 57 ? "acd.h2.wx.drizzle"
+    : code <= 67 ? "acd.h2.wx.rain"
+    : code <= 77 ? "acd.h2.wx.snow"
+    : code <= 82 ? "acd.h2.wx.rain"
+    : code <= 86 ? "acd.h2.wx.snow"
+    : "acd.h2.wx.storm";
+  const wxGood = weather ? weather.tempC >= 16 && weather.tempC <= 28 && weather.code <= 2 : false;
+
+  // Mood row — curatela statica (stesse foto verificate del pool landing).
+  const MOODS = [
+    { e: "🌙", k: "acd.h2.mood.silence",   place: "Lofoten, Norvegia",   img: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=900&fit=crop&crop=entropy&auto=format&q=80" },
+    { e: "🌲", k: "acd.h2.mood.disappear", place: "Isole Faroe",         img: "https://images.unsplash.com/photo-1538333702852-1ce8a4cd6c54?w=900&fit=crop&crop=entropy&auto=format&q=80" },
+    { e: "☀️", k: "acd.h2.mood.sun",       place: "Azzorre, Portogallo", img: "https://images.unsplash.com/photo-1586671267731-da2cf3ceeb80?w=900&fit=crop&crop=entropy&auto=format&q=80" },
+    { e: "🏛️", k: "acd.h2.mood.culture",   place: "Kyoto, Giappone",     img: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=900&fit=crop&crop=entropy&auto=format&q=80" },
+    { e: "✦",  k: "acd.h2.mood.surprise",  place: lang === "it" ? "Ovunque, per te" : "Anywhere, for you", img: "https://images.unsplash.com/photo-1489493585363-d69421e0edd3?w=900&fit=crop&crop=entropy&auto=format&q=80" },
+  ];
+
+  // Mini-atlante (colonna destra): mappa Leaflet non interattiva con i pin
+  // reali. Leaflet è già nel bundle della route account (AccountAtlas), il
+  // dynamic import qui riusa lo stesso chunk. Init solo quando la home è
+  // visibile e ci sono luoghi; distrutta al cambio vista.
+  const miniMapEl = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const places = data.atlas?.places ?? [];
+    if (view !== "home" || places.length === 0 || !miniMapEl.current) return;
+    let map: any = null;
+    let disposed = false;
+    import("leaflet").then((mod) => {
+      const L = (mod as any).default ?? mod; // interop UMD/ESM (come fa Vite per l'import statico)
+      if (disposed || !miniMapEl.current) return;
+      map = L.map(miniMapEl.current, {
+        zoomControl: false, dragging: false, scrollWheelZoom: false,
+        doubleClickZoom: false, boxZoom: false, keyboard: false,
+        touchZoom: false, attributionControl: false,
+      });
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png").addTo(map);
+      const pts = places.map((p) => [p.lat, p.lng] as [number, number]);
+      pts.forEach((ll) => {
+        L.marker(ll, { icon: L.divIcon({ className: "h2-atlas-dot", iconSize: [8, 8] }), interactive: false }).addTo(map);
+      });
+      map.fitBounds(L.latLngBounds(pts), { padding: [18, 18], maxZoom: 5 });
+    }).catch(() => { /* la card mostra solo le stat */ });
+    return () => { disposed = true; if (map) map.remove(); };
+  }, [view, data.atlas]);
+
+  const scrollToRecs = () => document.getElementById("h2-recs")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   const HomeView = () => (
     <div className="view">
-      {/* Hero band */}
-      <section className="hero">
+      {/* Hero — saluto per ora del giorno + riga stagionale + CTA alle proposte */}
+      <section className="hero h2-hero">
         {photos.map((p, i) => (
           <div key={p + i} className={"hero-ph" + (heroIdx === i ? " on" : "")} style={{ backgroundImage: bg(p, heroW, 60) }} />
         ))}
         <div className="hero-veil" />
         <div className="hero-in">
-          <div className="hero-eyebrow">{t("acd.hero.greeting")}</div>
+          <div className="hero-eyebrow">{t(greetKey)}</div>
           <h1 className="hero-title">{data.userName}<span className="dot">.</span></h1>
-          <Html as="p" className="hero-sub" html={t("acd.hero.sub")} />
-          <div className="hero-row">
-            <div className="hero-stats">
-              <div className="hero-stat" onClick={() => go("trips")}>
-                <span className="n">{counts.trips}</span>
-                <span className="l">{plural(counts.trips, "acd.unit.trip", "acd.unit.trips")}</span>
-              </div>
-              <div className="hero-stat" onClick={() => go("atlas")}>
-                <span className="n">{counts.days}</span>
-                <span className="l">{plural(counts.days, "acd.unit.day", "acd.unit.days")}</span>
-              </div>
-              <div className="hero-stat" onClick={() => go("atlas")}>
-                <span className="n">{counts.places}</span>
-                <span className="l">{plural(counts.places, "acd.unit.place", "acd.unit.places")}</span>
-              </div>
-              <div className="hero-stat" onClick={() => go("atlas")}>
-                <span className="n"><em>{counts.continents}</em></span>
-                <span className="l">{plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span>
-              </div>
-            </div>
-            {/* CTA contestuale: se c'è un viaggio da riprendere lo porta in primo
-                piano (azione più probabile per chi rientra); la voce globale
-                "Nuovo itinerario" resta sempre in topbar — qui non la ripetiamo. */}
-            <div className="hero-act">
-              {featured ? (
-                <button
-                  className="btn-p"
-                  onClick={() => { if (featured.href) setLocation(featured.href); }}
-                >
-                  {tx("acd.hero.resumeCta", { name: (featured.title || "").split(",")[0] })}
-                </button>
-              ) : (
-                <button className="btn-p" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>
-              )}
-            </div>
+          <p className="hero-sub h2-hero-sub">
+            {t(seasonKey)}<br />{isEmpty ? t("acd.h2.heroSubNew") : t("acd.h2.heroSub")}
+          </p>
+          <div className="hero-act">
+            {isEmpty ? (
+              <button className="btn-p lg" onClick={data.onNewItinerary}>{t("acd.empty.cta")} →</button>
+            ) : (
+              <button className="btn-p lg" onClick={scrollToRecs}>{t("acd.h2.heroCta")} →</button>
+            )}
           </div>
         </div>
       </section>
@@ -326,120 +420,135 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
           </section>
         )}
 
-        {!isEmpty && (<>
-        {/* Riprendi (teaser) */}
-        {featured && (
-          <div className="next" onClick={() => go("resume")}>
-            <div className="next-thumb" style={{ backgroundImage: bg(featured.img, 280) }} />
-            <div className="next-mid">
-              <div className="next-k"><span className="p" />{t("acd.next.k")}</div>
-              <div className="next-nm">{featured.title}</div>
-              <div className="next-prog">
-                <span className="lab">{featured.date ? tx("acd.next.meta", { date: featured.date }) : (featured.sub ?? "")}</span>
-              </div>
-            </div>
-            <button className="next-go" onClick={(e) => { e.stopPropagation(); if (featured.href) setLocation(featured.href); }}>
-              {t("acd.open")}
-            </button>
-          </div>
-        )}
-
-        {/* Completa le prenotazioni */}
-        {bookingNudge.length > 0 && (
-          <section>
-            <div className="sec-head">
-              <div>
-                <div className="sec-eyebrow">{t("acd.book.eyebrow")}</div>
-                <Html as="h2" className="sec-title" html={t("acd.book.title")} />
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {bookingNudge.map((b, i) => (
-                <div key={i} className="next" onClick={() => setLocation(b.href)}>
-                  <div className="next-thumb" style={{ backgroundImage: bg(b.img, 280) }} />
-                  <div className="next-mid">
-                    <div className="next-k"><span className="p" />{tx("acd.book.progress", { n: b.booked, tot: b.total })}</div>
-                    <div className="next-nm">{b.title}</div>
+        {!isEmpty && (
+        <div className="h2-grid">
+          {/* ── colonna principale ── */}
+          <div className="h2-main">
+            {/* Continua il tuo viaggio */}
+            {continueCard && (
+              <section className="h2-card">
+                <div className="h2-card-head">
+                  <h3>{t("acd.h2.continueK")}</h3>
+                  <button className="h2-link" onClick={() => go(data.continueItems.length > 0 ? "resume" : "trips")}>{t("acd.h2.viewAll")} →</button>
+                </div>
+                <div className="h2-cont">
+                  <div className="h2-cont-img" style={{ backgroundImage: bg(continueCard.img, 520) }} />
+                  <div className="h2-cont-body">
+                    {continueCard.region && <div className="h2-cont-region">◆ {continueCard.region}</div>}
+                    <div className="h2-cont-name">{continueCard.title}</div>
+                    <div className="h2-cont-rule" />
+                    <div className="h2-cont-prog">
+                      {continueCard.progress
+                        ? tx("acd.h2.progress", { n: continueCard.progress.n, tot: continueCard.progress.tot })
+                        : t("acd.h2.justOpened")}
+                    </div>
+                    {continueCard.progress && (
+                      <div className="h2-bar"><span style={{ width: `${Math.round((continueCard.progress.n / continueCard.progress.tot) * 100)}%` }} /></div>
+                    )}
+                    <button className="btn-p" onClick={() => setLocation(continueCard.href)}>{t("acd.h2.resumeCta")} →</button>
                   </div>
-                  <button className="next-go" onClick={(e) => { e.stopPropagation(); setLocation(b.href); }}>{t("acd.book.cta")}</button>
                 </div>
-              ))}
+              </section>
+            )}
+
+            {/* Scelte per te oggi — matchPct reale dai vettori, niente prezzi */}
+            {picks && (
+              <section className="h2-card" id="h2-recs">
+                <div className="h2-card-head">
+                  <h3>{t("acd.h2.recK")}</h3>
+                  <button className="h2-link" onClick={() => go("portrait")} title={picks.why}>{t("acd.h2.whyThese")} →</button>
+                </div>
+                <div className="h2-recs">
+                  {picks.picks.map((p, i) => (
+                    <button key={p.name + i} className="h2-rec" onClick={data.onSecondaryCta}>
+                      <div className="h2-rec-img" style={{ backgroundImage: bg(p.imageUrl, 520) }}>
+                        <span className="h2-rec-match">{p.matchPct}% {t("acd.h2.match")}</span>
+                      </div>
+                      <div className="h2-rec-body">
+                        <div className="h2-rec-name">{p.name.split(",")[0]}</div>
+                        {p.tags.length > 0 && (
+                          <div className="h2-rec-tags">{p.tags.map((x, j) => <span key={j}>{x}</span>)}</div>
+                        )}
+                        <div className="h2-rec-why">{picks.why}</div>
+                        <span className="h2-rec-go">→</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+
+          {/* ── colonna destra ── */}
+          <aside className="h2-rail">
+            {weather && (
+              <div className="h2-card h2-wx">
+                <div className="h2-rail-eyebrow">☀ {t("acd.h2.weatherK")}</div>
+                {weather.label && <div className="h2-wx-city">{weather.label}</div>}
+                <div className="h2-wx-temp">{weather.tempC}°C <span className="cond">{t(wxKey(weather.code))}</span></div>
+                {wxGood && <div className="h2-wx-good">{t("acd.h2.weatherGood")}</div>}
+                <button className="h2-link" onClick={scrollToRecs}>{t("acd.h2.weatherSee")} →</button>
+              </div>
+            )}
+
+            <div className="h2-card h2-portrait">
+              <div className="h2-card-head">
+                <h3>{t("acd.h2.portraitK")}</h3>
+                <button className="h2-link" onClick={() => go("portrait")}>✎ {t("acd.h2.portraitUpdate")}</button>
+              </div>
+              <div className="h2-portrait-img" style={{ backgroundImage: bg(data.heroImg, 420) }} />
+              <div className="h2-portrait-name">{data.traits[0]?.name ?? t("acd.point.portraitK")}</div>
+              <Html as="p" className="h2-portrait-sub" html={data.portrait?.narrative?.paradox ?? data.traits[0]?.desc ?? t("acd.point.portraitFallback")} />
+              <div className="h2-portrait-chips">
+                {data.traits.filter(tr => tr.bar > 12).slice(0, 3).map((tr, i) => <span key={i}>{tr.name}</span>)}
+              </div>
             </div>
-          </section>
+
+            <div className="h2-card h2-atlas">
+              <div className="h2-card-head">
+                <h3>{t("acd.h2.atlasK")}</h3>
+                <button className="h2-link" onClick={() => go("atlas")}>{t("acd.h2.viewAll")} →</button>
+              </div>
+              {(data.atlas?.places?.length ?? 0) > 0 && <div className="h2-atlas-map" ref={miniMapEl} />}
+              <div className="h2-atlas-stats">
+                <div><span className="n">{counts.continents}</span><span className="l">{plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span></div>
+                <div><span className="n">{counts.places}</span><span className="l">{plural(counts.places, "acd.unit.place", "acd.unit.places")}</span></div>
+                <div><span className="n">{counts.days}</span><span className="l">{plural(counts.days, "acd.unit.day", "acd.unit.days")}</span></div>
+                <div><span className="n">{counts.trips}</span><span className="l">{plural(counts.trips, "acd.unit.trip", "acd.unit.trips")}</span></div>
+              </div>
+            </div>
+          </aside>
+        </div>
         )}
 
-        <div className="home-grid">
-          {/* Daily pick → genera dal profilo */}
-          <section>
-            <div className="sec-head">
-              <div>
-                <div className="sec-eyebrow gold">{t("acd.pick.eyebrow")}</div>
-                <Html as="h2" className="sec-title" html={t("acd.pick.title")} />
-              </div>
-            </div>
-            <div className="pick">
-              <div className="ph" style={{ backgroundImage: bg(dailyPick?.imageUrl || data.heroImg, featW) }} />
-              <div className="pick-top">
-                <div className="pick-tag"><span className="s">✦</span>{dailyPick ? t("acd.pick.realTag") : t("acd.pick.tag")}</div>
-              </div>
-              <div className="pick-body">
-                <div className="pick-meta">{dailyPick ? dailyPick.country : t("acd.pick.meta")}</div>
-                <div className="pick-nm">{dailyPick ? dailyPick.name : t("acd.pick.name")}</div>
-                <div className="pick-why">
-                  <div className="k">{t("acd.pick.whyK")}</div>
-                  <div className="t">{dailyPick ? dailyPick.why : (data.portrait?.narrative?.portrait ?? data.profileQuote ?? t("acd.pick.whyFallback"))}</div>
-                </div>
-                <div className="pick-act">
-                  <button className="btn-p" onClick={data.onSecondaryCta}>{dailyPick ? t("acd.pick.realCta") : t("acd.pick.cta")}</button>
-                  <button className="btn-g" onClick={data.onNewItinerary}>{t("acd.pick.ctaAlt")}</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Colonna laterale: mood + pointer */}
-          <div className="home-col">
-            <div className="mood">
-              <Html as="h4" html={t("acd.mood.title")} />
-              <div className="hint">{t("acd.mood.hint")}</div>
-              <div className="mood-list">
-                {[{ e: "🌙", k: "acd.mood.1" }, { e: "🏔️", k: "acd.mood.2" }, { e: "🎲", k: "acd.mood.3" }].map(m => (
-                  <button key={m.k} className="mood-chip" onClick={data.onNewItinerary}>
-                    <span className="e">{m.e}</span>
-                    <span className="mt">{t(m.k)}</span>
-                    <span className="go">→</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="pointer" onClick={() => go("portrait")}>
-              <div className="pic"><Icon name="portrait" /></div>
-              <div className="pm">
-                <div className="pk">{t("acd.point.portraitK")}</div>
-                <Html as="div" className="pv" html={data.portrait?.narrative?.paradox ?? t("acd.point.portraitFallback")} />
-              </div>
-              <span className="arrow">→</span>
-            </div>
-            <div className="pointer" onClick={() => go("atlas")}>
-              <div className="pic gold"><Icon name="atlas" /></div>
-              <div className="pm">
-                <div className="pk">{t("acd.point.atlasK")}</div>
-                <Html as="div" className="pv" html={tx("acd.point.atlasV", {
-                  m: counts.continents,
-                  mu: t(counts.continents === 1 ? "acd.unit.continent" : "acd.unit.continents"),
-                  d: counts.places,
-                  du: t(counts.places === 1 ? "acd.unit.place" : "acd.unit.places"),
-                  tv: t(counts.places === 1 ? "acd.unit.touchedOne" : "acd.unit.touched"),
-                })} />
-              </div>
-              <span className="arrow">→</span>
-            </div>
+        {/* Mood row — a tutta larghezza */}
+        {!isEmpty && (
+        <section className="h2-card h2-moodsec">
+          <div className="h2-card-head"><h3>{t("acd.h2.moodK")}</h3></div>
+          <div className="h2-moods">
+            {MOODS.map((m) => (
+              <button key={m.k} className="h2-mood" onClick={data.onNewItinerary} style={{ backgroundImage: bg(m.img, 480, 65) }}>
+                <span className="h2-mood-top"><span className="e">{m.e}</span><span><span className="mt">{t(m.k)}</span><span className="mp">{m.place}</span></span></span>
+                <span className="h2-mood-go">›</span>
+              </button>
+            ))}
           </div>
-        </div>
+        </section>
+        )}
 
-        {homeExtra && <div className="home-extra">{homeExtra}</div>}
-        </>)}
+        {/* Fascia finale ONESTA: solo se c'è una checklist vera da completare */}
+        {!isEmpty && bookingNudge.length > 0 && (
+          <div className="h2-band">
+            <span className="h2-band-ico">🧭</span>
+            <div className="h2-band-mid">
+              <div className="h2-band-k">{t("acd.h2.bandK")}</div>
+              <div className="h2-band-sub">{tx("acd.h2.bandSub", { name: bookingNudge[0].title, n: bookingNudge[0].booked, tot: bookingNudge[0].total })}</div>
+            </div>
+            <button className="btn-g" onClick={() => setLocation(bookingNudge[0].href)}>{t("acd.h2.bandCta")} →</button>
+          </div>
+        )}
+
+        {!isEmpty && homeExtra && <div className="home-extra">{homeExtra}</div>}
       </div>
     </div>
   );
