@@ -349,11 +349,12 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     : "acd.h2.wx.storm";
   const wxGood = weather ? weather.tempC >= 16 && weather.tempC <= 28 && weather.code <= 2 : false;
 
-  // Mood row — curatela statica (stesse foto verificate del pool landing).
+  // Mood row — curatela statica. Foto VERIFICATE A OCCHIO (audit 2026-07-15:
+  // il vecchio pool aveva Azzorre=cane); se ne aggiungi una, guardala prima.
   const MOODS = [
-    { e: "🌙", k: "acd.h2.mood.silence",   place: "Lofoten, Norvegia",   img: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=900&fit=crop&crop=entropy&auto=format&q=80" },
-    { e: "🌲", k: "acd.h2.mood.disappear", place: "Islanda",             img: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&fit=crop&crop=entropy&auto=format&q=80" },
-    { e: "☀️", k: "acd.h2.mood.sun",       place: "Azzorre, Portogallo", img: "https://images.unsplash.com/photo-1586671267731-da2cf3ceeb80?w=900&fit=crop&crop=entropy&auto=format&q=80" },
+    { e: "🌙", k: "acd.h2.mood.silence",   place: "Lofoten, Norvegia",   img: "https://images.unsplash.com/photo-1663428520845-056989f8a664?w=900&fit=crop&crop=entropy&auto=format&q=80" },
+    { e: "🌲", k: "acd.h2.mood.disappear", place: "Isole Faroe",         img: "https://images.unsplash.com/photo-1554610975-1fa324cfb60b?w=900&fit=crop&crop=entropy&auto=format&q=80" },
+    { e: "☀️", k: "acd.h2.mood.sun",       place: "Azzorre, Portogallo", img: "https://images.unsplash.com/photo-1620998051604-95ff17ccc537?w=900&fit=crop&crop=entropy&auto=format&q=80" },
     { e: "🏛️", k: "acd.h2.mood.culture",   place: "Kyoto, Giappone",     img: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=900&fit=crop&crop=entropy&auto=format&q=80" },
     { e: "✦",  k: "acd.h2.mood.surprise",  place: lang === "it" ? "Ovunque, per te" : "Anywhere, for you", img: "https://images.unsplash.com/photo-1489493585363-d69421e0edd3?w=900&fit=crop&crop=entropy&auto=format&q=80" },
   ];

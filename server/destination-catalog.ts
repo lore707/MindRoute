@@ -104,7 +104,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["volcanic", "silence", "ocean", "thermal", "remote", "peaceful", "recharge", "green", "whale watching", "authentic", "uncrowded", "healing", "elemental", "slow", "nature"],
     budgetTier: ["medium", "high"], seasons: ["spring", "summer", "autumn", "apr", "may", "jun", "jul", "aug", "sep", "oct"],
     companionFit: ["solo", "couple"], durationFit: ["week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1586671267731-da2cf3ceeb80?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1620998051604-95ff17ccc537?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       recovery: "Perché hai bisogno di un posto che non ti chiede nulla. Le Azzorre sono nove isole vulcaniche nell'Atlantico — lontane da tutto, vicine a qualcosa di essenziale.",
       seeker: "Perché la natura qui ha una forza primordiale. Laghi nei crateri, balene nell'oceano, silenzi che durano ore.",
@@ -160,7 +160,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["slow", "wine", "cork", "plains", "silence", "rural", "authentic", "olive", "hidden", "uncrowded", "pastoral", "whitewashed", "warmth", "gentle", "local"],
     budgetTier: ["low", "medium", "high"], seasons: ["spring", "autumn", "winter", "mar", "apr", "may", "sep", "oct", "nov", "feb"],
     companionFit: ["solo", "couple"], durationFit: ["weekend", "week"],
-    imageUrl: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1647628690577-372e0f0631e3?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       recovery: "Perché l'Alentejo è il posto dove il tempo scorre più lento d'Europa. Pianure infinite, villaggi bianchi, vino fatto a mano.",
       romantic: "Perché certe sere — vino locale, tramonto sulle pianure — hanno la qualità dei ricordi che si tengono per sempre.",
@@ -208,7 +208,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["fjords", "silence", "aurora", "fishing", "raw", "wild", "remote", "midnight sun", "mountain", "nordic", "elemental", "photography", "dramatic", "vast", "sea"],
     budgetTier: ["high", "unlimited"], seasons: ["winter", "summer", "jun", "jul", "aug", "jan", "feb", "mar"],
     companionFit: ["solo", "couple"], durationFit: ["week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1513519245088-0e12902e35ca?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1663428520845-056989f8a664?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       recovery: "Perché le Lofoten ti rimettono in scala. Montagne dal mare, villaggi rossi contro la neve, silenzi che pesano. Ti fanno sentire piccoli nel modo migliore.",
       explorer: "Perché le Lofoten sono fisicamente raggiungibili ma emotivamente remote. Strade che finiscono nel nulla, un paesaggio inaspettato.",
@@ -256,7 +256,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["flowers", "levada", "mild", "ocean", "nature", "hiking", "slow", "lush", "subtropical", "wine", "cliffs", "peaceful", "escape", "green", "eternal spring"],
     budgetTier: ["medium", "high"], seasons: ["jan", "feb", "mar", "apr", "may", "oct", "nov", "dec", "spring", "autumn", "winter"],
     companionFit: ["solo", "couple", "family"], durationFit: ["week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1548603986-4a7b7eddec0e?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1725992204983-b67b2c9b6ab2?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       recovery: "Perché Madeira è un'isola che non conosce stagioni brutte. 22°C tutto l'anno, fiori ovunque, levadas nella foresta. Il corpo si rilassa da solo.",
       romantic: "Perché c'è qualcosa di profondamente romantico in un'isola con scogliere sull'oceano, vino al tramonto e una lentezza naturale.",
@@ -305,7 +305,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["wine", "mountains", "ancient", "hospitality", "offbeat", "discovery", "caucasus", "unique", "authentic", "fortress", "chacha", "warm people", "unexpected", "culture", "church"],
     budgetTier: ["low", "medium"], seasons: ["spring", "autumn", "summer", "apr", "may", "jun", "sep", "oct"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1565008576549-57569a49f9ca?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1577701122197-c9607038bd90?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       explorer: "Perché la Georgia è ancora uno di quei posti dove arrivi e pensi 'come non ne sapevo niente'. Tbilisi è affascinante, le montagne mozzafiato, tutto costa quasi niente.",
       seeker: "Perché la Georgia è la culla del vino — 8.000 anni in anfore di terracotta. E le chiese rupestri nelle montagne hanno una spiritualità antica.",
@@ -361,7 +361,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["undiscovered", "riviera", "mountains", "cheap", "authentic", "offbeat", "ruins", "communism", "contrast", "beach", "bunkers", "wild", "emerging", "raw", "turchese"],
     budgetTier: ["low", "medium"], seasons: ["spring", "summer", "autumn", "may", "jun", "jul", "aug", "sep", "oct"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1742243910186-c31c321abb53?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       explorer: "Perché l'Albania è l'ultimo segreto d'Europa. Riviera turchese senza turismo di massa, montagne selvagge, storia che nessuno conosce. Tutto a prezzi incredibili.",
       social: "Perché gli albanesi sono tra le persone più ospitali d'Europa — il codice Kanun non nega mai il pane a uno straniero.",
@@ -417,7 +417,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["silk road", "ancient", "islamic architecture", "mosaics", "blue tiles", "samarcanda", "caravans", "desert", "oasis", "history", "stunning", "offbeat", "unique", "unesco"],
     budgetTier: ["low", "medium"], seasons: ["spring", "autumn", "mar", "apr", "may", "sep", "oct"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1664602078796-68ee76b3fc59?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       explorer: "Perché Samarcanda è una delle città più belle della storia umana e quasi nessuno ci va. Moschee di piastrelle blu cobalto, medresse del 1400, l'ombra di Tamerlano.",
       seeker: "Perché camminare nel Registan di Samarcanda al tramonto è uno di quei momenti che capisce perché si viaggia.",
@@ -466,7 +466,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["sacred", "ganges", "death", "life", "spiritual", "hindu", "ghats", "cremation", "chaos", "profound", "ancient", "ritual", "transformation", "philosophy", "intense"],
     budgetTier: ["low", "medium"], seasons: ["winter", "autumn", "oct", "nov", "dec", "jan", "feb", "mar"],
     companionFit: ["solo", "couple"], durationFit: ["week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1571536802807-30451e3955d8?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       seeker: "Perché Varanasi è il posto dove l'umanità confronta la propria mortalità da 5.000 anni. Il Gange, i ghat, le cremazioni a cielo aperto — il posto più vivo che esista perché non smette di morire.",
       explorer: "Perché Varanasi non è una destinazione turistica — è un'esperienza ontologica. Non si può capire prima di esserci.",
@@ -514,7 +514,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["fairy chimneys", "hot air balloon", "cave", "underground", "surreal", "ancient", "volcanic", "unique", "mystical", "otherworldly", "sunrise", "landscape", "troglodyte"],
     budgetTier: ["medium", "high"], seasons: ["spring", "autumn", "apr", "may", "sep", "oct"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["weekend", "week"],
-    imageUrl: "https://images.unsplash.com/photo-1533130061792-64b345e4a833?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1604156789095-3348604c0f43?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       seeker: "Perché la Cappadocia non sembra reale. Ciminiere di fata e città sotterranee millenarie — capisci che gli esseri umani vivono in posti straordinari da sempre.",
       romantic: "Perché alzarsi alle 5 AM e salire su un pallone aerostatico mentre il sole nasce sulle rocce rosa è probabilmente la cosa più bella che si possa fare insieme.",
@@ -562,7 +562,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["monks", "mekong", "temple", "slow", "spiritual", "french colonial", "waterfall", "buddhism", "peaceful", "gentle", "UNESCO", "orange robes", "dawn", "silence", "timeless"],
     budgetTier: ["low", "medium"], seasons: ["winter", "autumn", "nov", "dec", "jan", "feb", "mar"],
     companionFit: ["solo", "couple"], durationFit: ["week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1610426714962-83caa2244105?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       seeker: "Perché Luang Prabang è rimasta fuori dal tempo. Ogni mattina alle 5:30, centinaia di monaci in arancione camminano per le elemosine — un rituale che continua da secoli.",
       recovery: "Perché il ritmo qui è il più lento immaginabile. Il Mekong scorre, i templi sono aperti, non c'è fretta.",
@@ -659,7 +659,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["pizza", "chaos", "energy", "authentic", "street life", "history", "underground", "art", "spontaneous", "raw", "vesuvio", "pompeii", "neapolitan", "passionate", "real"],
     budgetTier: ["low", "medium"], seasons: ["spring", "autumn", "summer", "apr", "may", "jun", "sep", "oct"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["weekend", "week"],
-    imageUrl: "https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1610641819167-e9f4f393a7fe?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       social: "Perché Napoli non esiste per il turista — esiste per sé stessa. La città italiana più italiana. Il caos è autentico, la gente è vera, la pizza è la migliore al mondo.",
       explorer: "Perché sotto Napoli c'è un'altra città — 40 km di tunnel greco-romani. La Napoli sotterranea è più surreale di qualsiasi destinazione esotica.",
@@ -707,7 +707,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["transformation", "innovation", "nightlife", "flowers", "cable car", "resilience", "spring eternal", "food", "art", "salsa", "urban", "contrast", "emerging", "reinvention"],
     budgetTier: ["low", "medium"], seasons: ["spring", "autumn", "dec", "jan", "feb", "mar", "apr", "aug", "sep"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1574482620811-1aa16ffe3c82?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1731560818821-a32d0042d6f6?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       social: "Perché Medellín è la città della trasformazione — da una delle più pericolose al mondo a una delle più innovative. La gente ha un'energia che viene dall'aver superato qualcosa.",
       explorer: "Perché Medellín dimostra che il mondo cambia — e andare prima che lo scoprano tutti è sempre la scelta giusta.",
@@ -755,7 +755,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["medina", "souk", "spice", "riad", "chaos", "color", "mint tea", "atlas", "vibrant", "exotic", "labyrinth", "hammam", "sensory", "immersive", "pattern"],
     budgetTier: ["low", "medium"], seasons: ["spring", "autumn", "winter", "mar", "apr", "may", "oct", "nov", "feb"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["weekend", "week"],
-    imageUrl: "https://images.unsplash.com/photo-1545459720-aac8509eb02c?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1772580310425-63f2290c2ba7?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       social: "Perché Marrakech è un'esperienza sensoriale totale — souk coloratissimi, mint tea sui tetti, Gnawa nella piazza. Impossibile restare spettatori.",
       seeker: "Perché la medina è un labirinto medievale intatto. Ci si perde — e in quel perdersi si trova qualcosa.",
@@ -804,7 +804,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["trulli", "olive", "orecchiette", "sea", "whitewashed", "slow", "food", "wine", "baroque", "coast", "authentic", "golden", "sensory", "summer", "italian"],
     budgetTier: ["medium", "high"], seasons: ["spring", "summer", "autumn", "may", "jun", "sep", "oct"],
     companionFit: ["couple", "friends", "family"], durationFit: ["weekend", "week", "10-14"],
-    imageUrl: "https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1600160805984-2d44e4a1a903?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       romantic: "Perché la Puglia ha quella luce che cambia tutto — ulivi argentei, pietre bianche, mare blu. E una cucina che parla d'amore in ogni piatto.",
       recovery: "Perché il ritmo pugliese è quello giusto — colazione alle 9, bagno a mezzogiorno, pennichella, aperitivo al tramonto.",
@@ -852,7 +852,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["fado", "tram", "pasteis", "golden light", "hills", "melancholy", "saudade", "tiles", "warm", "sunset", "affordable", "walkable", "wine", "seafood", "europe"],
     budgetTier: ["low", "medium", "high"], seasons: ["spring", "autumn", "summer", "mar", "apr", "may", "jun", "sep", "oct"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["weekend", "week"],
-    imageUrl: "https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1616862890964-fd20e9dd106d?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       romantic: "Perché Lisbona ha una malinconia dolce — fado, luce dorata, vento atlantico — che rende ogni momento cinematografico.",
       social: "Perché il Time Out Market, Bairro Alto, le serate di fado — Lisbona ha vita notturna accessibile e genuina.",
@@ -900,7 +900,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["gothic", "baroque", "beer", "castle", "old town", "fairytale", "history", "art nouveau", "medieval", "bridge", "europe", "walkable", "cozy", "golden", "prague"],
     budgetTier: ["low", "medium"], seasons: ["spring", "autumn", "winter", "mar", "apr", "may", "sep", "oct", "nov", "dec"],
     companionFit: ["couple", "friends", "solo"], durationFit: ["weekend", "week"],
-    imageUrl: "https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1564511287568-54483b52a35e?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       romantic: "Perché Praga fuori stagione è una città fiabesca senza folle. Il Ponte Carlo nella nebbia mattutina è una delle cose più romantiche d'Europa.",
       social: "Perché i cechi producono la birra migliore al mondo e la bevono nei pub medievali sotterranei a prezzi che non esistono più.",
@@ -996,7 +996,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["glaciers", "torres del paine", "wilderness", "trekking", "end of world", "dramatic", "remote", "pristine", "condors", "vast", "wind", "raw nature", "perito moreno", "austral"],
     budgetTier: ["high", "unlimited"], seasons: ["summer", "nov", "dec", "jan", "feb", "mar"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["10-14", "long"],
-    imageUrl: "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1637580980556-085dee659c7e?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       explorer: "Perché la Patagonia è letteralmente la fine del mondo — Torres del Paine, il Perito Moreno, i ghiacciai azzurri.",
       recovery: "Perché non c'è posto dove la mente si svuota più velocemente che davanti a un ghiacciaio nel silenzio totale.",
@@ -1044,7 +1044,7 @@ export const destinationCatalog: CatalogDestination[] = [
     keywords: ["mole", "mezcal", "indigenous", "crafts", "ruins", "food", "color", "authentic", "markets", "art", "culture", "vibrant", "traditions", "history", "zapotec"],
     budgetTier: ["low", "medium"], seasons: ["winter", "autumn", "oct", "nov", "dec", "jan", "feb", "mar"],
     companionFit: ["solo", "couple", "friends"], durationFit: ["week", "10-14", "long"],
-    imageUrl: "https://images.unsplash.com/photo-1518638150340-f706e86654de?w=600&h=400&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=600&h=400&fit=crop",
     whyYoursTemplates: {
       seeker: "Perché Oaxaca è dove la cultura zapoteca sopravvive senza filtri. Il mole negro — 30 ingredienti, giorni di preparazione — è una forma d'arte culinaria.",
       social: "Perché a Oaxaca si mangia, si beve mezcal e si balla insieme. La gioia è collettiva.",

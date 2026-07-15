@@ -325,6 +325,32 @@
 .led-footer-social:hover { color: #fff; border-color: var(--led-line2); }
 .led-footer-base { border-top: 1px solid var(--led-line); padding-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 10px 24px; flex-wrap: wrap; font-size: 12px; color: var(--led-ink-faint); }
 
+/* ── Percorso visivo (redesign foto 2026-07-15) ─────────────────
+   Ogni sezione ha un paesaggio full-bleed sotto un velo scuro forte:
+   l'immagine respira al centro, i bordi tornano al nero di base così
+   le sezioni si fondono. Il contrasto del contenuto resta intatto. */
+.led-how, .led-show, .led-made, .led-final { position: relative; background: transparent; }
+.led-scene { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; }
+.led-scene::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, #0b0c11 0%, rgba(11, 12, 17, 0.86) 18%, rgba(11, 12, 17, 0.82) 55%, rgba(11, 12, 17, 0.9) 85%, #0b0c11 100%);
+}
+.led-how > .led-container, .led-show > .led-container,
+.led-made > .led-container, .led-final > .led-container { position: relative; z-index: 1; }
+
+/* Foto nei mini-mockup degli step (1 e 3) — sotto il contenuto, velate */
+.led-mini { position: relative; overflow: hidden; isolation: isolate; }
+.led-mini-photo { position: absolute; inset: 0; z-index: -1; background-size: cover; background-position: center; }
+.led-mini-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 12, 17, 0.78), rgba(11, 12, 17, 0.9)); }
+
+/* Via i bordi chiari dalle foto — la separazione la fanno ombra e velo */
+.led-feat { border: 0; }
+.led-final-img { border: 0; }
+.led-how-band { border: 0; }
+.led-card { border-color: transparent; }
+.led-card:hover { border-color: rgba(240, 67, 90, 0.45); }
+.led-mail-img { border: 0; }
+
 /* Motion preferenze ridotte */
 @media (prefers-reduced-motion: reduce) {
   .led * { transition: none !important; animation: none !important; }

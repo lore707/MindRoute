@@ -26,24 +26,30 @@ import { track } from "@/lib/analytics";
 
 export type LandingStats = { itineraryCount: number; destinationCount: number };
 
-/* Foto verificate (stesso pool curato della landing precedente — ID già in
-   produzione, zero rischio 404). crop=entropy evita inquadrature morte. */
+/* Pool foto — OGNI ID è stato verificato A OCCHIO (audit 2026-07-15: il pool
+   ereditato aveva Azzorre=cane, Procida=Venezia, Alentejo=Dubai, Oaxaca=Taj
+   Mahal…). Se aggiungi una foto, scaricala e guardala prima di cablarla. */
 const u = (id: string, w = 1600) =>
   `https://images.unsplash.com/photo-${id}?w=${w}&fit=crop&crop=entropy&auto=format&q=80`;
 const PHOTO = {
-  kyoto:     u("1493976040374-85c8e12f0c0e", 2000), // pagoda + Fuji al tramonto (hero)
-  lofoten:   u("1502786129293-79981df4e689"),
-  patagonia: u("1531168556467-80aace0d0144"),
-  procida:   u("1523906834658-6e24ef2386f9"),
-  tokyo:     u("1540959733332-eab4deabeeaf"),
-  azores:    u("1586671267731-da2cf3ceeb80"),
-  iceland:   u("1500530855697-b586d89ba3ee"),
-  iceland2:  u("1518710843675-2540dd79065c"),
-  alentejo:  u("1518684079-3c830dcef090"),
-  oaxaca:    u("1564507592333-c60657eea523"),
-  mountains: u("1519681393784-d120267933ba"),
-  sahara:    u("1489493585363-d69421e0edd3"),
-  sea:       u("1602941525421-8f8b81d3edbb"),
+  kyoto:     u("1493976040374-85c8e12f0c0e", 2000), // pagoda Yasaka al tramonto (hero)
+  tokyo:     u("1540959733332-eab4deabeeaf"),       // strada neon Shibuya
+  sahara:    u("1489493585363-d69421e0edd3"),       // carovana tra le dune
+  mountains: u("1519681393784-d120267933ba"),       // vetta innevata sotto le stelle
+  journal:   u("1455390582262-044cdead277a"),       // penna su diario (step 1)
+  worldmap:  u("1524661135-423995f22d0b"),          // mappamondo con puntine (step 2)
+  azores:    u("1620998051604-95ff17ccc537"),       // scogliere verdi aeree, Azzorre
+  procida:   u("1628522241320-8135caa27dcf"),       // case colorate sul porto, Procida
+  lofoten:   u("1663428520845-056989f8a664"),       // rorbu rossi di Hamnøy, Lofoten
+  patagonia: u("1637580980556-085dee659c7e"),       // Fitz Roy all'alba
+  iceland:   u("1476610182048-b716b8518aae"),       // Seljalandsfoss al tramonto
+  faroe:     u("1554610975-1fa324cfb60b"),          // cascata di Gásadalur, Faroe
+  alentejo:  u("1647628690577-372e0f0631e3"),       // campagna verde, Alentejo
+  oaxaca:    u("1518105779142-d975f22f1b0a"),       // strada coloniale colorata, Messico
+  bgDolomiti:u("1677741447337-48aba59a8f61"),       // Dolomiti in alpenglow (sfondo sezione)
+  bgCoast:   u("1583844056361-4418a8f2a985"),       // Positano all'ora blu (sfondo sezione)
+  bgDesert:  u("1542401886-65d6c61db217"),          // dune morbide al tramonto (sfondo sezione)
+  bgAurora:  u("1605286700104-15889419f60b"),       // aurora verde sul fiordo (sfondo sezione)
 } as const;
 
 type Bi = { en: string; it: string };
@@ -68,7 +74,7 @@ const SEASONAL: Record<"winter" | "spring" | "summer" | "autumn", SeasonPick[]> 
   ],
   winter: [
     { name: "Lofoten",   country: { en: "Norway", it: "Norvegia" },     hl: { en: "Northern lights", it: "Aurora boreale" },   note: { en: "Arctic magic", it: "Magia artica" },       img: PHOTO.lofoten },
-    { name: "Islanda",   country: { en: "Iceland", it: "Islanda" },     hl: { en: "Ice & auroras", it: "Ghiaccio e aurore" },  note: { en: "Short wild days", it: "Giorni brevi e selvaggi" }, img: PHOTO.iceland2 },
+    { name: "Islanda",   country: { en: "Iceland", it: "Islanda" },     hl: { en: "Wild waterfalls", it: "Cascate selvagge" }, note: { en: "Short wild days", it: "Giorni brevi e selvaggi" }, img: PHOTO.iceland },
     { name: "Patagonia", country: { en: "Argentina", it: "Argentina" }, hl: { en: "Southern summer", it: "Estate australe" },  note: { en: "Best trekking", it: "Trekking al top" },   img: PHOTO.patagonia },
     { name: "Marocco",   country: { en: "Morocco", it: "Marocco" },     hl: { en: "Winter sun", it: "Sole d'inverno" },        note: { en: "~20°C avg", it: "~20°C di media" },        img: PHOTO.sahara },
     { name: "Tokyo",     country: { en: "Japan", it: "Giappone" },      hl: { en: "Crisp clear skies", it: "Cieli tersi" },    note: { en: "Low season deals", it: "Bassa stagione" }, img: PHOTO.tokyo },
@@ -96,7 +102,7 @@ const MOOD_CARDS: Array<{ name: string; country: Bi; badge: Bi; meta: Bi; desc: 
   { name: "Patagonia", country: { en: "Argentina", it: "Argentina" },badge: { en: "Adventure escape", it: "Fuga d'avventura" },meta: { en: "7 days · Nov–Mar", it: "7 giorni · Nov–Mar" },  desc: { en: "Granite peaks, glaciers and wind that resets you.", it: "Cime di granito, ghiacciai e un vento che ti azzera." }, img: PHOTO.patagonia },
   { name: "Procida",   country: { en: "Italy", it: "Italia" },       badge: { en: "Coastal escape", it: "Fuga sul mare" },    meta: { en: "4 days · Spring", it: "4 giorni · Primavera" }, desc: { en: "Pastel villages, sea views and la dolce vita.", it: "Borghi pastello, viste sul mare e dolce vita." }, img: PHOTO.procida },
   { name: "Marocco",   country: { en: "Morocco", it: "Marocco" },    badge: { en: "Desert escape", it: "Fuga nel deserto" },  meta: { en: "7 days · Autumn", it: "7 giorni · Autunno" },   desc: { en: "Dunes, markets and a culture that vibrates.", it: "Dune, mercati e una cultura che vibra." }, img: PHOTO.sahara },
-  { name: "Islanda",   country: { en: "Iceland", it: "Islanda" },    badge: { en: "Nature escape", it: "Fuga nella natura" }, meta: { en: "5 days · Summer", it: "5 giorni · Estate" },    desc: { en: "Waterfalls, volcanoes and silence that resets you.", it: "Cascate, vulcani e un silenzio che ti azzera." }, img: PHOTO.iceland },
+  { name: "Isole Faroe",country:{ en: "Denmark", it: "Danimarca" },  badge: { en: "Nature escape", it: "Fuga nella natura" }, meta: { en: "5 days · Summer", it: "5 giorni · Estate" },    desc: { en: "Cliffs, waterfalls and weather with a personality.", it: "Scogliere, cascate e un meteo con carattere." }, img: PHOTO.faroe },
 ];
 
 /* Anteprima prodotto — dati DEMO dichiarati (label "Anteprima del prodotto"). */
@@ -108,10 +114,10 @@ const PREVIEW_CARDS: Array<{ name: string; sub: Bi; badgeKey: string; tags: Bi[]
 
 /* Featured itinerary (showcase) — tappe Lofoten reali, come nel mockup. */
 const FEAT_DAYS: Array<{ label: Bi; img: string }> = [
-  { label: { en: "Arrival in Svolvær", it: "Arrivo a Svolvær" }, img: PHOTO.lofoten },
-  { label: { en: "Hike to Ryten", it: "Trekking al Ryten" }, img: PHOTO.iceland2 },
-  { label: { en: "Hamnøy & Reinebringen", it: "Hamnøy e Reinebringen" }, img: PHOTO.iceland },
-  { label: { en: "Kvalvika Beach", it: "Spiaggia di Kvalvika" }, img: PHOTO.mountains },
+  { label: { en: "Arrival in Svolvær", it: "Arrivo a Svolvær" }, img: PHOTO.bgAurora },
+  { label: { en: "Hike to Ryten", it: "Trekking al Ryten" }, img: PHOTO.faroe },
+  { label: { en: "Hamnøy & Reinebringen", it: "Hamnøy e Reinebringen" }, img: PHOTO.lofoten },
+  { label: { en: "Kvalvika Beach", it: "Spiaggia di Kvalvika" }, img: PHOTO.azores },
 ];
 
 /* Partner REALI monetizzati (resolveAffiliateUrl) — mai Booking/GetYourGuide. */
@@ -285,8 +291,9 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         </div>
       </section>
 
-      {/* ② HOW IT WORKS */}
+      {/* ② HOW IT WORKS — sfondo Dolomiti in alpenglow (percorso visivo) */}
       <section className="led-how" id="how-it-works">
+        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDolomiti, 1400, 50)})` }} />
         <div className="led-container">
           <div className="led-how-head">
             <div>
@@ -303,6 +310,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               <div className="led-step-title">{t("led.how.s1.title")}</div>
               <div className="led-step-desc">{t("led.how.s1.desc")}</div>
               <div className="led-mini">
+                <div className="led-mini-photo" style={{ backgroundImage: `url(${unsplashSized(PHOTO.journal, 480, 55)})` }} />
                 <div className="led-mini-q">{t("led.how.v1.q")}</div>
                 <div className="led-mini-hint">{t("led.how.v1.hint")}</div>
                 <div className="led-mini-opt on">⛰ {t("led.how.v1.o1")}</div>
@@ -316,7 +324,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               <div className="led-step-title">{t("led.how.s2.title")}</div>
               <div className="led-step-desc">{t("led.how.s2.desc")}</div>
               <div className="led-mini">
-                <div className="led-mini-map">
+                <div className="led-mini-map" style={{ backgroundImage: `linear-gradient(180deg, rgba(11,12,17,.55), rgba(11,12,17,.72)), url(${unsplashSized(PHOTO.worldmap, 480, 55)})`, backgroundSize: "cover", backgroundPosition: "center" }}>
                   <span className="pin" style={{ top: "22%", left: "18%" }} />
                   <span className="pin" style={{ top: "40%", left: "62%" }} />
                   <span className="pin" style={{ top: "64%", left: "34%" }} />
@@ -336,6 +344,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               <div className="led-step-title">{t("led.how.s3.title")}</div>
               <div className="led-step-desc">{t("led.how.s3.desc")}</div>
               <div className="led-mini">
+                <div className="led-mini-photo" style={{ backgroundImage: `url(${unsplashSized(PHOTO.patagonia, 480, 55)})` }} />
                 <div className="led-mini-day">{t("led.how.v3.day")}</div>
                 <div className="led-mini-place">{t("led.how.v3.place")}</div>
                 <div className="led-mini-row"><span className="dot" />{t("led.how.v3.r1")}<span className="tm">8:00</span></div>
@@ -374,8 +383,9 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         </div>
       </section>
 
-      {/* ③ SHOWCASE */}
+      {/* ③ SHOWCASE — sfondo Positano all'ora blu */}
       <section className="led-show">
+        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgCoast, 1400, 50)})` }} />
         <div className="led-container">
           <div className="led-show-top">
             <div>
@@ -459,8 +469,9 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         </div>
       </section>
 
-      {/* ④ MADE FOR YOU + EMAIL */}
+      {/* ④ MADE FOR YOU + EMAIL — sfondo dune al tramonto */}
       <section className="led-made">
+        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDesert, 1400, 50)})` }} />
         <div className="led-container">
           <div className="led-made-grid">
             <div>
@@ -511,7 +522,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
 
           {/* Email band */}
           <div className="led-mail">
-            <div className="led-mail-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.mountains, 700)})` }}>
+            <div className="led-mail-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.iceland, 700)})` }}>
               <span className="env">{I.mail}</span>
             </div>
             <div className="led-mail-body">
@@ -546,13 +557,12 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         </div>
       </section>
 
-      {/* ⑤ FINAL CTA + PARTNERS */}
+      {/* ⑤ FINAL CTA + PARTNERS — sfondo aurora sul fiordo (chiusura del viaggio) */}
       <section className="led-final">
+        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgAurora, 1400, 50)})` }} />
         <div className="led-container">
           <div className="led-final-grid">
-            {/* Stessa foto rifugio/lago delle altre fasce — il mockup riusa la
-                stessa immagine in più sezioni, è una scelta deliberata. */}
-            <div className="led-final-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.mountains, 900)})` }} />
+            <div className="led-final-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgCoast, 900)})` }} />
             <div>
               <div className="led-eyebrow"><span className="d" />{t("led.final.eyebrow")}</div>
               <h2>{em("led.final.title")}</h2>
