@@ -31,6 +31,62 @@ import { geocodeDestination } from "./geocode-place";
 
 type Lang = "en" | "it";
 
+// ── Micro-segnali → matcher e ritratto ─────────────────────────────────
+// Le risposte alle reflection non restano un log morto: rientrano nel
+// prompt del matching e nei fatti del ritratto. È il pezzo che trasforma
+// "AI genera itinerario" in "AI osserva → impara → evolve il profilo".
+
+export interface RecentSignal { question: string; answer: string; at: Date }
+
+export async function getRecentCompassSignals(
+  userId: number,
+  days = 60,
+  max = 12,
+): Promise<RecentSignal[]> {
+  try {
+    const since = new Date(Date.now() - days * 24 * 3600_000);
+    const rows = await db.select().from(compassSignals)
+      .where(and(eq(compassSignals.userId, userId), gte(compassSignals.createdAt, since)));
+    return rows
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, max)
+      .map(r => ({ question: r.question, answer: r.answer, at: new Date(r.createdAt) }));
+  } catch {
+    return []; // tabella non ancora pushata → nessun segnale, nessun errore
+  }
+}
+
+// Blocco prompt per il MATCHER (inglese, come il resto del prompt).
+// Rifinisce, non comanda: mai sopra vincoli duri e anti-pattern.
+export function formatCompassSignalsBlock(signals: RecentSignal[]): string {
+  if (signals.length === 0) return "";
+  const lines = signals.map(s =>
+    `- ${s.at.toISOString().slice(0, 10)} · asked "${s.question}" → answered "${s.answer}"`);
+  return `
+═══════════════════════════════════════
+RECENT MICRO-SIGNALS — Daily Compass (real answers, most recent first)
+═══════════════════════════════════════
+Short self-reported signals collected OUTSIDE the quiz, over time. Use them to refine tone and destination choice — e.g. a recent "Silence" answer nudges toward quiet places, "Warmth" toward mild climates. They never override the quiz's hard constraints or anti-patterns; when one conflicts with an OLDER historical pattern, prefer the more recent signal.
+${lines.join("\n")}
+`;
+}
+
+// Righe-fatto per il RITRATTO (lingua dell'utente, fact-locked).
+export function formatCompassSignalsFacts(signals: RecentSignal[], lang: Lang): string[] {
+  if (signals.length === 0) return [];
+  const head = lang === "it"
+    ? "Micro-segnali recenti (risposte reali alla bussola della home):"
+    : "Recent micro-signals (real answers to the home compass):";
+  const days = (d: Date) => Math.max(0, Math.round((Date.now() - d.getTime()) / 86400000));
+  return [head, ...signals.slice(0, 8).map(s => {
+    const ago = days(s.at);
+    const when = lang === "it"
+      ? (ago === 0 ? "oggi" : ago === 1 ? "ieri" : `${ago} giorni fa`)
+      : (ago === 0 ? "today" : ago === 1 ? "yesterday" : `${ago} days ago`);
+    return `- "${s.question}" → "${s.answer}" (${when})`;
+  })];
+}
+
 export interface CompassCard {
   id: string;      // id semantico stabile (chiave di compass_signals)
   type: "reflection" | "discovery" | "growth" | "memory" | "journey";

@@ -180,12 +180,20 @@ function buildFactsBlock(p: PortraitResponse): string {
 }
 
 async function generateNarrative(userId: number, p: PortraitResponse, lang: Lang): Promise<PortraitNarrative | null> {
-  const key = `${lang}::${p.snapshotCount}::${p.seek.join(",")}::${p.avoid.join(",")}::${p.chosen.length}::${p.revealed ? 1 : 0}`;
+  // Micro-segnali del Daily Compass: entrano nei fatti (sono risposte REALI
+  // dell'utente, quindi compatibili col vincolo fact-locked). La chiave di
+  // cache li include: una nuova risposta rigenera il ritratto.
+  const { getRecentCompassSignals, formatCompassSignalsFacts } = await import("./compass");
+  const signals = await getRecentCompassSignals(userId, 60, 8);
+  const signalsKey = signals.length ? `${signals.length}:${signals[0].at.getTime()}` : "0";
+
+  const key = `${lang}::${p.snapshotCount}::${p.seek.join(",")}::${p.avoid.join(",")}::${p.chosen.length}::${p.revealed ? 1 : 0}::${signalsKey}`;
   const cached = narrativeCache.get(userId);
   if (cached && cached.key === key) return cached.value;
 
   if (!process.env.ANTHROPIC_API_KEY) return null;
-  const facts = buildFactsBlock(p);
+  const signalFacts = formatCompassSignalsFacts(signals, lang);
+  const facts = [buildFactsBlock(p), ...signalFacts].filter(Boolean).join("\n");
   if (!facts.trim()) return null;
 
   try {

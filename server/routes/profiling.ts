@@ -9,6 +9,7 @@ import { fetchUnsplashHero } from "../unsplash";
 import { computeTraitVector, emaAggregate, synthesizeAnswersFromVector, MAPPING_VERSION, type TraitVector } from "@shared/traits";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import { formatDestinationCoherenceBlock } from "../destination-traits";
+import { getRecentCompassSignals, formatCompassSignalsBlock } from "../compass";
 import { computeProfileDefaults } from "../profile-defaults";
 import { requireAuth } from "../auth";
 
@@ -29,7 +30,12 @@ export function registerProfilingRoutes(app: Express) {
         travelStyle: input.travelStyle ?? null,
         constraints: input.constraints ?? null,
       });
-      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(userVec);
+      // Micro-segnali del Daily Compass: rifiniscono il matching (mai sopra i
+      // vincoli duri del quiz). Vuoto finché l'utente non risponde alle card.
+      const signalsBlock = userIdForPrior
+        ? formatCompassSignalsBlock(await getRecentCompassSignals(userIdForPrior))
+        : "";
+      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(userVec) + signalsBlock;
       const recentNames = await getRecentDestinationNames();
       const userSeenNames = await getProposedNamesForUser(userIdForPrior);
       const seed = weeklyExplorationSeed(userIdForPrior);
@@ -161,7 +167,10 @@ export function registerProfilingRoutes(app: Express) {
 
       const prior = await getTraitPriorForUser(user.id);
       // 2A — coerenza col catalogo dal vettore aggregato (current).
-      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(current);
+      // + micro-segnali del Daily Compass ("Genera dal profilo" è proprio il
+      // flusso dove pesano di più: non c'è un quiz fresco a raccontare l'oggi).
+      const signalsBlock = formatCompassSignalsBlock(await getRecentCompassSignals(user.id));
+      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(current) + signalsBlock;
       const recentNames = await getRecentDestinationNames();
       const userSeenNames = await getProposedNamesForUser(user.id);
       const seed = weeklyExplorationSeed(user.id);
