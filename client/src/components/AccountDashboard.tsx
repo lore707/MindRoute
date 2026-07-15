@@ -138,6 +138,25 @@ function computeEmotions(seek: string[], vec: Record<string, number> | null): Ar
   return out.length >= 2 ? out : null;
 }
 
+const AXES5 = ["exposure", "comfort", "social", "matter", "structure"] as const;
+
+// Delta RECENTE: quanto è cambiato ogni asse tra il penultimo e l'ultimo
+// snapshot → alimenta "nuovo tratto rilevato +N%" dell'header vivo.
+function computeRecentDelta(snaps: Array<{ createdAt: string; traits: Record<string, number> }>) {
+  const valid = snaps
+    .filter(s => s.traits && s.createdAt)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  if (valid.length < 2) return null;
+  const prev = valid[valid.length - 2].traits, cur = valid[valid.length - 1].traits;
+  let axis = "", delta = 0;
+  for (const a of AXES5) {
+    const d = (cur[a] ?? 0.5) - (prev[a] ?? 0.5);
+    if (Math.abs(d) > Math.abs(delta)) { delta = d; axis = a; }
+  }
+  if (!axis || Math.abs(delta) < 0.04) return null;
+  return { axis, delta, hi: (cur[axis] ?? 0.5) >= 0.5 };
+}
+
 // Serie evolutiva: l'asse che si è mosso di più attraverso gli snapshot.
 function computeEvoSeries(snaps: Array<{ createdAt: string; traits: Record<string, number> }>) {
   const valid = snaps
@@ -176,10 +195,17 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     } catch { /* SSR/no window */ }
     return "home";
   });
-  // Tab del Ritratto v3 (stato qui: le view sono funzioni chiamate
-  // condizionalmente, gli hook dentro violerebbero le rules-of-hooks).
-  type PTab = "overview" | "emotions" | "patterns" | "growth" | "journal" | "guidance";
-  const [pTab, setPTab] = useState<PTab>("overview");
+  // Tab del Ritratto v4 — una tab = una domanda (riorg. 2026-07-15):
+  // Panoramica (chi sei) · Evoluzione (come sei cambiato) · Pattern (come
+  // viaggi davvero) · Diario (cosa hai vissuto) · Guida (dove crescere).
+  type PTab = "overview" | "evolution" | "pattern" | "journal" | "guide";
+  const [pTab, setPTab] = useState<PTab>(() => {
+    try {
+      const v = new URLSearchParams(window.location.search).get("ptab");
+      if (v && ["overview", "evolution", "pattern", "journal", "guide"].includes(v)) return v as PTab;
+    } catch { /* SSR */ }
+    return "overview";
+  });
   const [stuck, setStuck] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [region, setRegion] = useState<(typeof REGION_TABS)[number]>("all");
@@ -202,6 +228,10 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   const [compass, setCompass] = useState<CompassCard[] | null>(null);
   const [cpOpen, setCpOpen] = useState<string | null>(null);
   const [cpDone, setCpDone] = useState<Record<string, "ok" | "err">>({});
+  // Ritratto: diario (reflection AI lazy), "perché lo pensiamo" (trasparenza).
+  const [jOpen, setJOpen] = useState<number | null>(null);
+  const [jRefl, setJRefl] = useState<Record<number, string | "loading" | "none">>({});
+  const [whyOpen, setWhyOpen] = useState(false);
 
   // Interpolatore: t() non supporta placeholder, li sostituiamo qui.
   const tx = (key: string, vars: Record<string, string | number>) => {
@@ -980,18 +1010,112 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     const evo = computeEvoSeries(data.traitSnapshots ?? []);
     const moments = (data.savedMoments ?? []).filter(m => m.momentSnapshot?.title);
     const journal = [...moments].reverse(); // dal più recente (l'array arriva asc)
-    const guidance = (compass ?? []).filter(c => c.type === "growth" || c.type === "discovery" || c.type === "journey").slice(0, 3);
-    const tip = (compass ?? []).find(c => c.type === "growth");
     const reco = picks?.picks[0];
 
     const quote = p?.ownWords ?? data.profileQuote;
-    const lastSnapAt = (data.traitSnapshots ?? []).map(s => new Date(s.createdAt)).sort((a, b) => b.getTime() - a.getTime())[0];
+    const snaps = data.traitSnapshots ?? [];
+    const lastSnapAt = snaps.map(s => new Date(s.createdAt)).sort((a, b) => b.getTime() - a.getTime())[0];
     const quoteWhen = lastSnapAt && !isNaN(lastSnapAt.getTime())
       ? lastSnapAt.toLocaleString(lang === "it" ? "it-IT" : "en-US", { month: "long", year: "numeric" })
       : "";
 
     const monthLabel = (d: Date) =>
       d.toLocaleString(lang === "it" ? "it-IT" : "en-US", { month: "short", year: "2-digit" }).replace(".", "");
+    const poleName = (axis: string, hi: boolean) => t(`acd.p3.dim.${axis}.${hi ? "hi" : "lo"}`);
+    const agoLabel = (d: Date) => {
+      const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+      if (days <= 0) return lang === "it" ? "oggi" : "today";
+      if (days === 1) return lang === "it" ? "ieri" : "yesterday";
+      if (days < 7) return lang === "it" ? `${days} giorni fa` : `${days} days ago`;
+      const w = Math.floor(days / 7);
+      if (days < 30) return lang === "it" ? `${w} settiman${w === 1 ? "a" : "e"} fa` : `${w} week${w === 1 ? "" : "s"} ago`;
+      const mo = Math.floor(days / 30);
+      return lang === "it" ? `${mo} mes${mo === 1 ? "e" : "i"} fa` : `${mo} month${mo === 1 ? "" : "s"} ago`;
+    };
+
+    // ── HEADER VIVO — il profilo è un organismo, non una fotografia ──────
+    // Versione = aggiornamenti veri (quiz.pick); confidence = banda dai
+    // conteggi reali; "nuovo tratto" = l'asse davvero cresciuto nell'ultimo
+    // snapshot. Numeri reali, mai inventati.
+    const nSnaps = snaps.length;
+    const nTrips = counts.trips;
+    const nMoments = (data.savedMoments ?? []).length;
+    const nChosen = p?.chosen?.length ?? counts.places;
+    const quizN = snaps.filter(s => s.source === "quiz").length;
+    const pickN = snaps.filter(s => s.source === "pick").length;
+    const version = nSnaps > 0 ? `v${Math.max(1, quizN)}.${pickN}` : null;
+    const confidence = nSnaps > 0
+      ? Math.max(42, Math.min(96, Math.round(35 + nTrips * 4 + nSnaps * 3 + nMoments * 1.5)))
+      : null;
+    const updated = lastSnapAt && !isNaN(lastSnapAt.getTime()) ? agoLabel(lastSnapAt) : null;
+    const recent = computeRecentDelta(snaps);
+    const newTrait = recent ? { name: poleName(recent.axis, recent.hi), pct: Math.round(Math.abs(recent.delta) * 100) } : null;
+
+    // ── COACH (tab Guida) — solo futuro, mai descrive il profilo ─────────
+    const coach: Array<{ mode: string; icon: string; title: string; text?: string; act?: () => void }> = [];
+    for (const c of (compass ?? [])) {
+      if (c.type === "growth" && c.challenge) coach.push({ mode: "challenge", icon: "⚑", title: c.title, text: c.sub, act: () => data.onChallenge?.(c.challenge!) });
+      else if (c.type === "journey") coach.push({ mode: "experiment", icon: "🧪", title: c.title, text: c.sub, act: () => data.onSecondaryCta?.() });
+      else if (c.type === "discovery") coach.push({ mode: "training", icon: "🎯", title: c.title, text: c.sub, act: () => data.onSecondaryCta?.() });
+    }
+    if (p?.revealed) {
+      coach.push({ mode: "question", icon: "❔", title: tx("acd.p4.qGap", { said: p.revealed.saidPole, chose: p.revealed.chosePole }) });
+    } else if (p?.narrative?.paradox) {
+      coach.push({ mode: "question", icon: "❔", title: p.narrative.paradox });
+    }
+    const coachCards = coach.slice(0, 5);
+
+    // ── 3 insight per la Panoramica (derivati, leggeri) ──────────────────
+    const insights: Array<{ ic: string; t: string; d: string }> = [];
+    const topDim = [...dims].filter(d => d.known).sort((a, b) => b.pct - a.pct)[0];
+    if (topDim) insights.push({ ic: topDim.icon, t: topDim.name, d: topDim.desc });
+    if (p?.revealed) insights.push({ ic: "🪞", t: t("acd.p3.revealedK"), d: tx("acd.p4.qGap", { said: p.revealed.saidPole, chose: p.revealed.chosePole }) });
+    else if (p?.narrative?.paradox) insights.push({ ic: "🪞", t: t("acd.p3.paradoxK"), d: p.narrative.paradox });
+    if (data.patterns?.topContinentLabel) insights.push({ ic: "📍", t: t("acd.p3.pat.continent"), d: data.patterns.topContinentLabel });
+    else if (data.patterns?.avgDays != null) insights.push({ ic: "📅", t: t("acd.p3.pat.avgDays"), d: `${data.patterns.avgDays} ${t("acd.unit.days")}` });
+    const insights3 = insights.slice(0, 3);
+    const nextStep = (compass ?? []).find(c => c.type === "journey" || c.type === "growth") ?? (compass ?? [])[0];
+
+    // ── Analytics (tab Pattern) — solo dati calcolabili, zero psicologia ──
+    const contCounts: Record<string, number> = {};
+    for (const tr of data.trips) if (tr.continent) contCounts[tr.continent] = (contCounts[tr.continent] || 0) + 1;
+    const contBars = Object.entries(contCounts).sort((a, b) => b[1] - a[1]);
+    const maxCont = Math.max(1, ...contBars.map(x => x[1]));
+    const takenN = data.trips.filter(tr => tr.taken).length;
+    const dreamedN = data.trips.length - takenN;
+    const GAUGES = vec ? [
+      { k: "rhythm",  left: t("acd.p4.pole.planned"),   right: t("acd.p4.pole.spontaneous"), v: vec.structure ?? 0.5 },
+      { k: "explore", left: t("acd.p4.pole.mainstream"), right: t("acd.p4.pole.offbeat"),     v: vec.exposure ?? 0.5 },
+      { k: "comfort", left: t("acd.p4.pole.comfort"),    right: t("acd.p4.pole.adventure"),   v: vec.comfort ?? 0.5 },
+      { k: "terrain", left: t("acd.p4.pole.city"),       right: t("acd.p4.pole.nature"),      v: vec.matter ?? 0.5 },
+      { k: "company", left: t("acd.p4.pole.solitude"),   right: t("acd.p4.pole.company"),     v: vec.social ?? 0.5 },
+    ] : [];
+
+    // ── Emersi / svaniti (tab Evoluzione) — primo vs ultimo snapshot ─────
+    const emergedFaded = (() => {
+      const valid = snaps.filter(s => s.traits && s.createdAt).sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+      if (valid.length < 2) return null;
+      const first = valid[0].traits, cur = valid[valid.length - 1].traits;
+      const emerged: Array<{ name: string; delta: number }> = [], faded: Array<{ name: string; delta: number }> = [];
+      for (const a of AXES5) {
+        const sf = Math.abs((first[a] ?? 0.5) - 0.5), sc = Math.abs((cur[a] ?? 0.5) - 0.5);
+        if (sc - sf >= 0.08) emerged.push({ name: poleName(a, (cur[a] ?? 0.5) >= 0.5), delta: Math.round((sc - sf) * 100) });
+        else if (sf - sc >= 0.08) faded.push({ name: poleName(a, (first[a] ?? 0.5) >= 0.5), delta: Math.round((sf - sc) * 100) });
+      }
+      return { emerged, faded };
+    })();
+
+    // Diario: apertura + fetch lazy della riflessione AI (una sola volta).
+    const openJournal = (id: number) => {
+      setJOpen(prev => (prev === id ? null : id));
+      if (jRefl[id] === undefined) {
+        setJRefl(prev => ({ ...prev, [id]: "loading" }));
+        fetch(`/api/me/moment-reflection?id=${id}&lang=${lang}`)
+          .then(r => (r.ok ? r.json() : null))
+          .then(d => setJRefl(prev => ({ ...prev, [id]: (d && d.reflection) || "none" })))
+          .catch(() => setJRefl(prev => ({ ...prev, [id]: "none" })));
+      }
+    };
 
     // Radar SVG (pentagono) — puro SVG, nessuna libreria.
     const Radar = () => {
@@ -1025,30 +1149,6 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
               </g>
             );
           })}
-        </svg>
-      );
-    };
-
-    // Donut SVG delle emozioni.
-    const Donut = ({ size = 132 }: { size?: number }) => {
-      if (!emotions) return null;
-      const r = 44, C = 2 * Math.PI * r;
-      let acc = 0;
-      return (
-        <svg viewBox="0 0 120 120" style={{ width: size, height: size }} className="p3-donut" aria-hidden="true">
-          {emotions.map(e => {
-            const frac = e.pct / 100;
-            const el = (
-              <circle key={e.key} cx="60" cy="60" r={r} fill="none"
-                stroke={EMO_COLORS[e.key]} strokeWidth="14"
-                strokeDasharray={`${Math.max(0, frac * C - 2)} ${C}`}
-                strokeDashoffset={-acc * C}
-                transform="rotate(-90 60 60)" strokeLinecap="butt" />
-            );
-            acc += frac;
-            return el;
-          })}
-          <text x="60" y="66" textAnchor="middle" fontSize="18" fill="rgba(233,69,96,.9)">♥</text>
         </svg>
       );
     };
@@ -1129,131 +1229,89 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
       </section>
     );
 
-    const TimelineCard = () => (
-      <section className="h2-card p3-timeline">
-        <div className="h2-card-head">
-          <div><h3>{t("acd.p3.timelineK")}</h3><div className="p3-cardsub">{t("acd.p3.timelineSub")}</div></div>
-          <button className="h2-link" onClick={() => go("trips")}>{t("acd.p3.viewAll")} →</button>
-        </div>
-        <Timeline />
-      </section>
-    );
-
-    const JournalCard = ({ full }: { full?: boolean }) => (
-      <section className={"h2-card p3-journal" + (full ? " full" : "")}>
-        <div className="h2-card-head">
-          <div><h3>{t("acd.p3.journalK")}</h3>{full && <div className="p3-cardsub">{t("acd.p3.journalSub")}</div>}</div>
-          {!full && <button className="h2-link" onClick={() => setPTab("journal")}>{t("acd.p3.viewAll")} →</button>}
-        </div>
+    // Diario stile Apple Journal (tab Diario) — riflessione AI lazy.
+    const JournalFull = () => (
+      <section className="h2-card p4-journal full">
+        <div className="h2-card-head"><div><h3>{t("acd.p4.journalK")}</h3><div className="p3-cardsub">{t("acd.p3.journalSub")}</div></div></div>
         {journal.length === 0 ? (
           <div className="p3-tl-empty">{t("acd.p3.journalEmpty")}</div>
-        ) : full ? (
-          <div className="p3-journal-grid">
-            {journal.map((m, i) => (
-              <div key={i} className="p3-j-cell">
-                {m.momentSnapshot!.image_url && <span className="ph" style={{ backgroundImage: bg(m.momentSnapshot!.image_url, 420) }} />}
-                <span className="tt">{m.momentSnapshot!.title}</span>
-                {m.momentSnapshot!.location_name && <span className="lc">{m.momentSnapshot!.location_name}</span>}
-              </div>
-            ))}
-          </div>
         ) : (
-          <div className="p3-j-list">
-            {journal[0]?.momentSnapshot?.image_url && (
-              <div className="p3-j-feat" style={{ backgroundImage: bg(journal[0].momentSnapshot!.image_url!, 520) }}>
-                <span className="nm">{journal[0].momentSnapshot!.location_name ?? journal[0].momentSnapshot!.title}</span>
-                <span className="qt">{journal[0].momentSnapshot!.title}</span>
-              </div>
-            )}
-            {journal.slice(1, 4).map((m, i) => (
-              <div key={i} className="p3-j-row">
-                {m.momentSnapshot!.image_url
-                  ? <span className="ph" style={{ backgroundImage: bg(m.momentSnapshot!.image_url!, 120) }} />
-                  : <span className="ph fb">✦</span>}
-                <span className="tx">
-                  <span className="tt">{m.momentSnapshot!.title}</span>
-                  {m.momentSnapshot!.location_name && <span className="lc">{m.momentSnapshot!.location_name}</span>}
-                </span>
-              </div>
-            ))}
+          <div className="p4-jlist">
+            {journal.map((m, i) => {
+              const id = m.id;
+              const open = id != null && jOpen === id;
+              const snap = m.momentSnapshot!;
+              const dd = m.createdAt ? new Date(m.createdAt) : null;
+              const dateStr = dd && !isNaN(dd.getTime())
+                ? dd.toLocaleDateString(lang === "it" ? "it-IT" : "en-US", { day: "numeric", month: "long" })
+                : "";
+              const refl = id != null ? jRefl[id] : undefined;
+              return (
+                <article key={i} className={"p4-j" + (open ? " open" : "")}>
+                  <div className="p4-j-rail"><span className="dot" />{dateStr && <span className="dt">{dateStr}</span>}</div>
+                  <button className="p4-j-card" onClick={() => id != null && openJournal(id)} disabled={id == null}>
+                    {snap.image_url && <span className="ph" style={{ backgroundImage: bg(snap.image_url, 520) }} />}
+                    <span className="body">
+                      {snap.location_name && <span className="place">◍ {snap.location_name}</span>}
+                      <span className="quote">“{snap.title}”</span>
+                      {open && (
+                        <span className="refl">
+                          {refl === "loading" ? <em>{t("acd.p4.reflLoading")}</em>
+                            : refl && refl !== "none" ? <><span className="rk">{t("acd.p4.reflK")}</span>{refl}</>
+                            : <em>{t("acd.p4.reflNone")}</em>}
+                        </span>
+                      )}
+                      {id != null && <span className="expand">{open ? "—" : `✦ ${t("acd.p4.reflCta")}`}</span>}
+                    </span>
+                  </button>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
     );
 
-    const EmotionsCard = ({ full }: { full?: boolean }) => emotions && (
-      <section className={"h2-card p3-emotions" + (full ? " full" : "")}>
-        <div className="h2-card-head"><div><h3>{t("acd.p3.emotionsK")}</h3>{full && <div className="p3-cardsub">{t("acd.p3.emotionsSub")}</div>}</div></div>
-        <div className="p3-emo-grid">
-          <Donut size={full ? 190 : 132} />
-          <div className="p3-emo-legend">
-            {emotions.map(e => (
-              <div key={e.key} className="p3-emo-row">
-                <span className="d" style={{ background: EMO_COLORS[e.key] }} />
-                <span className="nm">{t(`acd.p3.emo.${e.key}`)}</span>
-                <span className="pc">{e.pct}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="p3-cardnote">{t("acd.p3.emotionsSub")}</div>
-        {full && p?.seek && p.seek.length > 0 && (
-          <div className="p3-chips">{p.seek.map((c, i) => <span key={i}>{c}</span>)}</div>
-        )}
-      </section>
+    const Gauge = ({ left, right, v }: { left: string; right: string; v: number }) => (
+      <div className="p4-gauge">
+        <div className="track"><i style={{ left: `${Math.round(v * 100)}%` }} /></div>
+        <div className="poles"><span>{left}</span><span>{right}</span></div>
+      </div>
     );
 
-    const GuidanceCard = ({ full }: { full?: boolean }) => guidance.length > 0 && (
-      <section className={"h2-card p3-guidance" + (full ? " full" : "")}>
-        <div className="h2-card-head"><div><h3>{t("acd.p3.guidanceK")}</h3>{full && <div className="p3-cardsub">{t("acd.p3.guidanceSub")}</div>}</div></div>
-        <div className="p3-guid-list">
-          {guidance.map(g => (
-            <button key={g.id} className="p3-guid-row"
-              onClick={() => g.type === "growth" && g.challenge ? data.onChallenge?.(g.challenge) : data.onSecondaryCta?.()}>
-              <span className="ic">{g.icon}</span>
-              <span className="tx"><span className="tt">{g.title}</span>{g.sub && <span className="ds">{g.sub}</span>}</span>
-              <span className="go">›</span>
-            </button>
-          ))}
-        </div>
-      </section>
-    );
-
-    const InsightRail = () => (
+    const OverviewRail = () => (
       <aside className="p3-rail">
-        <div className="h2-card p3-insight">
-          <div className="h2-rail-eyebrow">✦ {t("acd.p3.insightK")}</div>
-          <div className="p3-insight-t">{evo || p?.evolution ? t("acd.p3.insightEvolving") : t("acd.p3.insightWho")}</div>
-          <p className="p3-insight-x">{data.traitHeadline ?? p?.evolution?.phrase ?? p?.narrative?.portrait ?? data.profileQuote}</p>
-          <div className="p3-insight-keep">{t("acd.p3.insightKeep")}</div>
-          <button className="h2-link" onClick={() => setPTab("growth")}>{t("acd.p3.insightLink")} →</button>
-        </div>
-
-        {(tip || reco) && (
+        {nextStep && (
+          <div className="h2-card p4-next">
+            <div className="h2-rail-eyebrow">➤ {t("acd.p4.nextK")}</div>
+            <div className="p4-next-t">{nextStep.icon} {nextStep.title}</div>
+            {nextStep.sub && <p className="p3-insight-x">{nextStep.sub}</p>}
+            <button className="btn-p" style={{ marginTop: 12 }} onClick={() =>
+              nextStep.type === "growth" && nextStep.challenge ? data.onChallenge?.(nextStep.challenge)
+              : nextStep.type === "memory" && nextStep.href ? setLocation(nextStep.href)
+              : data.onSecondaryCta?.()}>
+              {nextStep.type === "journey" ? t("acd.cp.journeyCta") : nextStep.type === "growth" ? t("acd.cp.growthCta") : t("acd.p3.viewAll")} →
+            </button>
+          </div>
+        )}
+        {reco && (
           <div className="h2-card p3-tip">
-            <div className="h2-card-head"><h3>{t("acd.p3.tipK")}</h3></div>
-            {tip && <p className="p3-tip-x">{tip.sub ?? tip.title}</p>}
-            {reco && (<>
-              <div className="p3-cardnote">{t("acd.p3.tipReco")}</div>
-              <button className="p3-tip-reco" onClick={data.onSecondaryCta}>
-                <span className="ph" style={{ backgroundImage: bg(reco.imageUrl, 200) }} />
-                <span className="tx">
-                  <span className="nm">{reco.name.split(",")[0]}</span>
-                  {reco.tags.length > 0 && <span className="tg">{reco.tags.slice(0, 2).join(" · ")}</span>}
-                </span>
-              </button>
-              <button className="h2-link" title={picks?.why} onClick={data.onSecondaryCta}>{t("acd.p3.tipWhy")} →</button>
-            </>)}
+            <div className="h2-card-head"><h3>{t("acd.p3.tipReco")}</h3></div>
+            <button className="p3-tip-reco" onClick={data.onSecondaryCta}>
+              <span className="ph" style={{ backgroundImage: bg(reco.imageUrl, 200) }} />
+              <span className="tx"><span className="nm">{reco.name.split(",")[0]}</span>{reco.tags.length > 0 && <span className="tg">{reco.tags.slice(0, 2).join(" · ")}</span>}</span>
+            </button>
+            <button className="h2-link" title={picks?.why} onClick={data.onSecondaryCta}>{t("acd.p3.tipWhy")} →</button>
           </div>
         )}
       </aside>
     );
 
-    const PTABS: PTab[] = ["overview", "emotions", "patterns", "growth", "journal", "guidance"];
+    const PTABS: PTab[] = ["overview", "evolution", "pattern", "journal", "guide"];
 
     return (
-      <div className="view p3">
-        {/* Header con hero velato + quote card */}
+      <div className="view p3 p4">
+        {/* Header con hero velato + quote + "profilo vivo" */}
         <div className="p3-head">
           <div className="p3-head-bg" style={{ backgroundImage: bg(data.heroImg, heroW, 55) }} />
           <div className="p3-head-veil" />
@@ -1267,6 +1325,27 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
               <Html as="h1" className="p3-title"
                 html={tripCount >= 3 ? tx("acd.p3.titleMany", { n: tripCount }) : t("acd.p3.titleFew")} />
               <p className="p3-sub">{t("acd.p3.sub")}</p>
+              {(version || confidence != null || newTrait) && (
+                <div className="p4-organism">
+                  {version && <span className="p4-chip ver">{version}</span>}
+                  {updated && <span className="p4-upd">{t("acd.p4.updated")} {updated}</span>}
+                  {confidence != null && (
+                    <button className="p4-chip conf" onClick={() => setWhyOpen(v => !v)}>{confidence}% {t("acd.p4.conf")} <span className="i">ⓘ</span></button>
+                  )}
+                  {newTrait && <span className="p4-chip trait">{t("acd.p4.newTrait")}: {newTrait.name} +{newTrait.pct}%</span>}
+                </div>
+              )}
+              {whyOpen && (
+                <div className="p4-why">
+                  <div className="k">{t("acd.p4.whyK")}</div>
+                  <div className="rows">
+                    <span>{nTrips} {t("acd.p4.whyTrips")}</span>
+                    <span>{nSnaps} {t("acd.p4.whyAnswers")}</span>
+                    <span>{nChosen} {t("acd.p4.whyChosen")}</span>
+                    <span>{nMoments} {t("acd.p4.whyNotes")}</span>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="p3-head-r">
               {quote && (
@@ -1282,102 +1361,134 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
               </div>
             </div>
           </div>
-          {/* Tab bar */}
           <div className="p3-tabs">
             {PTABS.map(tb => (
               <button key={tb} className={"p3-tab" + (pTab === tb ? " on" : "")} onClick={() => setPTab(tb)}>
-                {t(`acd.p3.tab.${tb}`)}
+                {t(`acd.p4.tab.${tb}`)}
               </button>
             ))}
           </div>
         </div>
 
         <div className="p3-body">
+          {/* 1 · PANORAMICA — chi sei oggi? */}
           {pTab === "overview" && (
             <div className="p3-grid">
               <div className="p3-mainc">
+                <section className="h2-card p4-portrait">
+                  <div className="h2-card-head"><h3>{t("acd.p4.q.overview")}</h3></div>
+                  <p className="p4-portrait-text">{p?.narrative?.portrait ?? data.profileQuote}</p>
+                  {emotions && (
+                    <div className="p4-emostrip">
+                      <span className="k">{t("acd.p4.emoRecurring")}</span>
+                      {emotions.slice(0, 3).map(e => (
+                        <span key={e.key} className="e"><span className="d" style={{ background: EMO_COLORS[e.key] }} />{t(`acd.p3.emo.${e.key}`)} {e.pct}%</span>
+                      ))}
+                    </div>
+                  )}
+                </section>
                 <div className="p3-row1">
                   <EssenceCard />
-                  <TimelineCard />
-                </div>
-                <div className="p3-row2">
-                  <JournalCard />
-                  <EmotionsCard />
-                  <GuidanceCard />
+                  {insights3.length > 0 && (
+                    <section className="h2-card p4-insights">
+                      <div className="h2-card-head"><h3>{t("acd.p4.insightsK")}</h3></div>
+                      <div className="p4-ins-list">
+                        {insights3.map((ins, i) => (
+                          <div key={i} className="p4-ins"><span className="ic">{ins.ic}</span><span className="tx"><span className="tt">{ins.t}</span><span className="ds">{ins.d}</span></span></div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                 </div>
               </div>
-              <InsightRail />
+              <OverviewRail />
             </div>
           )}
 
-          {pTab === "emotions" && (
-            <div className="p3-focus">
-              <EmotionsCard full />
-              {!emotions && <div className="h2-card p3-tl-empty">{t("acd.p3.forming")}</div>}
-            </div>
-          )}
-
-          {pTab === "patterns" && (
-            <div className="p3-focus">
-              <section className="h2-card full">
-                <div className="h2-card-head"><h3>{t("acd.p3.patternsK")}</h3></div>
-                <div className="p3-pat-list">
-                  {data.patterns?.topContinentLabel && (
-                    <div className="p3-pat"><span className="k">{t("acd.p3.pat.continent")}</span><span className="v">{data.patterns.topContinentLabel}</span></div>
-                  )}
-                  {data.patterns?.avgDays != null && (
-                    <div className="p3-pat"><span className="k">{t("acd.p3.pat.avgDays")}</span><span className="v">{data.patterns.avgDays} {t("acd.unit.days")}</span></div>
-                  )}
-                  {data.patterns?.shortTripBias && <div className="p3-pat solo">{t("acd.p3.pat.shortBias")}</div>}
-                  {data.patterns?.longTripBias && <div className="p3-pat solo">{t("acd.p3.pat.longBias")}</div>}
-                </div>
-                {p?.chosen && p.chosen.length > 0 && (<>
-                  <div className="p3-cardnote">{t("acd.p3.pat.chosen")}</div>
-                  <div className="p3-chips">{p.chosen.map((c, i) => <span key={i}>{c.name.split(",")[0]}</span>)}</div>
-                </>)}
-              </section>
-              <EssenceCard full />
-            </div>
-          )}
-
-          {pTab === "growth" && (
-            <div className="p3-focus">
-              <section className="h2-card full">
-                <div className="h2-card-head"><h3>{t("acd.p3.timelineK")}</h3></div>
-                {(p?.evolution || evo) && <p className="p3-insight-x">{p?.evolution?.phrase ?? data.traitHeadline ?? ""}</p>}
+          {/* 2 · EVOLUZIONE — come sei cambiato? */}
+          {pTab === "evolution" && (
+            <div className="p3-focus wide">
+              <section className="h2-card full p3-timeline">
+                <div className="h2-card-head"><div><h3>{t("acd.p4.q.evolution")}</h3><div className="p3-cardsub">{t("acd.p3.timelineSub")}</div></div></div>
+                {(p?.evolution || evo) && <p className="p4-turning">{p?.evolution?.phrase ?? data.traitHeadline ?? ""}</p>}
                 <Timeline />
               </section>
-              {p?.revealed && (
+              {evo && (
                 <section className="h2-card full">
-                  <div className="h2-card-head"><h3>{t("acd.p3.revealedK")}</h3></div>
-                  <p className="p3-insight-x">
-                    {t("acin.pt.revealedPre")}<em>{p.revealed.saidPole}</em>{t("acin.pt.revealedMid")}<strong>{p.revealed.chosePole}</strong>.
-                  </p>
+                  <div className="h2-card-head"><h3>{t("acd.p4.beforeAfter")}</h3></div>
+                  <div className="p4-ba">
+                    <div className="p4-ba-cell"><span className="lab">{t("acd.p4.before")}</span><span className="pole">{poleName(evo.axis, evo.values[0] >= 0.5)}</span></div>
+                    <span className="arrow">→</span>
+                    <div className="p4-ba-cell now"><span className="lab">{t("acd.p4.after")}</span><span className="pole">{poleName(evo.axis, evo.values[evo.values.length - 1] >= 0.5)}</span></div>
+                  </div>
                 </section>
               )}
-              <GuidanceCard full />
+              {emergedFaded && (emergedFaded.emerged.length > 0 || emergedFaded.faded.length > 0) && (
+                <section className="h2-card full">
+                  <div className="h2-card-head"><h3>{t("acd.p4.shifts")}</h3></div>
+                  <div className="p4-shifts">
+                    {emergedFaded.emerged.map((e, i) => <span key={"e" + i} className="p4-shift up">↑ {e.name} <b>+{e.delta}%</b></span>)}
+                    {emergedFaded.faded.map((e, i) => <span key={"f" + i} className="p4-shift down">↓ {e.name} <b>−{e.delta}%</b></span>)}
+                  </div>
+                  <div className="p3-cardnote">{t("acd.p4.shiftsNote")}</div>
+                </section>
+              )}
+              {!evo && !emergedFaded && <div className="h2-card p3-tl-empty">{t("acd.p3.timelineEmpty")}</div>}
             </div>
           )}
 
-          {pTab === "journal" && (
-            <div className="p3-focus"><JournalCard full /></div>
+          {/* 3 · PATTERN — come viaggi davvero? (analytics) */}
+          {pTab === "pattern" && (
+            <div className="p3-focus wide">
+              <div className="p4-patgrid">
+                {contBars.length > 0 && (
+                  <section className="h2-card">
+                    <div className="h2-card-head"><h3>{t("acd.p4.patContinents")}</h3></div>
+                    <div className="p4-bars">
+                      {contBars.map(([c, n]) => (
+                        <div key={c} className="p4-bar"><span className="lab">{c}</span><span className="track"><i style={{ width: `${Math.round((n / maxCont) * 100)}%` }} /></span><span className="n">{n}</span></div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                <section className="h2-card">
+                  <div className="h2-card-head"><h3>{t("acd.p4.patRhythm")}</h3></div>
+                  {GAUGES.length > 0 ? <div className="p4-gauges">{GAUGES.map(g => <Gauge key={g.k} left={g.left} right={g.right} v={g.v} />)}</div> : <div className="p3-tl-empty">{t("acd.p3.forming")}</div>}
+                </section>
+              </div>
+              <section className="h2-card full">
+                <div className="h2-card-head"><h3>{t("acd.p4.patFacts")}</h3></div>
+                <div className="p4-factgrid">
+                  {data.patterns?.avgDays != null && <div className="p4-fact"><span className="n">{data.patterns.avgDays}</span><span className="l">{t("acd.p3.pat.avgDays")}</span></div>}
+                  <div className="p4-fact"><span className="n">{data.trips.length}</span><span className="l">{plural(data.trips.length, "acd.unit.trip", "acd.unit.trips")}</span></div>
+                  {(takenN > 0 || dreamedN > 0) && <div className="p4-fact"><span className="n">{takenN}/{data.trips.length}</span><span className="l">{t("acd.p4.taken")}</span></div>}
+                  <div className="p4-fact"><span className="n">{counts.continents}</span><span className="l">{plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span></div>
+                </div>
+              </section>
+            </div>
           )}
 
-          {pTab === "guidance" && (
-            <div className="p3-focus">
-              <section className="h2-card full">
-                <div className="h2-card-head"><h3>{t("acd.p3.insightK")}</h3></div>
-                <p className="p3-insight-x">{p?.narrative?.portrait ?? data.profileQuote}</p>
-                {p?.narrative?.paradox && (<>
-                  <div className="p3-cardnote">{t("acd.p3.paradoxK")}</div>
-                  <p className="p3-insight-x em">{p.narrative.paradox}</p>
-                </>)}
-                {p?.ownWords && (<>
-                  <div className="p3-cardnote">{t("acd.p3.ownWordsK")}</div>
-                  <p className="p3-insight-x">“{p.ownWords}”</p>
-                </>)}
-              </section>
-              <GuidanceCard full />
+          {/* 4 · DIARIO — cosa hai vissuto? */}
+          {pTab === "journal" && <div className="p3-focus wide"><JournalFull /></div>}
+
+          {/* 5 · GUIDA — dove puoi crescere adesso? (coach) */}
+          {pTab === "guide" && (
+            <div className="p3-focus wide">
+              <div className="p4-coach-intro"><h3>{t("acd.p4.q.guide")}</h3><p>{t("acd.p4.coachSub")}</p></div>
+              {coachCards.length === 0 ? (
+                <div className="h2-card p3-tl-empty">{t("acd.p4.coachEmpty")}</div>
+              ) : (
+                <div className="p4-coach">
+                  {coachCards.map((c, i) => (
+                    <div key={i} className={"p4-coach-card m-" + c.mode}>
+                      <div className="mode"><span className="ic">{c.icon}</span>{t(`acd.p4.mode.${c.mode}`)}</div>
+                      <div className="ttl">{c.title}</div>
+                      {c.text && <div className="txt">{c.text}</div>}
+                      {c.act && <button className="btn-p" onClick={c.act}>{t(`acd.p4.act.${c.mode}`)} →</button>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

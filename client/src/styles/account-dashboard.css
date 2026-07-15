@@ -1001,6 +1001,125 @@
   .account-dash .p3-head-acts .btn-g{min-height:44px}
 }
 
+/* ════════════ RITRATTO v4 — una tab = una domanda (2026-07-15) ════════════ */
+/* Header vivo (organismo) */
+.account-dash .p4-organism{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.account-dash .p4-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  border:1px solid var(--stroke-2);border-radius:999px;padding:5px 11px;background:rgba(13,7,13,.55)}
+.account-dash .p4-chip.ver{font-family:var(--sans);letter-spacing:.02em;color:var(--ink-dim)}
+.account-dash .p4-chip.conf{cursor:pointer;color:var(--ink)}
+.account-dash .p4-chip.conf .i{color:var(--ink-faint)}
+.account-dash .p4-chip.conf:hover{border-color:rgba(233,69,96,.5)}
+.account-dash .p4-chip.trait{color:var(--gold);border-color:rgba(212,168,83,.4);background:rgba(212,168,83,.08)}
+.account-dash .p4-upd{font-size:11px;color:var(--ink-faint)}
+.account-dash .p4-why{margin-top:10px;background:rgba(13,7,13,.7);border:1px solid var(--stroke-2);border-radius:12px;padding:12px 14px;max-width:520px;backdrop-filter:blur(8px)}
+.account-dash .p4-why .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+.account-dash .p4-why .rows{display:flex;flex-wrap:wrap;gap:6px 8px}
+.account-dash .p4-why .rows span{font-size:12px;color:var(--ink-dim);border:1px solid var(--stroke);border-radius:8px;padding:4px 9px}
+
+.account-dash .p3-focus.wide{max-width:100%}
+
+/* Panoramica */
+.account-dash .p4-portrait-text{font-family:var(--serif);font-size:clamp(16px,1.6vw,20px);line-height:1.55;color:var(--ink);text-wrap:pretty}
+.account-dash .p4-emostrip{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--stroke)}
+.account-dash .p4-emostrip .k{font-size:11px;color:var(--ink-faint)}
+.account-dash .p4-emostrip .e{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-dim)}
+.account-dash .p4-emostrip .e .d{width:8px;height:8px;border-radius:50%}
+.account-dash .p4-insights .p4-ins-list{display:flex;flex-direction:column;gap:2px}
+.account-dash .p4-ins{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start;padding:11px 0;border-top:1px solid var(--stroke)}
+.account-dash .p4-ins:first-child{border-top:0}
+.account-dash .p4-ins .ic{width:28px;height:28px;border-radius:50%;border:1px solid var(--stroke-2);display:grid;place-items:center;font-size:14px}
+.account-dash .p4-ins .tt{display:block;font-size:13.5px;font-weight:600;line-height:1.25}
+.account-dash .p4-ins .ds{display:block;font-size:12px;color:var(--ink-dim);line-height:1.45;margin-top:2px}
+.account-dash .p4-next-t{font-family:var(--serif);font-size:17px;line-height:1.25;margin:6px 0 8px}
+
+/* Evoluzione */
+.account-dash .p4-turning{font-family:var(--serif);font-style:italic;font-size:clamp(17px,2vw,22px);line-height:1.35;color:var(--ink);margin-bottom:16px;text-wrap:balance}
+.account-dash .p4-ba{display:flex;align-items:center;gap:16px}
+.account-dash .p4-ba-cell{flex:1;border:1px solid var(--stroke);border-radius:14px;padding:16px;text-align:center}
+.account-dash .p4-ba-cell.now{border-color:rgba(233,69,96,.4);background:var(--accent-soft)}
+.account-dash .p4-ba-cell .lab{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px}
+.account-dash .p4-ba-cell .pole{font-family:var(--serif);font-size:19px}
+.account-dash .p4-ba .arrow{color:var(--ink-faint);font-size:18px}
+.account-dash .p4-shifts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.account-dash .p4-shift{font-size:12.5px;border:1px solid var(--stroke-2);border-radius:999px;padding:6px 12px}
+.account-dash .p4-shift b{font-weight:700}
+.account-dash .p4-shift.up{color:#7fd4a8;border-color:rgba(127,212,168,.35)}
+.account-dash .p4-shift.down{color:var(--ink-faint)}
+
+/* Pattern */
+.account-dash .p4-patgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.account-dash .p4-bars{display:flex;flex-direction:column;gap:11px}
+.account-dash .p4-bar{display:grid;grid-template-columns:80px 1fr 24px;gap:10px;align-items:center;font-size:12.5px}
+.account-dash .p4-bar .lab{color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-dash .p4-bar .track{height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+.account-dash .p4-bar .track i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--accent),#ff7a6e)}
+.account-dash .p4-bar .n{text-align:right;font-weight:700;color:var(--ink-dim)}
+.account-dash .p4-gauges{display:flex;flex-direction:column;gap:16px}
+.account-dash .p4-gauge .track{position:relative;height:5px;border-radius:5px;
+  background:linear-gradient(90deg,rgba(158,203,255,.35),rgba(233,69,96,.35));margin:2px 0 8px}
+.account-dash .p4-gauge .track i{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;
+  background:#fff;border:2px solid var(--accent);transform:translate(-50%,-50%);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.account-dash .p4-gauge .poles{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-dim)}
+.account-dash .p4-factgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.account-dash .p4-fact{text-align:center;border:1px solid var(--stroke);border-radius:12px;padding:14px 8px}
+.account-dash .p4-fact .n{display:block;font-family:var(--serif);font-size:26px;color:var(--accent)}
+.account-dash .p4-fact .l{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin-top:3px}
+
+/* Diario Apple-Journal */
+.account-dash .p4-jlist{display:flex;flex-direction:column;gap:4px}
+.account-dash .p4-j{display:grid;grid-template-columns:120px 1fr;gap:14px}
+.account-dash .p4-j-rail{position:relative;text-align:right;padding:14px 14px 14px 0;border-right:1px solid var(--stroke)}
+.account-dash .p4-j-rail .dot{position:absolute;right:-5px;top:20px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.account-dash .p4-j-rail .dt{font-size:12px;color:var(--ink-dim);font-weight:500}
+.account-dash .p4-j-card{display:grid;grid-template-columns:96px 1fr;gap:14px;text-align:left;width:100%;
+  padding:12px 0 20px;align-items:start}
+.account-dash .p4-j:last-child .p4-j-card{padding-bottom:6px}
+.account-dash .p4-j-card .ph{width:96px;height:96px;border-radius:14px;background-size:cover;background-position:center}
+.account-dash .p4-j-card .body{min-width:0;padding-top:2px}
+.account-dash .p4-j-card .place{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.account-dash .p4-j-card .quote{display:block;font-family:var(--serif);font-size:18px;line-height:1.35;text-wrap:pretty}
+.account-dash .p4-j-card .refl{display:block;font-size:13px;line-height:1.55;color:var(--ink-dim);margin-top:10px;
+  border-left:2px solid rgba(233,69,96,.4);padding-left:12px}
+.account-dash .p4-j-card .refl .rk{color:var(--accent);font-weight:600}
+.account-dash .p4-j-card .refl em{font-style:italic;color:var(--ink-faint)}
+.account-dash .p4-j-card .expand{display:inline-block;font-size:11px;color:var(--ink-faint);margin-top:10px}
+.account-dash .p4-j.open .p4-j-card .expand{color:var(--accent)}
+
+/* Guida (coach) */
+.account-dash .p4-coach-intro{margin-bottom:16px;max-width:640px}
+.account-dash .p4-coach-intro h3{font-family:var(--serif);font-size:clamp(22px,2.4vw,30px);font-weight:400;margin-bottom:6px}
+.account-dash .p4-coach-intro p{font-size:13.5px;color:var(--ink-dim);line-height:1.55}
+.account-dash .p4-coach{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.account-dash .p4-coach-card{border:1px solid var(--stroke);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;
+  background:linear-gradient(180deg,var(--card),rgba(13,7,13,.4))}
+.account-dash .p4-coach-card .mode{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.account-dash .p4-coach-card .mode .ic{font-size:14px}
+.account-dash .p4-coach-card.m-challenge{border-color:rgba(212,168,83,.35)}
+.account-dash .p4-coach-card.m-challenge .mode{color:var(--gold)}
+.account-dash .p4-coach-card.m-experiment .mode{color:#9ecbff}
+.account-dash .p4-coach-card.m-training .mode{color:#7fd4a8}
+.account-dash .p4-coach-card.m-question{border-color:rgba(201,166,232,.3)}
+.account-dash .p4-coach-card.m-question .mode{color:#c9a6e8}
+.account-dash .p4-coach-card .ttl{font-family:var(--serif);font-size:18px;line-height:1.3;text-wrap:pretty}
+.account-dash .p4-coach-card .txt{font-size:12.5px;color:var(--ink-dim);line-height:1.5}
+.account-dash .p4-coach-card .btn-p{margin-top:auto;align-self:flex-start;padding:9px 16px;font-size:12.5px}
+
+@media (max-width:1080px){
+  .account-dash .p4-patgrid{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .account-dash .p4-why{max-width:none}
+  .account-dash .p4-ba{flex-direction:column}
+  .account-dash .p4-ba .arrow{transform:rotate(90deg)}
+  .account-dash .p4-factgrid{grid-template-columns:repeat(2,1fr)}
+  .account-dash .p4-j{grid-template-columns:64px 1fr;gap:8px}
+  .account-dash .p4-j-rail{padding:12px 8px 12px 0}
+  .account-dash .p4-j-rail .dt{font-size:10.5px}
+  .account-dash .p4-j-card{grid-template-columns:1fr;gap:10px}
+  .account-dash .p4-j-card .ph{width:100%;height:150px}
+}
+
 /* Responsive: tablet → rail sotto; phone → tutto in colonna, compass scorre */
 @media (max-width:1080px){
   .account-dash .h2c .h2-grid{grid-template-columns:1fr}

@@ -73,8 +73,10 @@ export type AccountData = {
   // per il pannello "Da non perdere" del viaggio in evidenza. Opzionale:
   // AccountCinematic non li renderizza.
   savedMoments?: Array<{
+    id?: number;
+    createdAt?: string;
     itineraryId: number;
-    momentSnapshot: { title: string; image_url: string | null; location_name: string | null } | null;
+    momentSnapshot: { title: string; image_url: string | null; location_name: string | null; destination_name?: string | null } | null;
   }>;
   settings: SettingRow[];      // 3-9 settings rows
   onNewItinerary?: () => void;

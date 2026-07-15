@@ -249,6 +249,25 @@ export function registerMiscRoutes(app: Express) {
     }
   });
 
+  // GET /api/me/moment-reflection?id= — "AI Reflection" per una nota del
+  // diario (stile Apple Journal). Lazy: chiamata solo quando l'utente espande
+  // una nota. Haiku fact-locked + cache. null se non generabile (best-effort).
+  app.get("/api/me/moment-reflection", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    const id = Number(req.query.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ message: "id mancante" });
+    try {
+      const { momentReflection } = await import("../moment-reflection");
+      const text = await momentReflection(user.id, id, langOf(req));
+      res.set("Cache-Control", "private, max-age=3600");
+      res.json({ reflection: text });
+    } catch (err) {
+      console.error("moment-reflection error:", err);
+      res.json({ reflection: null });
+    }
+  });
+
   // GET /api/me/portrait-card.png — Share Card 9:16 (storie IG/TikTok) col
   // Ritratto + Paradosso. Driver di crescita organica (3B). Best-effort: 404 se
   // il ritratto non è ancora disponibile (nessun segnale). `bg` opzionale = hero

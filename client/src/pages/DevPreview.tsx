@@ -47,6 +47,11 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
     });
   }
   if (url.startsWith("/api/me/compass/answer")) return mockJson({ ok: true });
+  if (url.startsWith("/api/me/moment-reflection")) {
+    return new Promise((res) => setTimeout(() => res(new Response(
+      JSON.stringify({ reflection: "Sembra che tu ricordi meno il posto e più come ti ha lasciato: forse è quello che cerchi davvero, ogni volta." }),
+      { status: 200, headers: { "Content-Type": "application/json" } })), 900));
+  }
   if (url.startsWith("/api/me/compass")) {
     return mockJson({ cards: [
       { id: "weather-grey", type: "reflection", icon: "🌧", title: "In fuga dal grigio?", sub: "Su Milano piove. Cosa ti manca oggi?", question: "Cosa ti manca oggi?", options: ["Silenzio", "Orizzonte", "Nuotare", "Calore"] },
@@ -109,10 +114,10 @@ const data: AccountData = {
   traitHeadline: "Stai esplorando posti sempre più remoti e restando più a lungo: il tuo bisogno di solitudine e autenticità sta crescendo.",
   patterns: { topContinentLabel: "Europa", avgDays: 7, shortTripBias: false, longTripBias: false, tripCount: 6 },
   savedMoments: [
-    { itineraryId: 12, momentSnapshot: { title: "Il silenzio lassù colpisce diverso.", image_url: P.lofoten, location_name: "Reine, Lofoten" } },
-    { itineraryId: 10, momentSnapshot: { title: "Tramonto senza telefono. Presente al 100%.", image_url: P.procida, location_name: "Cinque Terre, Italia" } },
-    { itineraryId: 9, momentSnapshot: { title: "Muri blu e mattine lente.", image_url: P.sahara, location_name: "Chefchaouen, Marocco" } },
-    { itineraryId: 8, momentSnapshot: { title: "Natura selvaggia e oceano-terapia.", image_url: P.azores, location_name: "Madeira, Portogallo" } },
+    { id: 41, createdAt: "2026-06-14", itineraryId: 12, momentSnapshot: { title: "Il silenzio lassù colpisce diverso.", image_url: P.lofoten, location_name: "Reine, Lofoten" } },
+    { id: 33, createdAt: "2026-03-10", itineraryId: 10, momentSnapshot: { title: "Tramonto senza telefono. Presente al 100%.", image_url: P.procida, location_name: "Cinque Terre, Italia" } },
+    { id: 27, createdAt: "2025-11-02", itineraryId: 9, momentSnapshot: { title: "Muri blu e mattine lente.", image_url: P.sahara, location_name: "Chefchaouen, Marocco" } },
+    { id: 18, createdAt: "2025-05-21", itineraryId: 8, momentSnapshot: { title: "Natura selvaggia e oceano-terapia.", image_url: P.azores, location_name: "Madeira, Portogallo" } },
   ],
   continueItems: [],
   trips,
