@@ -129,7 +129,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
           <Link
             href="/come-funziona"
-            className="text-[12px] md:text-[13px] font-medium no-underline transition-colors hover:opacity-80 px-2 min-h-[44px] flex items-center"
+            className="text-[12px] md:text-[13px] font-medium no-underline transition-colors hover:opacity-80 px-2 min-h-[44px] flex items-center whitespace-nowrap"
             style={{ color: "var(--text-primary)", opacity: location === "/come-funziona" ? 1 : 0.72 }}
             data-testid="link-nav-how"
           >

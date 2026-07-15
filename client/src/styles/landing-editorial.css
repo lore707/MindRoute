@@ -351,6 +351,45 @@
 .led-card:hover { border-color: rgba(240, 67, 90, 0.45); }
 .led-mail-img { border: 0; }
 
+/* ── Mobile hardening (audit 390px, 2026-07-15) ─────────────────
+   Fix principali: grid item della fascia email che clippava il testo
+   (min-width:0), spazi verticali dimezzati, touch floor 44px. */
+.led-mail-body, .led-mail-feats, .led-mail-img { min-width: 0; }
+.led-mail-input { min-width: 0; }
+.led-quote-stats { flex-wrap: wrap; }
+
+@media (max-width: 480px) {
+  /* Il form email in colonna: input e bottone a tutta larghezza,
+     niente lotta per la min-content del flex row. */
+  .led-mail-form { flex-direction: column; }
+  .led-mail-form .led-btn { width: 100%; }
+}
+
+@media (max-width: 760px) {
+  .led-how { padding: 64px 0 48px; }
+  .led-show { padding: 64px 0; }
+  .led-made { padding: 64px 0 40px; }
+  .led-final { padding: 64px 0 40px; }
+  .led-how-head { margin-bottom: 36px; }
+  .led-how-band { margin-top: 44px; }
+  .led-show-top { margin-bottom: 44px; }
+  .led-quote { margin-top: 44px; padding-top: 32px; }
+  .led-mail { margin-top: 52px; }
+  .led-final-grid { margin-bottom: 44px; }
+  .led-stats { margin-top: 40px; }
+  .led-hero { padding: 96px 0 32px; }
+
+  /* Touch floor sui link-azione testuali */
+  .led-show-explore, .led-footer-link { min-height: 44px; display: inline-flex; align-items: center; }
+  .led-season-item { min-height: 56px; }
+
+  /* Il velo delle scene un filo più coperto: su schermi piccoli il
+     paesaggio fa da texture, non deve competere col testo. */
+  .led-scene::after {
+    background: linear-gradient(180deg, #0b0c11 0%, rgba(11, 12, 17, 0.9) 16%, rgba(11, 12, 17, 0.88) 55%, rgba(11, 12, 17, 0.93) 85%, #0b0c11 100%);
+  }
+}
+
 /* Motion preferenze ridotte */
 @media (prefers-reduced-motion: reduce) {
   .led * { transition: none !important; animation: none !important; }

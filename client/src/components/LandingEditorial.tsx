@@ -219,7 +219,10 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
   // Preload dell'hero (LCP): è un background CSS, quindi <link rel=preload>.
   // w=900/q=70 su mobile DEVE combaciare con l'URL pre-caricato in index.html
   // (pre-hero shell) — stessa stringa → una sola fetch, servita dalla cache.
-  const heroImg = unsplashSized(PHOTO.kyoto, typeof window !== "undefined" && window.innerWidth < 768 ? 900 : 1600, 70);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const heroImg = unsplashSized(PHOTO.kyoto, isMobile ? 900 : 1600, 70);
+  // Le scene di sezione stanno sotto un velo pesante: su phone bastano 800px.
+  const sceneW = isMobile ? 800 : 1400;
   useEffect(() => {
     const link = document.createElement("link");
     link.rel = "preload"; link.as = "image"; link.href = heroImg;
@@ -293,7 +296,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
 
       {/* ② HOW IT WORKS — sfondo Dolomiti in alpenglow (percorso visivo) */}
       <section className="led-how" id="how-it-works">
-        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDolomiti, 1400, 50)})` }} />
+        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDolomiti, sceneW, 50)})` }} />
         <div className="led-container">
           <div className="led-how-head">
             <div>
@@ -385,7 +388,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
 
       {/* ③ SHOWCASE — sfondo Positano all'ora blu */}
       <section className="led-show">
-        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgCoast, 1400, 50)})` }} />
+        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgCoast, sceneW, 50)})` }} />
         <div className="led-container">
           <div className="led-show-top">
             <div>
@@ -471,7 +474,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
 
       {/* ④ MADE FOR YOU + EMAIL — sfondo dune al tramonto */}
       <section className="led-made">
-        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDesert, 1400, 50)})` }} />
+        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDesert, sceneW, 50)})` }} />
         <div className="led-container">
           <div className="led-made-grid">
             <div>
@@ -559,7 +562,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
 
       {/* ⑤ FINAL CTA + PARTNERS — sfondo aurora sul fiordo (chiusura del viaggio) */}
       <section className="led-final">
-        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgAurora, 1400, 50)})` }} />
+        <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgAurora, sceneW, 50)})` }} />
         <div className="led-container">
           <div className="led-final-grid">
             <div className="led-final-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgCoast, 900)})` }} />
