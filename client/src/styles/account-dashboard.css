@@ -853,6 +853,154 @@
   text-transform:uppercase;color:#fff;background:linear-gradient(92deg,var(--accent),#ff7a6e);border-radius:999px;padding:4px 8px}
 .account-dash .cp-note{font-size:11px;color:var(--ink-faint)}
 
+/* ════════════ RITRATTO v3 (redesign 2026-07 dal mockup) ════════════ */
+.account-dash .p3-head{position:relative;overflow:hidden;border-bottom:1px solid var(--stroke)}
+.account-dash .p3-head-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%}
+.account-dash .p3-head-veil{position:absolute;inset:0;background:
+  linear-gradient(90deg,rgba(13,7,13,.94) 0%,rgba(13,7,13,.72) 45%,rgba(13,7,13,.35) 100%),
+  linear-gradient(180deg,rgba(13,7,13,.3),rgba(13,7,13,.85))}
+.account-dash .p3-head-in{position:relative;max-width:1280px;margin:0 auto;padding:26px 40px 10px;
+  display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+.account-dash .p3-title{font-family:var(--serif);font-weight:400;font-size:clamp(30px,3.6vw,48px);line-height:1.06;letter-spacing:-.02em;margin:10px 0 10px}
+.account-dash .p3-title em{font-style:italic;color:var(--accent)}
+.account-dash .p3-sub{font-size:13px;color:var(--ink-dim);max-width:460px;line-height:1.55}
+.account-dash .p3-head-r{display:flex;flex-direction:column;gap:12px;align-items:flex-end}
+.account-dash .p3-quote{position:relative;text-align:right;max-width:260px}
+.account-dash .p3-quote .qm{font-family:var(--serif);font-size:34px;line-height:.5;color:var(--accent);display:block;text-align:right}
+.account-dash .p3-quote p{font-family:var(--serif);font-size:16.5px;line-height:1.35;margin:6px 0 8px;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.account-dash .p3-quote .who{font-size:11px;color:var(--ink-faint)}
+.account-dash .p3-head-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.account-dash .p3-tabs{position:relative;max-width:1280px;margin:0 auto;padding:12px 40px 0;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.account-dash .p3-tabs::-webkit-scrollbar{display:none}
+.account-dash .p3-tab{padding:10px 14px 12px;font-size:12.5px;font-weight:600;color:var(--ink-faint);
+  border-bottom:2px solid transparent;white-space:nowrap;min-height:44px;transition:color .18s}
+.account-dash .p3-tab:hover{color:var(--ink)}
+.account-dash .p3-tab.on{color:var(--ink);border-bottom-color:var(--accent)}
+
+.account-dash .p3-body{max-width:1280px;margin:0 auto;padding:18px 40px 90px}
+.account-dash .p3-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
+.account-dash .p3-mainc{display:flex;flex-direction:column;gap:16px;min-width:0}
+.account-dash .p3-rail{display:flex;flex-direction:column;gap:16px}
+.account-dash .p3-row1{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:stretch}
+.account-dash .p3-row2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+.account-dash .p3-focus{display:flex;flex-direction:column;gap:16px;max-width:920px}
+.account-dash .p3 .h2-card{padding:16px;border-radius:18px}
+.account-dash .p3-cardsub{font-size:11.5px;color:var(--ink-faint);margin-top:3px}
+.account-dash .p3-cardnote{font-size:11px;color:var(--ink-faint);margin-top:10px}
+.account-dash .p3-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.account-dash .p3-chips span{font-size:11px;color:var(--ink-dim);border:1px solid var(--stroke-2);border-radius:999px;padding:5px 11px}
+
+/* Essence: barre + radar */
+.account-dash .p3-ess-grid{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px;align-items:center}
+.account-dash .p3-radar{width:100%;max-width:200px;justify-self:center}
+.account-dash .p3-dims{display:flex;flex-direction:column;gap:13px;min-width:0}
+.account-dash .p3-dim{display:grid;grid-template-columns:30px minmax(0,1.5fr) minmax(48px,.7fr) 38px;gap:10px;align-items:center}
+.account-dash .p3-dim .ic{width:28px;height:28px;border-radius:50%;border:1px solid;display:grid;place-items:center;font-size:13px;background:rgba(13,7,13,.5)}
+.account-dash .p3-dim .tx{min-width:0}
+.account-dash .p3-dim .nm{display:block;font-size:12.5px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-dash .p3-dim .ds{display:block;font-size:10px;color:var(--ink-faint);line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-dash .p3-dim .bar{height:4px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.account-dash .p3-dim .bar i{display:block;height:100%;border-radius:4px}
+.account-dash .p3-dim .pc{font-size:12px;font-weight:700;text-align:right}
+
+/* Timeline */
+.account-dash .p3-tl-thumbs{display:flex;gap:8px;margin-bottom:12px}
+.account-dash .p3-tl-thumb{flex:1;min-width:0}
+.account-dash .p3-tl-thumb .ph{display:block;height:52px;border-radius:9px;background-size:cover;background-position:center;
+  transition:transform .18s}
+.account-dash .p3-tl-thumb:hover .ph{transform:translateY(-2px)}
+.account-dash .p3-tl-chart{width:100%;height:auto;margin:2px 0}
+.account-dash .p3-tl-months{display:flex;justify-content:space-between;font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-faint);margin:2px 2px 12px}
+.account-dash .p3-tl-empty{font-size:12.5px;color:var(--ink-faint);padding:14px 0}
+.account-dash .p3-timeline{display:flex;flex-direction:column}
+.account-dash .p3-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;border-top:1px solid var(--stroke);padding-top:14px;margin-top:auto}
+.account-dash .p3-stats .n{display:block;font-family:var(--serif);font-size:24px;line-height:1.1}
+.account-dash .p3-stats .l{display:block;font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);margin-top:2px}
+
+/* Rail: insight + tip */
+.account-dash .p3-insight-t{font-family:var(--serif);font-size:20px;margin:4px 0 8px}
+.account-dash .p3-insight-x{font-size:12.5px;line-height:1.6;color:var(--ink-dim)}
+.account-dash .p3-insight-x.em{font-style:italic}
+.account-dash .p3-insight-x em{color:var(--gold);font-style:italic}
+.account-dash .p3-insight-x strong{color:var(--accent)}
+.account-dash .p3-insight-keep{font-family:var(--serif);font-style:italic;font-size:14px;margin:10px 0 6px}
+.account-dash .p3-tip-x{font-size:12.5px;line-height:1.55;color:var(--ink-dim)}
+.account-dash .p3-tip-reco{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;width:100%;
+  text-align:left;margin-top:8px;padding:8px;border:1px solid var(--stroke);border-radius:12px;transition:border-color .18s}
+.account-dash .p3-tip-reco:hover{border-color:rgba(233,69,96,.4)}
+.account-dash .p3-tip-reco .ph{width:56px;height:44px;border-radius:9px;background-size:cover;background-position:center}
+.account-dash .p3-tip-reco .nm{display:block;font-size:13.5px;font-weight:600}
+.account-dash .p3-tip-reco .tg{display:block;font-size:10.5px;color:var(--ink-faint);text-transform:capitalize;margin-top:2px}
+
+/* Journal */
+.account-dash .p3-j-feat{position:relative;min-height:150px;border-radius:14px;background-size:cover;background-position:center;
+  display:flex;flex-direction:column;justify-content:flex-end;padding:12px;isolation:isolate;margin-bottom:10px}
+.account-dash .p3-j-feat::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:14px;
+  background:linear-gradient(180deg,rgba(13,7,13,.05),rgba(13,7,13,.82))}
+.account-dash .p3-j-feat .nm{font-family:var(--serif);font-size:19px;line-height:1.15}
+.account-dash .p3-j-feat .qt{font-size:11px;color:var(--ink-dim);margin-top:3px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.account-dash .p3-j-row{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--stroke)}
+.account-dash .p3-j-row .ph{width:44px;height:36px;border-radius:8px;background-size:cover;background-position:center}
+.account-dash .p3-j-row .ph.fb{display:grid;place-items:center;color:var(--accent);background:var(--accent-soft)}
+.account-dash .p3-j-row .tt{display:block;font-size:12px;font-weight:600;line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.account-dash .p3-j-row .lc{display:block;font-size:10px;color:var(--ink-faint);margin-top:1px}
+.account-dash .p3-journal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.account-dash .p3-j-cell .ph{display:block;height:120px;border-radius:12px;background-size:cover;background-position:center;margin-bottom:8px}
+.account-dash .p3-j-cell .tt{display:block;font-size:12.5px;font-weight:600;line-height:1.35}
+.account-dash .p3-j-cell .lc{display:block;font-size:10.5px;color:var(--ink-faint);margin-top:2px}
+
+/* Emotions */
+.account-dash .p3-emo-grid{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.account-dash .p3-emo-row{display:grid;grid-template-columns:10px 1fr auto;gap:8px;align-items:center;padding:4px 0;font-size:12.5px}
+.account-dash .p3-emo-row .d{width:9px;height:9px;border-radius:50%}
+.account-dash .p3-emo-row .pc{font-weight:700;color:var(--ink-dim)}
+
+/* Guidance */
+.account-dash .p3-guid-list{display:flex;flex-direction:column}
+.account-dash .p3-guid-row{display:grid;grid-template-columns:34px 1fr 18px;gap:10px;align-items:center;
+  text-align:left;padding:11px 4px;border-top:1px solid var(--stroke);transition:background .16s;border-radius:10px}
+.account-dash .p3-guid-row:first-child{border-top:0}
+.account-dash .p3-guid-row:hover{background:rgba(255,255,255,.04)}
+.account-dash .p3-guid-row .ic{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;
+  border:1px solid var(--stroke-2);font-size:14px}
+.account-dash .p3-guid-row .tt{display:block;font-size:12.5px;font-weight:600;line-height:1.3}
+.account-dash .p3-guid-row .ds{display:block;font-size:11px;color:var(--ink-faint);line-height:1.4;margin-top:1px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.account-dash .p3-guid-row .go{color:var(--ink-faint)}
+
+/* Patterns */
+.account-dash .p3-pat-list{display:flex;flex-direction:column}
+.account-dash .p3-pat{display:flex;justify-content:space-between;gap:14px;padding:11px 2px;border-top:1px solid var(--stroke);font-size:13px}
+.account-dash .p3-pat:first-child{border-top:0}
+.account-dash .p3-pat .k{color:var(--ink-dim)}
+.account-dash .p3-pat .v{font-weight:600}
+.account-dash .p3-pat.solo{color:var(--ink-dim);font-style:italic}
+
+/* Responsive ritratto */
+@media (max-width:1080px){
+  .account-dash .p3-grid{grid-template-columns:1fr}
+  .account-dash .p3-row2{grid-template-columns:1fr 1fr}
+  .account-dash .p3-head-in{grid-template-columns:1fr}
+  .account-dash .p3-head-r{align-items:flex-start}
+  .account-dash .p3-quote{text-align:left}
+  .account-dash .p3-quote .qm{text-align:left}
+  .account-dash .p3-head-acts{justify-content:flex-start}
+}
+@media (max-width:760px){
+  .account-dash .p3-head-in{padding:20px 18px 6px}
+  .account-dash .p3-tabs{padding:8px 18px 0}
+  .account-dash .p3-body{padding:14px 18px 80px}
+  .account-dash .p3-row1{grid-template-columns:1fr}
+  .account-dash .p3-row2{grid-template-columns:1fr}
+  .account-dash .p3-ess-grid{grid-template-columns:1fr}
+  .account-dash .p3-dim{grid-template-columns:30px minmax(0,1fr) 60px 36px}
+  .account-dash .p3-head-acts .btn-g{min-height:44px}
+}
+
 /* Responsive: tablet → rail sotto; phone → tutto in colonna, compass scorre */
 @media (max-width:1080px){
   .account-dash .h2c .h2-grid{grid-template-columns:1fr}

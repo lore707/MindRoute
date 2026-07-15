@@ -459,6 +459,18 @@ export default function MyAccount() {
     profileByline,
     traits: traitLabels,
     portrait,
+    traitVector: traitHistory?.current ?? null,
+    traitSnapshots: traitHistory?.snapshots?.map(s => ({ createdAt: s.createdAt, traits: s.traits, source: s.source })) ?? [],
+    traitHeadline: traitHistory?.headline ?? null,
+    patterns: insights?.patterns
+      ? {
+          topContinentLabel: insights.patterns.topContinent,
+          avgDays: insights.patterns.avgDays,
+          shortTripBias: insights.patterns.shortTripBias,
+          longTripBias: insights.patterns.longTripBias,
+          tripCount: insights.patterns.tripCount,
+        }
+      : null,
     continueItems,
     trips: mappedTrips,
     stats: novelStats,

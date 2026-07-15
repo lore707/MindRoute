@@ -86,6 +86,77 @@ function readChecklistDone(itineraryId: string | number): Set<string> | null {
   } catch { return null; }
 }
 
+/* ── Ritratto v3: dimensioni, emozioni, serie evolutiva ─────────────────
+   Tutto DERIVATO da dati reali: vettore 5 assi, chip scelte nel quiz,
+   snapshot storici. Niente numeri inventati: se manca il dato, il blocco
+   non si mostra. */
+const P3_DIMS = [
+  { axis: "matter",    color: "#7fd4a8", icon: "🌿" },
+  { axis: "exposure",  color: "#c9a6e8", icon: "🧭" },
+  { axis: "structure", color: "#D4A853", icon: "🪁" },
+  { axis: "social",    color: "#E94560", icon: "🫶" },
+  { axis: "comfort",   color: "#9ecbff", icon: "✦" },
+] as const;
+
+const EMO_ORDER = ["awe", "peace", "joy", "curiosity", "challenge"] as const;
+type EmoKey = typeof EMO_ORDER[number];
+const EMO_COLORS: Record<EmoKey, string> = {
+  awe: "#c9a6e8", peace: "#7fd4a8", joy: "#D4A853", curiosity: "#9ecbff", challenge: "#E94560",
+};
+const EMO_KEYWORDS: Record<EmoKey, string[]> = {
+  awe:       ["sorprend", "meravig", "wonder", "surpris", "straordinar", "amaz"],
+  peace:     ["silenz", "stacc", "rallent", "lentezza", "lento", "calma", "rigener", "quiet", "slow", "disconnect", "recharg", "relax", "riposo"],
+  joy:       ["festegg", "energia", "vivo", "alive", "festive", "celebrat", "gioia"],
+  curiosity: ["cultur", "scopert", "esplor", "autentic", "curios", "discover", "explor", "immers", "local"],
+  challenge: ["avventur", "sfida", "comfort zone", "trekking", "adventure", "challeng", "estrem", "extreme"],
+};
+
+// Distribuzione emozionale derivata da chip reali (peso 2) + vettore (peso 1).
+// Ritorna null se non c'è alcun segnale → la card non si mostra.
+function computeEmotions(seek: string[], vec: Record<string, number> | null): Array<{ key: EmoKey; pct: number }> | null {
+  const w: Record<EmoKey, number> = { awe: 0, peace: 0, joy: 0, curiosity: 0, challenge: 0 };
+  for (const raw of seek) {
+    const c = raw.toLowerCase();
+    for (const k of EMO_ORDER) if (EMO_KEYWORDS[k].some(kw => c.includes(kw))) w[k] += 2;
+  }
+  if (vec) {
+    w.awe += (vec.exposure ?? 0.5) * 1.2;
+    w.peace += (1 - (vec.social ?? 0.5)) + (1 - (vec.structure ?? 0.5)) * 0.5;
+    w.joy += (vec.social ?? 0.5);
+    w.curiosity += (vec.exposure ?? 0.5) * 0.5 + (1 - (vec.matter ?? 0.5)) * 0.5;
+    w.challenge += (vec.comfort ?? 0.5);
+  }
+  const total = EMO_ORDER.reduce((a, k) => a + w[k], 0);
+  if (total <= 0) return null;
+  const out = EMO_ORDER
+    .map(k => ({ key: k, pct: Math.round((w[k] / total) * 100) }))
+    .filter(x => x.pct >= 4)
+    .sort((a, b) => b.pct - a.pct);
+  // Aggiusta l'arrotondamento perché la somma faccia 100.
+  const diff = 100 - out.reduce((a, x) => a + x.pct, 0);
+  if (out.length > 0) out[0].pct += diff;
+  return out.length >= 2 ? out : null;
+}
+
+// Serie evolutiva: l'asse che si è mosso di più attraverso gli snapshot.
+function computeEvoSeries(snaps: Array<{ createdAt: string; traits: Record<string, number> }>) {
+  const valid = snaps
+    .filter(s => s.traits && s.createdAt)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  if (valid.length < 3) return null;
+  const first = valid[0].traits, last = valid[valid.length - 1].traits;
+  let axis = "exposure", best = -1;
+  for (const a of ["exposure", "comfort", "social", "matter", "structure"]) {
+    const d = Math.abs((last[a] ?? 0.5) - (first[a] ?? 0.5));
+    if (d > best) { best = d; axis = a; }
+  }
+  return {
+    axis,
+    values: valid.map(s => s.traits[axis] ?? 0.5),
+    dates: valid.map(s => new Date(s.createdAt)),
+  };
+}
+
 /* HTML inline (i18n con <em>) */
 function Html({ html, as = "span", className }: { html: string; as?: any; className?: string }) {
   const Tag = as;
@@ -96,7 +167,19 @@ function Html({ html, as = "span", className }: { html: string; as?: any; classN
 export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeExtra?: ReactNode }) {
   const { t, lang, setLang } = useI18n();
   const [, setLocation] = useLocation();
-  const [view, setView] = useState<ViewId>("home");
+  // Vista iniziale anche da ?view= (usato dalla preview dev per gli
+  // screenshot responsive delle singole viste; innocuo altrove).
+  const [view, setView] = useState<ViewId>(() => {
+    try {
+      const v = new URLSearchParams(window.location.search).get("view");
+      if (v && ["home", "resume", "portrait", "trips", "atlas"].includes(v)) return v as ViewId;
+    } catch { /* SSR/no window */ }
+    return "home";
+  });
+  // Tab del Ritratto v3 (stato qui: le view sono funzioni chiamate
+  // condizionalmente, gli hook dentro violerebbero le rules-of-hooks).
+  type PTab = "overview" | "emotions" | "patterns" | "growth" | "journal" | "guidance";
+  const [pTab, setPTab] = useState<PTab>("overview");
   const [stuck, setStuck] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [region, setRegion] = useState<(typeof REGION_TABS)[number]>("all");
@@ -870,97 +953,433 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   };
 
   /* ──────────────── RITRATTO ──────────────── */
+  /* ──────────────── RITRATTO v3 (redesign 2026-07 dal mockup) ──────────────── */
   const PortraitView = () => {
     const p = data.portrait;
+    const vec = data.traitVector ?? null;
     const tripCount = p?.tripCount ?? data.trips.length;
-    const titleHtml = tripCount >= 2
-      ? tx("acd.portrait.titleMany", { n: tripCount })
-      : tripCount === 1 ? t("acd.portrait.titleOne") : t("acd.portrait.titleNone");
 
-    const portraitText = p?.narrative?.portrait ?? data.profileQuote;
-    const chips = data.traits.filter(tr => tr.bar > 12).slice(0, 6);
-    const sourceLine = !p ? "" :
-      p.confidence === "solid" ? tx("acd.portrait.srcSolid", { n: tripCount })
-        : p.confidence === "forming" ? t("acd.portrait.srcForming")
-          : t("acd.portrait.srcNascent");
+    // 5 dimensioni orientate al polo dominante (pct ∈ [50,100], reale).
+    const dims = P3_DIMS.map(d => {
+      const v = vec?.[d.axis];
+      const known = typeof v === "number";
+      const hi = known ? v! >= 0.5 : true;
+      const pct = known ? Math.round((hi ? v! : 1 - v!) * 100) : 0;
+      return {
+        ...d,
+        known,
+        pct,
+        name: t(`acd.p3.dim.${d.axis}.${hi ? "hi" : "lo"}`),
+        desc: t(`acd.p3.dim.${d.axis}.${hi ? "hiD" : "loD"}`),
+        radar: known ? (hi ? v! : 1 - v!) : 0.5,
+      };
+    });
+    const hasVec = dims.some(d => d.known);
 
-    const magnitude = (bar: number) => {
-      if (bar >= 80) return lang === "it" ? "dominante" : "dominant";
-      if (bar >= 68) return lang === "it" ? "forte" : "strong";
-      if (bar >= 45) return lang === "it" ? "medio" : "medium";
-      if (bar <= 12) return lang === "it" ? "in formazione" : "forming";
-      return lang === "it" ? "presente" : "present";
+    const emotions = computeEmotions(p?.seek ?? [], vec);
+    const evo = computeEvoSeries(data.traitSnapshots ?? []);
+    const moments = (data.savedMoments ?? []).filter(m => m.momentSnapshot?.title);
+    const journal = [...moments].reverse(); // dal più recente (l'array arriva asc)
+    const guidance = (compass ?? []).filter(c => c.type === "growth" || c.type === "discovery" || c.type === "journey").slice(0, 3);
+    const tip = (compass ?? []).find(c => c.type === "growth");
+    const reco = picks?.picks[0];
+
+    const quote = p?.ownWords ?? data.profileQuote;
+    const lastSnapAt = (data.traitSnapshots ?? []).map(s => new Date(s.createdAt)).sort((a, b) => b.getTime() - a.getTime())[0];
+    const quoteWhen = lastSnapAt && !isNaN(lastSnapAt.getTime())
+      ? lastSnapAt.toLocaleString(lang === "it" ? "it-IT" : "en-US", { month: "long", year: "numeric" })
+      : "";
+
+    const monthLabel = (d: Date) =>
+      d.toLocaleString(lang === "it" ? "it-IT" : "en-US", { month: "short", year: "2-digit" }).replace(".", "");
+
+    // Radar SVG (pentagono) — puro SVG, nessuna libreria.
+    const Radar = () => {
+      const cx = 110, cy = 110, R = 86;
+      const pt = (i: number, r: number) => {
+        const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+        return [cx + Math.cos(a) * r, cy + Math.sin(a) * r] as const;
+      };
+      const poly = (r: number) => Array.from({ length: 5 }, (_, i) => pt(i, r).join(",")).join(" ");
+      const shape = dims.map((d, i) => pt(i, Math.max(0.15, d.radar) * R).join(",")).join(" ");
+      return (
+        <svg viewBox="0 0 220 220" className="p3-radar" aria-hidden="true">
+          {[0.25, 0.5, 0.75, 1].map(f => (
+            <polygon key={f} points={poly(R * f)} fill="none" stroke="rgba(255,255,255,.09)" strokeWidth="1" />
+          ))}
+          {dims.map((_, i) => {
+            const [x, y] = pt(i, R);
+            return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,.07)" strokeWidth="1" />;
+          })}
+          <polygon points={shape} fill="rgba(233,69,96,.16)" stroke="rgba(233,69,96,.75)" strokeWidth="1.5" />
+          {dims.map((d, i) => {
+            const [x, y] = pt(i, Math.max(0.15, d.radar) * R);
+            return <circle key={i} cx={x} cy={y} r="4" fill={d.color} stroke="#0d070d" strokeWidth="1.5" />;
+          })}
+          {dims.map((d, i) => {
+            const [x, y] = pt(i, R + 15);
+            return (
+              <g key={"ic" + i}>
+                <circle cx={x} cy={y} r="11" fill="rgba(13,7,13,.75)" stroke={d.color} strokeWidth="1" />
+                <text x={x} y={y + 3.5} textAnchor="middle" fontSize="10">{d.icon}</text>
+              </g>
+            );
+          })}
+        </svg>
+      );
     };
 
-    return (
-      <div className="view">
-        <ViewHead
-          eyebrow={t("acd.portrait.eyebrow")}
-          title={titleHtml}
-          sub={t("acd.portrait.sub")}
-          right={<>
-            <button className="btn-p" onClick={sharePortrait} disabled={sharing}>{sharing ? t("acd.portrait.sharing") : t("acd.portrait.share")}</button>
-            <button className="btn-g" onClick={() => setLocation("/profiling")}>{t("acd.portrait.regen")}</button>
-          </>}
-        />
-        <div className="portrait-full">
-          <div className="col">
-            <div className="pcard">
-              <div className="p-eyebrow">
-                <span className="s">❋</span> {t("acd.portrait.synK")} · <span className="who">{tx("acd.portrait.synWho", { name: data.userName })}</span>
-              </div>
-              <p className="p-text">{portraitText}</p>
+    // Donut SVG delle emozioni.
+    const Donut = ({ size = 132 }: { size?: number }) => {
+      if (!emotions) return null;
+      const r = 44, C = 2 * Math.PI * r;
+      let acc = 0;
+      return (
+        <svg viewBox="0 0 120 120" style={{ width: size, height: size }} className="p3-donut" aria-hidden="true">
+          {emotions.map(e => {
+            const frac = e.pct / 100;
+            const el = (
+              <circle key={e.key} cx="60" cy="60" r={r} fill="none"
+                stroke={EMO_COLORS[e.key]} strokeWidth="14"
+                strokeDasharray={`${Math.max(0, frac * C - 2)} ${C}`}
+                strokeDashoffset={-acc * C}
+                transform="rotate(-90 60 60)" strokeLinecap="butt" />
+            );
+            acc += frac;
+            return el;
+          })}
+          <text x="60" y="66" textAnchor="middle" fontSize="18" fill="rgba(233,69,96,.9)">♥</text>
+        </svg>
+      );
+    };
 
-              {chips.length > 0 && (
-                <div className="p-chips">
-                  {chips.map((c, i) => (
-                    <span key={i} className={"p-chip" + (i % 3 === 1 ? " gold" : "")}><span className="d" />{c.name}</span>
-                  ))}
-                </div>
-              )}
-
-              {p?.narrative?.paradox && (
-                <div className="p-paradox">
-                  <div className="k">{t("acd.portrait.paradox")}</div>
-                  <div className="t">{p.narrative.paradox}</div>
-                </div>
-              )}
-
-              {sourceLine && (
-                <div className="p-foot">
-                  <span className="src"><span className="d" />{sourceLine}</span>
-                </div>
-              )}
+    // Timeline evolutiva (linea multicolore + thumb dei viaggi).
+    const Timeline = () => {
+      const thumbs = [...data.trips].slice(0, 5).reverse();
+      return (
+        <>
+          {thumbs.length > 0 && (
+            <div className="p3-tl-thumbs">
+              {thumbs.map((tr, i) => (
+                <button key={i} className="p3-tl-thumb" title={tr.dest} onClick={() => tr.href && setLocation(tr.href)}>
+                  <span className="ph" style={{ backgroundImage: bg(tr.img, 160) }} />
+                </button>
+              ))}
             </div>
-
-            {p?.evolution && (
-              <div className="evo">
-                <div className="k">{t("acd.portrait.evoK")}</div>
-                <p className="t">{p.evolution.phrase}</p>
-                <div className="evo-line">
-                  {p.evolution.points.map((pt, i) => (
-                    <span key={i} style={{ display: "contents" }}>
-                      {i > 0 && <span className="seg" />}
-                      <span className={"leg" + (pt.isNow ? " now" : "")}><span className="d" />{pt.whenLabel}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+          )}
+          {evo ? (
+            <svg viewBox="0 0 320 78" className="p3-tl-chart" aria-hidden="true">
+              <defs>
+                <linearGradient id="p3line" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#D4A853" /><stop offset="50%" stopColor="#c9a6e8" /><stop offset="100%" stopColor="#7fd4a8" />
+                </linearGradient>
+              </defs>
+              <polyline
+                fill="none" stroke="url(#p3line)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                points={evo.values.map((v, i) => `${12 + (i * 296) / Math.max(1, evo.values.length - 1)},${64 - v * 50}`).join(" ")}
+              />
+              {evo.values.map((v, i) => (
+                <circle key={i} cx={12 + (i * 296) / Math.max(1, evo.values.length - 1)} cy={64 - v * 50} r="3.4"
+                  fill={i === evo.values.length - 1 ? "#7fd4a8" : "#0d070d"} stroke="#c9a6e8" strokeWidth="1.6" />
+              ))}
+            </svg>
+          ) : (
+            <div className="p3-tl-empty">{t("acd.p3.timelineEmpty")}</div>
+          )}
+          {evo && (
+            <div className="p3-tl-months">
+              <span>{monthLabel(evo.dates[0])}</span>
+              {evo.dates.length > 2 && <span>{monthLabel(evo.dates[Math.floor(evo.dates.length / 2)])}</span>}
+              <span>{monthLabel(evo.dates[evo.dates.length - 1])}</span>
+            </div>
+          )}
+          <div className="p3-stats">
+            <div><span className="n">{counts.trips}</span><span className="l">{plural(counts.trips, "acd.unit.trip", "acd.unit.trips")}</span></div>
+            <div><span className="n">{counts.days}</span><span className="l">{t("acd.p3.daysRoad")}</span></div>
+            <div><span className="n">{counts.places}</span><span className="l">{plural(counts.places, "acd.unit.place", "acd.unit.places")}</span></div>
+            <div><span className="n">{counts.continents}</span><span className="l">{plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span></div>
           </div>
+        </>
+      );
+    };
 
-          <div className="col">
-            <div className="traits">
-              <h4>{t("acd.portrait.traitsH")}</h4>
-              <div className="hint">{t("acd.portrait.traitsHint")}</div>
-              {data.traits.map((tr, i) => (
-                <div key={i} className="trait">
-                  <div className="trait-top"><span className="nm">{tr.name}</span><span className="vv">{magnitude(tr.bar)}</span></div>
-                  <div className="trait-bar"><i className={i % 3 === 1 ? "gold" : ""} style={{ width: `${tr.bar}%` }} /></div>
+    const EssenceCard = ({ full }: { full?: boolean }) => (
+      <section className={"h2-card p3-essence" + (full ? " full" : "")}>
+        <div className="h2-card-head"><div><h3>{t("acd.p3.essenceK")}</h3><div className="p3-cardsub">{t("acd.p3.essenceSub")}</div></div></div>
+        {hasVec ? (
+          <div className="p3-ess-grid">
+            <div className="p3-dims">
+              {dims.filter(d => d.known).map(d => (
+                <div key={d.axis} className="p3-dim">
+                  <span className="ic" style={{ borderColor: d.color, color: d.color }}>{d.icon}</span>
+                  <span className="tx">
+                    <span className="nm">{d.name}</span>
+                    <span className="ds">{d.desc}</span>
+                  </span>
+                  <span className="bar"><i style={{ width: `${d.pct}%`, background: d.color }} /></span>
+                  <span className="pc" style={{ color: d.color }}>{d.pct}%</span>
                 </div>
               ))}
             </div>
+            <Radar />
           </div>
+        ) : (
+          <div className="p3-tl-empty">{t("acd.p3.forming")}</div>
+        )}
+      </section>
+    );
+
+    const TimelineCard = () => (
+      <section className="h2-card p3-timeline">
+        <div className="h2-card-head">
+          <div><h3>{t("acd.p3.timelineK")}</h3><div className="p3-cardsub">{t("acd.p3.timelineSub")}</div></div>
+          <button className="h2-link" onClick={() => go("trips")}>{t("acd.p3.viewAll")} →</button>
+        </div>
+        <Timeline />
+      </section>
+    );
+
+    const JournalCard = ({ full }: { full?: boolean }) => (
+      <section className={"h2-card p3-journal" + (full ? " full" : "")}>
+        <div className="h2-card-head">
+          <div><h3>{t("acd.p3.journalK")}</h3>{full && <div className="p3-cardsub">{t("acd.p3.journalSub")}</div>}</div>
+          {!full && <button className="h2-link" onClick={() => setPTab("journal")}>{t("acd.p3.viewAll")} →</button>}
+        </div>
+        {journal.length === 0 ? (
+          <div className="p3-tl-empty">{t("acd.p3.journalEmpty")}</div>
+        ) : full ? (
+          <div className="p3-journal-grid">
+            {journal.map((m, i) => (
+              <div key={i} className="p3-j-cell">
+                {m.momentSnapshot!.image_url && <span className="ph" style={{ backgroundImage: bg(m.momentSnapshot!.image_url, 420) }} />}
+                <span className="tt">{m.momentSnapshot!.title}</span>
+                {m.momentSnapshot!.location_name && <span className="lc">{m.momentSnapshot!.location_name}</span>}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p3-j-list">
+            {journal[0]?.momentSnapshot?.image_url && (
+              <div className="p3-j-feat" style={{ backgroundImage: bg(journal[0].momentSnapshot!.image_url!, 520) }}>
+                <span className="nm">{journal[0].momentSnapshot!.location_name ?? journal[0].momentSnapshot!.title}</span>
+                <span className="qt">{journal[0].momentSnapshot!.title}</span>
+              </div>
+            )}
+            {journal.slice(1, 4).map((m, i) => (
+              <div key={i} className="p3-j-row">
+                {m.momentSnapshot!.image_url
+                  ? <span className="ph" style={{ backgroundImage: bg(m.momentSnapshot!.image_url!, 120) }} />
+                  : <span className="ph fb">✦</span>}
+                <span className="tx">
+                  <span className="tt">{m.momentSnapshot!.title}</span>
+                  {m.momentSnapshot!.location_name && <span className="lc">{m.momentSnapshot!.location_name}</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+
+    const EmotionsCard = ({ full }: { full?: boolean }) => emotions && (
+      <section className={"h2-card p3-emotions" + (full ? " full" : "")}>
+        <div className="h2-card-head"><div><h3>{t("acd.p3.emotionsK")}</h3>{full && <div className="p3-cardsub">{t("acd.p3.emotionsSub")}</div>}</div></div>
+        <div className="p3-emo-grid">
+          <Donut size={full ? 190 : 132} />
+          <div className="p3-emo-legend">
+            {emotions.map(e => (
+              <div key={e.key} className="p3-emo-row">
+                <span className="d" style={{ background: EMO_COLORS[e.key] }} />
+                <span className="nm">{t(`acd.p3.emo.${e.key}`)}</span>
+                <span className="pc">{e.pct}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="p3-cardnote">{t("acd.p3.emotionsSub")}</div>
+        {full && p?.seek && p.seek.length > 0 && (
+          <div className="p3-chips">{p.seek.map((c, i) => <span key={i}>{c}</span>)}</div>
+        )}
+      </section>
+    );
+
+    const GuidanceCard = ({ full }: { full?: boolean }) => guidance.length > 0 && (
+      <section className={"h2-card p3-guidance" + (full ? " full" : "")}>
+        <div className="h2-card-head"><div><h3>{t("acd.p3.guidanceK")}</h3>{full && <div className="p3-cardsub">{t("acd.p3.guidanceSub")}</div>}</div></div>
+        <div className="p3-guid-list">
+          {guidance.map(g => (
+            <button key={g.id} className="p3-guid-row"
+              onClick={() => g.type === "growth" && g.challenge ? data.onChallenge?.(g.challenge) : data.onSecondaryCta?.()}>
+              <span className="ic">{g.icon}</span>
+              <span className="tx"><span className="tt">{g.title}</span>{g.sub && <span className="ds">{g.sub}</span>}</span>
+              <span className="go">›</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+
+    const InsightRail = () => (
+      <aside className="p3-rail">
+        <div className="h2-card p3-insight">
+          <div className="h2-rail-eyebrow">✦ {t("acd.p3.insightK")}</div>
+          <div className="p3-insight-t">{evo || p?.evolution ? t("acd.p3.insightEvolving") : t("acd.p3.insightWho")}</div>
+          <p className="p3-insight-x">{data.traitHeadline ?? p?.evolution?.phrase ?? p?.narrative?.portrait ?? data.profileQuote}</p>
+          <div className="p3-insight-keep">{t("acd.p3.insightKeep")}</div>
+          <button className="h2-link" onClick={() => setPTab("growth")}>{t("acd.p3.insightLink")} →</button>
+        </div>
+
+        {(tip || reco) && (
+          <div className="h2-card p3-tip">
+            <div className="h2-card-head"><h3>{t("acd.p3.tipK")}</h3></div>
+            {tip && <p className="p3-tip-x">{tip.sub ?? tip.title}</p>}
+            {reco && (<>
+              <div className="p3-cardnote">{t("acd.p3.tipReco")}</div>
+              <button className="p3-tip-reco" onClick={data.onSecondaryCta}>
+                <span className="ph" style={{ backgroundImage: bg(reco.imageUrl, 200) }} />
+                <span className="tx">
+                  <span className="nm">{reco.name.split(",")[0]}</span>
+                  {reco.tags.length > 0 && <span className="tg">{reco.tags.slice(0, 2).join(" · ")}</span>}
+                </span>
+              </button>
+              <button className="h2-link" title={picks?.why} onClick={data.onSecondaryCta}>{t("acd.p3.tipWhy")} →</button>
+            </>)}
+          </div>
+        )}
+      </aside>
+    );
+
+    const PTABS: PTab[] = ["overview", "emotions", "patterns", "growth", "journal", "guidance"];
+
+    return (
+      <div className="view p3">
+        {/* Header con hero velato + quote card */}
+        <div className="p3-head">
+          <div className="p3-head-bg" style={{ backgroundImage: bg(data.heroImg, heroW, 55) }} />
+          <div className="p3-head-veil" />
+          <div className="p3-head-in">
+            <div className="p3-head-l">
+              <div className="r2-crumbs">
+                <button onClick={() => go("home")}>‹ {t("acd.r2.crumbHome")}</button>
+                <span>—</span>
+                <span className="on">{t("acd.p3.crumb")}</span>
+              </div>
+              <Html as="h1" className="p3-title"
+                html={tripCount >= 3 ? tx("acd.p3.titleMany", { n: tripCount }) : t("acd.p3.titleFew")} />
+              <p className="p3-sub">{t("acd.p3.sub")}</p>
+            </div>
+            <div className="p3-head-r">
+              {quote && (
+                <div className="p3-quote">
+                  <span className="qm">“</span>
+                  <p>{quote}</p>
+                  <div className="who">{data.userName}{quoteWhen ? `, ${quoteWhen}` : ""}</div>
+                </div>
+              )}
+              <div className="p3-head-acts">
+                <button className="btn-g" onClick={() => setLocation("/profiling")}>{t("acd.p3.edit")}</button>
+                <button className="btn-g" onClick={sharePortrait} disabled={sharing}>{sharing ? t("acd.portrait.sharing") : t("acd.p3.share")}</button>
+              </div>
+            </div>
+          </div>
+          {/* Tab bar */}
+          <div className="p3-tabs">
+            {PTABS.map(tb => (
+              <button key={tb} className={"p3-tab" + (pTab === tb ? " on" : "")} onClick={() => setPTab(tb)}>
+                {t(`acd.p3.tab.${tb}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="p3-body">
+          {pTab === "overview" && (
+            <div className="p3-grid">
+              <div className="p3-mainc">
+                <div className="p3-row1">
+                  <EssenceCard />
+                  <TimelineCard />
+                </div>
+                <div className="p3-row2">
+                  <JournalCard />
+                  <EmotionsCard />
+                  <GuidanceCard />
+                </div>
+              </div>
+              <InsightRail />
+            </div>
+          )}
+
+          {pTab === "emotions" && (
+            <div className="p3-focus">
+              <EmotionsCard full />
+              {!emotions && <div className="h2-card p3-tl-empty">{t("acd.p3.forming")}</div>}
+            </div>
+          )}
+
+          {pTab === "patterns" && (
+            <div className="p3-focus">
+              <section className="h2-card full">
+                <div className="h2-card-head"><h3>{t("acd.p3.patternsK")}</h3></div>
+                <div className="p3-pat-list">
+                  {data.patterns?.topContinentLabel && (
+                    <div className="p3-pat"><span className="k">{t("acd.p3.pat.continent")}</span><span className="v">{data.patterns.topContinentLabel}</span></div>
+                  )}
+                  {data.patterns?.avgDays != null && (
+                    <div className="p3-pat"><span className="k">{t("acd.p3.pat.avgDays")}</span><span className="v">{data.patterns.avgDays} {t("acd.unit.days")}</span></div>
+                  )}
+                  {data.patterns?.shortTripBias && <div className="p3-pat solo">{t("acd.p3.pat.shortBias")}</div>}
+                  {data.patterns?.longTripBias && <div className="p3-pat solo">{t("acd.p3.pat.longBias")}</div>}
+                </div>
+                {p?.chosen && p.chosen.length > 0 && (<>
+                  <div className="p3-cardnote">{t("acd.p3.pat.chosen")}</div>
+                  <div className="p3-chips">{p.chosen.map((c, i) => <span key={i}>{c.name.split(",")[0]}</span>)}</div>
+                </>)}
+              </section>
+              <EssenceCard full />
+            </div>
+          )}
+
+          {pTab === "growth" && (
+            <div className="p3-focus">
+              <section className="h2-card full">
+                <div className="h2-card-head"><h3>{t("acd.p3.timelineK")}</h3></div>
+                {(p?.evolution || evo) && <p className="p3-insight-x">{p?.evolution?.phrase ?? data.traitHeadline ?? ""}</p>}
+                <Timeline />
+              </section>
+              {p?.revealed && (
+                <section className="h2-card full">
+                  <div className="h2-card-head"><h3>{t("acd.p3.revealedK")}</h3></div>
+                  <p className="p3-insight-x">
+                    {t("acin.pt.revealedPre")}<em>{p.revealed.saidPole}</em>{t("acin.pt.revealedMid")}<strong>{p.revealed.chosePole}</strong>.
+                  </p>
+                </section>
+              )}
+              <GuidanceCard full />
+            </div>
+          )}
+
+          {pTab === "journal" && (
+            <div className="p3-focus"><JournalCard full /></div>
+          )}
+
+          {pTab === "guidance" && (
+            <div className="p3-focus">
+              <section className="h2-card full">
+                <div className="h2-card-head"><h3>{t("acd.p3.insightK")}</h3></div>
+                <p className="p3-insight-x">{p?.narrative?.portrait ?? data.profileQuote}</p>
+                {p?.narrative?.paradox && (<>
+                  <div className="p3-cardnote">{t("acd.p3.paradoxK")}</div>
+                  <p className="p3-insight-x em">{p.narrative.paradox}</p>
+                </>)}
+                {p?.ownWords && (<>
+                  <div className="p3-cardnote">{t("acd.p3.ownWordsK")}</div>
+                  <p className="p3-insight-x">“{p.ownWords}”</p>
+                </>)}
+              </section>
+              <GuidanceCard full />
+            </div>
+          )}
         </div>
       </div>
     );

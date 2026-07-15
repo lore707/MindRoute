@@ -48,6 +48,18 @@ export type AccountData = {
   // presente sostituisce la vecchia sezione "profilo viaggiatore"; quando
   // assente (anonimo / nessun segnale) si ricade sul profilo semplice.
   portrait?: PortraitData | null;
+  // Ritratto v2 (vista Portrait del dashboard): vettore 5 assi corrente,
+  // storico snapshot per la timeline evolutiva, headline Haiku, pattern reali.
+  traitVector?: Record<string, number> | null;
+  traitSnapshots?: Array<{ createdAt: string; traits: Record<string, number>; source: string }>;
+  traitHeadline?: string | null;
+  patterns?: {
+    topContinentLabel: string | null;
+    avgDays: number | null;
+    shortTripBias: boolean;
+    longTripBias: boolean;
+    tripCount: number;
+  } | null;
   continueItems: ContinueItem[]; // first one is featured
   trips: Trip[];
   stats: StatCell[];           // 4 cells in the novelistic stats section (fallback)
