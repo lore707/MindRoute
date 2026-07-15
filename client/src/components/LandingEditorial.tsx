@@ -34,18 +34,15 @@ const PHOTO = {
   kyoto:     u("1493976040374-85c8e12f0c0e", 2000), // pagoda + Fuji al tramonto (hero)
   lofoten:   u("1502786129293-79981df4e689"),
   patagonia: u("1531168556467-80aace0d0144"),
-  patagonia2:u("1505765050516-f72dcac9c60a"),
   procida:   u("1523906834658-6e24ef2386f9"),
   tokyo:     u("1540959733332-eab4deabeeaf"),
   azores:    u("1586671267731-da2cf3ceeb80"),
-  samarkand: u("1605649461784-edc01e2b2f4d"),
   iceland:   u("1500530855697-b586d89ba3ee"),
   iceland2:  u("1518710843675-2540dd79065c"),
   alentejo:  u("1518684079-3c830dcef090"),
   oaxaca:    u("1564507592333-c60657eea523"),
   mountains: u("1519681393784-d120267933ba"),
   sahara:    u("1489493585363-d69421e0edd3"),
-  faroe:     u("1538333702852-1ce8a4cd6c54"),
   sea:       u("1602941525421-8f8b81d3edbb"),
 } as const;
 
@@ -65,7 +62,7 @@ const SEASONAL: Record<"winter" | "spring" | "summer" | "autumn", SeasonPick[]> 
   autumn: [
     { name: "Kyoto",     country: { en: "Japan", it: "Giappone" },      hl: { en: "Autumn foliage", it: "Foliage d'autunno" }, note: { en: "Peak colors", it: "Colori al massimo" },   img: PHOTO.kyoto },
     { name: "Oaxaca",    country: { en: "Mexico", it: "Messico" },      hl: { en: "Vibrant season", it: "Stagione viva" },     note: { en: "Local festivals", it: "Feste locali" },    img: PHOTO.oaxaca },
-    { name: "Samarcanda",country: { en: "Uzbekistan", it: "Uzbekistan" },hl: { en: "Mild weather", it: "Clima mite" },         note: { en: "~22°C avg", it: "~22°C di media" },        img: PHOTO.samarkand },
+    { name: "Azzorre",   country: { en: "Portugal", it: "Portogallo" }, hl: { en: "Mild weather", it: "Clima mite" },          note: { en: "~20°C avg", it: "~20°C di media" },        img: PHOTO.azores },
     { name: "Alentejo",  country: { en: "Portugal", it: "Portogallo" }, hl: { en: "Harvest season", it: "Vendemmia" },         note: { en: "Slow & pastoral", it: "Lento e pastorale" },img: PHOTO.alentejo },
     { name: "Marocco",   country: { en: "Morocco", it: "Marocco" },     hl: { en: "Desert weather", it: "Deserto ideale" },    note: { en: "~26°C avg", it: "~26°C di media" },        img: PHOTO.sahara },
   ],
@@ -80,7 +77,7 @@ const SEASONAL: Record<"winter" | "spring" | "summer" | "autumn", SeasonPick[]> 
     { name: "Kyoto",     country: { en: "Japan", it: "Giappone" },      hl: { en: "Cherry blossoms", it: "Ciliegi in fiore" }, note: { en: "Late Mar–Apr", it: "Fine marzo–aprile" }, img: PHOTO.kyoto },
     { name: "Procida",   country: { en: "Italy", it: "Italia" },        hl: { en: "Sea without crowds", it: "Mare senza folla" }, note: { en: "~19°C avg", it: "~19°C di media" },     img: PHOTO.procida },
     { name: "Azzorre",   country: { en: "Portugal", it: "Portogallo" }, hl: { en: "Blooming season", it: "Tutto in fiore" },   note: { en: "Great for nature", it: "Ideale per la natura" }, img: PHOTO.azores },
-    { name: "Samarcanda",country: { en: "Uzbekistan", it: "Uzbekistan" },hl: { en: "Mild weather", it: "Clima mite" },         note: { en: "~20°C avg", it: "~20°C di media" },        img: PHOTO.samarkand },
+    { name: "Tokyo",     country: { en: "Japan", it: "Giappone" },      hl: { en: "Hanami season", it: "Stagione dei ciliegi" },note: { en: "Late Mar–Apr", it: "Fine marzo–aprile" }, img: PHOTO.tokyo },
     { name: "Alentejo",  country: { en: "Portugal", it: "Portogallo" }, hl: { en: "Fields in bloom", it: "Campi in fiore" },   note: { en: "Slow & pastoral", it: "Lento e pastorale" },img: PHOTO.alentejo },
   ],
 };
@@ -99,7 +96,7 @@ const MOOD_CARDS: Array<{ name: string; country: Bi; badge: Bi; meta: Bi; desc: 
   { name: "Patagonia", country: { en: "Argentina", it: "Argentina" },badge: { en: "Adventure escape", it: "Fuga d'avventura" },meta: { en: "7 days · Nov–Mar", it: "7 giorni · Nov–Mar" },  desc: { en: "Granite peaks, glaciers and wind that resets you.", it: "Cime di granito, ghiacciai e un vento che ti azzera." }, img: PHOTO.patagonia },
   { name: "Procida",   country: { en: "Italy", it: "Italia" },       badge: { en: "Coastal escape", it: "Fuga sul mare" },    meta: { en: "4 days · Spring", it: "4 giorni · Primavera" }, desc: { en: "Pastel villages, sea views and la dolce vita.", it: "Borghi pastello, viste sul mare e dolce vita." }, img: PHOTO.procida },
   { name: "Marocco",   country: { en: "Morocco", it: "Marocco" },    badge: { en: "Desert escape", it: "Fuga nel deserto" },  meta: { en: "7 days · Autumn", it: "7 giorni · Autunno" },   desc: { en: "Dunes, markets and a culture that vibrates.", it: "Dune, mercati e una cultura che vibra." }, img: PHOTO.sahara },
-  { name: "Isole Faroe",country:{ en: "Denmark", it: "Danimarca" },  badge: { en: "Nature escape", it: "Fuga nella natura" }, meta: { en: "5 days · Summer", it: "5 giorni · Estate" },    desc: { en: "Cliffs, silence and weather with a personality.", it: "Scogliere, silenzio e un meteo con carattere." }, img: PHOTO.faroe },
+  { name: "Islanda",   country: { en: "Iceland", it: "Islanda" },    badge: { en: "Nature escape", it: "Fuga nella natura" }, meta: { en: "5 days · Summer", it: "5 giorni · Estate" },    desc: { en: "Waterfalls, volcanoes and silence that resets you.", it: "Cascate, vulcani e un silenzio che ti azzera." }, img: PHOTO.iceland },
 ];
 
 /* Anteprima prodotto — dati DEMO dichiarati (label "Anteprima del prodotto"). */
@@ -113,7 +110,7 @@ const PREVIEW_CARDS: Array<{ name: string; sub: Bi; badgeKey: string; tags: Bi[]
 const FEAT_DAYS: Array<{ label: Bi; img: string }> = [
   { label: { en: "Arrival in Svolvær", it: "Arrivo a Svolvær" }, img: PHOTO.lofoten },
   { label: { en: "Hike to Ryten", it: "Trekking al Ryten" }, img: PHOTO.iceland2 },
-  { label: { en: "Hamnøy & Reinebringen", it: "Hamnøy e Reinebringen" }, img: PHOTO.faroe },
+  { label: { en: "Hamnøy & Reinebringen", it: "Hamnøy e Reinebringen" }, img: PHOTO.iceland },
   { label: { en: "Kvalvika Beach", it: "Spiaggia di Kvalvika" }, img: PHOTO.mountains },
 ];
 
@@ -553,7 +550,9 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
       <section className="led-final">
         <div className="led-container">
           <div className="led-final-grid">
-            <div className="led-final-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.patagonia2, 900)})` }} />
+            {/* Stessa foto rifugio/lago delle altre fasce — il mockup riusa la
+                stessa immagine in più sezioni, è una scelta deliberata. */}
+            <div className="led-final-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.mountains, 900)})` }} />
             <div>
               <div className="led-eyebrow"><span className="d" />{t("led.final.eyebrow")}</div>
               <h2>{em("led.final.title")}</h2>

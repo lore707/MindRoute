@@ -352,7 +352,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   // Mood row — curatela statica (stesse foto verificate del pool landing).
   const MOODS = [
     { e: "🌙", k: "acd.h2.mood.silence",   place: "Lofoten, Norvegia",   img: "https://images.unsplash.com/photo-1502786129293-79981df4e689?w=900&fit=crop&crop=entropy&auto=format&q=80" },
-    { e: "🌲", k: "acd.h2.mood.disappear", place: "Isole Faroe",         img: "https://images.unsplash.com/photo-1538333702852-1ce8a4cd6c54?w=900&fit=crop&crop=entropy&auto=format&q=80" },
+    { e: "🌲", k: "acd.h2.mood.disappear", place: "Islanda",             img: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900&fit=crop&crop=entropy&auto=format&q=80" },
     { e: "☀️", k: "acd.h2.mood.sun",       place: "Azzorre, Portogallo", img: "https://images.unsplash.com/photo-1586671267731-da2cf3ceeb80?w=900&fit=crop&crop=entropy&auto=format&q=80" },
     { e: "🏛️", k: "acd.h2.mood.culture",   place: "Kyoto, Giappone",     img: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=900&fit=crop&crop=entropy&auto=format&q=80" },
     { e: "✦",  k: "acd.h2.mood.surprise",  place: lang === "it" ? "Ovunque, per te" : "Anywhere, for you", img: "https://images.unsplash.com/photo-1489493585363-d69421e0edd3?w=900&fit=crop&crop=entropy&auto=format&q=80" },
