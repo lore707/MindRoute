@@ -67,6 +67,9 @@ export type AccountData = {
   settings: SettingRow[];      // 3-9 settings rows
   onNewItinerary?: () => void;
   onSecondaryCta?: () => void; // bottone ghost hero (es. "Genera dal profilo" o scroll-to-collection)
+  // Daily Compass: una card "growth" accettata pre-compila l'override del
+  // modal "Genera dal profilo" con il testo della sfida.
+  onChallenge?: (challenge: string) => void;
   secondaryCtaLabel?: string;  // default: "↓ Continua a esplorare"
   onLogout?: () => void;
   onDelete?: () => void;

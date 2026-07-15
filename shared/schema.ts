@@ -406,6 +406,21 @@ export const profilingRequestSchema = z.object({
   budgetTotalPerPerson: z.number().positive().optional(),
 });
 export type ProfilingRequest = z.infer<typeof profilingRequestSchema>;
+// Daily Compass — risposte alle card "reflection" della home (micro
+// conversazioni da 20 secondi). Ogni riga è un micro-segnale sul profilo:
+// il compass le rilegge per non riproporre card già risposte e, in futuro,
+// per alimentare ritratto e matching. cardId è l'id semantico stabile della
+// card ("weather-grey", "unexplored-asia"…), non un id di sessione.
+export const compassSignals = pgTable("compass_signals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  cardId: text("card_id").notNull(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type CompassSignal = typeof compassSignals.$inferSelect;
+
 // Newsletter opt-in dalla landing (fascia "Never miss the right moment" +
 // footer). Solo raccolta: l'invio (Resend + cron) è il TODO post-lancio di
 // project_email_followup. email unique → doppio submit = no-op.

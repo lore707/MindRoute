@@ -209,6 +209,46 @@ export function registerMiscRoutes(app: Express) {
     }
   });
 
+  // GET /api/me/compass — Daily Compass della home: card da segnali reali
+  // (meteo a casa, pattern, contraddizioni, memoria, capitoli mancanti).
+  // Stabile per la giornata, si rimescola sugli eventi. Zero AI.
+  app.get("/api/me/compass", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const lang = req.query.lang === "it" ? "it" : "en";
+      const { computeCompass } = await import("../compass");
+      res.json(await computeCompass(user.id, lang));
+    } catch (err) {
+      console.error("compass error:", err);
+      res.status(500).json({ message: "Errore nel calcolo della bussola" });
+    }
+  });
+
+  // POST /api/me/compass/answer — risposta a una card reflection (micro
+  // conversazione da 20 secondi). Persistita come micro-segnale di profilo;
+  // finché compass_signals non esiste in prod (db:push) risponde 503 onesto.
+  app.post("/api/me/compass/answer", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    const { z } = await import("zod");
+    const body = z.object({
+      cardId: z.string().min(1).max(80),
+      question: z.string().min(1).max(300),
+      answer: z.string().min(1).max(300),
+    }).safeParse(req.body);
+    if (!body.success) return res.status(400).json({ message: "Risposta non valida" });
+    try {
+      const { db } = await import("../db");
+      const { compassSignals } = await import("@shared/schema");
+      await db.insert(compassSignals).values({ userId: user.id, ...body.data });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("compass answer error:", err);
+      res.status(503).json({ message: "Non riesco a salvarlo ora, riprova" });
+    }
+  });
+
   // GET /api/me/portrait-card.png — Share Card 9:16 (storie IG/TikTok) col
   // Ritratto + Paradosso. Driver di crescita organica (3B). Best-effort: 404 se
   // il ritratto non è ancora disponibile (nessun segnale). `bg` opzionale = hero

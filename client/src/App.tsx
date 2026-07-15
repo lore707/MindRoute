@@ -26,6 +26,9 @@ const ItineraryStream = lazy(() => import("@/pages/ItineraryStream"));
 const Compare = lazy(() => import("@/pages/Compare"));
 const SharedItinerary = lazy(() => import("@/pages/SharedItinerary"));
 const HowItWorks = lazy(() => import("@/pages/HowItWorks"));
+// SOLO sviluppo: preview della dashboard con dati mock, per gli screenshot
+// responsive senza login/DB. Esclusa dal bundle di produzione.
+const DevPreview = import.meta.env.DEV ? lazy(() => import("@/pages/DevPreview")) : null;
 
 // Lightweight, theme-matching fallback — avoids a white flash while a route
 // chunk loads. Kept minimal so it never competes with the page that follows.
@@ -80,6 +83,7 @@ function Router() {
           </Route>
           <Route path="/my-account" component={MyAccount} />
           <Route path="/compare" component={Compare} />
+          {DevPreview && <Route path="/__preview/dashboard" component={DevPreview} />}
           <Route component={NotFound} />
         </Switch>
       </Suspense>

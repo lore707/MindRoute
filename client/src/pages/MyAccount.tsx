@@ -478,6 +478,16 @@ export default function MyAccount() {
       else setLocation("/profiling");
     },
     secondaryCtaLabel: canGenerateFromProfile ? "✨ Genera dal tuo profilo" : "↓ Continua a esplorare",
+    // Card "growth" del Daily Compass: la sfida accettata diventa l'override
+    // testuale del matcher (stesso campo del modal, pre-compilato).
+    onChallenge: (challenge: string) => {
+      if (canGenerateFromProfile) {
+        setFpContextOverride(challenge);
+        openFromProfileModal();
+      } else {
+        setLocation("/start");
+      }
+    },
     onLogout: () => { window.location.href = "/auth/logout"; },
     onDelete: () => {
       if (confirm("Sei sicuro di voler eliminare l'account? L'azione è irreversibile.")) {

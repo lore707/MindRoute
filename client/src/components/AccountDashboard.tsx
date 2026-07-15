@@ -107,6 +107,18 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   // Home v2: 3 proposte del giorno (catalogo+vettori, zero AI) + meteo reale.
   const [picks, setPicks] = useState<{ picks: Array<{ name: string; country: string; imageUrl: string; matchPct: number; tags: string[] }>; why: string } | null>(null);
   const [weather, setWeather] = useState<{ label: string; tempC: number; code: number; isDay: boolean } | null>(null);
+  // Daily Compass: card-osservazione da segnali reali (5 tipi, comportamenti
+  // diversi al click). Stabile per la giornata, si rimescola sugli eventi.
+  type CompassCard = {
+    id: string; type: "reflection" | "discovery" | "growth" | "memory" | "journey";
+    icon: string; title: string; sub?: string;
+    question?: string; options?: string[];
+    destination?: { name: string; country: string; imageUrl: string; matchPct: number | null };
+    challenge?: string; href?: string;
+  };
+  const [compass, setCompass] = useState<CompassCard[] | null>(null);
+  const [cpOpen, setCpOpen] = useState<string | null>(null);
+  const [cpDone, setCpDone] = useState<Record<string, "ok" | "err">>({});
 
   // Interpolatore: t() non supporta placeholder, li sostituiamo qui.
   const tx = (key: string, vars: Record<string, string | number>) => {
@@ -177,6 +189,39 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
       .catch(() => { /* best-effort */ });
     return () => { cancelled = true; };
   }, [lang]);
+
+  // Daily Compass — se l'endpoint fallisce la sezione non appare.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/me/compass?lang=${lang}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled) setCompass(d && Array.isArray(d.cards) && d.cards.length > 0 ? d.cards : null); })
+      .catch(() => { /* sezione nascosta */ });
+    return () => { cancelled = true; };
+  }, [lang]);
+
+  // Risposta a una reflection: micro-segnale persistito. La card mostra
+  // l'esito reale (ok / errore), mai un finto "salvato".
+  const answerCompass = async (card: CompassCard, answer: string) => {
+    try {
+      const r = await fetch("/api/me/compass/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId: card.id, question: card.question ?? card.title, answer }),
+      });
+      setCpDone(prev => ({ ...prev, [card.id]: r.ok ? "ok" : "err" }));
+    } catch {
+      setCpDone(prev => ({ ...prev, [card.id]: "err" }));
+    }
+  };
+
+  // Click su una card compass — ogni tipo fa una cosa diversa (è il punto).
+  const onCompassCard = (card: CompassCard) => {
+    if (card.type === "memory" && card.href) { setLocation(card.href); return; }
+    if (card.type === "journey") { data.onSecondaryCta?.(); return; }
+    // reflection / discovery / growth si aprono in place
+    setCpOpen(prev => (prev === card.id ? null : card.id));
+  };
 
   // Meteo "adesso vicino a te": geolocalizzazione browser (prompt una tantum),
   // fallback server-side sulla città di partenza dell'ultimo profiling se
@@ -349,15 +394,8 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     : "acd.h2.wx.storm";
   const wxGood = weather ? weather.tempC >= 16 && weather.tempC <= 28 && weather.code <= 2 : false;
 
-  // Mood row — curatela statica. Foto VERIFICATE A OCCHIO (audit 2026-07-15:
-  // il vecchio pool aveva Azzorre=cane); se ne aggiungi una, guardala prima.
-  const MOODS = [
-    { e: "🌙", k: "acd.h2.mood.silence",   place: "Lofoten, Norvegia",   img: "https://images.unsplash.com/photo-1663428520845-056989f8a664?w=900&fit=crop&crop=entropy&auto=format&q=80" },
-    { e: "🌲", k: "acd.h2.mood.disappear", place: "Isole Faroe",         img: "https://images.unsplash.com/photo-1554610975-1fa324cfb60b?w=900&fit=crop&crop=entropy&auto=format&q=80" },
-    { e: "☀️", k: "acd.h2.mood.sun",       place: "Azzorre, Portogallo", img: "https://images.unsplash.com/photo-1620998051604-95ff17ccc537?w=900&fit=crop&crop=entropy&auto=format&q=80" },
-    { e: "🏛️", k: "acd.h2.mood.culture",   place: "Kyoto, Giappone",     img: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=900&fit=crop&crop=entropy&auto=format&q=80" },
-    { e: "✦",  k: "acd.h2.mood.surprise",  place: lang === "it" ? "Ovunque, per te" : "Anywhere, for you", img: "https://images.unsplash.com/photo-1489493585363-d69421e0edd3?w=900&fit=crop&crop=entropy&auto=format&q=80" },
-  ];
+  // (La vecchia mood row è stata sostituita dal Daily Compass: card-osservazione
+  // da segnali reali invece di 5 scorciatoie fisse verso lo stesso quiz.)
 
   // Mini-atlante (colonna destra): mappa Leaflet non interattiva con i pin
   // reali. Leaflet è già nel bundle della route account (AccountAtlas), il
@@ -402,32 +440,93 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     </div>
   ) : null;
 
+  // Il Daily Compass — la home osserva, non chiede. Ogni tipo di card ha un
+  // comportamento diverso al click (reflection inline, discovery mostra,
+  // growth sfida, memory riapre, journey genera).
+  const CompassSection = () => compass && (
+    <section className="h2-card cp-sec">
+      <div className="h2-card-head">
+        <h3>🧭 {t("acd.cp.k")}</h3>
+        <span className="cp-hint">{t("acd.cp.hint")}</span>
+      </div>
+      <div className="cp-row">
+        {compass.map((card) => {
+          const open = cpOpen === card.id;
+          const done = cpDone[card.id];
+          return (
+            <div key={card.id} className={`cp-card cp-${card.type}${open ? " open" : ""}`}>
+              <button className="cp-face" onClick={() => onCompassCard(card)}>
+                <span className="cp-top">
+                  <span className="cp-ico">{card.icon}</span>
+                  <span className="cp-type">{t(`acd.cp.t.${card.type}`)}</span>
+                </span>
+                <span className="cp-title">{card.title}</span>
+                {card.sub && <span className="cp-sub">{card.sub}</span>}
+                <span className="cp-go">{card.type === "memory" || card.type === "journey" ? "→" : open ? "×" : "›"}</span>
+              </button>
+
+              {open && card.type === "reflection" && (
+                <div className="cp-body">
+                  {done === "ok" ? (
+                    <div className="cp-ok">{t("acd.cp.answered")}</div>
+                  ) : (
+                    <>
+                      <div className="cp-q">{card.question}</div>
+                      <div className="cp-opts">
+                        {(card.options ?? []).map((o) => (
+                          <button key={o} className="cp-opt" onClick={() => answerCompass(card, o)}>{o}</button>
+                        ))}
+                      </div>
+                      {done === "err" && <div className="cp-err">{t("acd.cp.answerErr")}</div>}
+                      <button className="cp-skip" onClick={() => setCpOpen(null)}>{t("acd.cp.skip")}</button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {open && card.type === "discovery" && card.destination && (
+                <div className="cp-body">
+                  <div className="cp-dest" style={{ backgroundImage: bg(card.destination.imageUrl, 480, 65) }}>
+                    {card.destination.matchPct != null && <span className="cp-match">{card.destination.matchPct}% {t("acd.cp.match")}</span>}
+                    <span className="cp-dest-nm">{card.destination.name.split(",")[0]}<em>{card.destination.country}</em></span>
+                  </div>
+                  <div className="cp-note">{t("acd.cp.discoveryNote")}</div>
+                </div>
+              )}
+
+              {open && card.type === "growth" && card.challenge && (
+                <div className="cp-body">
+                  <div className="cp-q">“{card.challenge}”</div>
+                  <button className="cp-opt on" onClick={() => data.onChallenge?.(card.challenge!)}>{t("acd.cp.growthCta")} →</button>
+                  <button className="cp-skip" onClick={() => setCpOpen(null)}>{t("acd.cp.skip")}</button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+
   const HomeView = () => (
     <div className="view">
-      {/* Hero — saluto per ora del giorno + riga stagionale + CTA alle proposte */}
-      <section className="hero h2-hero">
-        {photos.map((p, i) => (
-          <div key={p + i} className={"hero-ph" + (heroIdx === i ? " on" : "")} style={{ backgroundImage: bg(p, heroW, 60) }} />
-        ))}
-        <div className="hero-veil" />
-        <div className="hero-in">
-          <div className="hero-eyebrow">{t(greetKey)}</div>
-          <h1 className="hero-title">{data.userName}<span className="dot">.</span></h1>
-          <p className="hero-sub h2-hero-sub">
-            {t(seasonKey)}<br />{isEmpty ? t("acd.h2.heroSubNew") : t("acd.h2.heroSub")}
-          </p>
-          <div className="hero-act">
-            {isEmpty ? (
+      {/* Stato vuoto: hero pieno + onboarding, come prima del redesign */}
+      {isEmpty && (<>
+        <section className="hero h2-hero">
+          {photos.map((p, i) => (
+            <div key={p + i} className={"hero-ph" + (heroIdx === i ? " on" : "")} style={{ backgroundImage: bg(p, heroW, 60) }} />
+          ))}
+          <div className="hero-veil" />
+          <div className="hero-in">
+            <div className="hero-eyebrow">{t(greetKey)}</div>
+            <h1 className="hero-title">{data.userName}<span className="dot">.</span></h1>
+            <p className="hero-sub h2-hero-sub">{t(seasonKey)}<br />{t("acd.h2.heroSubNew")}</p>
+            <div className="hero-act">
               <button className="btn-p lg" onClick={data.onNewItinerary}>{t("acd.empty.cta")} →</button>
-            ) : (
-              <button className="btn-p lg" onClick={scrollToRecs}>{t("acd.h2.heroCta")} →</button>
-            )}
+            </div>
           </div>
-        </div>
-      </section>
-
-      <div className="home-content">
-        {isEmpty && (
+        </section>
+        <div className="home-content">
           <section className="onboard">
             <div className="onboard-eyebrow">{t("acd.empty.eyebrow")}</div>
             <Html as="h2" className="onboard-title" html={t("acd.empty.title")} />
@@ -439,68 +538,104 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
             </div>
             <button className="btn-p" onClick={data.onNewItinerary}>{t("acd.empty.cta")}</button>
           </section>
-        )}
+        </div>
+      </>)}
 
-        {!isEmpty && (
+      {/* Layout dal mockup: rail a destra dall'alto, hero DENTRO la colonna
+          principale, "continua"+"scelte" affiancati, compass, fascia. */}
+      {!isEmpty && (
+      <div className="home-content h2c">
         <div className="h2-grid">
           {/* ── colonna principale ── */}
           <div className="h2-main">
-            {/* Continua il tuo viaggio */}
-            {continueCard && (
-              <section className="h2-card">
-                <div className="h2-card-head">
-                  <h3>{t("acd.h2.continueK")}</h3>
-                  <button className="h2-link" onClick={() => go(data.continueItems.length > 0 ? "resume" : "trips")}>{t("acd.h2.viewAll")} →</button>
+            <section className="hero h2-heroc">
+              {photos.map((p, i) => (
+                <div key={p + i} className={"hero-ph" + (heroIdx === i ? " on" : "")} style={{ backgroundImage: bg(p, heroW, 60) }} />
+              ))}
+              <div className="hero-veil" />
+              <div className="hero-in">
+                <div className="hero-eyebrow">{t(greetKey)}</div>
+                <h1 className="hero-title">{data.userName}<span className="dot">.</span></h1>
+                <p className="hero-sub h2-hero-sub">{t(seasonKey)}<br />{t("acd.h2.heroSub")}</p>
+                <div className="hero-act">
+                  <button className="btn-p" onClick={scrollToRecs}>{t("acd.h2.heroCta")} →</button>
                 </div>
-                <div className="h2-cont">
-                  <div className="h2-cont-img" style={{ backgroundImage: bg(continueCard.img, 520) }} />
-                  <div className="h2-cont-body">
-                    {continueCard.region && <div className="h2-cont-region">◆ {continueCard.region}</div>}
-                    <div className="h2-cont-name">{continueCard.title}</div>
-                    <div className="h2-cont-rule" />
-                    <div className="h2-cont-prog">
-                      {continueCard.progress
-                        ? tx("acd.h2.progress", { n: continueCard.progress.n, tot: continueCard.progress.tot })
-                        : t("acd.h2.justOpened")}
-                    </div>
-                    {continueCard.progress && (
-                      <div className="h2-bar"><span style={{ width: `${Math.round((continueCard.progress.n / continueCard.progress.tot) * 100)}%` }} /></div>
-                    )}
-                    <button className="btn-p" onClick={() => setLocation(continueCard.href)}>{t("acd.h2.resumeCta")} →</button>
+              </div>
+            </section>
+
+            <div className="h2-midrow">
+              {/* Continua il tuo viaggio */}
+              {continueCard && (
+                <section className="h2-card">
+                  <div className="h2-card-head">
+                    <h3>{t("acd.h2.continueK")}</h3>
+                    <button className="h2-link" onClick={() => go(data.continueItems.length > 0 ? "resume" : "trips")}>{t("acd.h2.viewAll")} →</button>
                   </div>
+                  <div className="h2-cont">
+                    <div className="h2-cont-img" style={{ backgroundImage: bg(continueCard.img, 520) }} />
+                    <div className="h2-cont-body">
+                      {continueCard.region && <div className="h2-cont-region">◆ {continueCard.region}</div>}
+                      <div className="h2-cont-name">{continueCard.title}</div>
+                      <div className="h2-cont-rule" />
+                      <div className="h2-cont-prog">
+                        {continueCard.progress
+                          ? tx("acd.h2.progress", { n: continueCard.progress.n, tot: continueCard.progress.tot })
+                          : t("acd.h2.justOpened")}
+                      </div>
+                      {continueCard.progress && (
+                        <div className="h2-bar"><span style={{ width: `${Math.round((continueCard.progress.n / continueCard.progress.tot) * 100)}%` }} /></div>
+                      )}
+                      <button className="btn-p" onClick={() => setLocation(continueCard.href)}>{t("acd.h2.resumeCta")} →</button>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Scelte per te oggi — matchPct reale dai vettori, niente prezzi */}
+              {picks && (
+                <section className="h2-card" id="h2-recs">
+                  <div className="h2-card-head">
+                    <h3>{t("acd.h2.recK")}</h3>
+                    <button className="h2-link" onClick={() => go("portrait")} title={picks.why}>{t("acd.h2.whyThese")} →</button>
+                  </div>
+                  <div className="h2-recs">
+                    {picks.picks.map((p, i) => (
+                      <button key={p.name + i} className="h2-rec" onClick={data.onSecondaryCta}>
+                        <div className="h2-rec-img" style={{ backgroundImage: bg(p.imageUrl, 520) }}>
+                          <span className="h2-rec-match">{p.matchPct}% {t("acd.h2.match")}</span>
+                        </div>
+                        <div className="h2-rec-body">
+                          <div className="h2-rec-name">{p.name.split(",")[0]}</div>
+                          {p.tags.length > 0 && (
+                            <div className="h2-rec-tags">{p.tags.map((x, j) => <span key={j}>{x}</span>)}</div>
+                          )}
+                          <span className="h2-rec-go">→</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+
+            {CompassSection()}
+
+            {/* Fascia finale ONESTA: solo se c'è una checklist vera da completare */}
+            {bookingNudge.length > 0 && (
+              <div className="h2-band">
+                <span className="h2-band-ico">🧭</span>
+                <div className="h2-band-mid">
+                  <div className="h2-band-k">{t("acd.h2.bandK")}</div>
+                  <div className="h2-band-sub">{tx("acd.h2.bandSub", { name: bookingNudge[0].title, n: bookingNudge[0].booked, tot: bookingNudge[0].total })}</div>
                 </div>
-              </section>
+                <button className="btn-g" onClick={() => setLocation(bookingNudge[0].href)}>{t("acd.h2.bandCta")} →</button>
+              </div>
             )}
 
-            {/* Scelte per te oggi — matchPct reale dai vettori, niente prezzi */}
-            {picks && (
-              <section className="h2-card" id="h2-recs">
-                <div className="h2-card-head">
-                  <h3>{t("acd.h2.recK")}</h3>
-                  <button className="h2-link" onClick={() => go("portrait")} title={picks.why}>{t("acd.h2.whyThese")} →</button>
-                </div>
-                <div className="h2-recs">
-                  {picks.picks.map((p, i) => (
-                    <button key={p.name + i} className="h2-rec" onClick={data.onSecondaryCta}>
-                      <div className="h2-rec-img" style={{ backgroundImage: bg(p.imageUrl, 520) }}>
-                        <span className="h2-rec-match">{p.matchPct}% {t("acd.h2.match")}</span>
-                      </div>
-                      <div className="h2-rec-body">
-                        <div className="h2-rec-name">{p.name.split(",")[0]}</div>
-                        {p.tags.length > 0 && (
-                          <div className="h2-rec-tags">{p.tags.map((x, j) => <span key={j}>{x}</span>)}</div>
-                        )}
-                        <div className="h2-rec-why">{picks.why}</div>
-                        <span className="h2-rec-go">→</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
+            {homeExtra && <div className="home-extra">{homeExtra}</div>}
           </div>
 
-          {/* ── colonna destra ── */}
+          {/* ── colonna destra (dall'alto, come nel mockup) ── */}
           <aside className="h2-rail">
             {WeatherCard()}
 
@@ -532,37 +667,8 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
             </div>
           </aside>
         </div>
-        )}
-
-        {/* Mood row — a tutta larghezza */}
-        {!isEmpty && (
-        <section className="h2-card h2-moodsec">
-          <div className="h2-card-head"><h3>{t("acd.h2.moodK")}</h3></div>
-          <div className="h2-moods">
-            {MOODS.map((m) => (
-              <button key={m.k} className="h2-mood" onClick={data.onNewItinerary} style={{ backgroundImage: bg(m.img, 480, 65) }}>
-                <span className="h2-mood-top"><span className="e">{m.e}</span><span><span className="mt">{t(m.k)}</span><span className="mp">{m.place}</span></span></span>
-                <span className="h2-mood-go">›</span>
-              </button>
-            ))}
-          </div>
-        </section>
-        )}
-
-        {/* Fascia finale ONESTA: solo se c'è una checklist vera da completare */}
-        {!isEmpty && bookingNudge.length > 0 && (
-          <div className="h2-band">
-            <span className="h2-band-ico">🧭</span>
-            <div className="h2-band-mid">
-              <div className="h2-band-k">{t("acd.h2.bandK")}</div>
-              <div className="h2-band-sub">{tx("acd.h2.bandSub", { name: bookingNudge[0].title, n: bookingNudge[0].booked, tot: bookingNudge[0].total })}</div>
-            </div>
-            <button className="btn-g" onClick={() => setLocation(bookingNudge[0].href)}>{t("acd.h2.bandCta")} →</button>
-          </div>
-        )}
-
-        {!isEmpty && homeExtra && <div className="home-extra">{homeExtra}</div>}
       </div>
+      )}
     </div>
   );
 

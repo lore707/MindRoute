@@ -202,6 +202,23 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.h2.bandSub":    { en: "{name} — {n} of {tot} bookings done. Pick it up where you left off.", it: "{name} — {n} su {tot} prenotazioni fatte. Riprendi da dove eri." },
   "acd.h2.bandCta":    { en: "Complete now", it: "Completa ora" },
 
+  // ── Daily Compass (home) ────────────────────────────────────────────────
+  "acd.cp.k":          { en: "Your compass today", it: "La tua bussola di oggi" },
+  "acd.cp.hint":       { en: "Things I noticed about how you travel. They change with you.", it: "Cose che ho notato sul tuo modo di viaggiare. Cambiano con te." },
+  "acd.cp.answered":   { en: "Noted. I'll remember that ✦", it: "Segnato. Me lo ricorderò ✦" },
+  "acd.cp.answerErr":  { en: "Can't save it right now — try later.", it: "Non riesco a salvarlo ora — riprova più tardi." },
+  "acd.cp.discoveryNote": { en: "Just a look. Nothing gets generated.", it: "Solo uno sguardo. Non genero niente." },
+  "acd.cp.growthCta":  { en: "I accept the challenge", it: "Accetto la sfida" },
+  "acd.cp.journeyCta": { en: "Generate the journey", it: "Genera il viaggio" },
+  "acd.cp.memoryCta":  { en: "Open it again", it: "Riaprilo" },
+  "acd.cp.skip":       { en: "Not now", it: "Non ora" },
+  "acd.cp.match":      { en: "match", it: "match" },
+  "acd.cp.t.reflection": { en: "Reflection", it: "Riflessione" },
+  "acd.cp.t.discovery":  { en: "Discovery", it: "Scoperta" },
+  "acd.cp.t.growth":     { en: "Growth", it: "Crescita" },
+  "acd.cp.t.memory":     { en: "Memory", it: "Memoria" },
+  "acd.cp.t.journey":    { en: "Journey", it: "Viaggio" },
+
   // ── Riprendi v2 (redesign 2026-07 dal mockup) ───────────────────────────
   "acd.r2.crumbHome":  { en: "Home", it: "Home" },
   "acd.r2.crumb":      { en: "To resume", it: "Da riprendere" },
