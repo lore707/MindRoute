@@ -30,6 +30,63 @@ pool.on("error", (err) => {
   console.error("pg pool idle-client error (continuing):", err);
 });
 
+// ── Resilienza cold-start (Neon free va in scale-to-zero dopo ~5 min idle) ──
+// Quando il DB dorme, la PRIMA query dopo il risveglio può fallire con errori
+// di connessione transitori ("Connection terminated…", control-plane XX000):
+// la connessione non raggiunge nemmeno il DB. Ritentiamo con un breve backoff,
+// così il risveglio di Neon viene assorbito e l'utente non vede un 500.
+// SOLO letture (SELECT/WITH): le scritture non si ritentano, per non rischiare
+// doppie esecuzioni se una connessione cade dopo aver eseguito la query.
+const TRANSIENT_MSGS = [
+  "connection terminated",
+  "connection timeout",
+  "timeout expired",
+  "control plane request failed",
+  "terminating connection",
+  "econnreset",
+  "etimedout",
+  "epipe",
+];
+// XX000 = internal (Neon control plane); 57P0x = admin shutdown; 08xxx = connection failure.
+const TRANSIENT_CODES = new Set(["XX000", "57P01", "57P03", "08006", "08003", "08001", "08004"]);
+
+function isTransient(err: any): boolean {
+  if (!err) return false;
+  if (err.code && TRANSIENT_CODES.has(String(err.code))) return true;
+  const msg = String(err?.message ?? err).toLowerCase();
+  return TRANSIENT_MSGS.some((t) => msg.includes(t));
+}
+
+function isReadOnly(text: unknown): boolean {
+  if (typeof text !== "string") return false;
+  const head = text.trimStart().slice(0, 8).toLowerCase();
+  return head.startsWith("select") || head.startsWith("with");
+}
+
+const RETRY_DELAYS = [250, 750]; // 2 ritentativi, backoff crescente
+const rawQuery = pool.query.bind(pool);
+(pool as any).query = function retryingQuery(...args: any[]) {
+  // Forma a callback: nessun retry (drizzle usa le promise).
+  if (typeof args[args.length - 1] === "function") return (rawQuery as any)(...args);
+  const cfg = args[0];
+  const text = typeof cfg === "string" ? cfg : cfg?.text;
+  if (!isReadOnly(text)) return (rawQuery as any)(...args);
+
+  const attempt = async (i: number): Promise<any> => {
+    try {
+      return await (rawQuery as any)(...args);
+    } catch (err) {
+      if (i < RETRY_DELAYS.length && isTransient(err)) {
+        console.warn(`db read retry ${i + 1}/${RETRY_DELAYS.length} (${(err as any)?.code ?? "conn"}) — DB cold start?`);
+        await new Promise((r) => setTimeout(r, RETRY_DELAYS[i]));
+        return attempt(i + 1);
+      }
+      throw err;
+    }
+  };
+  return attempt(0);
+};
+
 export const db = drizzle(pool, { schema });
 
 /**
