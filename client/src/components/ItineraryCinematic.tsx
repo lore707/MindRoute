@@ -41,6 +41,14 @@ export type Moment = {
   transport?: string;
   // v2 only — alternativa se la tappa salta, formattata "trigger → alternativa".
   planB?: string;
+  // v2 only — "perché l'ho scelto" (why_this), separato da desc per il dettaglio
+  // Journey. Assente nei v1 e quando il modello non l'ha fornito.
+  why?: string;
+  // v2 only — coordinate della tappa (per il deep-link Google Maps del dettaglio).
+  lat?: number;
+  lng?: number;
+  // v2 only — orario di fine, se fornito (finestra oraria nel dettaglio).
+  endTime?: string;
 };
 
 export type ItineraryData = {

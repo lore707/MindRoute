@@ -3,6 +3,7 @@ import { Link, useRoute, useLocation } from "wouter";
 // CSS dell'area itinerario, code-split su questa route lazy (vedi index.css).
 import "@/styles/account-dashboard.css";
 import "@/styles/itinerary-dashboard.css";
+import "@/styles/journey.css";
 import "@/styles/itinerary-cinematic.css";
 import "@/styles/itinerary-redesign.css";
 import "@/styles/itinerary-agenda.css";
@@ -638,6 +639,12 @@ function buildMomentsV2(day: any, t: (k: string) => string, lang: "en" | "it", o
       dayNumber: day?.day_number,
       transport: buildTransport(),
       planB: buildPlanB(),
+      // Journey (redesign 2026-07): why_this separato per il dettaglio,
+      // coordinate per il deep-link Google Maps, endTime per la finestra oraria.
+      why: typeof m.why_this === "string" && m.why_this.trim() ? m.why_this.trim() : undefined,
+      lat: typeof m.location_lat === "number" ? m.location_lat : undefined,
+      lng: typeof m.location_lng === "number" ? m.location_lng : undefined,
+      endTime: typeof m.end_time === "string" && m.end_time.trim() ? m.end_time.trim() : undefined,
     } as CinMoment;
   });
 }

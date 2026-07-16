@@ -28,13 +28,18 @@ import { useI18n } from "@/lib/i18n";
 import type { ItineraryData, Moment } from "./ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
 import { FlowNavLogo } from "@/components/FlowNav";
+import { JourneyView } from "@/components/JourneyView";
 
 const bg = (url: string, w: number, q = 70) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
 
 // Leaflet (~150KB) caricato solo quando si apre il tab Mappa.
 const RouteMap = lazy(() => import("@/components/RouteMap"));
 
-type ViewId = "overview" | "days" | "map" | "practical" | "missions";
+// Redesign Journey (2026-07): "days"+"map"+"practical" fusi in un unico
+// "journey" (per-giorno, 3 modi sincronizzati). "days"/"map" restano come id
+// interni SOLO per i deep-link legacy (es. RouteMap onOpenDay), reindirizzati
+// a "journey". La nav mostra: Visione · Journey · Prenota.
+type ViewId = "overview" | "journey" | "days" | "map" | "practical" | "missions";
 
 type Props = {
   data: ItineraryData;
@@ -1297,10 +1302,12 @@ export function ItineraryDashboard({
   };
 
   /* ════════════ SHELL ════════════ */
+  // Nav Journey (2026-07): Visione · Journey (Story/Map/Logistics fusi) ·
+  // Pratica (essenziali trip-level: bagaglio/budget/come-arrivare, NON per-giorno) ·
+  // Prenota. Companion resta il FAB globale.
   const NAV: Array<{ id: ViewId; icon: ReactNode; key: string }> = [
     { id: "overview", icon: <Layers size={23} />, key: "itd.nav.overview" },
-    { id: "days", icon: <CalendarDays size={23} />, key: "itd.nav.days" },
-    { id: "map", icon: <MapIcon size={23} />, key: "itd.nav.map" },
+    { id: "journey", icon: <Compass size={23} />, key: "itd.nav.journey" },
     { id: "practical", icon: <Backpack size={23} />, key: "itd.nav.practical" },
     { id: "missions", icon: <Ticket size={23} />, key: "itd.nav.missions" },
   ];
@@ -1359,8 +1366,13 @@ export function ItineraryDashboard({
         </div>
 
         {view === "overview" && OverviewView()}
-        {view === "days" && DaysView()}
-        {view === "map" && MapView()}
+        {(view === "journey" || view === "days" || view === "map") && (
+          <JourneyView
+            data={data} itinerary={itinerary} itineraryId={itineraryId}
+            savedMomentIds={savedMomentIds} onToggleSaved={onToggleSaved}
+            onBook={(type, day) => markClicked(type, day)}
+          />
+        )}
         {view === "practical" && PracticalView()}
         {view === "missions" && MissionsView()}
       </main>

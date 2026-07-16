@@ -8,11 +8,18 @@ export const itineraryDashDict: Record<string, { en: string; it: string }> = {
   // ── Sidebar ──────────────────────────────────────────────────────────────
   // Etichette = l'azione mentale dell'utente (compagno di viaggio), non la struttura.
   "itd.nav.overview": { en: "Vision", it: "Visione" },
+  "itd.nav.journey":  { en: "Journey", it: "Journey" },
   "itd.nav.days":     { en: "Journey", it: "Percorso" },
   "itd.nav.map":      { en: "Explore", it: "Esplora" },
   "itd.nav.practical":{ en: "Prepare", it: "Preparati" },
   "itd.nav.missions": { en: "Confirm", it: "Conferma" },
   "itd.back":         { en: "Dashboard", it: "Dashboard" },
+
+  // ── Journey (redesign 2026-07: Story/Map/Logistics sincronizzati) ─────────
+  "jr.day":           { en: "Day {n}", it: "Giorno {n}" },
+  "jr.save":          { en: "Save this stop", it: "Salva questa tappa" },
+  "jr.close":         { en: "Close", it: "Chiudi" },
+  "jr.mapLoading":    { en: "Loading map…", it: "Carico la mappa…" },
 
   // ── Topbar ───────────────────────────────────────────────────────────────
   "itd.tb.built":     { en: "Built", it: "Costruito" },

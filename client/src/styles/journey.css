@@ -1,0 +1,165 @@
+/* ════════════════════════════════════════════════════════════
+   JOURNEY (redesign 2026-07) — un giorno, 3 prospettive sincronizzate.
+   Scoped .account-dash; riusa i token del dashboard itinerario.
+   ════════════════════════════════════════════════════════════ */
+.account-dash .jr { position: relative; }
+.account-dash .jr-head { max-width: 1320px; margin: 0 auto; padding: 30px 40px 6px; }
+.account-dash .jr-eyebrow { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.account-dash .jr-h1 { font-family: var(--serif); font-size: clamp(40px, 5vw, 68px); font-weight: 400; line-height: .95; letter-spacing: -.02em; margin: 8px 0 12px; }
+.account-dash .jr-h1 .dot { color: var(--accent); }
+.account-dash .jr-lede { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--ink-dim); max-width: 560px; text-wrap: pretty; }
+
+/* Day switcher */
+.account-dash .jr-daytabs { max-width: 1320px; margin: 8px auto 0; padding: 0 40px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.account-dash .jr-daytabs::-webkit-scrollbar { display: none; }
+.account-dash .jr-daytab { flex: none; min-width: 118px; text-align: left; padding: 11px 14px; border-radius: 14px; border: 1px solid var(--stroke);
+  background: rgba(13, 7, 13, .4); color: var(--ink-dim); cursor: pointer; transition: all .2s; min-height: 44px; }
+.account-dash .jr-daytab .ar { display: block; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin-bottom: 3px; }
+.account-dash .jr-daytab .dn { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
+.account-dash .jr-daytab .dt { display: block; font-size: 11px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.account-dash .jr-daytab.on { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Day header */
+.account-dash .jr-dayhead { max-width: 1320px; margin: 16px auto 0; padding: 0 40px; display: flex; gap: 20px; align-items: center; justify-content: space-between; }
+.account-dash .jr-dh-eyebrow { display: flex; align-items: center; gap: 10px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+.account-dash .jr-dh-eyebrow .badge { color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 999px; padding: 3px 9px; }
+.account-dash .jr-dh-title { font-family: var(--serif); font-size: clamp(22px, 2.6vw, 32px); font-weight: 400; line-height: 1.1; margin: 8px 0 4px; }
+.account-dash .jr-dh-sub { font-size: 13.5px; color: var(--ink-dim); max-width: 640px; line-height: 1.5; }
+.account-dash .jr-dh-hero { flex: none; width: 150px; height: 96px; border-radius: 14px; background-size: cover; background-position: center; }
+
+/* Segmented control */
+.account-dash .jr-seg { max-width: 1320px; margin: 18px auto 0; padding: 0 40px; display: flex; gap: 6px; }
+.account-dash .jr-seg-btn { flex: 1; max-width: 180px; padding: 11px 16px; border-radius: 12px; border: 1px solid var(--stroke);
+  background: rgba(13, 7, 13, .4); color: var(--ink-dim); font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all .2s; min-height: 44px; }
+.account-dash .jr-seg-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 8px 26px -10px var(--accent); }
+
+/* Stage */
+.account-dash .jr-stage { max-width: 1320px; margin: 16px auto 0; padding: 0 40px 90px; }
+.account-dash .jr-col-story, .account-dash .jr-col-right { display: none; }
+.account-dash .jr-col-story.show, .account-dash .jr-col-right.show { display: block; }
+.account-dash .jr-panel { display: none; }
+.account-dash .jr-panel.show { display: block; }
+
+/* ── STORY ── */
+.account-dash .jr-band { position: relative; padding-left: 20px; margin-bottom: 8px; }
+.account-dash .jr-band::before { content: ""; position: absolute; left: 5px; top: 22px; bottom: -8px; width: 2px; background: color-mix(in srgb, var(--bc) 35%, transparent); }
+.account-dash .jr-band:last-child::before { display: none; }
+.account-dash .jr-band-head { display: flex; align-items: center; gap: 10px; padding: 8px 0 12px; }
+.account-dash .jr-band-head .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--bc); box-shadow: 0 0 10px var(--bc); margin-left: -20px; flex: none; }
+.account-dash .jr-band-head .lab { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--bc); }
+.account-dash .jr-moments { display: flex; flex-direction: column; gap: 10px; }
+.account-dash .jr-card { position: relative; display: grid; grid-template-columns: auto 68px 1fr auto; gap: 12px; align-items: center;
+  padding: 12px; border: 1px solid var(--stroke); border-radius: 16px; background: var(--card); cursor: pointer; transition: border-color .2s, transform .15s; }
+.account-dash .jr-card:hover { border-color: var(--stroke-2); transform: translateY(-1px); }
+.account-dash .jr-card.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 12px 34px -16px var(--accent); }
+.account-dash .jr-idx { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; background: var(--bc); }
+.account-dash .jr-thumb { width: 68px; height: 68px; border-radius: 12px; background-size: cover; background-position: center; flex: none; }
+.account-dash .jr-body { min-width: 0; }
+.account-dash .jr-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.account-dash .jr-time { font-size: 12px; font-weight: 700; color: var(--accent); }
+.account-dash .jr-kind { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--stroke-2); border-radius: 999px; padding: 2px 8px; }
+.account-dash .jr-fav { margin-left: auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-faint); border: 1px solid var(--stroke); background: transparent; cursor: pointer; transition: all .18s; }
+.account-dash .jr-fav:hover { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.account-dash .jr-fav.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.account-dash .jr-fav.lg { width: 40px; height: 40px; }
+.account-dash .jr-title { font-family: var(--serif); font-size: 18px; line-height: 1.2; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-dash .jr-meta { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; }
+.account-dash .jr-meta .sep { opacity: .5; }
+.account-dash .jr-transport { color: var(--ink-faint); }
+.account-dash .jr-desc { font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; margin-top: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.account-dash .jr-chev { color: var(--ink-faint); flex: none; }
+.account-dash .jr-empty { padding: 30px; text-align: center; color: var(--ink-faint); border: 1px dashed var(--stroke); border-radius: 16px; }
+
+/* ── MAP ── */
+.account-dash .jr-mapwrap { border-radius: 20px; overflow: hidden; border: 1px solid var(--stroke); }
+.account-dash .jr-map-loading { min-height: 420px; display: grid; place-items: center; color: var(--ink-faint); background: rgba(13, 7, 13, .4); border-radius: 20px; }
+
+/* ── LOGISTICS ── */
+.account-dash .jr-log { display: flex; flex-direction: column; gap: 16px; }
+.account-dash .jr-log-sec { border: 1px solid var(--stroke); border-radius: 18px; background: var(--card); padding: 16px; }
+.account-dash .jr-log-h { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--ink-faint); margin-bottom: 12px; }
+.account-dash .jr-panorama { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.account-dash .jr-pan { text-align: center; border: 1px solid var(--stroke); border-radius: 12px; padding: 12px 6px; }
+.account-dash .jr-pan .n { display: block; font-family: var(--serif); font-size: 20px; color: var(--ink); }
+.account-dash .jr-pan .l { display: block; font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint); margin-top: 3px; }
+.account-dash .jr-transfers { display: flex; flex-direction: column; gap: 2px; }
+.account-dash .jr-tr { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 10px 2px; border-top: 1px solid var(--stroke); font-size: 13px; }
+.account-dash .jr-tr:first-child { border-top: 0; }
+.account-dash .jr-tr .ic { font-size: 15px; text-align: center; }
+.account-dash .jr-tr .md { color: var(--ink-dim); text-transform: capitalize; }
+.account-dash .jr-tr .du { color: var(--ink); font-weight: 600; }
+.account-dash .jr-books { display: flex; flex-direction: column; gap: 2px; }
+.account-dash .jr-book { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 2px; border-top: 1px solid var(--stroke); }
+.account-dash .jr-book:first-child { border-top: 0; }
+.account-dash .jr-book .nm { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
+.account-dash .jr-book .dt { display: block; font-size: 11px; color: var(--ink-faint); margin-top: 1px; }
+.account-dash .jr-status { font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 5px 11px; border: 1px solid var(--stroke-2); color: var(--ink-dim); white-space: nowrap; }
+.account-dash .jr-status.ok { color: #7fd4a8; border-color: rgba(127, 212, 168, .4); background: rgba(127, 212, 168, .08); }
+.account-dash .jr-status.warn { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 40%, transparent); background: rgba(212, 168, 83, .08); }
+.account-dash .jr-tip { border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 18px; background: var(--accent-soft); padding: 16px; }
+.account-dash .jr-tip-h { display: flex; align-items: center; gap: 7px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+.account-dash .jr-tip p { font-size: 13.5px; line-height: 1.55; color: var(--ink-dim); }
+
+/* ── DETTAGLIO (bottom sheet mobile / drawer desktop) ── */
+/* z-index alto: Leaflet piazza controlli/pane fino a ~700-1000 nel contesto di
+   root, quindi lo scrim/drawer deve stargli sopra (bug: su desktop la mappa
+   sempre montata copriva il drawer). */
+.account-dash .jr-scrim { position: fixed; inset: 0; z-index: 3000; background: rgba(6, 4, 8, .62); backdrop-filter: blur(3px); animation: jr-fade .25s ease; }
+.account-dash .jr-sheet { position: fixed; z-index: 3001; left: 0; right: 0; bottom: 0; max-height: 90vh;
+  background: linear-gradient(180deg, #160c17, #0d070d); border-top: 1px solid var(--stroke-2);
+  border-radius: 24px 24px 0 0; box-shadow: 0 -24px 80px rgba(0, 0, 0, .6); display: flex; flex-direction: column;
+  animation: jr-up .34s cubic-bezier(.2, .7, .2, 1); }
+.account-dash .jr-sheet-grab { width: 44px; height: 5px; border-radius: 5px; background: var(--stroke-2); margin: 10px auto 4px; flex: none; }
+.account-dash .jr-sheet-x { position: absolute; top: 14px; right: 14px; z-index: 2; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  color: #fff; background: rgba(13, 7, 13, .6); border: 1px solid var(--stroke-2); cursor: pointer; backdrop-filter: blur(8px); }
+.account-dash .jr-sheet-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.account-dash .jr-sheet-hero { height: 200px; background-size: cover; background-position: center; }
+.account-dash .jr-sheet-body { padding: 18px 20px 26px; }
+.account-dash .jr-sheet-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.account-dash .jr-sheet-kind { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.account-dash .jr-sheet-title { font-family: var(--serif); font-size: 26px; font-weight: 400; line-height: 1.12; margin-top: 4px; }
+.account-dash .jr-sheet-facts { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 12px 0 4px; font-size: 12.5px; color: var(--ink-dim); }
+.account-dash .jr-sheet-desc { font-size: 14px; line-height: 1.6; color: var(--ink-dim); margin-top: 12px; text-wrap: pretty; }
+.account-dash .jr-sheet-sec { margin-top: 18px; }
+.account-dash .jr-sheet-sh { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+.account-dash .jr-sheet-why, .account-dash .jr-sheet-alt { font-size: 13.5px; line-height: 1.55; color: var(--ink-dim); text-wrap: pretty; }
+.account-dash .jr-sheet-time { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+.account-dash .jr-sheet-cta { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
+.account-dash .jr-cta-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; border-radius: 14px;
+  background: linear-gradient(92deg, var(--accent), #ff7a6e); color: #fff; font-size: 14.5px; font-weight: 700; text-decoration: none; box-shadow: 0 12px 34px -12px var(--accent); }
+.account-dash .jr-cta-primary .pr { font-weight: 500; opacity: .9; }
+.account-dash .jr-cta-row { display: flex; gap: 10px; }
+.account-dash .jr-cta-ghost { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; border-radius: 14px;
+  border: 1px solid var(--stroke-2); background: rgba(13, 7, 13, .4); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; transition: border-color .18s; }
+.account-dash .jr-cta-ghost:hover { border-color: var(--accent); color: #fff; }
+
+@keyframes jr-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes jr-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes jr-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+/* ── DESKTOP ≥1024: Story + destra affiancate; dettaglio = drawer laterale ── */
+@media (min-width: 1024px) {
+  .account-dash .jr-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 20px; align-items: start; }
+  .account-dash .jr-col-story, .account-dash .jr-col-right { display: block; }
+  .account-dash .jr-col-right { position: sticky; top: 88px; }
+  .account-dash .jr-story { max-height: calc(100vh - 200px); overflow-y: auto; padding-right: 6px; scrollbar-width: thin; }
+  /* Su desktop Story è permanente: il segmented governa solo la destra → nascondi "Story" */
+  .account-dash .jr-seg-btn:first-child { display: none; }
+  /* Dettaglio come drawer da destra (la mappa resta visibile a sinistra) */
+  .account-dash .jr-sheet { left: auto; right: 0; top: 0; bottom: 0; width: min(460px, 92vw); max-height: 100vh;
+    border-radius: 0; border-top: 0; border-left: 1px solid var(--stroke-2); animation: jr-right .32s cubic-bezier(.2, .7, .2, 1); }
+  .account-dash .jr-sheet-grab { display: none; }
+}
+
+/* ── MOBILE/TABLET ── */
+@media (max-width: 1023px) {
+  .account-dash .jr-head { padding: 24px 18px 4px; }
+  .account-dash .jr-daytabs, .account-dash .jr-dayhead, .account-dash .jr-seg, .account-dash .jr-stage { padding-left: 18px; padding-right: 18px; }
+  .account-dash .jr-dh-hero { width: 96px; height: 70px; }
+  .account-dash .jr-panorama { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 520px) {
+  .account-dash .jr-card { grid-template-columns: auto 1fr auto; }
+  .account-dash .jr-thumb { display: none; }
+  .account-dash .jr-seg-btn { font-size: 12.5px; padding: 11px 10px; }
+}

@@ -66,6 +66,11 @@ type Props = {
   onOpenDay?: (day: number, momentId?: string) => void;
   /** "Prenota" dalla card → aggiorna il progresso nella sezione Prenota. */
   onBook?: (type?: string, day?: number) => void;
+  /** Journey (redesign 2026-07): selezione CONTROLLATA dall'esterno. Quando
+   *  presente, la mappa evidenzia il punto col momentId corrispondente
+   *  (sync Story→Map) e notifica i click sui marker (sync Map→Story). */
+  selectedMomentId?: string | null;
+  onSelectMoment?: (momentId: string | null) => void;
 };
 
 // Categoria → colore + glifo. Coerenti con i token editoriali del dashboard.
@@ -186,7 +191,7 @@ function legLabelIcon(minutes: number, profile: "foot" | "car"): L.DivIcon {
   });
 }
 
-export default function RouteMap({ points, center, destination, itineraryId, lang, initialDay = null, onDayChange, onOpenDay, onBook }: Props) {
+export default function RouteMap({ points, center, destination, itineraryId, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment }: Props) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -223,6 +228,17 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
   const routeCache = useRef<Map<string, DayRoute>>(new Map());
 
   const setDay = (d: number | null) => { setActiveDay(d); setSelected(null); onDayChange?.(d); };
+
+  // Sync CONTROLLATO (Journey): selectedMomentId dall'esterno → evidenzia il
+  // punto e vola su di esso. undefined = modalità non controllata (nessun sync).
+  useEffect(() => {
+    if (selectedMomentId === undefined) return;
+    const p = selectedMomentId ? points.find(x => x.momentId === selectedMomentId) ?? null : null;
+    setSelected(p);
+    if (p && mapRef.current) {
+      mapRef.current.flyTo([p.lat, p.lng], Math.max(mapRef.current.getZoom(), 15), { duration: 0.4 });
+    }
+  }, [selectedMomentId, points]);
 
   // Alloggio (ancora): il pin lodging del giorno attivo, altrimenti globale.
   const lodgingPt = useMemo(() => {
@@ -428,7 +444,11 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
       }
     }
 
-    const openCard = (p: RoutePoint) => { setSelected(p); map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: 0.5 }); };
+    const openCard = (p: RoutePoint) => {
+      setSelected(p);
+      onSelectMoment?.(p.momentId ?? null); // sync Map→Story (Journey)
+      map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: 0.5 });
+    };
 
     // Ancora alloggio.
     if (lodging) {

@@ -9,8 +9,12 @@
  */
 import "leaflet/dist/leaflet.css";
 import "@/styles/account-dashboard.css";
+import "@/styles/itinerary-dashboard.css";
+import "@/styles/journey.css";
 import { AccountDashboard } from "@/components/AccountDashboard";
+import { JourneyView } from "@/components/JourneyView";
 import type { AccountData } from "@/components/AccountCinematic";
+import type { ItineraryData } from "@/components/ItineraryCinematic";
 
 const img = (id: string, w = 900) =>
   `https://images.unsplash.com/photo-${id}?w=${w}&fit=crop&crop=entropy&auto=format&q=70`;
@@ -140,6 +144,86 @@ const data: AccountData = {
   onChallenge: () => {},
 };
 
+/* ── Mock Journey (workspace viaggio) — Salonicco, Giorno 2 ── */
+const S = { lat: 40.6335, lng: 22.9445 };
+// Foto mock verificate dal pool (i veri momenti hanno le loro Unsplash geo-grounded).
+const M = {
+  market: P.sahara,
+  cafe: P.kyoto,
+  seafront: P.azores,
+  tower: P.faroe,
+  sunset: P.iceland,
+};
+const jrMoments = [
+  { id: "m1", t: "Mattina", ic: "🍽", band: "mattina" as const, startTime: "09:30", endTime: "11:00", kindLabel: "Mercato", durationLabel: "~1.5h", type: "food",
+    title: "Mercato Modiano", locationName: "Mercato Modiano", imageUrl: M.market, transport: "A piedi · ~10 min", lat: S.lat + 0.001, lng: S.lng + 0.001,
+    desc: "Arrivate quando i banchi stanno ancora sistemando la merce — olive di venti tipi, formaggi che non si trovano fuori dalla regione, il rumore delle voci e del mercato vero.",
+    why: "È il mercato più autentico di Salonicco, meno turistico, perfetto per iniziare la giornata e in linea con il tuo amore per i mercati.",
+    planB: "Se è chiuso → Mercato Kapani, ~1.5km, 20 min a piedi",
+    cta: "Prenota un tavolo · Taverna Aktaion", ctaUrl: "https://example.com", ctaProvider: "tripadvisor", ctaStatus: "reserve_recommended" as const, dayNumber: 2 },
+  { id: "m2", t: "Pranzo", ic: "☕", band: "pranzo" as const, startTime: "11:15", kindLabel: "Caffè", durationLabel: "45 min", type: "food",
+    title: "Caffè Coloniale", locationName: "Caffè Coloniale", imageUrl: M.cafe, transport: "A piedi · ~8 min", lat: S.lat + 0.003, lng: S.lng + 0.004,
+    desc: "Perfetto per una pausa come piace a te: soffitti alti, marmo, un caffè greco lento mentre fuori la città accelera.",
+    why: "Un angolo fuori dal tempo, tranquillo, dove rallentare tra due tappe.", dayNumber: 2 },
+  { id: "m3", t: "Pomeriggio", ic: "🌊", band: "pomeriggio" as const, startTime: "12:30", kindLabel: "Passeggiata", durationLabel: "1.5h", type: "walk",
+    title: "Passeggiata sul lungomare", locationName: "Nea Paralia", imageUrl: M.seafront, transport: "A piedi · ~5 min", lat: S.lat - 0.002, lng: S.lng + 0.006,
+    desc: "La luce qui, a quest'ora, è semplicemente perfetta. Vista sul golfo, sculture contemporanee, il ritmo lento del mare.",
+    why: "La tua giornata compatta merita un respiro lungo: mare, luce, niente da prenotare.", dayNumber: 2 },
+  { id: "m4", t: "Pomeriggio", ic: "🗼", band: "pomeriggio" as const, startTime: "15:30", kindLabel: "Esperienza", durationLabel: "1h", costLabel: "€6", type: "experience",
+    title: "Torre Bianca", locationName: "Torre Bianca", imageUrl: M.tower, transport: "A piedi · ~12 min", lat: S.lat - 0.004, lng: S.lng + 0.008,
+    desc: "Simbolo della città e punto foto imperdibile. Sali in cima: la vista sul golfo ripaga ogni gradino.",
+    why: "L'icona di Salonicco, e da lassù capisci la geografia di tutto quello che hai camminato.",
+    cta: "Prenota il biglietto", ctaUrl: "https://example.com", ctaProvider: "getyourguide", ctaPrice: "€6", ctaStatus: "bookable_now" as const, dayNumber: 2 },
+  { id: "m5", t: "Sera", ic: "🌇", band: "sera" as const, startTime: "20:00", kindLabel: "Tramonto", durationLabel: "1h", type: "view",
+    title: "Cena vista tramonto a Ano Poli", locationName: "Ano Poli", imageUrl: M.sunset, lat: S.lat + 0.006, lng: S.lng + 0.002,
+    desc: "La città alta, i vicoli ottomani, e una taverna dove il tramonto cade dritto sul golfo. Chiusura perfetta.",
+    why: "Il quartiere più autentico per l'ultima sera: lento, panoramico, lontano dalla folla.", dayNumber: 2 },
+];
+const MOCK_ITIN: ItineraryData = {
+  destination: "Salonicco, Grecia", subtitle: "Esperienza", country: "Grecia", duration: "5 giorni",
+  heroImg: M.seafront, manifesto: "", highlights: [],
+  days: [
+    { n: 1, arc: "Arrivo", title: "Arrivo e prima passeggiata", sub: "Dal volo alla città vecchia.", img: M.tower, date: "13 SET" },
+    { n: 2, arc: "Esperienza", title: "Il cuore di Salonicco", sub: "Mercati, mare e la torre simbolo.", img: M.market, date: "14 SET" },
+    { n: 3, arc: "Decantazione", title: "Ritmi lenti", sub: "Caffè, quartieri, ultimo sguardo.", img: M.cafe, date: "15 SET" },
+  ],
+  momentsByDay: { 1: [], 2: jrMoments as any, 3: [] },
+  closingQuote: "",
+  mapPoints: jrMoments.map((m, i) => ({
+    x: 0, y: 0, label: m.title, lat: m.lat, lng: m.lng, day: 2, momentId: m.id, imageUrl: m.imageUrl,
+    durationLabel: m.durationLabel, kindLabel: m.kindLabel, desc: m.desc, type: m.type, category: (m.type === "food" ? "food" : m.type === "experience" ? "experience" : "sight"),
+    bookable: !!m.cta, ctaUrl: m.ctaUrl, cta: m.cta, ctaProvider: m.ctaProvider, ctaPrice: m.ctaPrice, slot: `${i}`,
+  })) as any,
+  mapCenter: S, geometry: { spanKm: 8.2, walkMinutes: 112, walkable: true },
+};
+const MOCK_RAW = {
+  schemaVersion: 2, destinationName: "Salonicco, Grecia", days: [
+    { day_number: 1, moments: [] }, { day_number: 3, moments: [] },
+    {
+      day_number: 2, date: "14 SET", walking_distance_km: 6.5, cost_bookable_total: 6, cost_onsite_estimate: 36,
+      energy_note: "Hai scelto una giornata compatta. Tutti gli spostamenti sono fattibili a piedi: goditi il ritmo lento.",
+      moments: [
+        { type: "food", title_operational: "Mercato Modiano", location_name: "Mercato Modiano", duration_min: 90, transport_to_next: { mode: "A piedi", duration_min: 10 }, booking: { affiliate_url: "https://x", status: "reserve_recommended", display_label: "Taverna Aktaion" } },
+        { type: "food", title_operational: "Caffè Coloniale", location_name: "Caffè Coloniale", duration_min: 45, transport_to_next: { mode: "A piedi", duration_min: 8 } },
+        { type: "walk", title_operational: "Lungomare", location_name: "Nea Paralia", duration_min: 90, transport_to_next: { mode: "A piedi", duration_min: 5 } },
+        { type: "experience", title_operational: "Torre Bianca", location_name: "Torre Bianca", duration_min: 60, transport_to_next: { mode: "Bus / Taxi", duration_min: 12 }, booking: { affiliate_url: "https://x", status: "bookable_now", display_label: "Torre Bianca · biglietto" } },
+        { type: "view", title_operational: "Ano Poli", location_name: "Ano Poli", duration_min: 60 },
+      ],
+    },
+  ],
+};
+
 export default function DevPreview() {
+  const view = (() => { try { return new URLSearchParams(window.location.search).get("view"); } catch { return null; } })();
+  if (view === "journey") {
+    return (
+      <div className="account-dash itinerary-dash">
+        <main className="main">
+          <JourneyView data={MOCK_ITIN} itinerary={MOCK_RAW} itineraryId={2}
+            savedMomentIds={new Set(["m3"])} onToggleSaved={() => {}} onBook={() => {}} />
+        </main>
+      </div>
+    );
+  }
   return <AccountDashboard data={data} />;
 }
