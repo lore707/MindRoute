@@ -352,6 +352,10 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.p4.nextK":      { en: "Your next step", it: "Il tuo prossimo passo" },
   "acd.p4.qGap":       { en: "You say {said}, yet you keep choosing {chose}. Why?", it: "Dici {said}, eppure scegli sempre {chose}. Perché?" },
   // evoluzione
+  "acd.p4.tpSub":      { en: "The few trips that actually moved your profile — and exactly what changed.", it: "I pochi viaggi che hanno davvero spostato il tuo profilo — e cos'è cambiato di preciso." },
+  "acd.p4.tpAfter":    { en: "After", it: "Dopo" },
+  "acd.p4.tpLine":     { en: "This is where the AI read a shift toward {pole}.", it: "È qui che l'AI ha letto uno spostamento verso {pole}." },
+  "acd.p4.tpEmpty":    { en: "Your turning points appear after a few trips.", it: "I tuoi punti di svolta appaiono dopo qualche viaggio." },
   "acd.p4.beforeAfter": { en: "Before / after", it: "Prima / dopo" },
   "acd.p4.before":     { en: "Before", it: "Prima" },
   "acd.p4.after":      { en: "Now", it: "Oggi" },

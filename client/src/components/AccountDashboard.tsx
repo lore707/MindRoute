@@ -157,23 +157,34 @@ function computeRecentDelta(snaps: Array<{ createdAt: string; traits: Record<str
   return { axis, delta, hi: (cur[axis] ?? 0.5) >= 0.5 };
 }
 
-// Serie evolutiva: l'asse che si è mosso di più attraverso gli snapshot.
-function computeEvoSeries(snaps: Array<{ createdAt: string; traits: Record<string, number> }>) {
-  const valid = snaps
-    .filter(s => s.traits && s.createdAt)
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  if (valid.length < 3) return null;
-  const first = valid[0].traits, last = valid[valid.length - 1].traits;
-  let axis = "exposure", best = -1;
-  for (const a of ["exposure", "comfort", "social", "matter", "structure"]) {
-    const d = Math.abs((last[a] ?? 0.5) - (first[a] ?? 0.5));
-    if (d > best) { best = d; axis = a; }
+// Turning point: i pochi viaggi che hanno DAVVERO spostato il profilo.
+// Per ogni passo tra snapshot consecutivi trova l'asse che si è mosso di più,
+// lo aggancia al viaggio più vicino nel tempo (i "pick" snapshot nascono alla
+// generazione di un itinerario) e tiene solo i 6-7 movimenti più forti. È il
+// pensiero dell'AI reso trasparente: quale tratto è cambiato, in quale viaggio.
+type TripLite = { dest: string; img: string; href?: string; rawDate?: string };
+function buildTurningPoints(
+  snaps: Array<{ createdAt: string; traits: Record<string, number> }>,
+  trips: TripLite[],
+): Array<{ at: number; axis: string; delta: number; hi: boolean; trip: TripLite | null }> {
+  const valid = snaps.filter(s => s.traits && s.createdAt).sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+  if (valid.length < 2) return [];
+  const tarr = trips.filter(t => t.rawDate).map(t => ({ t, at: +new Date(t.rawDate!) }));
+  const pts: Array<{ at: number; axis: string; delta: number; hi: boolean; trip: TripLite | null }> = [];
+  for (let i = 1; i < valid.length; i++) {
+    const prev = valid[i - 1].traits, cur = valid[i].traits;
+    let axis = "", delta = 0;
+    for (const a of AXES5) {
+      const d = (cur[a] ?? 0.5) - (prev[a] ?? 0.5);
+      if (Math.abs(d) > Math.abs(delta)) { delta = d; axis = a; }
+    }
+    if (!axis || Math.abs(delta) < 0.05) continue;
+    const at = +new Date(valid[i].createdAt);
+    let trip: TripLite | null = null, best = Infinity;
+    for (const x of tarr) { const dd = Math.abs(x.at - at); if (dd < best) { best = dd; trip = x.t; } }
+    pts.push({ at, axis, delta, hi: delta > 0, trip });
   }
-  return {
-    axis,
-    values: valid.map(s => s.traits[axis] ?? 0.5),
-    dates: valid.map(s => new Date(s.createdAt)),
-  };
+  return pts.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 7).sort((a, b) => b.at - a.at);
 }
 
 /* HTML inline (i18n con <em>) */
@@ -988,6 +999,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     const p = data.portrait;
     const vec = data.traitVector ?? null;
     const tripCount = p?.tripCount ?? data.trips.length;
+    const poleName = (axis: string, hi: boolean) => t(`acd.p3.dim.${axis}.${hi ? "hi" : "lo"}`);
 
     // 5 dimensioni orientate al polo dominante (pct ∈ [50,100], reale).
     const dims = P3_DIMS.map(d => {
@@ -1005,23 +1017,34 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
       };
     });
     const hasVec = dims.some(d => d.known);
+    const snaps = data.traitSnapshots ?? [];
 
     const emotions = computeEmotions(p?.seek ?? [], vec);
-    const evo = computeEvoSeries(data.traitSnapshots ?? []);
+    // Before/After: solo se un asse ha DAVVERO cambiato lato (flip di polo) —
+    // altrimenti "X → X" non dice niente e la sezione si nasconde.
+    const flip = (() => {
+      const valid = snaps.filter(s => s.traits && s.createdAt).sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+      if (valid.length < 2) return null;
+      const first = valid[0].traits, last = valid[valid.length - 1].traits;
+      let axis = "", best = 0;
+      for (const a of AXES5) {
+        const f = first[a] ?? 0.5, l = last[a] ?? 0.5;
+        if ((f - 0.5) * (l - 0.5) < 0 && Math.abs(l - f) > best) { best = Math.abs(l - f); axis = a; }
+      }
+      if (!axis) return null;
+      return { before: poleName(axis, (first[axis] ?? 0.5) >= 0.5), after: poleName(axis, (last[axis] ?? 0.5) >= 0.5) };
+    })();
     const moments = (data.savedMoments ?? []).filter(m => m.momentSnapshot?.title);
     const journal = [...moments].reverse(); // dal più recente (l'array arriva asc)
     const reco = picks?.picks[0];
 
     const quote = p?.ownWords ?? data.profileQuote;
-    const snaps = data.traitSnapshots ?? [];
     const lastSnapAt = snaps.map(s => new Date(s.createdAt)).sort((a, b) => b.getTime() - a.getTime())[0];
     const quoteWhen = lastSnapAt && !isNaN(lastSnapAt.getTime())
       ? lastSnapAt.toLocaleString(lang === "it" ? "it-IT" : "en-US", { month: "long", year: "numeric" })
       : "";
 
-    const monthLabel = (d: Date) =>
-      d.toLocaleString(lang === "it" ? "it-IT" : "en-US", { month: "short", year: "2-digit" }).replace(".", "");
-    const poleName = (axis: string, hi: boolean) => t(`acd.p3.dim.${axis}.${hi ? "hi" : "lo"}`);
+    const turning = buildTurningPoints(snaps, data.trips);
     const agoLabel = (d: Date) => {
       const days = Math.floor((Date.now() - d.getTime()) / 86400000);
       if (days <= 0) return lang === "it" ? "oggi" : "today";
@@ -1091,20 +1114,6 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
       { k: "company", left: t("acd.p4.pole.solitude"),   right: t("acd.p4.pole.company"),     v: vec.social ?? 0.5 },
     ] : [];
 
-    // ── Emersi / svaniti (tab Evoluzione) — primo vs ultimo snapshot ─────
-    const emergedFaded = (() => {
-      const valid = snaps.filter(s => s.traits && s.createdAt).sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
-      if (valid.length < 2) return null;
-      const first = valid[0].traits, cur = valid[valid.length - 1].traits;
-      const emerged: Array<{ name: string; delta: number }> = [], faded: Array<{ name: string; delta: number }> = [];
-      for (const a of AXES5) {
-        const sf = Math.abs((first[a] ?? 0.5) - 0.5), sc = Math.abs((cur[a] ?? 0.5) - 0.5);
-        if (sc - sf >= 0.08) emerged.push({ name: poleName(a, (cur[a] ?? 0.5) >= 0.5), delta: Math.round((sc - sf) * 100) });
-        else if (sf - sc >= 0.08) faded.push({ name: poleName(a, (first[a] ?? 0.5) >= 0.5), delta: Math.round((sf - sc) * 100) });
-      }
-      return { emerged, faded };
-    })();
-
     // Diario: apertura + fetch lazy della riflessione AI (una sola volta).
     const openJournal = (id: number) => {
       setJOpen(prev => (prev === id ? null : id));
@@ -1154,54 +1163,35 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     };
 
     // Timeline evolutiva (linea multicolore + thumb dei viaggi).
-    const Timeline = () => {
-      const thumbs = [...data.trips].slice(0, 5).reverse();
-      return (
-        <>
-          {thumbs.length > 0 && (
-            <div className="p3-tl-thumbs">
-              {thumbs.map((tr, i) => (
-                <button key={i} className="p3-tl-thumb" title={tr.dest} onClick={() => tr.href && setLocation(tr.href)}>
-                  <span className="ph" style={{ backgroundImage: bg(tr.img, 160) }} />
-                </button>
-              ))}
-            </div>
-          )}
-          {evo ? (
-            <svg viewBox="0 0 320 78" className="p3-tl-chart" aria-hidden="true">
-              <defs>
-                <linearGradient id="p3line" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="#D4A853" /><stop offset="50%" stopColor="#c9a6e8" /><stop offset="100%" stopColor="#7fd4a8" />
-                </linearGradient>
-              </defs>
-              <polyline
-                fill="none" stroke="url(#p3line)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                points={evo.values.map((v, i) => `${12 + (i * 296) / Math.max(1, evo.values.length - 1)},${64 - v * 50}`).join(" ")}
-              />
-              {evo.values.map((v, i) => (
-                <circle key={i} cx={12 + (i * 296) / Math.max(1, evo.values.length - 1)} cy={64 - v * 50} r="3.4"
-                  fill={i === evo.values.length - 1 ? "#7fd4a8" : "#0d070d"} stroke="#c9a6e8" strokeWidth="1.6" />
-              ))}
-            </svg>
-          ) : (
-            <div className="p3-tl-empty">{t("acd.p3.timelineEmpty")}</div>
-          )}
-          {evo && (
-            <div className="p3-tl-months">
-              <span>{monthLabel(evo.dates[0])}</span>
-              {evo.dates.length > 2 && <span>{monthLabel(evo.dates[Math.floor(evo.dates.length / 2)])}</span>}
-              <span>{monthLabel(evo.dates[evo.dates.length - 1])}</span>
-            </div>
-          )}
-          <div className="p3-stats">
-            <div><span className="n">{counts.trips}</span><span className="l">{plural(counts.trips, "acd.unit.trip", "acd.unit.trips")}</span></div>
-            <div><span className="n">{counts.days}</span><span className="l">{t("acd.p3.daysRoad")}</span></div>
-            <div><span className="n">{counts.places}</span><span className="l">{plural(counts.places, "acd.unit.place", "acd.unit.places")}</span></div>
-            <div><span className="n">{counts.continents}</span><span className="l">{plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span></div>
-          </div>
-        </>
-      );
-    };
+    // Percorso di svolta — solo i 6-7 momenti che hanno spostato il profilo,
+    // ognuno legato al viaggio preciso e al tratto cambiato. Trasparente.
+    const TurningPoints = () => (
+      turning.length === 0 ? (
+        <div className="p3-tl-empty">{t("acd.p4.tpEmpty")}</div>
+      ) : (
+        <div className="p4-tp">
+          {turning.map((tp, i) => {
+            const pole = poleName(tp.axis, tp.hi);
+            const dd = new Date(tp.at);
+            const dateStr = dd.toLocaleDateString(lang === "it" ? "it-IT" : "en-US", { month: "short", year: "numeric" });
+            const pct = Math.round(Math.abs(tp.delta) * 100);
+            return (
+              <article key={i} className="p4-tp-row">
+                <div className="p4-tp-rail"><span className="dot" /><span className="dt">{dateStr}</span></div>
+                {tp.trip?.img
+                  ? <button className="p4-tp-thumb" title={tp.trip.dest} onClick={() => tp.trip?.href && setLocation(tp.trip.href)} style={{ backgroundImage: bg(tp.trip.img, 200) }} />
+                  : <span className="p4-tp-thumb fb">✦</span>}
+                <div className="p4-tp-body">
+                  {tp.trip && <div className="after">{t("acd.p4.tpAfter")} <strong>{tp.trip.dest}</strong></div>}
+                  <div className="chg"><span className="arr">↑</span>{pole} <b>+{pct}%</b></div>
+                  <div className="why">{tx("acd.p4.tpLine", { pole })}</div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )
+    );
 
     const EssenceCard = ({ full }: { full?: boolean }) => (
       <section className={"h2-card p3-essence" + (full ? " full" : "")}>
@@ -1405,35 +1395,24 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
             </div>
           )}
 
-          {/* 2 · EVOLUZIONE — come sei cambiato? */}
+          {/* 2 · EVOLUZIONE — come sei cambiato? (turning point per viaggio) */}
           {pTab === "evolution" && (
             <div className="p3-focus wide">
-              <section className="h2-card full p3-timeline">
-                <div className="h2-card-head"><div><h3>{t("acd.p4.q.evolution")}</h3><div className="p3-cardsub">{t("acd.p3.timelineSub")}</div></div></div>
-                {(p?.evolution || evo) && <p className="p4-turning">{p?.evolution?.phrase ?? data.traitHeadline ?? ""}</p>}
-                <Timeline />
+              <section className="h2-card full">
+                <div className="h2-card-head"><div><h3>{t("acd.p4.q.evolution")}</h3><div className="p3-cardsub">{t("acd.p4.tpSub")}</div></div></div>
+                {(p?.evolution || data.traitHeadline) && <p className="p4-turning">{p?.evolution?.phrase ?? data.traitHeadline ?? ""}</p>}
+                <TurningPoints />
               </section>
-              {evo && (
+              {flip && (
                 <section className="h2-card full">
                   <div className="h2-card-head"><h3>{t("acd.p4.beforeAfter")}</h3></div>
                   <div className="p4-ba">
-                    <div className="p4-ba-cell"><span className="lab">{t("acd.p4.before")}</span><span className="pole">{poleName(evo.axis, evo.values[0] >= 0.5)}</span></div>
+                    <div className="p4-ba-cell"><span className="lab">{t("acd.p4.before")}</span><span className="pole">{flip.before}</span></div>
                     <span className="arrow">→</span>
-                    <div className="p4-ba-cell now"><span className="lab">{t("acd.p4.after")}</span><span className="pole">{poleName(evo.axis, evo.values[evo.values.length - 1] >= 0.5)}</span></div>
+                    <div className="p4-ba-cell now"><span className="lab">{t("acd.p4.after")}</span><span className="pole">{flip.after}</span></div>
                   </div>
                 </section>
               )}
-              {emergedFaded && (emergedFaded.emerged.length > 0 || emergedFaded.faded.length > 0) && (
-                <section className="h2-card full">
-                  <div className="h2-card-head"><h3>{t("acd.p4.shifts")}</h3></div>
-                  <div className="p4-shifts">
-                    {emergedFaded.emerged.map((e, i) => <span key={"e" + i} className="p4-shift up">↑ {e.name} <b>+{e.delta}%</b></span>)}
-                    {emergedFaded.faded.map((e, i) => <span key={"f" + i} className="p4-shift down">↓ {e.name} <b>−{e.delta}%</b></span>)}
-                  </div>
-                  <div className="p3-cardnote">{t("acd.p4.shiftsNote")}</div>
-                </section>
-              )}
-              {!evo && !emergedFaded && <div className="h2-card p3-tl-empty">{t("acd.p3.timelineEmpty")}</div>}
             </div>
           )}
 

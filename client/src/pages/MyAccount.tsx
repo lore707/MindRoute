@@ -360,6 +360,8 @@ export default function MyAccount() {
     quote: t.whyYours ?? "",
     duration: `${t.days?.length ?? 7} ${lang === "en" ? "days" : "giorni"}`,
     date: shortDate(t.createdAt, lang),
+    rawDate: t.createdAt ?? undefined,
+    id: t.id,
     continent: normalizeContinent(t.continentLabel ?? t.continent),
     img: t.heroImageUrl ?? FALLBACK_HERO_IMG,
     href: `/itinerary/${t.id}`,

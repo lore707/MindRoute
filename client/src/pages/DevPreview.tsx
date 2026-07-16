@@ -65,12 +65,12 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
 }) as typeof window.fetch;
 
 const trips = [
-  { dest: "Pola, Istria", quote: "Mare senza folla, pietra e vento.", duration: "5 giorni", date: "giu 2026", continent: "Europa", img: P.procida, href: "/itinerary/12" },
-  { dest: "Lofoten", quote: "Il silenzio che cercavi.", duration: "7 giorni", date: "feb 2026", continent: "Europa", img: P.lofoten, href: "/itinerary/11" },
-  { dest: "Kyoto", quote: "Templi all'alba.", duration: "8 giorni", date: "nov 2025", continent: "Asia", img: P.kyoto, href: "/itinerary/10", taken: true },
-  { dest: "Patagonia", quote: "Vento e granito.", duration: "10 giorni", date: "mar 2025", continent: "Americhe", img: P.patagonia, href: "/itinerary/9", taken: true },
-  { dest: "Marocco", quote: "Dune e mercati.", duration: "6 giorni", date: "ott 2024", continent: "Africa", img: P.sahara, href: "/itinerary/8" },
-  { dest: "Azzorre", quote: "Verde vulcanico.", duration: "6 giorni", date: "mag 2024", continent: "Europa", img: P.azores, href: "/itinerary/7" },
+  { dest: "Pola, Istria", quote: "Mare senza folla, pietra e vento.", duration: "5 giorni", date: "giu 2026", rawDate: "2026-06-20", id: 12, continent: "Europa", img: P.procida, href: "/itinerary/12" },
+  { dest: "Lofoten", quote: "Il silenzio che cercavi.", duration: "7 giorni", date: "feb 2026", rawDate: "2026-03-18", id: 11, continent: "Europa", img: P.lofoten, href: "/itinerary/11" },
+  { dest: "Kyoto", quote: "Templi all'alba.", duration: "8 giorni", date: "nov 2025", rawDate: "2025-11-28", id: 10, continent: "Asia", img: P.kyoto, href: "/itinerary/10", taken: true },
+  { dest: "Patagonia", quote: "Vento e granito.", duration: "10 giorni", date: "mar 2025", rawDate: "2025-07-18", id: 9, continent: "Americhe", img: P.patagonia, href: "/itinerary/9", taken: true },
+  { dest: "Marocco", quote: "Dune e mercati.", duration: "6 giorni", date: "ott 2024", rawDate: "2025-02-12", id: 8, continent: "Africa", img: P.sahara, href: "/itinerary/8" },
+  { dest: "Azzorre", quote: "Verde vulcanico.", duration: "6 giorni", date: "mag 2024", rawDate: "2024-10-01", id: 7, continent: "Europa", img: P.azores, href: "/itinerary/7" },
 ];
 
 const data: AccountData = {
@@ -103,13 +103,13 @@ const data: AccountData = {
   } as any,
   traitVector: { exposure: 0.78, comfort: 0.62, social: 0.34, matter: 0.86, structure: 0.71 },
   traitSnapshots: [
-    { createdAt: "2024-06-10", traits: { exposure: 0.45, comfort: 0.4, social: 0.5, matter: 0.6, structure: 0.5 }, source: "quiz" },
-    { createdAt: "2024-10-02", traits: { exposure: 0.52, comfort: 0.45, social: 0.45, matter: 0.66, structure: 0.55 }, source: "pick" },
-    { createdAt: "2025-02-14", traits: { exposure: 0.58, comfort: 0.5, social: 0.42, matter: 0.7, structure: 0.6 }, source: "quiz" },
-    { createdAt: "2025-07-20", traits: { exposure: 0.64, comfort: 0.55, social: 0.38, matter: 0.76, structure: 0.63 }, source: "pick" },
-    { createdAt: "2025-11-30", traits: { exposure: 0.7, comfort: 0.58, social: 0.36, matter: 0.8, structure: 0.66 }, source: "quiz" },
-    { createdAt: "2026-03-18", traits: { exposure: 0.74, comfort: 0.6, social: 0.35, matter: 0.83, structure: 0.69 }, source: "pick" },
-    { createdAt: "2026-06-25", traits: { exposure: 0.78, comfort: 0.62, social: 0.34, matter: 0.86, structure: 0.71 }, source: "quiz" },
+    { createdAt: "2024-06-10", traits: { exposure: 0.56, comfort: 0.50, social: 0.55, matter: 0.60, structure: 0.52 }, source: "quiz" },
+    { createdAt: "2024-10-01", traits: { exposure: 0.58, comfort: 0.52, social: 0.40, matter: 0.63, structure: 0.54 }, source: "pick" }, // social ↓ → Solo spirit (Azzorre)
+    { createdAt: "2025-02-12", traits: { exposure: 0.60, comfort: 0.54, social: 0.38, matter: 0.78, structure: 0.56 }, source: "pick" }, // matter ↑ → Nature seeker (Marocco)
+    { createdAt: "2025-07-18", traits: { exposure: 0.73, comfort: 0.56, social: 0.37, matter: 0.80, structure: 0.58 }, source: "pick" }, // exposure ↑ → Deep explorer (Patagonia)
+    { createdAt: "2025-11-28", traits: { exposure: 0.74, comfort: 0.57, social: 0.36, matter: 0.82, structure: 0.70 }, source: "pick" }, // structure ↑ → Freedom lover (Kyoto)
+    { createdAt: "2026-03-18", traits: { exposure: 0.76, comfort: 0.68, social: 0.35, matter: 0.84, structure: 0.70 }, source: "pick" }, // comfort ↑ → Adventure seeker (Lofoten)
+    { createdAt: "2026-06-20", traits: { exposure: 0.78, comfort: 0.62, social: 0.34, matter: 0.86, structure: 0.71 }, source: "pick" }, // comfort ↓ → Comfort lover (Pola)
   ],
   traitHeadline: "Stai esplorando posti sempre più remoti e restando più a lungo: il tuo bisogno di solitudine e autenticità sta crescendo.",
   patterns: { topContinentLabel: "Europa", avgDays: 7, shortTripBias: false, longTripBias: false, tripCount: 6 },

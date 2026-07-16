@@ -24,6 +24,8 @@ export type Trip = {
   dest: string; quote: string;
   duration: string;          // "4 giorni"
   date: string;              // "set 2026"
+  rawDate?: string;          // ISO createdAt — per correlare snapshot↔viaggio (turning points)
+  id?: number;               // id itinerario
   continent: string;         // "Europa"
   size?: "l" | "m" | "s";    // mosaic size — if omitted, auto-cycles
   img: string;
