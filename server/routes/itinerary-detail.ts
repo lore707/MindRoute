@@ -404,6 +404,27 @@ export function registerItineraryDetailRoutes(app: Express) {
     }
   });
 
+  // ── Atlas: emozione del viaggio (tag utente) ────────────────────────────
+  // Salva tripMeta.emotion. jsonb → nessun db:push. Guida il colore nell'Atlas
+  // narrativo. Accetta null per rimuovere il tag (torna al colore da impatto).
+  app.post("/api/itinerary/:id/emotion", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itin = await storage.getItineraryById(id);
+      if (!itin) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itin, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const emotion = z.enum(["life-changing", "meaningful", "loved", "not-for-me", "revisited"]).nullable().parse(req.body?.emotion);
+      const prevMeta = ((itin as any).tripMeta ?? {}) as Record<string, any>;
+      const merged = { ...prevMeta };
+      if (emotion) merged.emotion = emotion; else delete merged.emotion;
+      await storage.updateItineraryTripMeta(id, merged);
+      res.json({ ok: true, emotion });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: "Emozione non valida" });
+      res.status(500).json({ message: "Errore nel salvataggio" });
+    }
+  });
+
   // ── Prenotazioni: click affiliate + conferma "ho prenotato" ─────────────
   // Il PDF completo si sblocca con volo+alloggio CONFERMATI, ma una conferma
   // è accettata solo se il server ha registrato il click sul link di

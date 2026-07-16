@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 // CSS dell'area account, code-split su questa route lazy (vedi nota in index.css).
 import "leaflet/dist/leaflet.css";
 import "@/styles/account-dashboard.css";
+import "@/styles/atlas-journey.css";
 import "@/styles/account-cinematic.css";
 import "@/styles/account-portrait.css";
 import "@/styles/account-atlas.css";
@@ -366,6 +367,8 @@ export default function MyAccount() {
     img: t.heroImageUrl ?? FALLBACK_HERO_IMG,
     href: `/itinerary/${t.id}`,
     taken: getTripStatus(t) === "confirmed",
+    emotion: t.tripMeta?.emotion,
+    budget: typeof t.tripMeta?.total_cost_bookable === "number" ? t.tripMeta.total_cost_bookable : null,
   })), [trips, lang]);
 
   // Stats novelistic — 4 numeri grandi. Costruite da trips + insights.

@@ -31,6 +31,10 @@ export type Trip = {
   img: string;
   href?: string;
   taken?: boolean;           // viaggio EFFETTIVAMENTE fatto (trip_status="confirmed")
+  // Atlas narrativo (2026-07): emozione scelta dall'utente (colore) + budget
+  // reale v2 (tripMeta.total_cost_bookable). Assenti se non disponibili.
+  emotion?: string;
+  budget?: number | null;
 };
 export type StatCell = { value: string; label: string; sub?: string; goldNum?: boolean };
 export type SettingRow = { label: string; value: string; href?: string };

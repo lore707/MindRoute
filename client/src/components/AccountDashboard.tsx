@@ -25,6 +25,7 @@ import { getLastOpenedItinerary } from "@/lib/last-opened";
 import type { AccountData } from "./AccountCinematic";
 
 const AccountAtlas = lazy(() => import("./AccountAtlas").then(m => ({ default: m.AccountAtlas })));
+const AtlasJourney = lazy(() => import("./AtlasJourney").then(m => ({ default: m.AtlasJourney })));
 
 // background-image helper: ridimensiona le Unsplash per lo slot reale.
 const bg = (url: string, w: number, q = 70) => `url(${unsplashSized(url, w, q)})`;
@@ -1514,51 +1515,35 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     </div>
   );
 
-  /* ──────────────── ATLANTE ──────────────── */
-  const places = data.atlas?.places ?? [];
+  /* ──────────────── ATLANTE (narrativo, redesign 2026-07) ──────────────── */
+  // Salva l'emozione del viaggio (tag utente) in tripMeta via endpoint.
+  const saveTripEmotion = (itineraryId: number, emotion: string | null) => {
+    fetch(`/api/itinerary/${itineraryId}/emotion`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emotion }),
+    }).catch(() => { /* best-effort: lo stato locale è già aggiornato */ });
+  };
   const AtlasView = () => (
     <div className="view">
-      <ViewHead
-        gold
-        eyebrow={t("acd.atlas.eyebrow")}
-        title={tx("acd.atlas.title", { d: counts.days })}
-        sub={t("acd.atlas.sub")}
-      />
-      <div className="content">
-        {/* AccountAtlas porta i propri stili scoped sotto .account-cinematic */}
-        <div className="account-cinematic">
-          <Suspense fallback={<div style={{ minHeight: 320 }} />}>
-            <AccountAtlas
-              data={data.atlas ?? null}
-              loading={data.atlasLoading}
-              narrative={data.statsNarrative}
-              narrativeBold={data.statsBold}
-              hideHead
-            />
-          </Suspense>
+      <div className="p3-head atlas-head">
+        <div className="p3-head-in">
+          <div className="p3-head-l">
+            <div className="r2-crumbs"><button onClick={() => go("home")}>‹ {t("acd.r2.crumbHome")}</button><span>—</span><span className="on">{t("acd.atlas.eyebrow")}</span></div>
+            <Html as="h1" className="p3-title" html={t("acd.atlas.h1")} />
+            <p className="p3-sub">{t("acd.atlas.sub")}</p>
+          </div>
         </div>
-
-        {places.length > 0 && (
-          <section>
-            <div className="sec-head">
-              <div>
-                <div className="sec-eyebrow gold">{t("acd.atlas.placesEyebrow")}</div>
-                <Html as="h2" className="sec-title" html={t("acd.atlas.placesTitle")} />
-              </div>
-            </div>
-            <div className="place-list">
-              {places.map((pl, i) => (
-                <a key={i} className="place" href={pl.href}>
-                  <span className={"dot" + (pl.trips > 1 ? " gold" : "")} />
-                  <span className="nm">{pl.name}</span>
-                  <span className="meta">
-                    {pl.continent ?? ""}{pl.lastDate ? ` · ${pl.lastDate}` : ""}
-                  </span>
-                </a>
-              ))}
-            </div>
-          </section>
-        )}
+      </div>
+      <div className="p3-body">
+        <Suspense fallback={<div style={{ minHeight: 420 }} />}>
+          <AtlasJourney
+            atlas={data.atlas ?? null}
+            trips={data.trips}
+            savedMoments={data.savedMoments}
+            headline={data.traitHeadline}
+            onSaveEmotion={saveTripEmotion}
+          />
+        </Suspense>
       </div>
     </div>
   );

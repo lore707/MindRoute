@@ -1,0 +1,150 @@
+/* ════════════════════════════════════════════════════════════
+   ATLAS JOURNEY (redesign 2026-07) — la memoria del viaggiatore.
+   Dark premium, glow controllato, glass. Scoped .account-dash.
+   ════════════════════════════════════════════════════════════ */
+.account-dash .atlas-head { border-bottom: 1px solid var(--stroke); }
+.account-dash .atlas-head .p3-title em { color: var(--accent); font-style: italic; }
+.account-dash .atlas-journey { max-width: 1320px; margin: 0 auto; }
+.account-dash .atlas-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+.account-dash .atlas-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* ── Map card ── */
+.account-dash .atlas-mapcard { position: relative; border: 1px solid var(--stroke); border-radius: 20px; overflow: hidden;
+  background: #08060c; box-shadow: inset 0 0 120px rgba(0, 0, 0, .5); }
+.account-dash .atlas-map { height: 520px; width: 100%; background: #08060c; }
+.account-dash .atlas-map .leaflet-container { background: #08060c; font-family: var(--sans); }
+.account-dash .atlas-map .leaflet-control-zoom { border: 0; box-shadow: none; margin: 16px; }
+.account-dash .atlas-map .leaflet-control-zoom a { background: rgba(20, 14, 22, .85); color: var(--ink); border: 1px solid var(--stroke-2);
+  backdrop-filter: blur(8px); width: 32px; height: 32px; line-height: 30px; }
+.account-dash .atlas-map .leaflet-control-attribution { background: rgba(8, 6, 12, .6); color: var(--ink-faint); }
+
+/* Legend (emozioni) — glass top-left */
+.account-dash .atlas-legend { position: absolute; top: 14px; left: 14px; z-index: 500; display: flex; gap: 6px 14px; flex-wrap: wrap;
+  max-width: min(74%, 620px); background: rgba(13, 9, 16, .66); border: 1px solid var(--stroke-2); border-radius: 12px;
+  padding: 9px 13px; backdrop-filter: blur(10px); }
+.account-dash .atlas-lg { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-dim); }
+.account-dash .atlas-lg .d { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+
+.account-dash .atlas-fs { position: absolute; top: 14px; right: 14px; z-index: 500; display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 600; color: var(--ink); background: rgba(13, 9, 16, .72); border: 1px solid var(--stroke-2);
+  border-radius: 999px; padding: 8px 14px; cursor: pointer; backdrop-filter: blur(10px); transition: border-color .2s; }
+.account-dash .atlas-fs:hover { border-color: var(--accent); }
+
+.account-dash .atlas-heat { position: absolute; left: 14px; bottom: 14px; z-index: 500; width: 210px;
+  background: rgba(13, 9, 16, .72); border: 1px solid var(--stroke-2); border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(10px); }
+.account-dash .atlas-heat .k { font-size: 11px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+.account-dash .atlas-heat .bar { height: 6px; border-radius: 6px; overflow: hidden; }
+.account-dash .atlas-heat .bar span { display: block; height: 100%; }
+.account-dash .atlas-heat .ends { display: flex; justify-content: space-between; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin-top: 5px; }
+
+/* ── Nodi luminosi (Leaflet divIcon) ── */
+.account-dash .atlas-node-wrap { background: none !important; border: 0 !important; }
+.account-dash .atlas-node { display: block; width: 24px; height: 24px; position: relative; }
+.account-dash .atlas-node .an-core { position: absolute; inset: 5px; border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 14px var(--c), 0 0 5px var(--c), inset 0 0 3px rgba(255, 255, 255, .5); border: 1.5px solid rgba(255, 255, 255, .35); }
+.account-dash .atlas-node::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--c);
+  opacity: .5; animation: atlas-pulse 3.4s ease-out infinite; }
+.account-dash .atlas-node-wrap.sel .atlas-node .an-core { inset: 2px; box-shadow: 0 0 22px var(--c), 0 0 8px var(--c); }
+.account-dash .atlas-node-wrap.sel .atlas-node::after { content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  border: 1.5px solid var(--c); opacity: .8; box-shadow: 0 0 16px var(--c); }
+@keyframes atlas-pulse { 0% { transform: scale(1); opacity: .5; } 70% { transform: scale(2.6); opacity: 0; } 100% { opacity: 0; } }
+
+.account-dash .atlas-map .atlas-tip { background: rgba(13, 9, 16, .92); border: 1px solid var(--stroke-2); color: var(--ink);
+  border-radius: 10px; padding: 6px 10px; font-size: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); backdrop-filter: blur(8px); }
+.account-dash .atlas-map .atlas-tip::before { display: none; }
+
+/* ── Timeline narrativa ── */
+.account-dash .atlas-tl { border: 1px solid var(--stroke); border-radius: 18px; background: var(--card); padding: 22px 20px 14px; }
+.account-dash .atlas-tl-track { position: relative; height: 46px; cursor: grab; touch-action: none; margin: 0 6px; }
+.account-dash .atlas-tl-track:active { cursor: grabbing; }
+.account-dash .atlas-tl-line { position: absolute; left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, var(--stroke-2) 8%, var(--stroke-2) 92%, transparent); }
+.account-dash .atlas-tl-year { position: absolute; top: -4px; transform: translateX(-50%); font-size: 11px; font-weight: 600;
+  color: var(--ink-faint); }
+.account-dash .atlas-tl-year::after { content: ""; position: absolute; left: 50%; top: 20px; width: 1px; height: 8px; background: var(--stroke-2); }
+.account-dash .atlas-tl-dot { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(255, 255, 255, .3); box-shadow: 0 0 8px currentColor; cursor: pointer; transition: transform .18s; padding: 0; }
+.account-dash .atlas-tl-dot:hover { transform: translate(-50%, -50%) scale(1.5); }
+.account-dash .atlas-tl-dot.sel { transform: translate(-50%, -50%) scale(1.6); box-shadow: 0 0 14px currentColor; z-index: 2; }
+.account-dash .atlas-tl-head { position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%; transform: translate(-50%, -50%);
+  background: #fff; border: 3px solid var(--accent); box-shadow: 0 0 14px var(--accent); z-index: 3; }
+.account-dash .atlas-tl-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
+.account-dash .atlas-tl-foot > span { font-size: 12px; color: var(--ink-faint); }
+.account-dash .atlas-play { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--ink);
+  background: rgba(13, 9, 16, .5); border: 1px solid var(--stroke-2); border-radius: 999px; padding: 8px 16px; cursor: pointer; transition: border-color .2s; }
+.account-dash .atlas-play:hover { border-color: var(--accent); }
+
+/* ── Sidebar ── */
+.account-dash .atlas-side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 88px; }
+.account-dash .atlas-panel { border: 1px solid var(--stroke); border-radius: 18px; background: var(--card); padding: 16px; }
+.account-dash .atlas-panel-h { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--ink-faint); margin-bottom: 12px; }
+.account-dash .atlas-panel-h.accent { color: var(--accent); }
+.account-dash .atlas-nums { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 8px; }
+.account-dash .atlas-nums > div { }
+.account-dash .atlas-nums .n { display: block; font-family: var(--serif); font-size: 22px; color: var(--ink); line-height: 1; }
+.account-dash .atlas-nums .n.gold { color: var(--gold); }
+.account-dash .atlas-nums .l { display: block; font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-faint); margin-top: 3px; }
+.account-dash .atlas-insight-t { font-family: var(--serif); font-size: 17px; margin-bottom: 8px; }
+.account-dash .atlas-insight-x { font-size: 12.5px; line-height: 1.55; color: var(--ink-dim); margin-bottom: 12px; }
+.account-dash .atlas-years { display: flex; flex-direction: column; gap: 2px; }
+.account-dash .atlas-year { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-top: 1px solid var(--stroke); }
+.account-dash .atlas-year:first-child { border-top: 0; }
+.account-dash .atlas-year .yy { font-family: var(--serif); font-size: 15px; color: var(--accent); min-width: 42px; }
+.account-dash .atlas-year .yx { font-size: 12px; color: var(--ink-dim); }
+.account-dash .atlas-top-row { display: grid; grid-template-columns: 18px 1fr 64px; gap: 10px; align-items: center; width: 100%; text-align: left;
+  padding: 9px 0; border-top: 1px solid var(--stroke); cursor: pointer; }
+.account-dash .atlas-top-row:first-of-type { border-top: 0; }
+.account-dash .atlas-top-row .star { font-size: 14px; }
+.account-dash .atlas-top-row .nm { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-dash .atlas-top-row .imp { height: 5px; border-radius: 5px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.account-dash .atlas-top-row .imp span { display: block; height: 100%; border-radius: 5px; }
+
+/* Selected trip card */
+.account-dash .atlas-selcard { position: relative; border: 1px solid var(--stroke-2); border-radius: 18px; overflow: hidden;
+  background: linear-gradient(180deg, var(--card), rgba(13, 7, 13, .5)); }
+.account-dash .atlas-sel-x { position: absolute; top: 12px; right: 12px; z-index: 2; width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; background: rgba(13, 7, 13, .6); border: 1px solid var(--stroke-2); cursor: pointer; backdrop-filter: blur(8px); }
+.account-dash .atlas-sel-hero { height: 150px; background-size: cover; background-position: center; }
+.account-dash .atlas-sel-body { padding: 16px; }
+.account-dash .atlas-sel-body h3 { font-family: var(--serif); font-size: 22px; font-weight: 400; line-height: 1.1; }
+.account-dash .atlas-sel-meta { font-size: 12px; color: var(--ink-dim); margin-top: 4px; }
+.account-dash .atlas-sel-quote { font-size: 13px; line-height: 1.55; color: var(--ink-dim); margin-top: 10px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.account-dash .atlas-sel-stats { display: flex; gap: 20px; margin: 14px 0; padding: 12px 0; border-top: 1px solid var(--stroke); border-bottom: 1px solid var(--stroke); }
+.account-dash .atlas-sel-stats .n { display: block; font-family: var(--serif); font-size: 20px; color: var(--ink); }
+.account-dash .atlas-sel-stats .l { display: block; font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint); margin-top: 2px; }
+.account-dash .atlas-emo .k { font-size: 11px; color: var(--ink-dim); margin-bottom: 8px; }
+.account-dash .atlas-emo-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.account-dash .atlas-emo-chip { font-size: 11px; font-weight: 600; color: var(--ink-dim); border: 1px solid var(--stroke-2);
+  border-radius: 999px; padding: 6px 11px; cursor: pointer; transition: all .18s; }
+.account-dash .atlas-emo-chip:hover { color: var(--ink); }
+.account-dash .atlas-emo-chip.on { color: #fff; background: var(--c); border-color: var(--c); box-shadow: 0 0 16px -4px var(--c); }
+.account-dash .atlas-sel-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px;
+  margin-top: 16px; border-radius: 14px; background: linear-gradient(92deg, var(--accent), #ff7a6e); color: #fff; font-size: 14px; font-weight: 700;
+  text-decoration: none; box-shadow: 0 12px 32px -12px var(--accent); }
+
+.account-dash .atlas-empty { padding: 60px 20px; text-align: center; color: var(--ink-faint); border: 1px dashed var(--stroke); border-radius: 18px; }
+
+/* ── FULL SCREEN ── */
+.account-dash .atlas-journey.fs { position: fixed; inset: 0; z-index: 2000; max-width: none; margin: 0; padding: 20px;
+  background: radial-gradient(120% 100% at 80% 0%, rgba(122, 16, 32, .18), transparent 55%), #0a070d; overflow: auto; }
+.account-dash .atlas-journey.fs .atlas-grid { grid-template-columns: minmax(0, 1fr) 360px; height: calc(100vh - 40px); }
+.account-dash .atlas-journey.fs .atlas-map { height: calc(100vh - 40px - 150px); }
+.account-dash .atlas-journey.fs .atlas-side { max-height: calc(100vh - 40px); overflow-y: auto; }
+.account-dash .atlas-fs-close { position: fixed; top: 22px; right: 26px; z-index: 2010; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; background: rgba(13, 9, 16, .8); border: 1px solid var(--stroke-2); cursor: pointer; backdrop-filter: blur(10px); }
+
+/* ── Responsive ── */
+@media (max-width: 1023px) {
+  .account-dash .atlas-grid { grid-template-columns: 1fr; }
+  .account-dash .atlas-side { position: static; }
+  .account-dash .atlas-map { height: 60vh; min-height: 380px; }
+  .account-dash .atlas-legend { max-width: calc(100% - 120px); }
+  .account-dash .atlas-journey.fs .atlas-grid { grid-template-columns: 1fr; height: auto; }
+  .account-dash .atlas-journey.fs .atlas-map { height: 60vh; }
+}
+@media (max-width: 520px) {
+  .account-dash .atlas-heat { width: 150px; }
+  .account-dash .atlas-nums { grid-template-columns: 1fr 1fr; }
+  .account-dash .atlas-fs span { display: none; }
+}

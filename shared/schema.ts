@@ -218,8 +218,15 @@ export interface MapPointV2 {
 export type PlaceCategory =
   | "lodging" | "experience" | "food" | "sight" | "beach" | "custom";
 
+// Emozione del viaggio scelta dall'utente (Atlas narrativo 2026-07). Guida il
+// colore di nodo/linea/timeline/card. In tripMeta (jsonb) → nessun db:push.
+export type TripEmotion = "life-changing" | "meaningful" | "loved" | "not-for-me" | "revisited";
+
 export interface TripMetaV2 {
   em_word?: string;
+  // Etichetta emotiva scelta dall'utente per QUESTO viaggio (Atlas). Assente =
+  // colore derivato dall'impatto reale (momenti cuorati) finché non la sceglie.
+  emotion?: TripEmotion;
   travel_dates?: { start: string; end: string };
   // true SOLO quando l'utente ha consolidato a mano le date reali del viaggio
   // (non le date derivate/placeholder della generazione). È il prerequisito per

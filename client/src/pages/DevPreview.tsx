@@ -9,6 +9,7 @@
  */
 import "leaflet/dist/leaflet.css";
 import "@/styles/account-dashboard.css";
+import "@/styles/atlas-journey.css";
 import "@/styles/itinerary-dashboard.css";
 import "@/styles/journey.css";
 import { AccountDashboard } from "@/components/AccountDashboard";
@@ -69,12 +70,12 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
 }) as typeof window.fetch;
 
 const trips = [
-  { dest: "Pola, Istria", quote: "Mare senza folla, pietra e vento.", duration: "5 giorni", date: "giu 2026", rawDate: "2026-06-20", id: 12, continent: "Europa", img: P.procida, href: "/itinerary/12" },
-  { dest: "Lofoten", quote: "Il silenzio che cercavi.", duration: "7 giorni", date: "feb 2026", rawDate: "2026-03-18", id: 11, continent: "Europa", img: P.lofoten, href: "/itinerary/11" },
-  { dest: "Kyoto", quote: "Templi all'alba.", duration: "8 giorni", date: "nov 2025", rawDate: "2025-11-28", id: 10, continent: "Asia", img: P.kyoto, href: "/itinerary/10", taken: true },
-  { dest: "Patagonia", quote: "Vento e granito.", duration: "10 giorni", date: "mar 2025", rawDate: "2025-07-18", id: 9, continent: "Americhe", img: P.patagonia, href: "/itinerary/9", taken: true },
-  { dest: "Marocco", quote: "Dune e mercati.", duration: "6 giorni", date: "ott 2024", rawDate: "2025-02-12", id: 8, continent: "Africa", img: P.sahara, href: "/itinerary/8" },
-  { dest: "Azzorre", quote: "Verde vulcanico.", duration: "6 giorni", date: "mag 2024", rawDate: "2024-10-01", id: 7, continent: "Europa", img: P.azores, href: "/itinerary/7" },
+  { dest: "Pola, Istria", quote: "Mare senza folla, pietra e vento.", duration: "5 giorni", date: "giu 2026", rawDate: "2026-06-20", id: 12, continent: "Europa", img: P.procida, href: "/itinerary/12", emotion: "meaningful", budget: 640 },
+  { dest: "Lofoten", quote: "Il silenzio che cercavi.", duration: "7 giorni", date: "feb 2026", rawDate: "2026-03-18", id: 11, continent: "Europa", img: P.lofoten, href: "/itinerary/11", emotion: "life-changing", budget: 1480 },
+  { dest: "Kyoto", quote: "Templi all'alba, un ritorno a un posto che sa di casa.", duration: "8 giorni", date: "nov 2025", rawDate: "2025-11-28", id: 10, continent: "Asia", img: P.kyoto, href: "/itinerary/10", taken: true, emotion: "revisited", budget: 2100 },
+  { dest: "Patagonia", quote: "Il posto dove hai scoperto il silenzio e la prospettiva.", duration: "10 giorni", date: "mar 2025", rawDate: "2025-07-18", id: 9, continent: "Americhe", img: P.patagonia, href: "/itinerary/9", taken: true, emotion: "life-changing", budget: 1240 },
+  { dest: "Marocco", quote: "Un ritorno alla semplicità e alla bellezza nei piccoli dettagli.", duration: "6 giorni", date: "ott 2024", rawDate: "2025-02-12", id: 8, continent: "Africa", img: P.sahara, href: "/itinerary/8", emotion: "loved", budget: 720 },
+  { dest: "Azzorre", quote: "Verde vulcanico, dove il tuo amore per la natura selvaggia è iniziato.", duration: "6 giorni", date: "mag 2024", rawDate: "2024-10-01", id: 7, continent: "Europa", img: P.azores, href: "/itinerary/7", budget: 190 },
 ];
 
 const data: AccountData = {
@@ -129,11 +130,12 @@ const data: AccountData = {
   statsNarrative: "",
   atlas: {
     places: [
-      { name: "Pola", fullName: "Pola, Croazia", lat: 44.87, lng: 13.85, trips: 1, days: 5, lastDate: null, continent: "Europa", heroImageUrl: null, href: "/itinerary/12" },
-      { name: "Lofoten", fullName: "Lofoten, Norvegia", lat: 68.2, lng: 13.6, trips: 1, days: 7, lastDate: null, continent: "Europa", heroImageUrl: null, href: "/itinerary/11" },
-      { name: "Kyoto", fullName: "Kyoto, Giappone", lat: 35.0, lng: 135.77, trips: 1, days: 8, lastDate: null, continent: "Asia", heroImageUrl: null, href: "/itinerary/10" },
-      { name: "El Chaltén", fullName: "El Chaltén, Argentina", lat: -49.33, lng: -72.89, trips: 1, days: 10, lastDate: null, continent: "Americhe", heroImageUrl: null, href: "/itinerary/9" },
-      { name: "Merzouga", fullName: "Merzouga, Marocco", lat: 31.1, lng: -4.01, trips: 1, days: 6, lastDate: null, continent: "Africa", heroImageUrl: null, href: "/itinerary/8" },
+      { name: "Pola", fullName: "Pola, Croazia", lat: 44.87, lng: 13.85, trips: 1, days: 5, lastDate: null, continent: "Europa", heroImageUrl: P.procida, href: "/itinerary/12" },
+      { name: "Lofoten", fullName: "Lofoten, Norvegia", lat: 68.2, lng: 13.6, trips: 1, days: 7, lastDate: null, continent: "Europa", heroImageUrl: P.lofoten, href: "/itinerary/11" },
+      { name: "Kyoto", fullName: "Kyoto, Giappone", lat: 35.0, lng: 135.77, trips: 1, days: 8, lastDate: null, continent: "Asia", heroImageUrl: P.kyoto, href: "/itinerary/10" },
+      { name: "El Chaltén", fullName: "El Chaltén, Argentina", lat: -49.33, lng: -72.89, trips: 1, days: 10, lastDate: null, continent: "Americhe", heroImageUrl: P.patagonia, href: "/itinerary/9" },
+      { name: "Merzouga", fullName: "Merzouga, Marocco", lat: 31.1, lng: -4.01, trips: 1, days: 6, lastDate: null, continent: "Africa", heroImageUrl: P.sahara, href: "/itinerary/8" },
+      { name: "Azzorre", fullName: "Azzorre, Portogallo", lat: 38.66, lng: -27.22, trips: 1, days: 6, lastDate: null, continent: "Europa", heroImageUrl: P.azores, href: "/itinerary/7" },
     ],
     unlocated: [],
     stats: { trips: 6, days: 42, cities: 5, continents: 4 },

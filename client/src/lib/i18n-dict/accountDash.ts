@@ -124,7 +124,14 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   // ── Atlas view ──────────────────────────────────────────────────────────
   "acd.atlas.eyebrow": { en: "Your atlas", it: "Il tuo atlante" },
   "acd.atlas.title":   { en: "<em class='gold'>{d} days</em> spent elsewhere.", it: "<em class='gold'>{d} giorni</em> passati altrove." },
-  "acd.atlas.sub":     { en: "Every point is a trip you built with MindRoute.", it: "Ogni punto è un viaggio che hai costruito con MindRoute." },
+  "acd.atlas.h1":      { en: "Your world, <em>your journey.</em>", it: "Il tuo mondo, <em>il tuo viaggio.</em>" },
+  "acd.atlas.sub":     { en: "A living map of the places you've been, the emotions you felt and how you've grown.", it: "Una mappa viva dei luoghi in cui sei stato, le emozioni che hai provato e come sei cresciuto." },
+  // Atlas narrativo — emozioni del viaggio (tag utente → colore)
+  "atl.emo.life-changing": { en: "Life-changing", it: "Che ti ha cambiato" },
+  "atl.emo.meaningful":    { en: "Meaningful", it: "Significativo" },
+  "atl.emo.loved":         { en: "Loved it", it: "Amato" },
+  "atl.emo.not-for-me":    { en: "Not for me", it: "Non per me" },
+  "atl.emo.revisited":     { en: "Revisited", it: "Rivisitato" },
   "acd.atlas.placesEyebrow": { en: "The places", it: "I luoghi" },
   "acd.atlas.placesTitle": { en: "Where you've <em class='gold'>been</em>.", it: "Dove sei <em class='gold'>stato</em>." },
 
