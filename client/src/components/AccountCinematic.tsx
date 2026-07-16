@@ -35,6 +35,9 @@ export type Trip = {
   // reale v2 (tripMeta.total_cost_bookable). Assenti se non disponibili.
   emotion?: string;
   budget?: number | null;
+  // Tappe interne del viaggio (map_points), ordinate: usate dall'Atlas per
+  // disegnare il PERCORSO di quel viaggio SOLO su selezione. Vuoto se non v2.
+  stops?: Array<{ lat: number; lng: number }>;
 };
 export type StatCell = { value: string; label: string; sub?: string; goldNum?: boolean };
 export type SettingRow = { label: string; value: string; href?: string };

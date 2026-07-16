@@ -369,6 +369,12 @@ export default function MyAccount() {
     taken: getTripStatus(t) === "confirmed",
     emotion: t.tripMeta?.emotion,
     budget: typeof t.tripMeta?.total_cost_bookable === "number" ? t.tripMeta.total_cost_bookable : null,
+    stops: Array.isArray(t.tripMeta?.map_points)
+      ? [...t.tripMeta.map_points]
+          .filter((p: any) => typeof p?.lat === "number" && typeof p?.lng === "number")
+          .sort((a: any, b: any) => (a.day ?? 0) - (b.day ?? 0))
+          .map((p: any) => ({ lat: p.lat, lng: p.lng }))
+      : [],
   })), [trips, lang]);
 
   // Stats novelistic — 4 numeri grandi. Costruite da trips + insights.

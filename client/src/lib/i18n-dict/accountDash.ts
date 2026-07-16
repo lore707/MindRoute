@@ -132,6 +132,9 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "atl.emo.loved":         { en: "Loved it", it: "Amato" },
   "atl.emo.not-for-me":    { en: "Not for me", it: "Non per me" },
   "atl.emo.revisited":     { en: "Revisited", it: "Rivisitato" },
+  "atl.tab.geo":           { en: "Geography", it: "Geografia" },
+  "atl.tab.timeline":      { en: "Timeline", it: "Timeline" },
+  "atl.tab.evo":           { en: "Evolution", it: "Evoluzione" },
   "acd.atlas.placesEyebrow": { en: "The places", it: "I luoghi" },
   "acd.atlas.placesTitle": { en: "Where you've <em class='gold'>been</em>.", it: "Dove sei <em class='gold'>stato</em>." },
 
