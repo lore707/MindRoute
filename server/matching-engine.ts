@@ -277,6 +277,14 @@ Every chip selected is a HARD CONSTRAINT, not a preference. Apply ALL of the fol
 - "Festeggiare" / "Celebrate" → trip MUST feel indulgent and joyful. Beautiful settings, special meals, celebratory moments.
 - "Ritrovarmi" / "Find myself" → trip MUST offer solitude and introspection. Solo moments, journaling spots, contemplative settings.
 
+── L1 FAST-QUIZ SENSATIONS (one of six, mutually exclusive) ──
+- "Silenzio e respiro" / "Silence & breath" → quiet, slow, restorative places. Max 2 activities/day, no crowds, no alarms. NOT cities in high season.
+- "Natura vera" / "Real nature" → landscape IS the protagonist: forests, peaks, water. Nature immersion daily, not a park visit.
+- "Meravigliarmi" / "Be amazed" → at least one genuinely breathtaking sight/experience. Prioritize scenic drama over convenience.
+- "Capire un posto" / "Understand a place" → people, food, stories, lived culture. Markets over museums, neighborhoods over landmarks.
+- "Sentirmi vivo" / "Feel alive" → physical intensity and adrenaline. The body must be involved every day.
+- "Fuori rotta" / "Off the beaten path" → no crowds, nothing obvious. Avoid famous destinations entirely; pick where tourists are rare.
+
 ── ANTI-PATTERN CHIPS → ABSOLUTE PROHIBITIONS ──
 Every anti-pattern is a VETO. Violating even one is a failure.
 - "Visite guidate" / "Guided tours" → ZERO group tours anywhere in the itinerary. Self-guided only.
@@ -1061,6 +1069,10 @@ In all cases the city/place the user named must appear as written; never silentl
 - "Festeggiare" → destination must feel celebratory: beautiful, indulgent, joyful.
 - "Uscire dalla zona di comfort" → destination must genuinely challenge: different culture, different language.
 - "Rallentare" → destination must enable genuine slowness. No overwhelming logistics.
+- L1 fast-quiz sensations (one of six): "Silenzio e respiro"/"Silence & breath" → quiet restorative places, no crowds ·
+  "Natura vera"/"Real nature" → landscape as protagonist · "Meravigliarmi"/"Be amazed" → genuine wow-factor ·
+  "Capire un posto"/"Understand a place" → lived culture, people, food · "Sentirmi vivo"/"Feel alive" → physical intensity ·
+  "Fuori rotta"/"Off the beaten path" → avoid famous destinations entirely, tourists must be rare.
 
 ── REJECTION TEXT → ELIMINATE SIMILAR DESTINATIONS ──
 Parse rejection text carefully. Identify what the rejected place REPRESENTS and eliminate all destinations with the same quality. "Non mi dice nulla New York" → eliminate overwhelming megacities. "Le Maldive troppo perfette" → eliminate resort-only beach destinations. "Barcellona d'estate troppo caotica" → reduce chaotic/overcrowded options.

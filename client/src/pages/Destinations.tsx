@@ -11,6 +11,7 @@ import { pressable } from "@/lib/pressable";
 import { getFlow, setPendingGen, getPendingGen, clearPendingGen } from "@/lib/flow-storage";
 import { track } from "@/lib/analytics";
 import { FlowNav } from "@/components/FlowNav";
+import { GenerationRitual } from "@/components/GenerationRitual";
 
 export default function Destinations() {
   const { t, lang } = useI18n();
@@ -126,39 +127,14 @@ const generateItinerary = async (destId: number) => {
       });
 
       setIsGenerating(true);
-      setGenMessage(lang === "it" ? "Analizzo il tuo profilo psicologico..." : "Analyzing your psychological profile...");
+      // Il racconto dell'attesa lo fa GenerationRitual (checklist di stadi
+      // reali); genMessage resta solo per i progress del legacy stream.
+      setGenMessage("");
       setGenHeroUrl(selectedDest.imageUrl || "");
       setGenDestName(selectedDest.name || "");
       // Marker di ripresa: se l'utente ricarica/torna indietro ora, al rientro
       // riprendiamo da qui invece di perdere la generazione.
       setPendingGen({ destinationId: destId, destinationName: selectedDest.name, heroUrl: selectedDest.imageUrl || "" });
-
-      const messages = lang === "it" ? [
-        "Analizzo il tuo profilo psicologico...",
-        "Scelgo la destinazione perfetta per te...",
-        "Costruisco il Giorno 1 e 2...",
-        "Costruisco il Giorno 3 e 4...",
-        "Costruisco il Giorno 5 e 6...",
-        "Aggiungo il Giorno 7 e i dettagli pratici...",
-        "Aggiungo i link di prenotazione...",
-        "Cerco le immagini perfette...",
-        "Quasi pronto...",
-      ] : [
-        "Analyzing your psychological profile...",
-        "Choosing the perfect destination for you...",
-        "Building Day 1 and 2...",
-        "Building Day 3 and 4...",
-        "Building Day 5 and 6...",
-        "Adding Day 7 and practical details...",
-        "Adding booking links...",
-        "Finding the perfect images...",
-        "Almost ready...",
-      ];
-      let msgIdx = 0;
-      const msgInterval = setInterval(() => {
-        msgIdx = Math.min(msgIdx + 1, messages.length - 1);
-        setGenMessage(messages[msgIdx]);
-      }, 12000);
 
       // Path v2 di default: endpoint non-streaming che ritorna itinerario
       // moment-based. Se fallisce (o ?legacy=1 in URL), fallback transparent al
@@ -182,7 +158,7 @@ const generateItinerary = async (destId: number) => {
             const v2Data = await v2Res.json();
             // itinerary_generated — 1 volta per creazione riuscita (non a ogni revisita).
             track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v2" });
-            clearInterval(msgInterval);
+            /* checklist: nessun timer di messaggi da fermare */
             clearPendingGen();
             setLocation(`/itinerary/${v2Data.id ?? destId}?l2=1`);
             return;
@@ -230,7 +206,7 @@ const generateItinerary = async (destId: number) => {
               } else if (currentEvent === "done") {
                 // itinerary_generated — fallback v1: a stream completato.
                 track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v1" });
-                clearInterval(msgInterval);
+                /* checklist: nessun timer di messaggi da fermare */
                 clearPendingGen();
                 setLocation(`/itinerary/${data.itineraryId ?? destId}?l2=1`);
                 return;
@@ -246,7 +222,7 @@ const generateItinerary = async (destId: number) => {
         }
       }
 
-      clearInterval(msgInterval);
+      /* checklist: nessun timer di messaggi da fermare */
       clearPendingGen();
       setLocation(`/itinerary/${destId}?l2=1`);
     } catch (err) {
@@ -279,35 +255,24 @@ if (destinations.length === 0) return null;
           </div>
         </div>
         <div className="max-w-2xl mx-auto px-5 sm:px-6 py-8 md:py-12 flex flex-col items-center gap-6 md:gap-8">
-          <motion.div
-            key={genMessage}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3"
-          >
-            <div className="flex gap-1">
-              {[0,1,2].map(i => (
-                <motion.div
-                  key={i}
-                  className="w-2 h-2 rounded-full bg-[#E94560]"
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                />
-              ))}
-            </div>
-            <p className="text-white/70 font-serif italic text-[15px] sm:text-lg text-center">{genMessage}</p>
-          </motion.div>
-          <div className="w-full max-w-md">
-            <div className="w-full h-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: "linear-gradient(90deg, #E94560, #9b59b6)" }}
-                initial={{ width: "5%" }}
-                animate={{ width: "92%" }}
-                transition={{ duration: 90, ease: "linear" }}
-              />
-            </div>
-          </div>
+          {/* Attesa narrativa: stadi REALI della pipeline v2 (profilo →
+              grounding → giornate in parallelo → prenotazioni → immagini).
+              L'ultimo passo si completa solo navigando al risultato vero. */}
+          <GenerationRitual
+            lede={lang === "it" ? "Abbiamo capito abbastanza." : "We've understood enough."}
+            sub={lang === "it" ? "Ora lasciaci costruire il viaggio che ti somiglia." : "Now let us build the trip that feels like you."}
+            stepMs={18000}
+            steps={lang === "it"
+              ? ["Rileggo il tuo profilo", "Ancoro il piano a luoghi reali", "Costruisco le giornate in parallelo", "Collego le prenotazioni giuste", "Cerco le immagini di ogni giorno", "Rifinisco il ritmo"]
+              : ["Re-reading your profile", "Anchoring the plan to real places", "Building your days in parallel", "Linking the right bookings", "Finding images for every day", "Polishing the rhythm"]}
+          />
+          {/* Progress del legacy stream / ripresa: messaggi REALI dal server. */}
+          {genMessage && (
+            <motion.p key={genMessage} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              className="text-white/60 font-serif italic text-[14px] sm:text-base text-center">
+              {genMessage}
+            </motion.p>
+          )}
           <p className="text-white/25 text-xs text-center">
             {lang === "it" ? "Gli itinerari personalizzati richiedono un paio di minuti — i posti veri chiedono tempo" : "Personalised itineraries take a couple of minutes — real places take time"}
           </p>

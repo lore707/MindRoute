@@ -396,3 +396,9 @@
 .qc-card:focus-visible,
 .qc-option:focus-visible{outline:2px solid var(--qc-accent);outline-offset:3px;border-radius:inherit}
 .quiz-cinematic button:focus-visible{outline:2px solid var(--qc-accent);outline-offset:3px}
+
+/* Micro-copy di continuita': riconosce la scelta precedente ("Tokyo, allora."),
+   derivata e statica - l'AI sta gia' pensando, non compila un database. */
+.qc-ack{display:block;font-family:var(--qc-serif);font-style:italic;font-size:14.5px;color:rgba(255,255,255,.55);margin-bottom:14px;animation:qc-ack-in .5s ease}
+.qc-ack::before{content:"\2713\00a0\00a0";color:#7fd4a8}
+@keyframes qc-ack-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}

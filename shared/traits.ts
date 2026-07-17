@@ -197,6 +197,21 @@ const LABEL_TO_KEY: Record<string, string> = {
   "sentirmi libero e spontaneo": "free",
   "feel free and spontaneous": "free",
 
+  // L1 QuizFast — sensazioni v2 (2026-07-18): 6 opzioni mutuamente esclusive,
+  // una per direzione del profilo. Mappate su chiavi canoniche esistenti.
+  "silenzio e respiro": "slowdown",
+  "silence & breath": "slowdown",
+  "natura vera": "nature",
+  "real nature": "nature",
+  "meravigliarmi": "surprise",
+  "be amazed": "surprise",
+  "capire un posto": "culture",
+  "understand a place": "culture",
+  "sentirmi vivo": "alive",
+  "feel alive": "alive",
+  "fuori rotta": "offgrid",
+  "off the beaten path": "offgrid",
+
   // b.q3 moments (7)
   "mangiare nei posti locali": "localfood",
   "eating at local spots": "localfood",

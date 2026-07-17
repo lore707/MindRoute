@@ -14,6 +14,7 @@ import "@/styles/itinerary-dashboard.css";
 import "@/styles/journey.css";
 import { AccountDashboard } from "@/components/AccountDashboard";
 import { JourneyView } from "@/components/JourneyView";
+import QuizFast from "@/pages/QuizFast";
 import type { AccountData } from "@/components/AccountCinematic";
 import type { ItineraryData } from "@/components/ItineraryCinematic";
 
@@ -242,6 +243,16 @@ export default function DevPreview() {
       box.textContent = culprits.join("\n");
     }, 2500);
   }
+  // Quiz L1 senza auth-gate (il gate vive in App.tsx): ?view=quiz&mode=…&gen=1
+  // Lo <style> forza visibile il contenuto animato da framer-motion: sotto
+  // virtual-time headless l'animazione resta a opacity:0 e lo screenshot
+  // uscirebbe vuoto (solo in preview, la prod anima normalmente).
+  if (view === "quiz") return (
+    <>
+      <style>{`.quiz-cinematic .qc-container > div { opacity: 1 !important; transform: none !important; }`}</style>
+      <QuizFast />
+    </>
+  );
   if (view === "journey") {
     return (
       <div className="account-dash itinerary-dash">

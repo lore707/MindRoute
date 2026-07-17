@@ -1,0 +1,21 @@
+/* ── GenerationRitual — attesa narrativa (checklist di generazione) ──
+   Usato su sfondi scuri (quiz cinematic, schermata di generazione). */
+.genrit { max-width: 480px; width: 100%; text-align: left; background: rgba(10, 7, 12, .5);
+  border: 1px solid rgba(255, 255, 255, .08); border-radius: 22px; padding: 30px 32px; backdrop-filter: blur(10px); }
+@media (max-width: 520px) { .genrit { padding: 24px 20px; } }
+.genrit-lede { font-family: "Playfair Display", Georgia, serif; font-style: italic; font-size: clamp(24px, 3.4vw, 34px);
+  line-height: 1.2; color: #fff; text-wrap: balance; }
+.genrit-sub { margin-top: 10px; font-size: 14.5px; line-height: 1.55; color: rgba(255, 255, 255, .66); }
+.genrit-steps { margin-top: 26px; display: flex; flex-direction: column; gap: 4px; list-style: none; padding: 0; }
+.genrit-step { display: flex; align-items: center; gap: 12px; padding: 9px 0; font-size: 14.5px;
+  color: rgba(255, 255, 255, .38); transition: color .4s ease; }
+.genrit-step.now { color: rgba(255, 255, 255, .92); }
+.genrit-step.done { color: rgba(255, 255, 255, .62); }
+.genrit-ic { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, .18); font-size: 12px; font-weight: 700; color: #7fd4a8; transition: all .4s ease; }
+.genrit-step.done .genrit-ic { border-color: rgba(127, 212, 168, .5); background: rgba(127, 212, 168, .1); }
+.genrit-step.now .genrit-ic { border-color: rgba(233, 69, 96, .55); }
+.genrit-spin { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #E94560; border-top-color: transparent;
+  animation: genrit-spin .8s linear infinite; }
+@keyframes genrit-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .genrit-spin { animation: none; } }

@@ -533,7 +533,7 @@ export function ItineraryDashboard({
     const busiest = counts.slice().sort((a, b) => b.c - a.c)[0];
     const pace = String((profilingInput as any)?.pace ?? "").toLowerCase();
     const sens = String((profilingInput as any)?._l1?.sensation ?? "").toLowerCase();
-    const relaxed = pace.includes("relax") || /relax|slow|stacc|disconn|lento|lentezza|quiet|calm/.test(sens);
+    const relaxed = pace.includes("relax") || /relax|slow|stacc|disconn|lento|lentezza|quiet|calm|silenz|silence|respiro|breath/.test(sens);
     if (relaxed && busiest && avg > 0 && busiest.c >= Math.ceil(avg * 1.4) && busiest.c >= 4) {
       return {
         text: it ? `Il Giorno ${busiest.n} è il più pieno, ma cercavi relax. Lo alleggerisco?` : `Day ${busiest.n} is the fullest, yet you wanted to slow down. Want me to lighten it?`,

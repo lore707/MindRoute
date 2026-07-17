@@ -28,10 +28,13 @@ import { setFlow } from "@/lib/flow-storage";
 import { track } from "@/lib/analytics";
 import { useToast } from "@/hooks/use-toast";
 import { questionThemes } from "./profiling/questionThemes";
+import { GenerationRitual } from "@/components/GenerationRitual";
 
 type Mode = "meta" | "surprise";
 type Lang = "it" | "en";
 const L = (lang: Lang, it: string, en: string) => (lang === "it" ? it : en);
+// Query param (dev/preview: ?mode, ?gen, ?noanim).
+const qp = (k: string): string | null => { try { return new URLSearchParams(window.location.search).get(k); } catch { return null; } };
 
 // Risolve l'immagine di sfondo da una chiave-tema (gli stessi scatti del quiz).
 const themeImg = (key: string) =>
@@ -39,18 +42,25 @@ const themeImg = (key: string) =>
 
 type Opt = { id: string; it: string; en: string; emoji: string; theme: string; meta_it?: string; meta_en?: string };
 
+// 6 sensazioni MUTUAMENTE ESCLUSIVE, una per direzione del profilo (assi del
+// trait engine): quiete, natura, meraviglia, cultura, adrenalina, fuori rotta.
+// Prima "Staccare la spina" e "Rallentare" erano quasi la stessa risposta
+// (fuse in "quiet") e "Uscire dalla routine" non discriminava (in viaggio lo
+// vogliono tutti) → al suo posto "Capire un posto" (asse social/cultura, che
+// mancava del tutto) e "Fuori rotta" (asse exposure).
 const SENSATIONS: Opt[] = [
-  { id: "disconnect", it: "Staccare la spina", en: "Disconnect", emoji: "🌙", theme: "quiet", meta_it: "silenzio, lentezza, respiro", meta_en: "silence, slowness, breath" },
-  { id: "nature", it: "Natura vera", en: "Real nature", emoji: "🌲", theme: "nature", meta_it: "foreste, vette, acqua", meta_en: "forests, peaks, water" },
-  { id: "wonder", it: "Meravigliarmi", en: "Be amazed", emoji: "✨", theme: "explorative", meta_it: "qualcosa che toglie il fiato", meta_en: "something breathtaking" },
-  { id: "slow", it: "Rallentare", en: "Slow down", emoji: "🍃", theme: "slowdown", meta_it: "nessuna sveglia, nessuna fretta", meta_en: "no alarms, no rush" },
-  { id: "routine", it: "Uscire dalla routine", en: "Break the routine", emoji: "⚡", theme: "chaotic", meta_it: "cambiare aria, davvero", meta_en: "a real change of air" },
-  { id: "alive", it: "Sentirmi vivo", en: "Feel alive", emoji: "🔥", theme: "adventure", meta_it: "adrenalina, intensità", meta_en: "adrenaline, intensity" },
+  { id: "quiet",   it: "Silenzio e respiro", en: "Silence & breath", emoji: "🌙", theme: "quiet", meta_it: "staccare, rallentare, zero sveglie", meta_en: "switch off, slow down, no alarms" },
+  { id: "nature",  it: "Natura vera", en: "Real nature", emoji: "🌲", theme: "nature", meta_it: "foreste, vette, acqua", meta_en: "forests, peaks, water" },
+  { id: "wonder",  it: "Meravigliarmi", en: "Be amazed", emoji: "✨", theme: "explorative", meta_it: "posti che tolgono il fiato", meta_en: "places that take your breath away" },
+  { id: "culture", it: "Capire un posto", en: "Understand a place", emoji: "🏺", theme: "cultural", meta_it: "persone, cucina, storie vere", meta_en: "people, food, true stories" },
+  { id: "alive",   it: "Sentirmi vivo", en: "Feel alive", emoji: "🔥", theme: "adventure", meta_it: "adrenalina, intensità", meta_en: "adrenaline, intensity" },
+  { id: "offbeat", it: "Fuori rotta", en: "Off the beaten path", emoji: "🧭", theme: "offgrid", meta_it: "niente folla, niente ovvio", meta_en: "no crowds, nothing obvious" },
 ];
 
+// "4–5 giorni" rimosso: era lo stesso tempo del weekend lungo, ripetitivo.
+// Niente 21+: la generazione è tarata per restare veloce (scelta di prodotto).
 const DURATIONS: (Opt & { days: number })[] = [
   { id: "weekend", it: "Weekend lungo", en: "Long weekend", emoji: "🌆", theme: "city", days: 4, meta_it: "3–4 giorni", meta_en: "3–4 days" },
-  { id: "4-5", it: "4–5 giorni", en: "4–5 days", emoji: "🏛", theme: "cultural", days: 5, meta_it: "una fuga vera", meta_en: "a proper escape" },
   { id: "week", it: "Una settimana", en: "One week", emoji: "🌿", theme: "nature", days: 7, meta_it: "il classico", meta_en: "the classic" },
   { id: "10-14", it: "10–14 giorni", en: "10–14 days", emoji: "🧭", theme: "adventure", days: 12, meta_it: "tempo per perdersi", meta_en: "time to get lost" },
   { id: "unsure", it: "Non lo so ancora", en: "Not sure yet", emoji: "🎲", theme: "anywhere", days: 7, meta_it: "decidiamo insieme", meta_en: "we'll decide together" },
@@ -95,8 +105,8 @@ export default function QuizFast() {
   // scompone e ne verifica la fattibilità in fase di generazione.
   const [budgetTotal, setBudgetTotal] = useState("");
 
-  const [generating, setGenerating] = useState(false);
-  const [genMsg, setGenMsg] = useState("");
+  // ?gen=1 = anteprima della schermata di attesa (solo per verifica visiva).
+  const [generating, setGenerating] = useState(() => { try { return new URLSearchParams(window.location.search).get("gen") === "1"; } catch { return false; } });
 
   const steps = useMemo<string[]>(() => {
     if (!mode) return ["mode"];
@@ -155,12 +165,16 @@ export default function QuizFast() {
     const bud = BUDGETS.find((b) => b.id === budget);
     const sens = SENSATIONS.find((s) => s.id === sensation);
     const sensLabel = sens ? `${sens.it} / ${sens.en}` : "";
+    // emotional_goals come TOKEN PULITI: titolo IT + EN (mappati sui vettori
+    // del trait engine in shared/traits.ts) + descrizione (segnale ricco per
+    // il matcher: "niente folla, niente ovvio" discrimina più del titolo).
+    const sensGoals = sens ? [sens.it, sens.en, sens.meta_it ?? ""].filter(Boolean) : [];
     // Path marker coerente col matcher storico: meta → path_b (ha una meta),
     // surprise → path_a (aperto). La logica delle 3 destinazioni (3 angoli per
     // città precisa via specific_place, 3 mete dal profilo per surprise) resta
     // quella originale di generateDestinationsOnly.
     const answers: string[] = [mode === "meta" ? "path_b" : "path_a"];
-    if (mode === "surprise" && sens) answers.push(JSON.stringify({ emotional_goals: [sensLabel], pace: "balanced" }));
+    if (mode === "surprise" && sens) answers.push(JSON.stringify({ emotional_goals: sensGoals, pace: "balanced" }));
     else if (mode === "meta" && city.trim()) answers.push(JSON.stringify({ specific_place: city.trim() }));
     // Cifra totale opzionale: solo numeri, >0.
     const totalNum = parseInt(budgetTotal.replace(/[^\d]/g, ""), 10);
@@ -187,18 +201,11 @@ export default function QuizFast() {
     } as Record<string, any>;
   };
 
-  const genMessages = lang === "it"
-    ? ["Leggo cosa cerchi…", "Confronto con il tuo profilo…", "Cerco le 3 mete giuste per te…", "Quasi pronto…"]
-    : ["Reading what you're after…", "Matching your profile…", "Finding your 3 destinations…", "Almost there…"];
-
   // Fine L1 → genera le 3 destinazioni con la logica originale (matcher) e porta
   // a /destinations per la scelta 1-di-3. La generazione dell'itinerario e L2
   // restano sulla pagina successiva, identiche al flusso storico.
   const runGen = async () => {
     setGenerating(true);
-    let mi = 0;
-    setGenMsg(genMessages[0]);
-    const iv = setInterval(() => { mi = Math.min(mi + 1, genMessages.length - 1); setGenMsg(genMessages[mi]); }, 8000);
     try {
       const profile = buildProfile();
       setFlow("mind_profiling_input", JSON.stringify(profile));
@@ -211,10 +218,8 @@ export default function QuizFast() {
       if (!Array.isArray(dests) || dests.length === 0) throw new Error("no destinations");
       setFlow("mind_destinations", JSON.stringify(dests));
       track("quiz_completed", { path: mode === "meta" ? "fast_meta" : "fast_surprise" });
-      clearInterval(iv);
       setLocation("/destinations");
     } catch (err) {
-      clearInterval(iv);
       setGenerating(false);
       toast({ title: L(lang, "Qualcosa è andato storto. Riprova.", "Something went wrong. Try again."), variant: "destructive" });
     }
@@ -237,13 +242,20 @@ export default function QuizFast() {
   );
 
   if (generating) {
+    // Attesa narrativa: passi REALI del matching (profilo → confronto → scelta).
+    // L'ultimo non si spunta mai da timer: si completa navigando al risultato.
     return (
       <div className="quiz-cinematic" style={{ position: "relative", minHeight: "100vh" }}>
         {Bg}
-        <div style={{ position: "relative", zIndex: 5, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px", textAlign: "center" }}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", border: "2px solid #E94560", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
-          <p className="qc-q-sub" style={{ marginTop: 26, justifyContent: "center", maxWidth: 460 }}>{genMsg}</p>
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <div style={{ position: "relative", zIndex: 5, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
+          <GenerationRitual
+            lede={L(lang, "Abbiamo capito abbastanza.", "We've understood enough.")}
+            sub={L(lang, "Ora lasciaci trovare le mete che ti somigliano.", "Now let us find the places that feel like you.")}
+            stepMs={7000}
+            steps={lang === "it"
+              ? ["Leggo cosa cerchi", "Confronto i luoghi che ti somigliano", "Scelgo le tue 3 destinazioni"]
+              : ["Reading what you're after", "Comparing places that feel like you", "Choosing your 3 destinations"]}
+          />
         </div>
       </div>
     );
@@ -267,8 +279,14 @@ export default function QuizFast() {
             <span className="qc-count">{stepIdx + 1} / {total}</span>
           </div>
 
+          {/* ?noanim=1 (solo preview headless): senza, l'exit di AnimatePresence
+              non completa sotto virtual-time e lo step vecchio resta a schermo. */}
           <AnimatePresence mode="wait">
-            <motion.div key={current} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.4 }}>
+            <motion.div key={current}
+              initial={qp("noanim") === "1" ? false : { opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={qp("noanim") === "1" ? undefined : { opacity: 0, y: -12 }}
+              transition={{ duration: qp("noanim") === "1" ? 0 : 0.4 }}>
 
               {current === "mode" && (
                 <>
@@ -316,8 +334,9 @@ export default function QuizFast() {
               {current === "city" && (
                 <>
                   <div className="qc-q-head">
+                    <span className="qc-ack">{L(lang, "Idee chiare. Mi piace.", "Clear ideas. I like it.")}</span>
                     <span className="qc-q-eyebrow"><strong>{L(lang, "La meta", "Destination")}</strong></span>
-                    <h1 className="qc-q-title">{L(lang, "Dove ti porta la ", "Where's your mind ")}<em>{L(lang, "testa?", "taking you?")}</em></h1>
+                    <h1 className="qc-q-title">{L(lang, "C'è già un posto che ti ", "Is there a place already ")}<em>{L(lang, "chiama?", "calling you?")}</em></h1>
                     <p className="qc-q-sub">{L(lang, "Una città, un'isola, un paese. Lo modelliamo su di te.", "A city, an island, a country. We'll shape it around you.")}</p>
                   </div>
                   <div style={{ maxWidth: 560 }}>
@@ -381,6 +400,22 @@ export default function QuizFast() {
               )}
 
               {(current === "sensation" || current === "duration" || current === "budget") && (() => {
+                // Micro-copy di continuità: una riga DERIVATA dalla scelta
+                // precedente (statica, zero attese) — l'AI "sta già pensando",
+                // non sta compilando un database.
+                const sensPicked = SENSATIONS.find((s) => s.id === sensation);
+                const durAckMap: Record<string, [string, string]> = {
+                  weekend: ["Weekend lungo: dritti al punto.", "Long weekend: straight to the point."],
+                  week: ["Una settimana: c'è respiro.", "One week: room to breathe."],
+                  "10-14": ["Dieci giorni e più: possiamo perderci.", "Ten days and more: we can get lost."],
+                  unsure: ["Sul tempo decidiamo noi. Ci sta.", "We'll pick the timing. Fair."],
+                };
+                const ack =
+                  current === "sensation" ? L(lang, "Ci pensiamo noi. Partiamo da te.", "Leave it to us. We start from you.")
+                  : current === "duration" ? (mode === "meta" && city.trim()
+                      ? L(lang, `«${city.trim()}». Costruiamolo su misura.`, `“${city.trim()}”. Let's tailor it.`)
+                      : sensPicked ? L(lang, `${sensPicked.it}: è già una direzione.`, `${sensPicked.en}: that's already a direction.`) : "")
+                  : (duration && durAckMap[duration]) ? L(lang, durAckMap[duration][0], durAckMap[duration][1]) : "";
                 const cfg =
                   current === "sensation"
                     ? { eyebrow: L(lang, "L'emozione", "The feeling"), titleA: L(lang, "Che sensazione stai ", "What feeling are you "), titleB: L(lang, "cercando?", "after?"), sub: L(lang, "È la domanda più MindRoute di tutte. Niente filtri.", "The most MindRoute question of all. No filters."), opts: SENSATIONS, sel: sensation, pick: (id: string) => { setSensation(id); setTimeout(goNext, 260); } }
@@ -390,10 +425,13 @@ export default function QuizFast() {
                     // dal bottone esplicito qui sotto. Prima il chip auto-generava, ma
                     // chi tornava indietro o compilava partenza/cifra DOPO la scelta
                     // restava senza alcun tasto "avanti".
-                    : { eyebrow: L(lang, "Il budget", "Budget"), titleA: L(lang, "Quanto ti va di ", "How much do you feel like "), titleB: L(lang, "spendere?", "spending?"), sub: L(lang, "Serve solo per il tono. Il resto lo affiniamo dopo.", "Just for the tone. We refine the rest later."), opts: BUDGETS, sel: budget, pick: (id: string) => { setBudget(id); } };
+                    // Framing emozionale, non finanziario: il budget è una
+                    // conseguenza dello stile di viaggio (le fasce lo sono già).
+                    : { eyebrow: L(lang, "Il budget", "Budget"), titleA: L(lang, "Come vuoi ", "How do you want to "), titleB: L(lang, "vivertelo?", "live it?"), sub: L(lang, "Serve solo per il tono. Il resto lo affiniamo dopo.", "Just for the tone. We refine the rest later."), opts: BUDGETS, sel: budget, pick: (id: string) => { setBudget(id); } };
                 return (
                   <>
                     <div className="qc-q-head">
+                      {ack && <span className="qc-ack">{ack}</span>}
                       <span className="qc-q-eyebrow"><strong>{cfg.eyebrow}</strong></span>
                       <h1 className="qc-q-title">{cfg.titleA}<em>{cfg.titleB}</em></h1>
                       {cfg.sub && <p className="qc-q-sub">{cfg.sub}</p>}
