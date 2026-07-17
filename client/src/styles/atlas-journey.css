@@ -313,3 +313,8 @@
   .account-dash .coll2-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 16px; }
   .account-dash .coll2-stats .cs-world { grid-column: 1 / -1; margin-left: 0; justify-content: flex-start; }
 }
+
+/* iOS/Android: barra URL dinamica — dvh segue il viewport reale in fullscreen. */
+@supports (height: 100dvh) {
+  .account-dash .atlasmap.fs .atlas-mapcard { height: calc(100dvh - 40px); }
+}

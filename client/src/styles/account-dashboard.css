@@ -1183,3 +1183,15 @@
   .mr-skel .sk-row,.mr-skel .sk-row.three{grid-template-columns:1fr}
   .mr-skel .sk-card{height:130px}
 }
+
+/* ── Audit mobile 2026-07-17: affordance di scroll sulle strip ──
+   Le righe scrollabili con scrollbar invisibile sembravano "tagliate":
+   su touch una scrollbar sottile rende visibile che si puo' scorrere. */
+@media (max-width:767px){
+  .account-dash .p3-tabs{scrollbar-width:thin;scrollbar-color:var(--stroke-2) transparent;padding-bottom:4px}
+  .account-dash .p3-tabs::-webkit-scrollbar{display:block;height:4px}
+  .account-dash .p3-tabs::-webkit-scrollbar-thumb{background:var(--stroke-2);border-radius:4px}
+  .account-dash .cp-row{scrollbar-width:thin;scrollbar-color:var(--stroke-2) transparent}
+  .account-dash .cp-row::-webkit-scrollbar{display:block;height:4px}
+  .account-dash .cp-row::-webkit-scrollbar-thumb{background:var(--stroke-2);border-radius:4px}
+}

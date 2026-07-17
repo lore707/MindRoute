@@ -177,3 +177,8 @@
   .account-dash .jr-thumb { display: none; }
   .account-dash .jr-seg-btn { font-size: 12.5px; padding: 11px 10px; }
 }
+
+/* iOS/Android: la barra URL dinamica falsa il vh — dvh segue il viewport reale. */
+@supports (height: 100dvh) {
+  .account-dash .jr-sheet { max-height: 90dvh; }
+}
