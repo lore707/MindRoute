@@ -217,6 +217,31 @@ const MOCK_RAW = {
 
 export default function DevPreview() {
   const view = (() => { try { return new URLSearchParams(window.location.search).get("view"); } catch { return null; } })();
+  const debug = (() => { try { return new URLSearchParams(window.location.search).get("debug") === "1"; } catch { return false; } })();
+  if (debug) {
+    setTimeout(() => {
+      const vw = document.documentElement.clientWidth;
+      const sw = document.documentElement.scrollWidth;
+      const culprits: string[] = [`vw=${vw} sw=${sw}`];
+      if (sw > vw + 1) {
+        for (const el of Array.from(document.querySelectorAll("*"))) {
+          const r = el.getBoundingClientRect();
+          if (r.width > vw + 1 || r.right > vw + 8) {
+            culprits.push(`${el.tagName.toLowerCase()}.${String((el as HTMLElement).className || "").slice(0, 44)} w=${Math.round(r.width)} r=${Math.round(r.right)}`);
+            if (culprits.length >= 14) break;
+          }
+        }
+      }
+      let box = document.getElementById("ovf-debug");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "ovf-debug";
+        box.style.cssText = "position:fixed;top:0;left:0;z-index:99999;background:#000;color:#0f0;font:10px monospace;padding:6px;max-width:96vw;white-space:pre;";
+        document.body.appendChild(box);
+      }
+      box.textContent = culprits.join("\n");
+    }, 2500);
+  }
   if (view === "journey") {
     return (
       <div className="account-dash itinerary-dash">

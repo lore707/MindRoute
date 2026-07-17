@@ -71,6 +71,13 @@ type Props = {
    *  (sync Story→Map) e notifica i click sui marker (sync Map→Story). */
   selectedMomentId?: string | null;
   onSelectMoment?: (momentId: string | null) => void;
+  /** Journey: il pannello mappa può stare in display:none (mobile parte su
+   *  Story). Quando torna visibile Leaflet ha misurato 0 → su false→true
+   *  rimisuriamo e re-inquadriamo il giorno. Default true (usi standalone). */
+  active?: boolean;
+  /** Journey: il contenitore ha già i suoi day-tab → nasconde la barra giorni
+   *  interna (e con lei l'opzione "Tutti", che lì creava stati incoerenti). */
+  hideDayBar?: boolean;
 };
 
 // Categoria → colore + glifo. Coerenti con i token editoriali del dashboard.
@@ -191,7 +198,7 @@ function legLabelIcon(minutes: number, profile: "foot" | "car"): L.DivIcon {
   });
 }
 
-export default function RouteMap({ points, center, destination, itineraryId, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment }: Props) {
+export default function RouteMap({ points, center, destination, itineraryId, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, active = true, hideDayBar = false }: Props) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -229,6 +236,15 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
 
   const setDay = (d: number | null) => { setActiveDay(d); setSelected(null); onDayChange?.(d); };
 
+  // Sync CONTROLLATO del giorno (Journey): il giorno cambia dai day-tab del
+  // contenitore → allinea lo stato interno SENZA rimontare il componente
+  // (prima c'era un remount per giorno: mappa ricreata, tile ricaricate,
+  // cache rotte persa). Niente onDayChange qui: eviterebbe un rimbalzo.
+  useEffect(() => {
+    if (initialDay == null) return;
+    setActiveDay(prev => (prev === initialDay ? prev : initialDay));
+  }, [initialDay]);
+
   // Sync CONTROLLATO (Journey): selectedMomentId dall'esterno → evidenzia il
   // punto e vola su di esso. undefined = modalità non controllata (nessun sync).
   useEffect(() => {
@@ -239,6 +255,23 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
       mapRef.current.flyTo([p.lat, p.lng], Math.max(mapRef.current.getZoom(), 15), { duration: 0.4 });
     }
   }, [selectedMomentId, points]);
+
+  // Il pannello torna visibile (Journey, mobile: Story→Mappa): Leaflet aveva
+  // misurato un contenitore a size 0 → rimisura e re-inquadra il giorno.
+  // Senza questo la mappa appariva grigia/mal centrata (il bug "mappa rotta").
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!active || !map) return;
+    const id = window.setTimeout(() => {
+      map.invalidateSize();
+      const pts = dayStops.length > 0 ? dayStops : visible;
+      const latlngs = pts.map(p => [p.lat, p.lng] as L.LatLngTuple);
+      if (latlngs.length === 1) map.setView(latlngs[0], 15);
+      else if (latlngs.length > 1) map.fitBounds(L.latLngBounds(latlngs), { padding: [60, 60], maxZoom: 16 });
+    }, 90); // dopo il reflow del display:none→block
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
 
   // Alloggio (ancora): il pin lodging del giorno attivo, altrimenti globale.
   const lodgingPt = useMemo(() => {
@@ -358,6 +391,16 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     mapRef.current = map;
     setTimeout(() => map.invalidateSize(), 80);
 
+    // Zoom con Ctrl/Cmd+rotella (pattern standard delle mappe embedded): lo
+    // scroll della pagina resta libero, ma la mappa non sembra più "inerte".
+    const onWheel = (ev: WheelEvent) => {
+      if (!ev.ctrlKey && !ev.metaKey) return;
+      ev.preventDefault();
+      const delta = ev.deltaY < 0 ? 1 : -1;
+      map.setZoomAround(map.mouseEventToLatLng(ev as any), map.getZoom() + delta);
+    };
+    elRef.current.addEventListener("wheel", onWheel, { passive: false });
+
     map.on("popupopen", (e: any) => {
       const root: HTMLElement = e.popup.getElement();
       if (!root) return;
@@ -375,6 +418,7 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
       if (del) del.onclick = () => removeSaved(parseInt(del.dataset.id || "0", 10));
     });
 
+    const wheelEl = elRef.current;
     if (!first && destination) {
       let cancelled = false;
       fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(destination)}`, { headers: { Accept: "application/json" } })
@@ -385,9 +429,9 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
           if (!isNaN(lat) && !isNaN(lng)) map.setView([lat, lng], 12, { animate: true });
         })
         .catch(() => {});
-      return () => { cancelled = true; map.remove(); mapRef.current = null; };
+      return () => { cancelled = true; wheelEl?.removeEventListener("wheel", onWheel); map.remove(); mapRef.current = null; };
     }
-    return () => { map.remove(); mapRef.current = null; };
+    return () => { wheelEl?.removeEventListener("wheel", onWheel); map.remove(); mapRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -541,7 +585,11 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
 
   useEffect(() => {
     const map = mapRef.current;
-    if (map) setTimeout(() => map.invalidateSize(), 60);
+    if (map) {
+      setTimeout(() => map.invalidateSize(), 60);
+      // In fullscreen non c'è pagina da scrollare: rotella libera per lo zoom.
+      if (fullscreen) map.scrollWheelZoom.enable(); else map.scrollWheelZoom.disable();
+    }
     if (!fullscreen) return;
     const onKey = (ev: KeyboardEvent) => { if (ev.key === "Escape") setFullscreen(false); };
     window.addEventListener("keydown", onKey);
@@ -615,8 +663,9 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
   return (
     <div ref={wrapRef} className={"rmap-wrap" + (fullscreen ? " rmap-wrap--full" : "")}>
       {/* Barra giorni — IN FLUSSO sopra la mappa (mai flottante: su phone i
-          chip si sovrapponevano a toolbar e risultati di ricerca). */}
-      {days.length > 1 && (
+          chip si sovrapponevano a toolbar e risultati di ricerca). Nascosta
+          nel Journey (hideDayBar): lì i giorni li governa il contenitore. */}
+      {!hideDayBar && days.length > 1 && (
         <div className="rmap-days">
           <button className={"rmap-day" + (activeDay == null ? " on" : "")} onClick={() => setDay(null)}>
             {lang === "it" ? "Tutti" : "All"}

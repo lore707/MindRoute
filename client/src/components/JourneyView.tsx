@@ -53,7 +53,15 @@ export function JourneyView({ data, itinerary, itineraryId, savedMomentIds, onTo
     return s;
   };
 
-  const isDesktop = useMemo(() => typeof window !== "undefined" && window.matchMedia("(min-width:1024px)").matches, []);
+  // Reattivo (non una tantum): ruotando il tablet o ridimensionando la
+  // finestra il layout e il comportamento del segmented si adeguano.
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width:1024px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width:1024px)");
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   const days = data.days ?? [];
   // Override URL SOLO per la preview dev degli screenshot (innocuo altrove).
@@ -66,6 +74,14 @@ export function JourneyView({ data, itinerary, itineraryId, savedMomentIds, onTo
   const [selectedId, setSelectedId] = useState<string | null>(null); // tappa evidenziata (condivisa)
   const [detailId, setDetailId] = useState<string | null>(qp("jdetail"));     // tappa aperta nel dettaglio
   const storyRef = useRef<HTMLDivElement | null>(null);
+
+  // Passaggio a desktop con mode=story: su desktop Story è permanente a
+  // sinistra e il segmented governa solo la destra → normalizza su "map".
+  useEffect(() => { if (isDesktop && mode === "story") setMode("map"); }, [isDesktop, mode]);
+
+  // La mappa è davvero visibile quando il suo pannello non è display:none:
+  // desktop = sempre tranne Logistica; mobile = solo in modalità Mappa.
+  const mapActive = isDesktop ? mode !== "logistics" : mode === "map";
 
   const day = days.find(d => d.n === activeDay) ?? days[0];
   const moments = useMemo(() => data.momentsByDay[activeDay] ?? [], [data.momentsByDay, activeDay]);
@@ -226,11 +242,15 @@ export function JourneyView({ data, itinerary, itineraryId, savedMomentIds, onTo
   const MapPanel = () => (
     <div className="jr-mapwrap">
       <Suspense fallback={<div className="jr-map-loading">{t("jr.mapLoading")}</div>}>
+        {/* NIENTE key per giorno: il remount ricreava la mappa a ogni switch
+            (flash, tile ricaricate, cache rotte persa). Il giorno ora fluisce
+            via initialDay (sync controllato interno a RouteMap). */}
         <RouteMap
-          key={`jr-rm-${activeDay}`}
           points={routePoints} center={data.mapCenter} destination={data.destination}
           itineraryId={itineraryId} t={t} lang={lang as "it" | "en"}
           initialDay={activeDay}
+          active={mapActive}
+          hideDayBar
           selectedMomentId={selectedId}
           onSelectMoment={(id) => { setSelectedId(id); if (id && isDesktop) setDetailId(id); }}
           onDayChange={(d) => { if (d != null && d !== activeDay) selectDay(d); }}
@@ -386,13 +406,16 @@ export function JourneyView({ data, itinerary, itineraryId, savedMomentIds, onTo
 
       {days.length > 1 && (
         <div className="jr-daytabs">
-          {days.map(d => (
-            <button key={d.n} className={"jr-daytab" + (activeDay === d.n ? " on" : "")} onClick={() => selectDay(d.n)}>
-              {d.arc && <span className="ar">{d.arc}</span>}
-              <span className="dn">{tx("jr.day", { n: d.n })}</span>
-              <span className="dt">{d.date || d.title}</span>
-            </button>
-          ))}
+          {days.map(d => {
+            const nStops = (data.momentsByDay[d.n] ?? []).length;
+            return (
+              <button key={d.n} className={"jr-daytab" + (activeDay === d.n ? " on" : "")} onClick={() => selectDay(d.n)}>
+                {d.arc && <span className="ar">{d.arc}</span>}
+                <span className="dn">{tx("jr.day", { n: d.n })}{nStops > 0 && <span className="ct">{nStops}</span>}</span>
+                <span className="dt">{d.date || d.title}</span>
+              </button>
+            );
+          })}
         </div>
       )}
 
