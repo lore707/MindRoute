@@ -17,9 +17,21 @@ export function fetchMe(): Promise<AuthUser> {
   if (!mePromise) {
     mePromise = fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        // Ultimo stato noto: alla prossima apertura la home monta SUBITO la
+        // vista giusta (landing o dashboard) invece di uno spinner in attesa
+        // di /api/auth/me (che con il DB a freddo può durare secondi).
+        try { localStorage.setItem("mr_auth", data ? "1" : "0"); } catch { /* private mode */ }
+        return data;
+      })
       .catch(() => null);
   }
   return mePromise;
+}
+
+// Stima istantanea (sincrona) dello stato di login, dall'ultima sessione.
+export function lastKnownAuth(): boolean {
+  try { return localStorage.getItem("mr_auth") === "1"; } catch { return false; }
 }
 
 // Stato di login condiviso. /api/auth/me ritorna 401 da anonimo → user=null.

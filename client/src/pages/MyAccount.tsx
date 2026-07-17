@@ -520,9 +520,24 @@ export default function MyAccount() {
   };
 
   if (loading) {
+    // Skeleton del layout (non uno spinner): anticipa la struttura della
+    // dashboard con uno shimmer discreto — l'attesa sembra parte del design.
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "transparent" }}>
-        <div className="w-8 h-8 border-2 border-[#E94560] border-t-transparent rounded-full animate-spin" />
+      <div className="mr-skel" aria-busy="true" aria-label="Loading">
+        <div className="sk-side" />
+        <div className="sk-main">
+          <div className="sk-topbar" />
+          <div className="sk-hero" />
+          <div className="sk-row">
+            <div className="sk-card" />
+            <div className="sk-card" />
+          </div>
+          <div className="sk-row three">
+            <div className="sk-card sm" />
+            <div className="sk-card sm" />
+            <div className="sk-card sm" />
+          </div>
+        </div>
       </div>
     );
   }

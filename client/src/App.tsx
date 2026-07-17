@@ -9,7 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Layout } from "@/components/Layout";
 import { RequireAuth } from "@/components/RequireAuth";
 import { CookieBanner } from "@/components/CookieBanner";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, lastKnownAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 
@@ -51,9 +51,15 @@ function PageFallback() {
 // Home auth-aware: l'utente loggato atterra direttamente sulla dashboard
 // (MyAccount), l'anonimo sulla landing pubblica. Il vero gate resta lato
 // server; qui scegliamo solo cosa montare alla rotta "/".
+//
+// NIENTE schermata di caricamento: mentre /api/auth/me è in volo (secondi, col
+// DB a freddo) montiamo SUBITO la vista più probabile — l'ultimo stato noto.
+// Se al resolve la stima era sbagliata (login/logout avvenuto altrove), la
+// vista si scambia da sola: caso raro, costa un cambio di schermata, non
+// un'attesa a vuoto per tutti.
 function Home() {
   const { user, loading } = useAuth();
-  if (loading) return <PageFallback />;
+  if (loading) return lastKnownAuth() ? <MyAccount /> : <Landing />;
   return user ? <MyAccount /> : <Landing />;
 }
 

@@ -1157,3 +1157,29 @@
   .account-dash .cp-card{flex:0 0 78%;scroll-snap-align:start}
   .account-dash .cp-hint{display:none}
 }
+
+/* ── Skeleton della dashboard (MyAccount in caricamento) ──
+   Anticipa la struttura reale con uno shimmer discreto: niente spinner
+   solitario su pagina vuota. Colori coerenti con .account-dash. */
+.mr-skel{display:flex;min-height:100vh;background:#0d070d}
+.mr-skel .sk-side{width:76px;flex:none;border-right:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015)}
+.mr-skel .sk-main{flex:1;min-width:0;padding:18px 28px;display:flex;flex-direction:column;gap:18px}
+.mr-skel .sk-topbar{height:52px;border-radius:14px}
+.mr-skel .sk-hero{height:300px;border-radius:22px}
+.mr-skel .sk-row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.mr-skel .sk-row.three{grid-template-columns:1fr 1fr 1fr}
+.mr-skel .sk-card{height:170px;border-radius:18px}
+.mr-skel .sk-card.sm{height:120px}
+.mr-skel .sk-topbar,.mr-skel .sk-hero,.mr-skel .sk-card{
+  background:linear-gradient(100deg,rgba(255,255,255,.035) 35%,rgba(255,255,255,.075) 50%,rgba(255,255,255,.035) 65%);
+  background-size:220% 100%;animation:mr-skel-shimmer 1.6s ease-in-out infinite;
+  border:1px solid rgba(255,255,255,.045)}
+@keyframes mr-skel-shimmer{from{background-position:130% 0}to{background-position:-90% 0}}
+@media (prefers-reduced-motion:reduce){.mr-skel .sk-topbar,.mr-skel .sk-hero,.mr-skel .sk-card{animation:none}}
+@media (max-width:767px){
+  .mr-skel .sk-side{display:none}
+  .mr-skel .sk-main{padding:14px 16px}
+  .mr-skel .sk-hero{height:220px}
+  .mr-skel .sk-row,.mr-skel .sk-row.three{grid-template-columns:1fr}
+  .mr-skel .sk-card{height:130px}
+}

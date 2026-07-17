@@ -245,6 +245,20 @@ export default function DevPreview() {
       box.textContent = culprits.join("\n");
     }, 2500);
   }
+  // Skeleton della dashboard (stato loading di MyAccount): ?view=skel
+  if (view === "skel") {
+    return (
+      <div className="mr-skel" aria-busy="true">
+        <div className="sk-side" />
+        <div className="sk-main">
+          <div className="sk-topbar" />
+          <div className="sk-hero" />
+          <div className="sk-row"><div className="sk-card" /><div className="sk-card" /></div>
+          <div className="sk-row three"><div className="sk-card sm" /><div className="sk-card sm" /><div className="sk-card sm" /></div>
+        </div>
+      </div>
+    );
+  }
   // Itinerario completo (Panoramica + banner L2): ?view=itinerary (&rmin=1 = badge mini)
   if (view === "itinerary") {
     const mockProfile = { days: 5, budget: "medium", departure: "Milano", _l1: { mode: "meta", city: "Salonicco" } };

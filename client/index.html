@@ -106,12 +106,18 @@
       </div>
     </div>
     <script>
-      // The shell only makes sense on the landing ("/"). On any other route
-      // (deep links, dashboard, etc.) drop it before paint so it never flashes.
-      if (location.pathname !== '/') {
-        var ph = document.getElementById('pre-hero');
-        if (ph) ph.remove();
-      }
+      // The shell only makes sense on the ANONYMOUS landing ("/"). On any other
+      // route (deep links, dashboard) — or when the last known session was
+      // logged-in (the "/" will mount the dashboard, not the landing) — drop it
+      // before paint so the marketing hero never flashes.
+      (function () {
+        var authed = false;
+        try { authed = localStorage.getItem('mr_auth') === '1'; } catch (e) {}
+        if (location.pathname !== '/' || authed) {
+          var ph = document.getElementById('pre-hero');
+          if (ph) ph.remove();
+        }
+      })();
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
