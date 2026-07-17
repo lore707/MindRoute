@@ -14,6 +14,8 @@ import "@/styles/itinerary-dashboard.css";
 import "@/styles/journey.css";
 import { AccountDashboard } from "@/components/AccountDashboard";
 import { JourneyView } from "@/components/JourneyView";
+import { ItineraryDashboard } from "@/components/ItineraryDashboard";
+import { RefinePanel } from "@/components/RefinePanel";
 import QuizFast from "@/pages/QuizFast";
 import type { AccountData } from "@/components/AccountCinematic";
 import type { ItineraryData } from "@/components/ItineraryCinematic";
@@ -242,6 +244,19 @@ export default function DevPreview() {
       }
       box.textContent = culprits.join("\n");
     }, 2500);
+  }
+  // Itinerario completo (Panoramica + banner L2): ?view=itinerary (&rmin=1 = badge mini)
+  if (view === "itinerary") {
+    const mockProfile = { days: 5, budget: "medium", departure: "Milano", _l1: { mode: "meta", city: "Salonicco" } };
+    return (
+      <div className="account-dash itinerary-dash" style={{ minHeight: "100vh" }}>
+        <ItineraryDashboard
+          data={MOCK_ITIN} itinerary={MOCK_RAW} affiliateUrls={{}} profilingInput={mockProfile}
+          itineraryId={2} savedMomentIds={new Set()} onToggleSaved={() => {}}
+        />
+        <RefinePanel itineraryId={2} profilingInput={mockProfile} schemaVersion={2} lang="it" onRefined={() => {}} />
+      </div>
+    );
   }
   // Quiz L1 senza auth-gate (il gate vive in App.tsx): ?view=quiz&mode=…&gen=1
   // Lo <style> forza visibile il contenuto animato da framer-motion: sotto

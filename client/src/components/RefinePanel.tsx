@@ -119,6 +119,29 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState(false);
+  // Su phone il banner pieno copriva il contenuto in basso senza via d'uscita:
+  // la ✕ lo riduce a un mini-badge circolare (la % resta visibile e cliccabile,
+  // mai un vicolo cieco). Scelta persistita per itinerario.
+  const [minimized, setMinimized] = useState<boolean>(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get("rmin") === "1") return true; // preview dev
+      return localStorage.getItem(`mr_refine_min_${itineraryId}`) === "1";
+    } catch { return false; }
+  });
+  const minimize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMinimized(true);
+    try { localStorage.setItem(`mr_refine_min_${itineraryId}`, "1"); } catch { /* private mode */ }
+  };
+
+  // Punto di rientro INTEGRATO: la card "profilo" nella Panoramica del
+  // dashboard apre il questionario via evento (stesso pattern del companion).
+  useEffect(() => {
+    const h = () => { reset(); setOpen(true); };
+    window.addEventListener("mindroute:open-refine", h);
+    return () => window.removeEventListener("mindroute:open-refine", h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Stato del questionario sequenziale ────────────────────────────────────
   const [draft, setDraft] = useState<Record<string, any>>({});
@@ -262,20 +285,43 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
   const optimisticPct = optimistic.pct;
   const allDone = coverage.open.length === 0;
 
-  // ── Banner fisso (sempre visibile finché il profilo non è pieno) ──────────
-  const Banner = (
+  // ── Banner fisso ──────────────────────────────────────────────────────────
+  // Pieno finché l'utente non lo riduce con la ✕ → poi mini-badge circolare
+  // (la % resta visibile; tap = apre il questionario). La casa "vera" del
+  // profiling profondo è comunque la card nella Panoramica del dashboard.
+  const Banner = minimized ? (
     <motion.button
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      onClick={openPanel}
+      data-testid="refine-open-mini"
+      title={allDone
+        ? L(lang, "Profilo completo", "Profile complete")
+        : L(lang, `Ti somiglia al ${pct}% — completa il profilo`, `${pct}% you — complete your profile`)}
+      aria-label={L(lang, "Completa il profilo", "Complete your profile")}
+      className="fixed z-[120] bottom-5 left-24 max-md:left-4 max-md:bottom-[76px] flex flex-col items-center justify-center w-11 h-11 rounded-full shadow-[0_10px_30px_rgba(233,69,96,0.35)] border border-[#E94560]/50 cursor-pointer"
+      style={{ background: "linear-gradient(120deg, rgba(20,12,18,0.94), rgba(40,16,28,0.94))", backdropFilter: "blur(10px)" }}
+    >
+      {allDone
+        ? <Sparkles className="w-4 h-4 text-[#E94560]" />
+        : <span className="text-[11px] font-bold text-white leading-none">{pct}%</span>}
+    </motion.button>
+  ) : (
+    <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={openPanel}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") openPanel(); }}
       data-testid="refine-open"
       // Ancorato a sinistra (libero dalla sidebar), NON al centro: al centro
       // copriva le card del piano; su phone sta sopra la bottom-nav (≤767px)
       // e non collide col companion FAB/toast che vivono a destra.
-      className="fixed z-[120] bottom-5 left-24 max-md:left-4 max-md:bottom-[76px] flex items-center gap-3 px-5 py-3 rounded-full shadow-[0_12px_40px_rgba(233,69,96,0.35)] border border-[#E94560]/40 cursor-pointer"
+      className="fixed z-[120] bottom-5 left-24 max-md:left-4 max-md:bottom-[76px] max-md:right-auto flex items-center gap-3 pl-4 pr-9 py-3 rounded-full shadow-[0_12px_40px_rgba(233,69,96,0.35)] border border-[#E94560]/40 cursor-pointer"
       style={{ background: "linear-gradient(120deg, rgba(20,12,18,0.92), rgba(40,16,28,0.92))", backdropFilter: "blur(10px)" }}
     >
-      <span className="relative flex items-center justify-center w-9 h-9 rounded-full bg-[#E94560]/15">
+      <span className="relative flex items-center justify-center w-9 h-9 rounded-full bg-[#E94560]/15 shrink-0">
         <Sparkles className="w-4 h-4 text-[#E94560]" />
       </span>
       <span className="text-left">
@@ -291,11 +337,20 @@ export function RefinePanel({ itineraryId, profilingInput, schemaVersion, lang, 
         )}
       </span>
       {!allDone && (
-        <span className="ml-1 w-14 h-1.5 rounded-full bg-white/15 overflow-hidden">
+        <span className="ml-1 w-14 h-1.5 rounded-full bg-white/15 overflow-hidden max-md:hidden">
           <span className="block h-full bg-[#E94560]" style={{ width: `${pct}%` }} />
         </span>
       )}
-    </motion.button>
+      {/* ✕ riduci: hit-area 32px, non apre il pannello */}
+      <button
+        onClick={minimize}
+        data-testid="refine-minimize"
+        aria-label={L(lang, "Riduci", "Minimise")}
+        className="absolute top-1/2 -translate-y-1/2 right-1.5 w-8 h-8 grid place-items-center rounded-full text-white/55 hover:text-white hover:bg-white/10 text-[15px] leading-none"
+      >
+        ✕
+      </button>
+    </motion.div>
   );
 
   // ── Sfondo cinematic (come L1) ────────────────────────────────────────────

@@ -19,11 +19,12 @@ import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from "re
 import { useLocation } from "wouter";
 import {
   Compass, Layers, CalendarDays, Map as MapIcon, Backpack, Ticket,
-  ExternalLink, Pencil, Printer, Share2, RotateCcw, Heart, ArrowLeft,
+  ExternalLink, Pencil, Printer, Share2, RotateCcw, Heart, ArrowLeft, Sparkles,
 } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
 import { apiRequest } from "@/lib/queryClient";
 import { shouldAskCheckin } from "@shared/trip-status";
+import { computeCoverage } from "@shared/profile-coverage";
 import { useI18n } from "@/lib/i18n";
 import type { ItineraryData, Moment } from "./ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
@@ -345,6 +346,12 @@ export function ItineraryDashboard({
   // Il PDF completo si sblocca con gli essenziali veri: volo + alloggio confermati.
   const pdfUnlocked = !!(checked.flight && checked.hotel);
 
+  // Profiling profondo (L2): la card in Panoramica è la CASA permanente del
+  // "completa il profilo" — il banner flottante è solo l'invito, riducibile.
+  // Coverage reale dal profilo; solo per itinerari v2 (refine disponibile).
+  const refineCoverage = useMemo(() => computeCoverage(profilingInput ?? {}), [profilingInput]);
+  const refineAvailable = (itinerary as any)?.schemaVersion === 2 && refineCoverage.pct < 100;
+
   // Un CTA di prenotazione (dai Giorni o dalla card sulla Mappa) registra il
   // CLICK sulla voce corrispondente della sezione Prenota: è il click che
   // sblocca la conferma manuale (e il server lo pretende).
@@ -626,6 +633,25 @@ export function ItineraryDashboard({
             lang={lang}
             onAnswered={onDatesConfirmed}
           />
+
+          {/* Profiling profondo — punto di rientro PERMANENTE (non notifica):
+              anche chi chiude il banner flottante ritrova qui il percorso. */}
+          {refineAvailable && (
+            <button
+              className="it-refine"
+              data-testid="overview-refine"
+              onClick={() => window.dispatchEvent(new Event("mindroute:open-refine"))}
+            >
+              <span className="ic"><Sparkles size={17} /></span>
+              <span className="tx">
+                <span className="t">{tx("itd.refine.t", { pct: refineCoverage.pct })}</span>
+                <span className="s">{tx("itd.refine.sub", { n: refineCoverage.open.length })}</span>
+              </span>
+              <span className="bar"><span style={{ width: `${refineCoverage.pct}%` }} /></span>
+              <span className="cta">{t("itd.refine.cta")} →</span>
+            </button>
+          )}
+
           {data.manifesto && (
             <section className="sec">
               <div className="sec-head">

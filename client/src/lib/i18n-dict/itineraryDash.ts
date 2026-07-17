@@ -38,6 +38,11 @@ export const itineraryDashDict: Record<string, { en: string; it: string }> = {
 
   // ── Why ──────────────────────────────────────────────────────────────────
   "itd.why.eyebrow":  { en: "Why this place is yours", it: "Perché questo posto ti somiglia" },
+
+  // Profiling profondo (L2) — card integrata in Panoramica
+  "itd.refine.t":   { en: "This trip is {pct}% you", it: "Questo viaggio ti somiglia al {pct}%" },
+  "itd.refine.sub": { en: "{n} questions to make it truly yours — whenever you like.", it: "{n} domande per renderlo davvero tuo — quando vuoi." },
+  "itd.refine.cta": { en: "Complete your profile", it: "Completa il profilo" },
   "itd.why.highlightsMark": { en: "What makes it special", it: "Cosa lo rende speciale" },
   "itd.arc.eyebrow":  { en: "The emotional arc", it: "L'arco emotivo" },
 
