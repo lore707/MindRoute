@@ -203,3 +203,113 @@
 @media (max-width: 1023px) {
   .account-dash .atlas-tv-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   COLLEZIONE UNICA "I miei viaggi" (2026-07-18) — due prospettive
+   (griglia + mappa) sugli stessi dati. Header/stat/filtri/timeline
+   condivisi. La mappa e' AtlasMap: solo marker + pannello flottante.
+   ══════════════════════════════════════════════════════════════ */
+
+/* AtlasMap: contenitore + pannello dettaglio flottante */
+.account-dash .atlasmap { position: relative; }
+.account-dash .atlasmap .atlas-mapcard { margin: 0; }
+.account-dash .atlas-maphint { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 500;
+  display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-dim);
+  background: rgba(13, 9, 16, .7); border: 1px solid var(--stroke-2); border-radius: 999px; padding: 7px 14px; backdrop-filter: blur(8px); }
+
+.account-dash .atlas-detail { position: absolute; top: 16px; right: 16px; z-index: 620; width: 330px; max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px); overflow-y: auto; scrollbar-width: thin;
+  border: 1px solid var(--stroke-2); border-radius: 18px;
+  background: linear-gradient(180deg, rgba(20, 14, 22, .94), rgba(13, 7, 13, .92)); backdrop-filter: blur(16px);
+  box-shadow: 0 24px 64px -22px rgba(0, 0, 0, .75); animation: atlas-detail-in .28s cubic-bezier(.2,.7,.2,1); }
+@keyframes atlas-detail-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes atlas-detail-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+/* AtlasMap fullscreen */
+.account-dash .atlasmap.fs { position: fixed; inset: 0; z-index: 2000; padding: 20px; overflow: auto;
+  background: radial-gradient(120% 100% at 80% 0%, rgba(122, 16, 32, .18), transparent 55%), #0a070d; }
+.account-dash .atlasmap.fs .atlas-mapcard { height: calc(100vh - 40px); }
+.account-dash .atlasmap.fs .atlas-map { height: 100%; }
+
+/* Collezione: header + switcher */
+.account-dash .coll2-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px 24px; flex-wrap: wrap; margin-bottom: 18px; }
+.account-dash .coll2-crumbs { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+.account-dash .coll2-crumbs .on { color: var(--accent); }
+.account-dash .coll2-title { font-family: var(--serif); font-size: clamp(30px, 4vw, 46px); font-weight: 400; line-height: 1.02; }
+.account-dash .coll2-title em { font-style: italic; color: var(--accent); }
+.account-dash .coll2-sub { font-size: 14px; color: var(--ink-dim); margin-top: 8px; }
+.account-dash .coll2-top-r { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.account-dash .coll2-switch { display: inline-flex; gap: 4px; background: rgba(13, 9, 16, .5); border: 1px solid var(--stroke); border-radius: 12px; padding: 4px; }
+.account-dash .vsw { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-dim);
+  border-radius: 9px; padding: 9px 16px; min-height: 42px; cursor: pointer; transition: all .18s; }
+.account-dash .vsw svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.account-dash .vsw.on { background: var(--accent); color: #fff; box-shadow: 0 6px 18px -8px var(--accent); }
+
+/* Statistiche */
+.account-dash .coll2-stats { display: flex; align-items: center; gap: 14px 30px; flex-wrap: wrap;
+  padding: 16px 22px; border: 1px solid var(--stroke); border-radius: 16px; background: var(--card); margin-bottom: 18px; }
+.account-dash .coll2-stats .cs { display: flex; flex-direction: column; gap: 2px; }
+.account-dash .coll2-stats .cs .n { font-family: var(--serif); font-size: 26px; line-height: 1; color: var(--ink); }
+.account-dash .coll2-stats .cs .n.gold { color: var(--gold); }
+.account-dash .coll2-stats .cs .l { font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-faint); }
+.account-dash .coll2-stats .cs-world { flex-direction: row; align-items: center; gap: 12px; margin-left: auto; }
+.account-dash .coll2-stats .cs-ring { width: 46px; height: 46px; flex: none; }
+.account-dash .coll2-stats .cs-world-tx { display: flex; flex-direction: column; gap: 2px; }
+
+/* Filtri (riusa .coll-search/.coll-tabs) + ordinamento */
+.account-dash .coll2-filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.account-dash .coll2-filters .coll-search { flex: 1; min-width: 220px; }
+.account-dash .coll2-sort { position: relative; margin-left: auto; }
+.account-dash .coll2-sort-btn { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink);
+  background: rgba(13, 9, 16, .5); border: 1px solid var(--stroke-2); border-radius: 999px; padding: 10px 16px; min-height: 42px; cursor: pointer; }
+.account-dash .coll2-sort-btn .ca { color: var(--ink-faint); }
+.account-dash .coll2-sort-menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 50; min-width: 170px;
+  background: rgba(18, 12, 20, .97); border: 1px solid var(--stroke-2); border-radius: 12px; padding: 5px; backdrop-filter: blur(12px);
+  box-shadow: 0 18px 44px -18px rgba(0, 0, 0, .7); }
+.account-dash .coll2-sort-menu button { display: block; width: 100%; text-align: left; font-size: 13px; color: var(--ink-dim);
+  border-radius: 8px; padding: 9px 12px; cursor: pointer; }
+.account-dash .coll2-sort-menu button:hover { background: rgba(255, 255, 255, .05); color: var(--ink); }
+.account-dash .coll2-sort-menu button.on { color: var(--accent); }
+
+/* Corpo: crossfade griglia + mappa */
+.account-dash .coll2-body { animation: coll-fade .32s ease; }
+@keyframes coll-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.account-dash .coll2-maploading { min-height: 520px; border: 1px solid var(--stroke); border-radius: 20px; background: #08060c; }
+
+/* Timeline condivisa (filtro temporale) */
+.account-dash .coll2-timeline { margin-top: 22px; border: 1px solid var(--stroke); border-radius: 18px; background: var(--card); padding: 16px 18px; }
+.account-dash .ct-track { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+.account-dash .ct-track::-webkit-scrollbar { display: none; }
+.account-dash .ct-all { flex: none; display: inline-flex; align-items: center; padding: 0 18px; font-size: 14px; font-weight: 600; color: var(--ink-dim);
+  border: 1px solid var(--stroke); border-radius: 14px; background: rgba(13, 9, 16, .4); cursor: pointer; transition: all .18s; }
+.account-dash .ct-all.on { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+.account-dash .ct-year { flex: none; display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 78px;
+  padding: 10px 12px; border: 1px solid var(--stroke); border-radius: 14px; background: rgba(13, 9, 16, .4); cursor: pointer; transition: all .18s; }
+.account-dash .ct-year.on { border-color: var(--accent); background: var(--accent-soft); }
+.account-dash .ct-year:hover { border-color: var(--stroke-2); }
+.account-dash .ct-dots { display: flex; gap: 3px; height: 8px; align-items: center; }
+.account-dash .ct-dot { width: 6px; height: 6px; border-radius: 50%; }
+.account-dash .ct-y { font-family: var(--serif); font-size: 17px; color: var(--ink); }
+.account-dash .ct-n { font-size: 10px; font-weight: 700; color: #fff; background: rgba(255, 255, 255, .12); border-radius: 999px; padding: 1px 7px; }
+.account-dash .ct-year.on .ct-n { background: var(--accent); }
+.account-dash .ct-hint { margin-top: 10px; font-size: 12px; color: var(--ink-faint); }
+
+/* Responsive collezione */
+@media (max-width: 900px) {
+  .account-dash .coll2-top-r { width: 100%; justify-content: space-between; }
+  .account-dash .coll2-stats { gap: 12px 20px; }
+  .account-dash .coll2-stats .cs .n { font-size: 22px; }
+}
+@media (max-width: 767px) {
+  .account-dash .atlas-detail { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-width: none;
+    max-height: 64vh; animation: atlas-detail-up .28s cubic-bezier(.2,.7,.2,1); }
+  .account-dash .atlas-maphint { display: none; }
+  .account-dash .coll2-switch { flex: 1; }
+  .account-dash .vsw { flex: 1; justify-content: center; }
+  .account-dash .coll2-new { display: none; }
+  .account-dash .coll2-sort { margin-left: 0; }
+  .account-dash .coll2-filters .coll-search { min-width: 100%; }
+  /* Stat: griglia 2 colonne, il "mondo" a piena larghezza (niente overflow). */
+  .account-dash .coll2-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 16px; }
+  .account-dash .coll2-stats .cs-world { grid-column: 1 / -1; margin-left: 0; justify-content: flex-start; }
+}

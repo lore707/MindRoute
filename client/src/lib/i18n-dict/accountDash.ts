@@ -109,11 +109,29 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.portrait.traitsHint": { en: "How much each dimension weighs in your choices.", it: "Quanto pesa ogni dimensione nelle tue scelte." },
 
   // ── Collection view ─────────────────────────────────────────────────────
-  "acd.coll.eyebrow":  { en: "The collection", it: "La collezione" },
+  "acd.coll.eyebrow":  { en: "Your atlas", it: "Il tuo atlante" },
   "acd.coll.title":    { en: "My <em class='gold'>trips</em>.", it: "I miei <em class='gold'>viaggi</em>." },
+  "acd.coll.tagline":  { en: "Your collection of experiences around the world.", it: "La tua collezione di esperienze nel mondo." },
   "acd.coll.sub":      { en: "{n} {nu} · {d} dreamed {dw}. Search, filter, reopen.", it: "{n} {nu} · {d} {dw} di sogno. Cerca, filtra, riapri." },
-  "acd.coll.search":   { en: "Search destination…", it: "Cerca destinazione…" },
-  "acd.coll.empty":    { en: "No trips in this region… yet.", it: "Nessun viaggio in questa regione… ancora." },
+  "acd.coll.search":   { en: "Search your trips, places, memories…", it: "Cerca tra i tuoi viaggi, luoghi, ricordi…" },
+  "acd.coll.empty":    { en: "No trips with these filters… yet.", it: "Nessun viaggio con questi filtri… ancora." },
+  // View Mode: griglia ↔ mappa (stessi dati, prospettiva diversa)
+  "acd.coll.viewLabel": { en: "View mode", it: "Modalità di visualizzazione" },
+  "acd.coll.viewCards": { en: "Grid", it: "Griglia" },
+  "acd.coll.viewAtlas": { en: "Atlas", it: "Atlas" },
+  // Statistiche della collezione
+  "acd.coll.stat.itineraries":  { en: "Itineraries", it: "Itinerari" },
+  "acd.coll.stat.days":         { en: "Travel days", it: "Giorni di viaggio" },
+  "acd.coll.stat.destinations": { en: "Destinations", it: "Destinazioni" },
+  "acd.coll.stat.continents":   { en: "Continents", it: "Continenti" },
+  "acd.coll.stat.world":        { en: "of the world explored", it: "del mondo esplorato" },
+  // Ordinamento
+  "acd.coll.sort.recent": { en: "Most recent", it: "Più recenti" },
+  "acd.coll.sort.impact": { en: "Most intense", it: "Più intensi" },
+  "acd.coll.sort.alpha":  { en: "A–Z", it: "A–Z" },
+  // Timeline condivisa (filtro temporale)
+  "acd.coll.tlHint":    { en: "Scroll the years to filter your collection.", it: "Scorri gli anni per filtrare la collezione." },
+  "acd.coll.tlViewing": { en: "Viewing {y} · {n} {nu}.", it: "Stai vedendo il {y} · {n} {nu}." },
   "acd.region.all":    { en: "All", it: "Tutti" },
   "acd.region.europe": { en: "Europe", it: "Europa" },
   "acd.region.asia":   { en: "Asia", it: "Asia" },

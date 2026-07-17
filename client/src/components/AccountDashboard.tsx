@@ -25,13 +25,15 @@ import { getLastOpenedItinerary } from "@/lib/last-opened";
 import type { AccountData } from "./AccountCinematic";
 
 const AccountAtlas = lazy(() => import("./AccountAtlas").then(m => ({ default: m.AccountAtlas })));
-const AtlasJourney = lazy(() => import("./AtlasJourney").then(m => ({ default: m.AtlasJourney })));
+const AtlasMap = lazy(() => import("./AtlasMap").then(m => ({ default: m.AtlasMap })));
 
 // background-image helper: ridimensiona le Unsplash per lo slot reale.
 const bg = (url: string, w: number, q = 70) => `url(${unsplashSized(url, w, q)})`;
 const AMBIENT_MAX = 5;
 
-type ViewId = "home" | "resume" | "portrait" | "trips" | "atlas";
+// Atlas non è più una sezione: è una View Mode dentro "I miei viaggi".
+type ViewId = "home" | "resume" | "portrait" | "trips";
+type ViewMode = "cards" | "atlas";
 
 // Continenti memorizzati lato server, sempre in italiano (vedi AccountCinematic).
 const CONTINENT_VALUES: Record<string, string> = {
@@ -41,6 +43,13 @@ const CONTINENT_KEY: Record<string, string> = {
   Europa: "europe", Asia: "asia", Africa: "africa", Americhe: "americas", Oceania: "oceania",
 };
 const REGION_TABS = ["all", "europe", "asia", "africa", "americas", "oceania"] as const;
+
+// Colore emozione (tag utente) — allineato ad AtlasMap; qui a livello modulo
+// per non tirare il chunk lazy della mappa dentro il bundle principale.
+const ATLAS_EMO_COLOR: Record<string, string> = {
+  "life-changing": "#E94560", meaningful: "#9D7EBC", loved: "#6FB4A8", "not-for-me": "#8a5560", revisited: "#D4A853",
+};
+const atlasEmoColor = (e?: string | null): string => (e && ATLAS_EMO_COLOR[e]) || "#9aa0b4";
 
 /* ──────────────── icone inline (stroked) ──────────────── */
 const ICONS: Record<string, string[]> = {
@@ -62,7 +71,6 @@ const NAV: Array<{ id: ViewId; ic: keyof typeof ICONS; key: string }> = [
   { id: "resume", ic: "resume", key: "acd.nav.resume" },
   { id: "portrait", ic: "portrait", key: "acd.nav.portrait" },
   { id: "trips", ic: "trips", key: "acd.nav.trips" },
-  { id: "atlas", ic: "atlas", key: "acd.nav.atlas" },
 ];
 
 // Le 5 "missioni" della checklist prenotazioni (stessi id scritti da
@@ -203,9 +211,26 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   const [view, setView] = useState<ViewId>(() => {
     try {
       const v = new URLSearchParams(window.location.search).get("view");
-      if (v && ["home", "resume", "portrait", "trips", "atlas"].includes(v)) return v as ViewId;
+      if (v === "atlas") return "trips"; // vecchi link Atlas → collezione (View Mode gestita sotto)
+      if (v && ["home", "resume", "portrait", "trips"].includes(v)) return v as ViewId;
     } catch { /* SSR/no window */ }
     return "home";
+  });
+  // View Mode della collezione "I miei viaggi": griglia di card ↔ mappa Atlas.
+  // Non è una route né una sezione: è un cambio di prospettiva sugli STESSI dati.
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("view") === "atlas" || p.get("vm") === "atlas") return "atlas";
+    } catch { /* SSR */ }
+    return "cards";
+  });
+  type SortMode = "recent" | "impact" | "alpha";
+  const [sort, setSort] = useState<SortMode>("recent");
+  const [sortOpen, setSortOpen] = useState(false);
+  // Filtro temporale condiviso (la timeline): vale per griglia, mappa e stat.
+  const [focusYear, setFocusYear] = useState<number | null>(() => {
+    try { const y = new URLSearchParams(window.location.search).get("ayear"); return y ? Number(y) : null; } catch { return null; }
   });
   // Tab del Ritratto v4 — una tab = una domanda (riorg. 2026-07-15):
   // Panoramica (chi sei) · Evoluzione (come sei cambiato) · Pattern (come
@@ -395,12 +420,68 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     return key ? t("acd.region." + key) : stored;
   };
 
-  // Filtro collezione (region + ricerca)
-  const filteredTrips = useMemo(() => data.trips.filter(tr => {
-    if (region !== "all" && tr.continent !== CONTINENT_VALUES[region]) return false;
-    if (q && !tr.dest.toLowerCase().includes(q.toLowerCase())) return false;
-    return true;
-  }), [data.trips, region, q]);
+  // Anno del viaggio (da rawDate) — chiave della timeline temporale.
+  const tripYear = (tr: AccountData["trips"][number]): number | null =>
+    tr.rawDate ? new Date(tr.rawDate).getFullYear() : null;
+
+  // Cuori per itinerario → proxy di impatto (stesso criterio della mappa),
+  // usato per l'ordinamento "più intensi".
+  const heartsByItin = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const mo of (data.savedMoments ?? [])) m.set(mo.itineraryId, (m.get(mo.itineraryId) ?? 0) + 1);
+    return m;
+  }, [data.savedMoments]);
+  const tripImpact = (tr: AccountData["trips"][number]): number => {
+    const id = Number((tr.href || "").match(/\/itinerary\/(\d+)/)?.[1]);
+    const hearts = Number.isFinite(id) ? (heartsByItin.get(id) ?? 0) : 0;
+    return hearts * 2 + (tr.taken ? 1 : 0) + daysOf(tr.duration) / 7;
+  };
+
+  // Filtro collezione CONDIVISO (region + ricerca + anno) → vale per griglia
+  // E mappa E statistiche. Poi ordinamento.
+  const filteredTrips = useMemo(() => {
+    const out = data.trips.filter(tr => {
+      if (region !== "all" && tr.continent !== CONTINENT_VALUES[region]) return false;
+      if (q && !tr.dest.toLowerCase().includes(q.toLowerCase())) return false;
+      if (focusYear != null && tripYear(tr) !== focusYear) return false;
+      return true;
+    });
+    const by = {
+      recent: (a: typeof out[number], b: typeof out[number]) => (b.rawDate ? +new Date(b.rawDate) : 0) - (a.rawDate ? +new Date(a.rawDate) : 0),
+      impact: (a: typeof out[number], b: typeof out[number]) => tripImpact(b) - tripImpact(a),
+      alpha: (a: typeof out[number], b: typeof out[number]) => a.dest.localeCompare(b.dest),
+    }[sort];
+    return [...out].sort(by);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.trips, region, q, focusYear, sort, heartsByItin]);
+
+  // Statistiche della collezione — riflettono il FILTRO attivo (si aggiornano
+  // con timeline/regione/ricerca). Derivate dai dati reali.
+  const collStats = useMemo(() => {
+    const itineraries = filteredTrips.length;
+    const days = filteredTrips.reduce((a, tr) => a + daysOf(tr.duration), 0);
+    const destinations = new Set(filteredTrips.map(tr => tr.dest).filter(Boolean)).size;
+    const continents = new Set(filteredTrips.map(tr => tr.continent).filter(Boolean)).size;
+    const worldPct = Math.round((continents / 7) * 100);
+    return { itineraries, days, destinations, continents, worldPct };
+  }, [filteredTrips]);
+
+  // Anni presenti nella collezione (per la timeline), con conteggio per anno
+  // sull'insieme NON filtrato per anno (region+ricerca sì) così i pallini restano.
+  const yearData = useMemo(() => {
+    const base = data.trips.filter(tr => {
+      if (region !== "all" && tr.continent !== CONTINENT_VALUES[region]) return false;
+      if (q && !tr.dest.toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    });
+    const m = new Map<number, Array<{ id: number; color: string }>>();
+    for (const tr of base) {
+      const y = tripYear(tr); if (y == null) continue;
+      const id = Number((tr.href || "").match(/\/itinerary\/(\d+)/)?.[1]) || 0;
+      const arr = m.get(y) ?? []; arr.push({ id, color: atlasEmoColor(tr.emotion) }); m.set(y, arr);
+    }
+    return Array.from(m.entries()).sort((a, b) => a[0] - b[0]).map(([year, dots]) => ({ year, dots }));
+  }, [data.trips, region, q]);
 
   const featured = data.continueItems[0];
   const resumeRest = data.continueItems.slice(1);
@@ -780,7 +861,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
             <div className="h2-card h2-atlas">
               <div className="h2-card-head">
                 <h3>{t("acd.h2.atlasK")}</h3>
-                <button className="h2-link" onClick={() => go("atlas")}>{t("acd.h2.viewAll")} →</button>
+                <button className="h2-link" onClick={() => { setViewMode("atlas"); go("trips"); }}>{t("acd.h2.viewAll")} →</button>
               </div>
               {(data.atlas?.places?.length ?? 0) > 0 && <div className="h2-atlas-map" ref={miniMapEl} />}
               <div className="h2-atlas-stats">
@@ -1476,46 +1557,12 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     );
   };
 
-  /* ──────────────── VIAGGI ──────────────── */
-  const CollectionView = () => (
-    <div className="view">
-      <ViewHead
-        gold
-        eyebrow={t("acd.coll.eyebrow")}
-        title={t("acd.coll.title")}
-        sub={tx("acd.coll.sub", {
-          n: data.trips.length,
-          nu: t(data.trips.length === 1 ? "acd.unit.itinerary" : "acd.unit.itineraries"),
-          d: counts.days,
-          dw: t(counts.days === 1 ? "acd.unit.day" : "acd.unit.days"),
-        })}
-        right={<button className="btn-p" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>}
-      />
-      <div className="content">
-        <section>
-          <div className="coll-bar">
-            <div className="coll-search">
-              <Icon name="search" />
-              <input placeholder={t("acd.coll.search")} value={q} onChange={e => setQ(e.target.value)} />
-            </div>
-            <div className="coll-tabs">
-              {REGION_TABS.map(r => (
-                <button key={r} className={"coll-tab" + (region === r ? " on" : "")} onClick={() => setRegion(r)}>
-                  {t("acd.region." + r)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="coll-grid">
-            {filteredTrips.length === 0 && <div className="c-empty">{t("acd.coll.empty")}</div>}
-            {filteredTrips.map((tr, i) => <TripCard key={i} tr={tr} />)}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+  /* ──────────────── I MIEI VIAGGI — collezione unica, due prospettive ────
+     Una sola sezione. "Cards" e "Atlas" sono View Mode degli STESSI dati:
+     header, statistiche, filtri, ricerca e timeline sono CONDIVISI; cambia
+     solo la rappresentazione del corpo (griglia ↔ mappa). Atlas non è più
+     una pagina a sé. */
 
-  /* ──────────────── ATLANTE (narrativo, redesign 2026-07) ──────────────── */
   // Salva l'emozione del viaggio (tag utente) in tripMeta via endpoint.
   const saveTripEmotion = (itineraryId: number, emotion: string | null) => {
     fetch(`/api/itinerary/${itineraryId}/emotion`, {
@@ -1523,28 +1570,115 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
       body: JSON.stringify({ emotion }),
     }).catch(() => { /* best-effort: lo stato locale è già aggiornato */ });
   };
-  const AtlasView = () => (
-    <div className="view">
-      <div className="p3-head atlas-head">
-        <div className="p3-head-in">
-          <div className="p3-head-l">
-            <div className="r2-crumbs"><button onClick={() => go("home")}>‹ {t("acd.r2.crumbHome")}</button><span>—</span><span className="on">{t("acd.atlas.eyebrow")}</span></div>
-            <Html as="h1" className="p3-title" html={t("acd.atlas.h1")} />
-            <p className="p3-sub">{t("acd.atlas.sub")}</p>
+
+  const SORTS: SortMode[] = ["recent", "impact", "alpha"];
+
+  const CollectionView = () => (
+    <div className="view coll2">
+      {/* ── Header: titolo + View Switcher + azione ── */}
+      <div className="coll2-top">
+        <div className="coll2-head">
+          <div className="coll2-crumbs"><span className="hm">✦ {t("acd.r2.crumbHome")}</span><span>—</span><span className="on">{t("acd.coll.eyebrow")}</span></div>
+          <Html as="h1" className="coll2-title" html={t("acd.coll.title")} />
+          <p className="coll2-sub">{t("acd.coll.tagline")}</p>
+        </div>
+        <div className="coll2-top-r">
+          <div className="coll2-switch" role="tablist" aria-label={t("acd.coll.viewLabel")}>
+            <button role="tab" aria-selected={viewMode === "cards"} className={"vsw" + (viewMode === "cards" ? " on" : "")} onClick={() => setViewMode("cards")}>
+              <svg viewBox="0 0 24 24">{["M4 4h7v7H4z", "M13 4h7v7h-7z", "M4 13h7v7H4z", "M13 13h7v7h-7z"].map((d, i) => <path key={i} d={d} />)}</svg>
+              {t("acd.coll.viewCards")}
+            </button>
+            <button role="tab" aria-selected={viewMode === "atlas"} className={"vsw" + (viewMode === "atlas" ? " on" : "")} onClick={() => setViewMode("atlas")}>
+              <svg viewBox="0 0 24 24">{["M9 3 3.5 5.2v15.3L9 18.3l6 2.2 5.5-2.2V3L15 5.2 9 3z", "M9 3v15.3", "M15 5.2v15.3"].map((d, i) => <path key={i} d={d} />)}</svg>
+              {t("acd.coll.viewAtlas")}
+            </button>
           </div>
+          <button className="btn-p coll2-new" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>
         </div>
       </div>
-      <div className="p3-body">
-        <Suspense fallback={<div style={{ minHeight: 420 }} />}>
-          <AtlasJourney
-            atlas={data.atlas ?? null}
-            trips={data.trips}
-            savedMoments={data.savedMoments}
-            headline={data.traitHeadline}
-            onSaveEmotion={saveTripEmotion}
-          />
-        </Suspense>
+
+      {/* ── Statistiche (riflettono il filtro attivo) ── */}
+      <div className="coll2-stats">
+        <div className="cs"><span className="n">{collStats.itineraries}</span><span className="l">{t("acd.coll.stat.itineraries")}</span></div>
+        <div className="cs"><span className="n">{collStats.days}</span><span className="l">{t("acd.coll.stat.days")}</span></div>
+        <div className="cs"><span className="n">{collStats.destinations}</span><span className="l">{t("acd.coll.stat.destinations")}</span></div>
+        <div className="cs"><span className="n">{collStats.continents}</span><span className="l">{t("acd.coll.stat.continents")}</span></div>
+        <div className="cs cs-world">
+          <svg viewBox="0 0 40 40" className="cs-ring" aria-hidden="true">
+            <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="4" />
+            <circle cx="20" cy="20" r="16" fill="none" stroke="var(--gold)" strokeWidth="4" strokeLinecap="round"
+              strokeDasharray={`${(collStats.worldPct / 100) * 100.5} 100.5`} transform="rotate(-90 20 20)" />
+          </svg>
+          <span className="cs-world-tx"><span className="n gold">{collStats.worldPct}%</span><span className="l">{t("acd.coll.stat.world")}</span></span>
+        </div>
       </div>
+
+      {/* ── Filtri condivisi: ricerca + continenti + ordinamento ── */}
+      <div className="coll2-filters">
+        <div className="coll-search">
+          <Icon name="search" />
+          <input placeholder={t("acd.coll.search")} value={q} onChange={e => setQ(e.target.value)} />
+        </div>
+        <div className="coll-tabs">
+          {REGION_TABS.map(r => (
+            <button key={r} className={"coll-tab" + (region === r ? " on" : "")} onClick={() => setRegion(r)}>{t("acd.region." + r)}</button>
+          ))}
+        </div>
+        <div className="coll2-sort">
+          <button className="coll2-sort-btn" onClick={() => setSortOpen(v => !v)}>
+            {t("acd.coll.sort." + sort)} <span className="ca">▾</span>
+          </button>
+          {sortOpen && (
+            <div className="coll2-sort-menu" onMouseLeave={() => setSortOpen(false)}>
+              {SORTS.map(s => (
+                <button key={s} className={s === sort ? "on" : ""} onClick={() => { setSort(s); setSortOpen(false); }}>{t("acd.coll.sort." + s)}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Corpo: griglia ↔ mappa (crossfade) ── */}
+      <div className="coll2-body" key={viewMode}>
+        {viewMode === "cards" ? (
+          <div className="coll-grid">
+            {filteredTrips.length === 0 && <div className="c-empty">{t("acd.coll.empty")}</div>}
+            {filteredTrips.map((tr, i) => <TripCard key={tr.href ?? i} tr={tr} />)}
+          </div>
+        ) : (
+          <Suspense fallback={<div className="coll2-maploading" />}>
+            <AtlasMap
+              atlas={data.atlas ?? null}
+              trips={filteredTrips}
+              savedMoments={data.savedMoments}
+              onSaveEmotion={saveTripEmotion}
+              initialSelId={(() => { try { const s = new URLSearchParams(window.location.search).get("asel"); return s ? Number(s) : null; } catch { return null; } })()}
+              initialFullscreen={(() => { try { return new URLSearchParams(window.location.search).get("afs") === "1"; } catch { return false; } })()}
+            />
+          </Suspense>
+        )}
+      </div>
+
+      {/* ── Timeline condivisa: filtro temporale per griglia + mappa + stat ── */}
+      {yearData.length > 0 && (
+        <div className="coll2-timeline">
+          <div className="ct-track">
+            <button className={"ct-all" + (focusYear == null ? " on" : "")} onClick={() => setFocusYear(null)}>{t("acd.region.all")}</button>
+            {yearData.map(({ year, dots }) => (
+              <button key={year} className={"ct-year" + (focusYear === year ? " on" : "")} onClick={() => setFocusYear(focusYear === year ? null : year)}>
+                <span className="ct-dots">{dots.slice(0, 10).map((d, i) => <span key={i} className="ct-dot" style={{ background: d.color }} />)}</span>
+                <span className="ct-y">{year}</span>
+                <span className="ct-n">{dots.length}</span>
+              </button>
+            ))}
+          </div>
+          <div className="ct-hint">
+            {focusYear == null
+              ? t("acd.coll.tlHint")
+              : tx("acd.coll.tlViewing", { y: focusYear, n: collStats.itineraries, nu: t(collStats.itineraries === 1 ? "acd.unit.trip" : "acd.unit.trips") })}
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1653,7 +1787,6 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
         {view === "resume" && ResumeView()}
         {view === "portrait" && PortraitView()}
         {view === "trips" && CollectionView()}
-        {view === "atlas" && AtlasView()}
       </main>
 
       <nav className="mnav">
