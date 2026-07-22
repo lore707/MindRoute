@@ -18,7 +18,7 @@ import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory } from "../../shared/schema";
 import { requireAuth } from "../auth";
-import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, type AffiliateContext } from "../affiliate-config";
+import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, klookExperienceSearchUrl, type AffiliateContext } from "../affiliate-config";
 
 // Contesto affiliate esteso: oltre a checkin/checkout "di cortesia" (default a
 // +3 mesi, usati dagli altri provider come sempre), traccia le date REALI —
@@ -95,13 +95,17 @@ function rewriteMomentBooking(moment: MomentV2, affCtx: StayAffiliateContext): v
     return;
   }
 
-  // ESPERIENZE VIATOR: query composta dall'AI (mai un prodotto nominato) →
-  // ricerca free-text localizzata. Senza query degrada a "cosa fare a <città>";
-  // senza neanche la città il builder torna null → percorso Viator standard.
+  // ESPERIENZE VIATOR/KLOOK: query composta dall'AI (mai un prodotto nominato)
+  // → ricerca free-text localizzata. Senza query degrada a "cosa fare a
+  // <città>"; senza neanche la città il builder torna null → percorso
+  // standard del provider (catalogo città).
   const exp = b.experience_recommendation;
-  if (exp && /^viator$/i.test((b.provider ?? "").trim())) {
+  const expProvider = (b.provider ?? "").trim().toLowerCase();
+  if (exp && (expProvider === "viator" || expProvider === "klook")) {
     const city = (affCtx.destinationName ?? "").split(",")[0].trim();
-    const url = viatorExperienceSearchUrl({ searchQuery: exp.search_query, city, lang: affCtx.lang });
+    const url = expProvider === "klook"
+      ? klookExperienceSearchUrl({ searchQuery: exp.search_query, city, lang: affCtx.lang })
+      : viatorExperienceSearchUrl({ searchQuery: exp.search_query, city, lang: affCtx.lang });
     if (url) {
       b.affiliate_url = url;
       // Difesa anti-prodotto-finto: se la label CTA non riflette la categoria

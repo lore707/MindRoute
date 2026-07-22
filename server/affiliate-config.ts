@@ -67,6 +67,30 @@ export function viatorSearchUrl(text: string): string {
 // neanche la città, il chiamante resta sul percorso Viator precedente.
 const VIATOR_LOCALE_BY_LANG: Record<string, string> = { it: "it-IT", en: "en-US" };
 
+// ── Klook sulla QUERY COMPOSTA (experience_recommendation) ─────────────────
+// Stesso pattern di Viator per le regioni Asia: la query composta dall'AI apre
+// la ricerca free-text Klook invece del catalogo città. Formato verificato:
+// /<locale>/search/result/?query=…&search_scope=main_search (replicato as-is).
+// OBBLIGO TRACKING: sempre www.klook.com — il formato s.klook.com NON è
+// tracciabile (dichiarato da Klook), mai usarlo. Locale: it verificata
+// (account IT|EUR); en-US da confermare in prod; default it. Mai pagine
+// prodotto: solo search/result.
+const KLOOK_LOCALE_BY_LANG: Record<string, string> = { it: "it", en: "en-US" };
+
+export function klookExperienceSearchUrl(opts: {
+  searchQuery?: string;
+  city?: string;
+  lang?: string;
+}): string | null {
+  const lang = (opts.lang ?? "").trim().toLowerCase();
+  const locale = KLOOK_LOCALE_BY_LANG[lang] ?? "it";
+  const q = (opts.searchQuery ?? "").trim();
+  const city = (opts.city ?? "").trim();
+  const text = q || (city ? (lang === "en" ? `things to do in ${city}` : `cosa fare a ${city}`) : "");
+  if (!text) return null; // né query né città → il chiamante resta sul catalogo città attuale
+  return `https://www.klook.com/${locale}/search/result/?query=${encodeURIComponent(text)}&search_scope=main_search&aid=${AFFILIATES.klookAid}`;
+}
+
 export function viatorExperienceSearchUrl(opts: {
   searchQuery?: string;
   city?: string;
