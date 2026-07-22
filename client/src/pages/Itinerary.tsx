@@ -645,6 +645,14 @@ function buildMomentsV2(day: any, t: (k: string) => string, lang: "en" | "it", o
       lat: typeof m.location_lat === "number" ? m.location_lat : undefined,
       lng: typeof m.location_lng === "number" ? m.location_lng : undefined,
       endTime: typeof m.end_time === "string" && m.end_time.trim() ? m.end_time.trim() : undefined,
+      // Alloggio come criteri (stay_recommendation): pass-through per la scheda
+      // Prenota — zona, tipo, fascia, motivo. Mai il nome di una property.
+      stay: booking?.stay_recommendation ? {
+        district: (booking.stay_recommendation.district ?? "").trim() || undefined,
+        style: (booking.stay_recommendation.style ?? "").trim() || undefined,
+        budgetRange: (booking.stay_recommendation.budget_range ?? "").trim() || undefined,
+        why: (booking.stay_recommendation.why ?? "").trim() || undefined,
+      } : undefined,
     } as CinMoment;
   });
 }

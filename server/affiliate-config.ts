@@ -143,6 +143,39 @@ export function hotelsComUrl(city: string, checkin?: string, checkout?: string):
   return `https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=${encodeURIComponent(city)}${dateQs}`;
 }
 
+// ── Expedia Hotel-Search sui CRITERI dell'alloggio (stay_recommendation) ────
+// L'AI non nomina property: consiglia una ZONA. Questo link porta ai risultati
+// REALI e disponibili di Expedia per quella zona. Costruzione in 2 passi
+// obbligati: (1) URL Expedia completo e valido via URLSearchParams; (2) UNA
+// sola encodeURIComponent sull'intera stringa dentro url= — altrimenti CJ
+// tronca il link alla prima & non-encodata (rottura silenziosa).
+// Date SOLO se reali (mai inventate): senza date la ricerca zona+città vale
+// comunque. Zona mancante → degrada a città(+paese). Prezzo: i parametri di
+// filtro prezzo di Hotel-Search non sono documentati in modo stabile → OMESSI
+// (meglio una ricerca senza filtro che un URL rotto).
+export function expediaStaySearchUrl(opts: {
+  district?: string;
+  city: string;
+  country?: string;
+  checkin?: string;   // YYYY-MM-DD reale (dal quiz), MAI derivata da default
+  checkout?: string;  // YYYY-MM-DD derivata da checkin + notti reali
+  adults?: number;
+  rooms?: number;
+}): string {
+  const destination = [opts.district, opts.city, opts.country]
+    .map(s => (s ?? "").trim()).filter(Boolean).join(", ");
+  const p = new URLSearchParams();
+  p.set("destination", destination);
+  if (opts.checkin && opts.checkout) {
+    p.set("startDate", opts.checkin);
+    p.set("endDate", opts.checkout);
+  }
+  p.set("adults", String(opts.adults ?? 2));
+  p.set("rooms", String(opts.rooms ?? 1));
+  const expediaUrl = `https://www.expedia.com/Hotel-Search?${p.toString()}`;
+  return `https://www.tkqlhce.com/click-101710513-10581071?sid=mr-stay&url=${encodeURIComponent(expediaUrl)}`;
+}
+
 // ── CANONICAL PROVIDER RESOLVER ──────────────────────────────────────────
 // Single source of truth: dato un provider v2 (booking.provider) + il contesto
 // del viaggio, restituisce l'URL affiliato REALE — gli stessi formati usati dal

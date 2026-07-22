@@ -78,6 +78,16 @@ const weatherConditionSchema = looseEnum<WeatherCondition>(
   },
 ) satisfies z.ZodType<WeatherCondition>;
 
+// Alloggio = criteri di ricerca (mai un nome di property): zona, tipo, fascia,
+// motivo. Tollerante: campi con default "" così un oggetto parziale non fa
+// fallire l'intero itinerario; il rewrite server degrada di campo in campo.
+const stayRecommendationV2Schema = z.object({
+  district: z.string().default(""),
+  style: z.string().default(""),
+  budget_range: z.string().default(""),
+  why: z.string().default(""),
+});
+
 const bookingInfoV2Schema = z.object({
   // Free string — provider names are too varied/localized to enumerate without
   // failing valid itineraries ("tripadvisor", "trenitalia", "liberty lines",
@@ -86,6 +96,7 @@ const bookingInfoV2Schema = z.object({
   affiliate_url: z.string(),
   display_label: z.string(),
   status: bookingStatusSchema,
+  stay_recommendation: stayRecommendationV2Schema.optional(),
 });
 
 const transportToNextV2Schema = z.object({
@@ -326,6 +337,17 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
    GetYourGuide, NO restaurant partner. The affiliate_url is normalized server-side, so
    the PROVIDER token is what must be correct.
    • Lodging (sera on arrivo/trasferimento)        → hotels  (or tablet_hotels for boutique/design)
+     LODGING = SEARCH CRITERIA, NEVER A PROPERTY. You must NOT name any specific
+     hotel/riad/ryokan/guesthouse anywhere (title, location_name, description,
+     display_label): named properties get invented or disappear. Instead the lodging
+     booking carries "stay_recommendation": { "district": the recommended
+     neighbourhood, "style": the lodging type (boutique, traditional ryokan,
+     aparthotel, guesthouse…), "budget_range": €/night band CONSISTENT with the
+     user's declared budget and the §7 budget decomposition (never a random number),
+     "why": WHY that district fits THIS traveller — pace, walking distances, evening
+     vibe. Rich and specific, it is the heart of the value. }
+     location_name = "<district>, <city>" (the area, for the map pin).
+     display_label = ${input.lang === "it" ? `"Vedi hotel disponibili a <district>"` : `"See available hotels in <district>"`}.
    • Flights / packages (mattina transport, partenza)→ expedia
    • Coach between cities (transfer, Europe ground) → flixbus
    • Boat rental / coastal hop (transfer)           → samboat
@@ -380,9 +402,10 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
    - display_label — ACTION + OBJECT in the response language, naming the real place:
      ${input.lang === "it"
        ? `"Prenota il volo per Lisbona", "Prenota l'esperienza · Tour della Medina",
-     "Prenota l'hotel · Riad Dar Anika". Never a bare "Prenota" or "Click here".`
+     "Vedi hotel disponibili a Higashiyama". Never a bare "Prenota" or "Click here".`
        : `"Book the flight to Lisbon", "Book the experience · Medina Tour",
-     "Book the hotel · Riad Dar Anika". Never a bare "Book" or "Click here".`}
+     "See available hotels in Higashiyama". Never a bare "Book" or "Click here".`}
+     EXCEPTION lodging: never a property name — the label names the DISTRICT (see §2c).
 
 7. COSTS
    - cost_bookable_total per day = sum of cost_max for all moments with
@@ -520,23 +543,29 @@ Exactly ${days} days in the "days" array.
           "id": "d1m4",
           "type": "accommodation",
           "title_evocative": "Settle, Slowly",
-          "title_operational": "Check-in: The Nook Guesthouse, Battery Point",
+          "title_operational": "${input.lang === "it" ? "Check-in in zona Battery Point" : "Check-in in the Battery Point area"}",
           "time_label": "evening",
           "start_time": "00:30",
           "duration_min": 60,
           "cost_min": 95,
           "cost_max": 130,
           "cost_note": "per night, double room",
-          "location_name": "The Nook Guesthouse",
+          "location_name": "Battery Point, Hobart",
           "location_address": "Battery Point, Hobart TAS",
           "location_lat": -42.8923,
           "location_lng": 147.3315,
-          "image_alt": "Guesthouse exterior at dusk",
+          "image_alt": "Battery Point streets at dusk",
           "booking": {
             "provider": "hotels",
-            "affiliate_url": "https://www.tkqlhce.com/click-101710513-15734399?url=https://www.hotels.com/search.do?q-destination=Hobart&q-check-in=2026-07-10&q-check-out=2026-07-17",
-            "display_label": "${input.lang === "it" ? "Prenota l'hotel · The Nook Guesthouse" : "Book the hotel · The Nook Guesthouse"}",
-            "status": "bookable_now"
+            "affiliate_url": "https://www.expedia.com/Hotel-Search?destination=Battery%20Point%2C%20Hobart",
+            "display_label": "${input.lang === "it" ? "Vedi hotel disponibili a Battery Point" : "See available hotels in Battery Point"}",
+            "status": "bookable_now",
+            "stay_recommendation": {
+              "district": "Battery Point",
+              "style": "${input.lang === "it" ? "guesthouse di carattere" : "characterful guesthouse"}",
+              "budget_range": "${input.lang === "it" ? "€95–130/notte" : "€95–130/night"}",
+              "why": "${input.lang === "it" ? "Vicoli georgiani silenziosi a 10 minuti a piedi dal porto: la sera cammini, non guidi — ed è il silenzio che hai chiesto." : "Quiet Georgian lanes 10 minutes on foot from the harbour: evenings on foot, not behind a wheel — the quiet you asked for."}"
+            }
           },
           "description": "Drop bags, take a short walk to the harbour even if it's late — first sense of the place matters.",
           "why_this": "You flagged 'quiet over crowded' — Battery Point at midnight is exactly that."
@@ -549,7 +578,7 @@ Exactly ${days} days in the "days" array.
   "total_cost_range": "€1.800–2.400/pp",
   "closing_quote": "1 poetic sentence — a promise, not a farewell.",
   "map_points": [
-    { "day": 1, "lat": -42.8923, "lng": 147.3315, "label": "The Nook Guesthouse" }
+    { "day": 1, "lat": -42.8923, "lng": 147.3315, "label": "Battery Point" }
   ]
 }
 
@@ -841,8 +870,8 @@ export async function regenerateDayV2(
   // dottrina del generatore principale §2b). Fallback: G1 senza ruolo = arrivo.
   const role: DayRole | undefined = day.role ?? (day.day_number === 1 ? "arrivo" : undefined);
   const roleRule: Record<DayRole, string> = {
-    arrivo: `arrival — ONE strong anchor = lodging (provider "hotels"/"tablet_hotels", bookable_now) in the EVENING. Arrival transport gets a CTA only if a real partner fits the mode (expedia flight, flixbus coach), else prose. The lunch is a transit meal: walk_in, no booking. NO bookable experiences/tours today.`,
-    trasferimento: `base change — a mini-arrival: ONE lodging CTA (hotels/tablet_hotels) in the EVENING + the transfer in the afternoon (CTA only if bookable via a partner). No paid experiences.`,
+    arrivo: `arrival — ONE strong anchor = lodging (provider "hotels"/"tablet_hotels", bookable_now) in the EVENING. LODGING = SEARCH CRITERIA, never a property name: the booking carries stay_recommendation {district, style, budget_range coherent with the user's budget, why that district fits this traveller}; location_name/display_label name the DISTRICT, never a hotel. Arrival transport gets a CTA only if a real partner fits the mode (expedia flight, flixbus coach), else prose. The lunch is a transit meal: walk_in, no booking. NO bookable experiences/tours today.`,
+    trasferimento: `base change — a mini-arrival: ONE lodging CTA (hotels/tablet_hotels) in the EVENING with stay_recommendation {district, style, budget_range, why} and NO property name (district only) + the transfer in the afternoon (CTA only if bookable via a partner). No paid experiences.`,
     apice: `peak — ONE signature experience CTA in the MORNING (viator/civitatis/musement/klook by region), max one. Afternoon/evening stay light. Lunch never converts.`,
     esplorazione: `exploration — mostly prose, at most ONE light optional activity CTA. Lunch never converts.`,
     riposo: `rest — ZERO CTA anywhere. A button here breaks trust.`,

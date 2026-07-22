@@ -467,17 +467,29 @@ export function ItineraryDashboard({
       alt: flightAlt.filter((a) => a.url !== affiliateUrls.expedia_flights),
     });
 
-    // ALLOGGIO (essenziale)
+    // ALLOGGIO (essenziale) — criteri di ricerca, mai una property inventata:
+    // se il momento porta stay (zona/tipo/fascia/perché), la scheda mostra QUELLI
+    // e la CTA porta ai risultati reali di Expedia per quella zona.
     {
+      const stay = hotelM?.stay;
       const facts = [`${nights} ${Lx(nights === 1 ? "notte" : "notti", nights === 1 ? "night" : "nights")}`];
-      if (stayAdvantage) facts.push(Lx(`zona ${stayAdvantage.area}`, `${stayAdvantage.area} area`), Lx(`${stayAdvantage.walkable}/${stayAdvantage.total} tappe a piedi`, `${stayAdvantage.walkable}/${stayAdvantage.total} stops on foot`));
-      if (hotelM?.ctaPrice || hotelM?.costLabel) facts.push(`${hotelM.ctaPrice || hotelM.costLabel}`);
+      if (stay?.style) facts.push(stay.style);
+      if (stay?.budgetRange) facts.push(stay.budgetRange);
+      if (stayAdvantage) facts.push(Lx(`${stayAdvantage.walkable}/${stayAdvantage.total} tappe a piedi`, `${stayAdvantage.walkable}/${stayAdvantage.total} stops on foot`));
+      else if (!stay && (hotelM?.ctaPrice || hotelM?.costLabel)) facts.push(`${hotelM.ctaPrice || hotelM.costLabel}`);
       out.push({
         id: "hotel", tier: "essential", ic: "🏨",
-        title: hotelM?.locationName || Lx("Il soggiorno", "The stay"),
+        title: stay?.district
+          ? Lx(`Zona ${stay.district}`, `${stay.district} area`)
+          : (hotelM?.locationName || Lx("Il soggiorno", "The stay")),
         generic: Lx("Alloggio", "Stay"), facts,
-        why: stayAdvantage ? Lx("Meno trasferimenti, più viaggio.", "Fewer transfers, more trip.") : Lx("Dove dormi dà il tono al viaggio.", "Where you sleep sets the tone."),
-        day: 1, url: hotelM?.ctaUrl || affiliateUrls.hotels, cta: Lx("Vedi camere", "See rooms"), provider: hotelM?.ctaProvider || "hotels",
+        why: stay?.why
+          || (stayAdvantage ? Lx("Meno trasferimenti, più viaggio.", "Fewer transfers, more trip.") : Lx("Dove dormi dà il tono al viaggio.", "Where you sleep sets the tone.")),
+        day: 1, url: hotelM?.ctaUrl || affiliateUrls.hotels,
+        cta: stay?.district
+          ? Lx(`Vedi hotel disponibili a ${stay.district}`, `See available hotels in ${stay.district}`)
+          : Lx("Vedi camere", "See rooms"),
+        provider: hotelM?.ctaProvider || "hotels",
         alt: stayAlt.filter((a) => a.url !== (hotelM?.ctaUrl || affiliateUrls.hotels)),
       });
     }

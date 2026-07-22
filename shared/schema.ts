@@ -119,6 +119,17 @@ export type TransportMode =
 export type WeatherCondition =
   | "sunny" | "cloudy" | "rain" | "mixed" | "snow";
 
+// Alloggio come CRITERI DI RICERCA, non come property inventata: l'AI non
+// nomina mai un hotel specifico (può inventarlo / può sparire) ma emette zona,
+// tipo, fascia e motivo — il deep link Expedia si costruisce su questi criteri
+// e porta ai risultati REALI e disponibili. Regola: mai specifici finti.
+export interface StayRecommendationV2 {
+  district: string;      // quartiere/zona consigliata ("Higashiyama")
+  style: string;         // "boutique", "ryokan tradizionale", "aparthotel"…
+  budget_range: string;  // fascia €/notte COERENTE col budget dichiarato ("€60–90/notte")
+  why: string;           // perché QUELLA zona per QUEL viaggiatore (ritmo, piedi, sera)
+}
+
 export interface BookingInfoV2 {
   // Free string: Claude returns provider names too varied to enumerate reliably
   // ("tripadvisor", "trenitalia", "liberty lines", "hotels.com"). Validated loosely
@@ -128,6 +139,8 @@ export interface BookingInfoV2 {
   affiliate_url: string;
   display_label: string;
   status: BookingStatus;
+  // Solo momenti alloggio: criteri di ricerca al posto del nome property.
+  stay_recommendation?: StayRecommendationV2;
 }
 
 export interface TransportToNextV2 {

@@ -49,6 +49,10 @@ export type Moment = {
   lng?: number;
   // v2 only — orario di fine, se fornito (finestra oraria nel dettaglio).
   endTime?: string;
+  // v2 only — alloggio come CRITERI di ricerca (mai una property nominata):
+  // zona consigliata, tipo, fascia €/notte e motivo. La CTA punta alla
+  // Hotel-Search Expedia su questi criteri.
+  stay?: { district?: string; style?: string; budgetRange?: string; why?: string };
 };
 
 export type ItineraryData = {

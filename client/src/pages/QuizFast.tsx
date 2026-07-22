@@ -104,6 +104,10 @@ export default function QuizFast() {
   // Budget totale a persona opzionale (€, tutto incluso): se compilato, l'AI lo
   // scompone e ne verifica la fattibilità in fase di generazione.
   const [budgetTotal, setBudgetTotal] = useState("");
+  // Data di partenza OPZIONALE e saltabile (ISO YYYY-MM-DD o ""). Se presente,
+  // i link alloggio diventano precisi (check-in/check-out derivato dalla
+  // durata); se assente restano ricerche zona+città. MAI date inventate.
+  const [leaveDate, setLeaveDate] = useState("");
 
   // ?gen=1 = anteprima della schermata di attesa (solo per verifica visiva).
   const [generating, setGenerating] = useState(() => { try { return new URLSearchParams(window.location.search).get("gen") === "1"; } catch { return false; } });
@@ -182,7 +186,7 @@ export default function QuizFast() {
     return {
       answers,
       days: dur?.days ?? 7,
-      leaveDate: "",
+      leaveDate: leaveDate, // "" se l'utente non ha date (mai inventata)
       budget: bud?.code ?? "medium",
       departure: departure.trim(),
       companions: "",
@@ -478,6 +482,27 @@ export default function QuizFast() {
                     )}
                     {current === "budget" && (
                       <div style={{ maxWidth: 720, marginTop: 18 }}>
+                        <label className="qc-q-sub" style={{ display: "block", fontSize: 13.5, marginBottom: 8 }}>
+                          📅 {L(lang, "Hai già una data di partenza? ", "Got a departure date already? ")}
+                          <em>{L(lang, "date esatte su hotel e voli (opzionale)", "for exact hotel & flight dates (optional)")}</em>
+                        </label>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 18 }}>
+                          <input
+                            type="date" value={leaveDate}
+                            min={new Date().toISOString().split("T")[0]}
+                            onChange={(e) => setLeaveDate(e.target.value)}
+                            data-testid="fast-leavedate" className="qc-precise-input"
+                            style={{ fontSize: 16, padding: "14px 18px", maxWidth: 230, colorScheme: "dark" }}
+                          />
+                          <button
+                            onClick={() => setLeaveDate("")}
+                            data-testid="fast-leavedate-skip"
+                            className="qc-back"
+                            style={leaveDate === "" ? { borderColor: "var(--qc-accent)", color: "var(--qc-accent)" } : undefined}
+                          >
+                            {L(lang, "Non ho ancora date", "No dates yet")}
+                          </button>
+                        </div>
                         <label className="qc-q-sub" style={{ display: "block", fontSize: 13.5, marginBottom: 8 }}>
                           {L(lang, "Hai una cifra in testa? ", "Got a number in mind? ")}
                           <em>{L(lang, "Budget totale a persona, tutto incluso (opzionale)", "Total budget per person, all-in (optional)")}</em>

@@ -18,12 +18,22 @@ import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory } from "../../shared/schema";
 import { requireAuth } from "../auth";
-import { resolveAffiliateUrl, type AffiliateContext } from "../affiliate-config";
+import { resolveAffiliateUrl, expediaStaySearchUrl, type AffiliateContext } from "../affiliate-config";
+
+// Contesto affiliate esteso: oltre a checkin/checkout "di cortesia" (default a
+// +3 mesi, usati dagli altri provider come sempre), traccia le date REALI —
+// presenti SOLO se l'utente ha davvero indicato una partenza nel quiz. Il
+// deeplink alloggio usa esclusivamente quelle: mai date inventate.
+type StayAffiliateContext = AffiliateContext & {
+  realCheckin?: string;
+  realCheckout?: string;
+  lang?: string; // per la label difensiva dell'alloggio
+};
 
 // Contesto affiliate dal profilo: stessa derivazione di date del BookTab client
 // (leaveDate → check-in, +days → check-out; default a +3 mesi se manca la data),
 // così i link nei MOMENTI coincidono con quelli della scheda Prenota.
-function buildAffiliateContext(destinationName: string, profilingInput: any): AffiliateContext {
+function buildAffiliateContext(destinationName: string, profilingInput: any): StayAffiliateContext {
   const departure = (profilingInput?.departure ?? "").trim() || undefined;
   const leaveDate = profilingInput?.leaveDate ?? profilingInput?.travelDate ?? "";
   const days = Number(profilingInput?.days) || 7;
@@ -35,16 +45,55 @@ function buildAffiliateContext(destinationName: string, profilingInput: any): Af
     const co = new Date(base); co.setDate(co.getDate() + days);
     checkin = fmt(base); checkout = fmt(co);
   }
-  return { destinationName, departure, checkin, checkout };
+  // Date REALI (solo se l'utente le ha date): check-out = check-in + NOTTI,
+  // dove notti = giorni itinerario − 1 (un viaggio di 7 giorni dorme 6 notti —
+  // stessa convenzione della scheda Prenota). Derivato, non inventato.
+  let realCheckin: string | undefined, realCheckout: string | undefined;
+  if (m && !isNaN(new Date(m[1]).getTime())) {
+    const nights = Math.max(1, days - 1);
+    const rc = new Date(m[1]);
+    const rco = new Date(rc); rco.setDate(rco.getDate() + nights);
+    realCheckin = fmt(rc); realCheckout = fmt(rco);
+  }
+  const lang = profilingInput?.lang === "it" ? "it" : "en";
+  return { destinationName, departure, checkin, checkout, realCheckin, realCheckout, lang };
 }
 
 // Riscrive booking.affiliate_url di UN momento col link canonico del provider.
 // Se il provider non è monetizzabile (nessun partner reale) o il momento è
 // walk_in, rimuove l'oggetto booking: mai un bottone con URL inventato/morto.
-function rewriteMomentBooking(moment: MomentV2, affCtx: AffiliateContext): void {
+// ALLOGGIO: se il booking porta stay_recommendation (criteri di ricerca), il
+// link diventa una Hotel-Search Expedia su zona+città(+date reali) — risultati
+// veri e disponibili, mai una property nominata dall'AI.
+function rewriteMomentBooking(moment: MomentV2, affCtx: StayAffiliateContext): void {
   const b = moment.booking;
   if (!b) return;
   if (b.status === "walk_in") { moment.booking = undefined; return; }
+
+  const stay = b.stay_recommendation;
+  const isLodging = moment.type === "accommodation" || /^(hotels|tablet_hotels|hotel)$/i.test((b.provider ?? "").trim());
+  if (isLodging && stay) {
+    const parts = (affCtx.destinationName ?? "").split(",").map(s => s.trim()).filter(Boolean);
+    const city = parts[0] ?? "";
+    const country = parts.length > 1 ? parts[parts.length - 1] : undefined;
+    b.affiliate_url = expediaStaySearchUrl({
+      district: stay.district || undefined,
+      city, country,
+      checkin: affCtx.realCheckin,   // SOLO date reali: assenti → ricerca senza date
+      checkout: affCtx.realCheckout,
+    });
+    // Difesa anti-specifico-finto: se la label del modello non nomina la zona
+    // (probabile property inventata), la riscriviamo sul QUARTIERE; se manca
+    // pure il district, resta la città. Mai il nome di una struttura.
+    const place = (stay.district || city).trim();
+    if (place && !(b.display_label ?? "").toLowerCase().includes(place.toLowerCase())) {
+      b.display_label = affCtx.lang === "it"
+        ? `Vedi hotel disponibili a ${place}`
+        : `See available hotels in ${place}`;
+    }
+    return;
+  }
+
   const url = resolveAffiliateUrl(b.provider, affCtx);
   if (url) b.affiliate_url = url;
   else moment.booking = undefined; // provider senza partner → declassa a walk_in
