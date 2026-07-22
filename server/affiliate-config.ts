@@ -91,6 +91,30 @@ const CIVITATIS_SEARCH_BY_LANG: Record<string, { path: string; currency: string 
   en: { path: "en/search", currency: "USD" },
 };
 
+// ── Musement sulla QUERY COMPOSTA (experience_recommendation) ──────────────
+// Quarto e ultimo provider esperienze sul pattern. Ricerca free-text via
+// /<locale>/search/?q= (it E en verificati 200 via probe; prezzi già in EUR
+// su /it/, nessun forcing valuta necessario).
+// ⚠️ TRACKING DIVERSO DAGLI ALTRI TRE: Musement NON usa aid= — solo UTM.
+// Riusiamo VERBATIM gli stessi parametri dei link città esistenti
+// (utm_source/utm_medium=affiliate + utm_campaign da AFFILIATES): se
+// cambiano, si perde l'attribuzione.
+const MUSEMENT_LOCALE_BY_LANG: Record<string, string> = { it: "it", en: "en" };
+
+export function musementExperienceSearchUrl(opts: {
+  searchQuery?: string;
+  city?: string;
+  lang?: string;
+}): string | null {
+  const lang = (opts.lang ?? "").trim().toLowerCase();
+  const locale = MUSEMENT_LOCALE_BY_LANG[lang] ?? "it";
+  const q = (opts.searchQuery ?? "").trim();
+  const city = (opts.city ?? "").trim();
+  const text = q || (city ? (lang === "en" ? `things to do in ${city}` : `cosa fare a ${city}`) : "");
+  if (!text) return null; // né query né città → il chiamante resta sul catalogo città attuale
+  return `https://www.musement.com/${locale}/search/?q=${encodeURIComponent(text)}&utm_source=affiliate&utm_medium=affiliate&utm_campaign=${AFFILIATES.musementCampaign}`;
+}
+
 export function civitatisExperienceSearchUrl(opts: {
   searchQuery?: string;
   city?: string;

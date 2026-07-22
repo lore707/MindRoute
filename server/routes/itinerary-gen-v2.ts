@@ -18,7 +18,7 @@ import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory } from "../../shared/schema";
 import { requireAuth } from "../auth";
-import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, klookExperienceSearchUrl, civitatisExperienceSearchUrl, type AffiliateContext } from "../affiliate-config";
+import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, klookExperienceSearchUrl, civitatisExperienceSearchUrl, musementExperienceSearchUrl, type AffiliateContext } from "../affiliate-config";
 
 // Contesto affiliate esteso: oltre a checkin/checkout "di cortesia" (default a
 // +3 mesi, usati dagli altri provider come sempre), traccia le date REALI —
@@ -101,11 +101,12 @@ function rewriteMomentBooking(moment: MomentV2, affCtx: StayAffiliateContext): v
   // standard del provider (catalogo città).
   const exp = b.experience_recommendation;
   const expProvider = (b.provider ?? "").trim().toLowerCase();
-  if (exp && (expProvider === "viator" || expProvider === "klook" || expProvider === "civitatis")) {
+  if (exp && (expProvider === "viator" || expProvider === "klook" || expProvider === "civitatis" || expProvider === "musement")) {
     const city = (affCtx.destinationName ?? "").split(",")[0].trim();
     const args = { searchQuery: exp.search_query, city, lang: affCtx.lang };
     const url = expProvider === "klook" ? klookExperienceSearchUrl(args)
       : expProvider === "civitatis" ? civitatisExperienceSearchUrl(args)
+      : expProvider === "musement" ? musementExperienceSearchUrl(args)
       : viatorExperienceSearchUrl(args);
     if (url) {
       b.affiliate_url = url;
