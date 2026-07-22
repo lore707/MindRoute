@@ -57,6 +57,30 @@ export function viatorSearchUrl(text: string): string {
   return `https://www.viator.com/searchResults/all?text=${encodeURIComponent(text)}&pid=P00293604&mcid=42383&medium=link`;
 }
 
+// ── Viator sulla QUERY COMPOSTA (experience_recommendation) ────────────────
+// L'AI non nomina prodotti/tour (allucinabili/stantii): compone una query di
+// ricerca specifica (città + tipo + una sfumatura) e il link apre la ricerca
+// free-text — risultati reali e prenotabili. Locale nel path (/it-IT/ = EUR +
+// italiano); lingue non gestite → it-IT (default: account Viator in EUR).
+// Encoding SOLO sul valore di text; parametri affiliate appesi in coda,
+// invariati. MAI text= vuoto: degrada a "cosa fare a <città>" e, senza
+// neanche la città, il chiamante resta sul percorso Viator precedente.
+const VIATOR_LOCALE_BY_LANG: Record<string, string> = { it: "it-IT", en: "en-US" };
+
+export function viatorExperienceSearchUrl(opts: {
+  searchQuery?: string;
+  city?: string;
+  lang?: string;
+}): string | null {
+  const lang = (opts.lang ?? "").trim().toLowerCase();
+  const locale = VIATOR_LOCALE_BY_LANG[lang] ?? "it-IT";
+  const q = (opts.searchQuery ?? "").trim();
+  const city = (opts.city ?? "").trim();
+  const text = q || (city ? (lang === "en" ? `things to do in ${city}` : `cosa fare a ${city}`) : "");
+  if (!text) return null; // né query né città → il chiamante usa il percorso attuale
+  return `https://www.viator.com/${locale}/searchResults/all?text=${encodeURIComponent(text)}&pid=P00293604&mcid=42383&medium=link`;
+}
+
 // ── NAME-PRECISE search URLs ────────────────────────────────────────────────
 // Il difetto #1 di conversione: l'itinerario nomina "Taverna Aktaion" ma il
 // bottone apriva una ricerca dell'INTERA città. Questi builder cercano il posto

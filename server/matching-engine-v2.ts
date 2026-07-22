@@ -88,6 +88,15 @@ const stayRecommendationV2Schema = z.object({
   why: z.string().default(""),
 });
 
+// Esperienze = query di ricerca composta (mai un prodotto/tour nominato).
+// Tollerante come lo stay: default "" così un oggetto parziale non fa fallire
+// l'itinerario; il builder degrada di campo in campo.
+const experienceRecommendationV2Schema = z.object({
+  search_query: z.string().default(""),
+  label: z.string().default(""),
+  why: z.string().default(""),
+});
+
 const bookingInfoV2Schema = z.object({
   // Free string — provider names are too varied/localized to enumerate without
   // failing valid itineraries ("tripadvisor", "trenitalia", "liberty lines",
@@ -97,6 +106,7 @@ const bookingInfoV2Schema = z.object({
   display_label: z.string(),
   status: bookingStatusSchema,
   stay_recommendation: stayRecommendationV2Schema.optional(),
+  experience_recommendation: experienceRecommendationV2Schema.optional(),
 });
 
 const transportToNextV2Schema = z.object({
@@ -357,6 +367,24 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
        Asia           → klook → viator
        Latin America  → civitatis → viator
        India · Africa · North America · Oceania → viator
+     VIATOR EXPERIENCES = A COMPOSED SEARCH QUERY, NEVER A NAMED PRODUCT. When the
+     provider is "viator", do NOT name any specific tour/product/operator anywhere
+     (title, location_name, description, display_label): named products hallucinate
+     or go stale. The booking instead carries "experience_recommendation": {
+       "search_query": destination city + experience type + ONE useful nuance
+         (district, time of day, style, theme). Good: ${input.lang === "it"
+           ? `"Kyoto cerimonia del tè tradizionale", "Roma tour serale street food Trastevere",
+         "Lisbona degustazione vino con vista"`
+           : `"Kyoto traditional tea ceremony", "Rome evening street food tour Trastevere",
+         "Lisbon wine tasting with a view"`}. Calibrated: specific enough to focus
+         results, NEVER so narrow it risks zero results — no exact times, no venue
+         names, no rare constraints; when in doubt prefer a broad theme ("street
+         food", "historic walking tour") over a rigid filter. Natural searchable
+         language in the response language, no quotes/operators.
+       "label": short human category the user reads (${input.lang === "it" ? `"Cerimonia del tè tradizionale"` : `"Traditional tea ceremony"`}) — NOT a product name.
+       "why": WHY this experience fits THIS traveller. Rich and specific — it is the value.
+     }
+     location_name = the area/landmark where it happens (for the map pin), never an operator.
    • Restaurants (pranzo & dinner) → NO partner → always prose, never a CTA.
 
 2d. FALLBACK — better no CTA than a fake one (the absolute rule).
@@ -406,6 +434,8 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
        : `"Book the flight to Lisbon", "Book the experience · Medina Tour",
      "See available hotels in Higashiyama". Never a bare "Book" or "Click here".`}
      EXCEPTION lodging: never a property name — the label names the DISTRICT (see §2c).
+     EXCEPTION viator experiences: never a product name — the label names the CATEGORY
+     (experience_recommendation.label, see §2c), e.g. ${input.lang === "it" ? `"Vedi esperienze: Cerimonia del tè"` : `"See experiences: Tea ceremony"`}.
 
 7. COSTS
    - cost_bookable_total per day = sum of cost_max for all moments with
@@ -872,7 +902,7 @@ export async function regenerateDayV2(
   const roleRule: Record<DayRole, string> = {
     arrivo: `arrival — ONE strong anchor = lodging (provider "hotels"/"tablet_hotels", bookable_now) in the EVENING. LODGING = SEARCH CRITERIA, never a property name: the booking carries stay_recommendation {district, style, budget_range coherent with the user's budget, why that district fits this traveller}; location_name/display_label name the DISTRICT, never a hotel. Arrival transport gets a CTA only if a real partner fits the mode (expedia flight, flixbus coach), else prose. The lunch is a transit meal: walk_in, no booking. NO bookable experiences/tours today.`,
     trasferimento: `base change — a mini-arrival: ONE lodging CTA (hotels/tablet_hotels) in the EVENING with stay_recommendation {district, style, budget_range, why} and NO property name (district only) + the transfer in the afternoon (CTA only if bookable via a partner). No paid experiences.`,
-    apice: `peak — ONE signature experience CTA in the MORNING (viator/civitatis/musement/klook by region), max one. Afternoon/evening stay light. Lunch never converts.`,
+    apice: `peak — ONE signature experience CTA in the MORNING (viator/civitatis/musement/klook by region), max one. If the provider is viator: NO named tour/product — the booking carries experience_recommendation {search_query: city + type + one nuance, label: human category, why} and no field names a specific operator. Afternoon/evening stay light. Lunch never converts.`,
     esplorazione: `exploration — mostly prose, at most ONE light optional activity CTA. Lunch never converts.`,
     riposo: `rest — ZERO CTA anywhere. A button here breaks trust.`,
     decantazione: `wind-down — prose, minimal conversion, at most one light optional activity.`,
@@ -895,7 +925,7 @@ Rules:
 - Use REAL, well-known places in ${destinationName}; set "location_name" on every moment (needed for map + booking). Do NOT reuse the places already used on the OTHER DAYS.
 - FOUR moments — mattina, pranzo, pomeriggio, sera (time_label morning/lunch/afternoon/evening). The pranzo is ALWAYS prose, never a CTA. All numeric fields are numbers. Write every visible text field in ${lang === "it" ? "Italian" : "English"}.
 - Leave image URLs as-is or empty and do not invent map_points — images and coordinates are set server-side.
-- BOOKING by function + partner-fit, not by default: mark a moment "bookable_now"/"reserve_recommended" ONLY if it is genuinely reservable through a real partner (provider one of: expedia, hotels, tablet_hotels, civitatis, musement, klook, viator, flixbus, samboat). The affiliate_url is normalized server-side from the provider — getting the PROVIDER right is what matters; never use booking.com, getyourguide, skyscanner or airbnb. Free wanders, scheduled ferries and generic transfers are walk_in — omit their booking object.${roleDoctrine}`;
+- BOOKING by function + partner-fit, not by default: mark a moment "bookable_now"/"reserve_recommended" ONLY if it is genuinely reservable through a real partner (provider one of: expedia, hotels, tablet_hotels, civitatis, musement, klook, viator, flixbus, samboat). The affiliate_url is normalized server-side from the provider — getting the PROVIDER right is what matters; never use booking.com, getyourguide, skyscanner or airbnb. Free wanders, scheduled ferries and generic transfers are walk_in — omit their booking object. Provider "viator": NO named tour/product/operator in any field — the booking carries experience_recommendation {search_query: city + type + one nuance, label: human category, why}.${roleDoctrine}`;
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",

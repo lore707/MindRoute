@@ -653,6 +653,11 @@ function buildMomentsV2(day: any, t: (k: string) => string, lang: "en" | "it", o
         budgetRange: (booking.stay_recommendation.budget_range ?? "").trim() || undefined,
         why: (booking.stay_recommendation.why ?? "").trim() || undefined,
       } : undefined,
+      // Esperienza come query composta: label (categoria umana) + why.
+      exp: booking?.experience_recommendation ? {
+        label: (booking.experience_recommendation.label ?? "").trim() || undefined,
+        why: (booking.experience_recommendation.why ?? "").trim() || undefined,
+      } : undefined,
     } as CinMoment;
   });
 }

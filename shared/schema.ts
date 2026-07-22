@@ -130,6 +130,16 @@ export interface StayRecommendationV2 {
   why: string;           // perché QUELLA zona per QUEL viaggiatore (ritmo, piedi, sera)
 }
 
+// Esperienze come QUERY DI RICERCA COMPOSTA, non come prodotto/tour nominato
+// (inventabile/stantio). Più specifica dei criteri hotel: "Kyoto cerimonia del
+// tè tradizionale", mai "esperienza culturale" (troppo vaga) né un nome di
+// operatore (allucinabile). Il deeplink apre la ricerca free-text Viator.
+export interface ExperienceRecommendationV2 {
+  search_query: string;  // destinazione + tipo + UNA sfumatura, pronta per text=
+  label: string;         // categoria umana breve ("Cerimonia del tè tradizionale")
+  why: string;           // perché QUELLA esperienza per QUEL viaggiatore
+}
+
 export interface BookingInfoV2 {
   // Free string: Claude returns provider names too varied to enumerate reliably
   // ("tripadvisor", "trenitalia", "liberty lines", "hotels.com"). Validated loosely
@@ -141,6 +151,8 @@ export interface BookingInfoV2 {
   status: BookingStatus;
   // Solo momenti alloggio: criteri di ricerca al posto del nome property.
   stay_recommendation?: StayRecommendationV2;
+  // Solo esperienze Viator: query di ricerca composta al posto del prodotto.
+  experience_recommendation?: ExperienceRecommendationV2;
 }
 
 export interface TransportToNextV2 {

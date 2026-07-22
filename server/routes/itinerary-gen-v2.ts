@@ -18,7 +18,7 @@ import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory } from "../../shared/schema";
 import { requireAuth } from "../auth";
-import { resolveAffiliateUrl, expediaStaySearchUrl, type AffiliateContext } from "../affiliate-config";
+import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, type AffiliateContext } from "../affiliate-config";
 
 // Contesto affiliate esteso: oltre a checkin/checkout "di cortesia" (default a
 // +3 mesi, usati dagli altri provider come sempre), traccia le date REALI —
@@ -93,6 +93,25 @@ function rewriteMomentBooking(moment: MomentV2, affCtx: StayAffiliateContext): v
         : `See available hotels in ${place}`;
     }
     return;
+  }
+
+  // ESPERIENZE VIATOR: query composta dall'AI (mai un prodotto nominato) →
+  // ricerca free-text localizzata. Senza query degrada a "cosa fare a <città>";
+  // senza neanche la città il builder torna null → percorso Viator standard.
+  const exp = b.experience_recommendation;
+  if (exp && /^viator$/i.test((b.provider ?? "").trim())) {
+    const city = (affCtx.destinationName ?? "").split(",")[0].trim();
+    const url = viatorExperienceSearchUrl({ searchQuery: exp.search_query, city, lang: affCtx.lang });
+    if (url) {
+      b.affiliate_url = url;
+      // Difesa anti-prodotto-finto: se la label CTA non riflette la categoria
+      // (probabile nome di tour inventato), la riscriviamo sulla categoria.
+      const cat = (exp.label ?? "").trim();
+      if (cat && !(b.display_label ?? "").toLowerCase().includes(cat.toLowerCase())) {
+        b.display_label = affCtx.lang === "it" ? `Vedi esperienze: ${cat}` : `See experiences: ${cat}`;
+      }
+      return;
+    }
   }
 
   const url = resolveAffiliateUrl(b.provider, affCtx);

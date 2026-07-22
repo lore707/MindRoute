@@ -508,8 +508,12 @@ export function ItineraryDashboard({
       });
     }
 
-    // ESPERIENZA PRINCIPALE (consigliata)
+    // ESPERIENZA PRINCIPALE (consigliata) — con experience_recommendation la
+    // scheda mostra la CATEGORIA (label) + il perché, mai un prodotto nominato:
+    // la CTA apre la ricerca Viator composta sui criteri.
     if (expM) {
+      const exp = expM.exp;
+      const city = dest.split(",")[0].trim();
       const facts: string[] = [];
       const eDay = expM.dayNumber ?? peakDay;
       if (eDay != null) facts.push(Lx(`Giorno ${eDay}`, `Day ${eDay}`));
@@ -518,9 +522,12 @@ export function ItineraryDashboard({
       const primary = expM.ctaUrl || affiliateUrls.civitatis || affiliateUrls.musement || affiliateUrls.klook || affiliateUrls.viator;
       out.push({
         id: "experience", tier: "recommended", ic: "🎟",
-        title: expM.locationName || expM.title || Lx("L'esperienza principale", "The main experience"),
-        generic: Lx("Esperienza", "Experience"), facts, why: Lx("Il momento da non perdere.", "The one moment not to miss."),
-        day: eDay, url: primary, cta: Lx("Vedi disponibilità", "See availability"), provider: expM.ctaProvider || "experience",
+        title: exp?.label || expM.locationName || expM.title || Lx("L'esperienza principale", "The main experience"),
+        generic: Lx("Esperienza", "Experience"), facts,
+        why: exp?.why || Lx("Il momento da non perdere.", "The one moment not to miss."),
+        day: eDay, url: primary,
+        cta: exp ? Lx(`Vedi esperienze a ${city}`, `See experiences in ${city}`) : Lx("Vedi disponibilità", "See availability"),
+        provider: expM.ctaProvider || "experience",
         alt: expAlt.filter((a) => a.url !== primary),
       });
     }

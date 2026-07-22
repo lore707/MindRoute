@@ -53,6 +53,9 @@ export type Moment = {
   // zona consigliata, tipo, fascia €/notte e motivo. La CTA punta alla
   // Hotel-Search Expedia su questi criteri.
   stay?: { district?: string; style?: string; budgetRange?: string; why?: string };
+  // v2 only — esperienza Viator come QUERY composta (mai un prodotto nominato):
+  // label = categoria umana, why = motivo. La CTA apre la ricerca free-text.
+  exp?: { label?: string; why?: string };
 };
 
 export type ItineraryData = {
