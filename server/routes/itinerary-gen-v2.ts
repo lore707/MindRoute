@@ -81,6 +81,7 @@ function rewriteMomentBooking(moment: MomentV2, affCtx: StayAffiliateContext): v
       city, country,
       checkin: affCtx.realCheckin,   // SOLO date reali: assenti → ricerca senza date
       checkout: affCtx.realCheckout,
+      lang: affCtx.lang,             // IT → EUR+italiano, EN → USD+en_US
     });
     // Difesa anti-specifico-finto: se la label del modello non nomina la zona
     // (probabile property inventata), la riscriviamo sul QUARTIERE; se manca

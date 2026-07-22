@@ -153,6 +153,18 @@ export function hotelsComUrl(city: string, checkin?: string, checkout?: string):
 // comunque. Zona mancante → degrada a città(+paese). Prezzo: i parametri di
 // filtro prezzo di Hotel-Search non sono documentati in modo stabile → OMESSI
 // (meglio una ricerca senza filtro che un URL rotto).
+// Localizzazione della ricerca: un utente IT che atterra su Expedia in USD e
+// mercato USA perde fiducia (e conversione). Restiamo su expedia.com (il
+// tracking CJ è legato a quell'advertiser — cambiare dominio in expedia.it
+// rischia commissioni non tracciate) e aggiungiamo SOLO i parametri che i docs
+// Expedia onorano con certezza: currency + langid (1033 = en_US, 1040 = it_IT).
+// siteid/locale NON confermabili senza test live → omessi di proposito.
+// Lingua non gestita → nessun parametro (comportamento precedente, mai URL rotti).
+const EXPEDIA_LOCALE_BY_LANG: Record<string, { currency: string; langid: string }> = {
+  it: { currency: "EUR", langid: "1040" },
+  en: { currency: "USD", langid: "1033" },
+};
+
 export function expediaStaySearchUrl(opts: {
   district?: string;
   city: string;
@@ -161,6 +173,7 @@ export function expediaStaySearchUrl(opts: {
   checkout?: string;  // YYYY-MM-DD derivata da checkin + notti reali
   adults?: number;
   rooms?: number;
+  lang?: string;      // "it" | "en" → valuta e lingua della pagina di atterraggio
 }): string {
   const destination = [opts.district, opts.city, opts.country]
     .map(s => (s ?? "").trim()).filter(Boolean).join(", ");
@@ -172,6 +185,11 @@ export function expediaStaySearchUrl(opts: {
   }
   p.set("adults", String(opts.adults ?? 2));
   p.set("rooms", String(opts.rooms ?? 1));
+  const loc = EXPEDIA_LOCALE_BY_LANG[(opts.lang ?? "").trim().toLowerCase()];
+  if (loc) {
+    p.set("currency", loc.currency);
+    p.set("langid", loc.langid);
+  }
   const expediaUrl = `https://www.expedia.com/Hotel-Search?${p.toString()}`;
   return `https://www.tkqlhce.com/click-101710513-10581071?sid=mr-stay&url=${encodeURIComponent(expediaUrl)}`;
 }
