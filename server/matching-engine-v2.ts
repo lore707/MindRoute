@@ -378,10 +378,10 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
      (${input.lang === "it"
        ? `"una cooking class di cucina marocchina nella medina", "un tour a piedi all'alba tra i torii del Fushimi Inari"`
        : `"a Moroccan cooking class inside the medina", "a dawn walking tour through the Fushimi Inari torii"`}),
-     never by provider brand. For civitatis/musement the link opens the CITY
-     CATALOGUE: keep the prose at that same level of abstraction (category + landmark)
+     never by provider brand. For musement the link opens the CITY CATALOGUE:
+     keep the prose at that same level of abstraction (category + landmark)
      and display_label = the category (${input.lang === "it" ? `"Vedi esperienze: Cooking class marocchina"` : `"See experiences: Moroccan cooking class"`}).
-     When the provider is "viator" or "klook", the booking ALSO carries "experience_recommendation": {
+     When the provider is "viator", "klook" or "civitatis", the booking ALSO carries "experience_recommendation": {
        "search_query": destination city + experience type + ONE useful nuance
          (district, time of day, style, theme). Good: ${input.lang === "it"
            ? `"Kyoto cerimonia del tè tradizionale", "Roma tour serale street food Trastevere",
@@ -920,7 +920,7 @@ export async function regenerateDayV2(
   const roleRule: Record<DayRole, string> = {
     arrivo: `arrival — ONE strong anchor = lodging (provider "hotels"/"tablet_hotels", bookable_now) in the EVENING. LODGING = SEARCH CRITERIA, never a property name: the booking carries stay_recommendation {district, style, budget_range coherent with the user's budget, why that district fits this traveller}; location_name/display_label name the DISTRICT, never a hotel. Arrival transport gets a CTA only if a real partner fits the mode (expedia flight, flixbus coach), else prose. The lunch is a transit meal: walk_in, no booking. NO bookable experiences/tours today.`,
     trasferimento: `base change — a mini-arrival: ONE lodging CTA (hotels/tablet_hotels) in the EVENING with stay_recommendation {district, style, budget_range, why} and NO property name (district only) + the transfer in the afternoon (CTA only if bookable via a partner). No paid experiences.`,
-    apice: `peak — ONE signature experience CTA in the MORNING (viator/civitatis/musement/klook by region), max one. For ANY experience provider: NO named tour/product/operator in any field — describe by category + landmark (landmarks/monuments/districts MUST stay named: only the commercial seller is banned; location_name = area/landmark, never an operator). If the provider is viator or klook the booking ALSO carries experience_recommendation {search_query: city + type + one nuance, label: human category, why}. Afternoon/evening stay light. Lunch never converts.`,
+    apice: `peak — ONE signature experience CTA in the MORNING (viator/civitatis/musement/klook by region), max one. For ANY experience provider: NO named tour/product/operator in any field — describe by category + landmark (landmarks/monuments/districts MUST stay named: only the commercial seller is banned; location_name = area/landmark, never an operator). If the provider is viator, klook or civitatis the booking ALSO carries experience_recommendation {search_query: city + type + one nuance, label: human category, why}. Afternoon/evening stay light. Lunch never converts.`,
     esplorazione: `exploration — mostly prose, at most ONE light optional activity CTA. Lunch never converts.`,
     riposo: `rest — ZERO CTA anywhere. A button here breaks trust.`,
     decantazione: `wind-down — prose, minimal conversion, at most one light optional activity.`,
@@ -943,7 +943,7 @@ Rules:
 - Use REAL, well-known places in ${destinationName}; set "location_name" on every moment (needed for map + booking). Do NOT reuse the places already used on the OTHER DAYS.
 - FOUR moments — mattina, pranzo, pomeriggio, sera (time_label morning/lunch/afternoon/evening). The pranzo is ALWAYS prose, never a CTA. All numeric fields are numbers. Write every visible text field in ${lang === "it" ? "Italian" : "English"}.
 - Leave image URLs as-is or empty and do not invent map_points — images and coordinates are set server-side.
-- BOOKING by function + partner-fit, not by default: mark a moment "bookable_now"/"reserve_recommended" ONLY if it is genuinely reservable through a real partner (provider one of: expedia, hotels, tablet_hotels, civitatis, musement, klook, viator, flixbus, samboat). The affiliate_url is normalized server-side from the provider — getting the PROVIDER right is what matters; never use booking.com, getyourguide, skyscanner or airbnb. Free wanders, scheduled ferries and generic transfers are walk_in — omit their booking object. Experience moments (ANY provider: viator/civitatis/musement/klook): NO named tour/product/operator in any field — describe by category + landmark (landmarks/monuments/districts MUST stay named; only the commercial seller is banned; location_name = area/landmark, never an operator); if the provider is viator or klook the booking ALSO carries experience_recommendation {search_query: city + type + one nuance, label: human category, why}.${roleDoctrine}`;
+- BOOKING by function + partner-fit, not by default: mark a moment "bookable_now"/"reserve_recommended" ONLY if it is genuinely reservable through a real partner (provider one of: expedia, hotels, tablet_hotels, civitatis, musement, klook, viator, flixbus, samboat). The affiliate_url is normalized server-side from the provider — getting the PROVIDER right is what matters; never use booking.com, getyourguide, skyscanner or airbnb. Free wanders, scheduled ferries and generic transfers are walk_in — omit their booking object. Experience moments (ANY provider: viator/civitatis/musement/klook): NO named tour/product/operator in any field — describe by category + landmark (landmarks/monuments/districts MUST stay named; only the commercial seller is banned; location_name = area/landmark, never an operator); if the provider is viator, klook or civitatis the booking ALSO carries experience_recommendation {search_query: city + type + one nuance, label: human category, why}.${roleDoctrine}`;
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",

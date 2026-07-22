@@ -77,6 +77,34 @@ const VIATOR_LOCALE_BY_LANG: Record<string, string> = { it: "it-IT", en: "en-US"
 // prodotto: solo search/result.
 const KLOOK_LOCALE_BY_LANG: Record<string, string> = { it: "it", en: "en-US" };
 
+// ── Civitatis sulla QUERY COMPOSTA (experience_recommendation) ─────────────
+// Terzo provider con lo stesso pattern: ricerca free-text via ?q= sul path
+// localizzato (/it/cerca e /en/search — ENTRAMBI verificati 200 via probe).
+// VALUTA (verificato via probe HTTP): il default Civitatis per un visitatore
+// pulito su /it/ è US$ — il param currency=EUR viene onorato con
+// Set-Cookie: currency=EUR (Max-Age 6 mesi) sulla risposta stessa, ricerca
+// preservata (il redirect che perdeva la query scattava solo con q=<città
+// esatta>, non per il param). IT→EUR, EN→USD esplicito, altre lingue →
+// nessun param. aid/cmp = stesso tracking dei link città esistenti.
+const CIVITATIS_SEARCH_BY_LANG: Record<string, { path: string; currency: string }> = {
+  it: { path: "it/cerca", currency: "EUR" },
+  en: { path: "en/search", currency: "USD" },
+};
+
+export function civitatisExperienceSearchUrl(opts: {
+  searchQuery?: string;
+  city?: string;
+  lang?: string;
+}): string | null {
+  const lang = (opts.lang ?? "").trim().toLowerCase();
+  const loc = CIVITATIS_SEARCH_BY_LANG[lang] ?? CIVITATIS_SEARCH_BY_LANG.it;
+  const q = (opts.searchQuery ?? "").trim();
+  const city = (opts.city ?? "").trim();
+  const text = q || (city ? (lang === "en" ? `things to do in ${city}` : `cosa fare a ${city}`) : "");
+  if (!text) return null; // né query né città → il chiamante resta sul catalogo città attuale
+  return `https://www.civitatis.com/${loc.path}?q=${encodeURIComponent(text)}&currency=${loc.currency}&aid=${AFFILIATES.civitatisAid}&cmp=${AFFILIATES.civitatisCmp}`;
+}
+
 export function klookExperienceSearchUrl(opts: {
   searchQuery?: string;
   city?: string;
