@@ -13,8 +13,12 @@ export async function recordPickSnapshot(args: {
   profilingInput: any;
   destinationName: string;
   itineraryId: number;
+  /** Testo descrittivo della destinazione (whyYours+experiencePreview del
+   *  matcher): alimenta la derivazione del trait vector quando la destinazione
+   *  non è nel catalogo curato — cioè quasi sempre, nel funnel live. */
+  destinationText?: string | null;
 }): Promise<void> {
-  const { userId, profilingInput, destinationName, itineraryId } = args;
+  const { userId, profilingInput, destinationName, itineraryId, destinationText } = args;
   if (!userId || !profilingInput) return; // anonymous → no history possible
 
   try {
@@ -26,7 +30,10 @@ export async function recordPickSnapshot(args: {
       constraints: profilingInput.constraints ?? null,
     });
 
-    const destVector = getDestinationTraitVector(destinationName);
+    const destVector = getDestinationTraitVector(destinationName, destinationText);
+    if (!destVector) {
+      console.warn(`[traits] no destination vector for "${destinationName}" (no catalog match, text ${destinationText ? "insufficient" : "missing"}) — pick snapshot is quiz-only`);
+    }
     const finalVector = destVector ? blendWithDestination(quizVector, destVector) : quizVector;
 
     await storage.createTraitSnapshot({
@@ -47,6 +54,10 @@ export async function recordPickSnapshot(args: {
         constraints: profilingInput.constraints ?? null,
       },
     });
+    // Log di successo (prima la scrittura era muta: impossibile distinguere
+    // "scrive valori neutri" da "non scrive affatto" senza guardare il DB).
+    const compact = Object.entries(finalVector).map(([a, v]) => `${a}=${(v as number).toFixed(2)}`).join(" ");
+    console.log(`[traits] pick snapshot saved user=${userId} itinerary=${itineraryId} blended=${!!destVector} ${compact}`);
   } catch (e) {
     // Trait snapshot is non-critical — never fail the itinerary generation.
     console.warn("[traits] pick snapshot failed:", e);

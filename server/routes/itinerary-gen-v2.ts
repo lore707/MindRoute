@@ -471,7 +471,13 @@ export function registerItineraryGenV2Routes(app: Express) {
           const insertRow = itineraryV2ToInsert(enriched, destIdNum, userId, input);
           const saved = await storage.createItinerary(insertRow);
           recordRecentDestination(destinationName).catch(() => {});
-          recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id });
+          // Il testo del matcher (whyYours+experiencePreview) alimenta la
+          // derivazione del trait vector per le destinazioni fuori catalogo.
+          const destRow = await storage.getDestination(destIdNum).catch(() => undefined);
+          recordPickSnapshot({
+            userId, profilingInput: input, destinationName, itineraryId: saved.id,
+            destinationText: [destRow?.whyYours, destRow?.experiencePreview].filter(Boolean).join(" "),
+          });
           return { id: saved.id, itinerary: enriched };
         })();
         inFlightV2.set(destIdNum, gen);

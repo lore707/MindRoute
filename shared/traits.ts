@@ -392,6 +392,49 @@ function addContrib(target: Record<string, number>, contrib: Contrib): void {
 function sigmoid(x: number): number {
   return 1 / (1 + Math.exp(-x));
 }
+// Esportata per destination-traits (derivazione keyword→vettore): stessa
+// normalizzazione del quiz, così i due vettori vivono nella stessa scala.
+export { sigmoid as traitSigmoid };
+
+// ── Decodifica delle risposte L1/L2 serializzate come JSON ────────────────
+// Il funnel live (QuizFast/refine) mette il segnale psicologico DENTRO
+// answers[] come JSON: {"emotional_goals":["Silenzio e respiro",…],"pace":
+// "balanced"} o {"specific_place":"Lisbona"}. Senza questa decodifica il
+// tokenizer vedeva virgolette/parentesi → quasi nessun chip matchava → il
+// vettore usciva ~neutro per OGNI utente del funnel fast e il prior EMA,
+// scartando la banda neutra, restava vuoto: l'intera evoluzione del profilo
+// era inerte pur "scrivendo". (Riparazione write-path, 2026-07-24.)
+function expandAnswer(raw: string): { texts: string[]; pace: number | null } {
+  const t = raw.trim();
+  if (!/^[\[{]/.test(t)) return { texts: [raw], pace: null };
+  try {
+    const parsed = JSON.parse(t);
+    const texts: string[] = [];
+    let pace: number | null = null;
+    const walk = (v: unknown): void => {
+      if (typeof v === "string") { texts.push(v); return; }
+      if (Array.isArray(v)) { v.forEach(walk); return; }
+      if (v && typeof v === "object") {
+        for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+          if (k === "pace") {
+            if (typeof val === "number") pace = val;
+            else if (typeof val === "string") {
+              const s = val.toLowerCase();
+              pace = /relax|lent|slow/.test(s) ? 25 : /intens|dens|pien/.test(s) ? 75 : 50;
+            }
+            continue;
+          }
+          if (k === "specific_place") continue; // nome di destinazione: non è un chip
+          walk(val);
+        }
+      }
+    };
+    walk(parsed);
+    return { texts: texts.length ? texts : [raw], pace };
+  } catch {
+    return { texts: [raw], pace: null };
+  }
+}
 
 // ── Main entry: quiz → trait vector ───────────────────────────────────────
 
@@ -420,12 +463,23 @@ export function computeTraitVector(signal: QuizSignal): TraitVector {
     // path_a / path_b sentinels — skip
     if (/^path_[ab]$/i.test(raw.trim())) continue;
 
-    const tokens = raw.split(/[,|]/).map(s => s.trim()).filter(Boolean);
-    for (const tok of tokens) {
-      const key = normalizeChip(tok);
-      if (!key) continue;
-      const contrib = CHIP_TRAITS[key];
-      if (contrib) addContrib(acc, contrib);
+    // Decodifica JSON (L1/L2) → testi puliti + eventuale pace testuale.
+    const expanded = expandAnswer(raw);
+    if (expanded.pace !== null && detectedPace === null) detectedPace = expanded.pace;
+
+    // Dedupe per-risposta: L1 porta la stessa scelta in 3 forme (label IT,
+    // label EN, descrizione) — è UNA scelta, non tre; senza il Set l'asse
+    // verrebbe contato 2-3 volte e il vettore uscirebbe gonfiato.
+    const seenKeys = new Set<string>();
+    for (const text of expanded.texts) {
+      const tokens = text.split(/[,|]/).map(s => s.trim()).filter(Boolean);
+      for (const tok of tokens) {
+        const key = normalizeChip(tok);
+        if (!key || seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        const contrib = CHIP_TRAITS[key];
+        if (contrib) addContrib(acc, contrib);
+      }
     }
   }
 

@@ -52,10 +52,58 @@ const VECTORS: Record<string, TraitVector> = {
   "praga":       { exposure: 0.20, comfort: 0.25, social: 0.55, matter: 0.10, structure: 0.25 },
 };
 
-export function getDestinationTraitVector(name: string | null | undefined): TraitVector | null {
+// ── Derivazione per keyword dal TESTO della destinazione ───────────────────
+// Le destinazioni del funnel live sono GENERATE dal matcher ("Pola, Istria",
+// "Salonicco"…): la mappa fissa sopra copre solo il catalogo curato, quindi
+// quasi nessun pick reale trovava un vettore → il blend "revealed preference"
+// non avveniva mai. Qui deriviamo un vettore editoriale dal testo che il
+// matcher stesso produce (whyYours + experiencePreview): keyword→contributi,
+// stessa sigmoide del quiz. Con <2 keyword il ritratto è troppo povero →
+// null (degradazione onesta: meglio nessun blend che un blend rumoroso).
+import { traitSigmoid } from "@shared/traits";
+
+const KEYWORD_CONTRIB: Array<[RegExp, Partial<Record<Axis, number>>]> = [
+  [/trekk|hik(e|ing)|escursion|sentier|vett[ae]|peak|cime|montagn|mountain/i, { matter: +0.5, comfort: +0.35 }],
+  [/natur|forest|foresta|parco nazionale|national park|wild|selvagg/i,        { matter: +0.5 }],
+  [/spiagg|beach|\bmare\b|\bsea\b|coast|costier|isol[ae]|island|fiord/i,      { matter: +0.3 }],
+  [/muse[oi]|museum|cattedral|cathedral|palazz|palace|storia|history|storic|historic|templ|rovin|ruins|archeolog|galler/i, { matter: -0.45 }],
+  [/nightlife|vita notturna|club|movida|fest[ae]|festival/i,                  { social: +0.5 }],
+  [/mercat|market|bazaar|suq|souk|street food/i,                              { social: +0.35, exposure: +0.15 }],
+  [/villagg|village|borgh|remot|sperdut|fuori rotta|off the beaten|pochi turisti|non turistic|autentic|authentic/i, { exposure: +0.5 }],
+  [/iconic|famos|famous|celebre|classic|imperdibil|must.?see|cartolina/i,     { exposure: -0.35 }],
+  [/lusso|luxur|resort|\bspa\b|benesser|wellness|eleganz/i,                   { comfort: -0.45 }],
+  [/zaino|backpack|avventur|adventur|adrenalin|kayak|rafting|surf/i,          { comfort: +0.45, matter: +0.2 }],
+  [/silenzi|silence|quiet|tranquill|calm|lentezz|slow|contemplat|monaster/i,  { social: -0.35 }],
+  [/road.?trip|on the road|itinerant|spontane/i,                              { structure: +0.4 }],
+];
+
+export function deriveDestinationTraitVector(text: string | null | undefined): TraitVector | null {
+  if (!text || !text.trim()) return null;
+  const acc: Record<Axis, number> = { exposure: 0, comfort: 0, social: 0, matter: 0, structure: 0 };
+  let hits = 0;
+  for (const [re, contrib] of KEYWORD_CONTRIB) {
+    if (!re.test(text)) continue;
+    hits++;
+    for (const [axis, w] of Object.entries(contrib)) acc[axis as Axis] += w as number;
+  }
+  if (hits < 2) return null;
+  return {
+    exposure:  traitSigmoid(acc.exposure),
+    comfort:   traitSigmoid(acc.comfort),
+    social:    traitSigmoid(acc.social),
+    matter:    traitSigmoid(acc.matter),
+    structure: traitSigmoid(acc.structure),
+  };
+}
+
+// Mappa esatta (catalogo curato) prima; poi derivazione dal testo del matcher.
+export function getDestinationTraitVector(
+  name: string | null | undefined,
+  descriptionText?: string | null,
+): TraitVector | null {
   if (!name) return null;
   const key = name.split(",")[0].trim().toLowerCase();
-  return VECTORS[key] ?? null;
+  return VECTORS[key] ?? deriveDestinationTraitVector(descriptionText);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
