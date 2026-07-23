@@ -87,7 +87,14 @@ async function db(simulateUserId: number | null) {
     const id = ins.rows[0].id;
     const back = await pool.query("SELECT traits FROM trait_snapshots WHERE id = $1", [id]);
     const readV = back.rows[0]?.traits as TraitVector | undefined;
-    check("scrittura → rilettura identica", !!readV && JSON.stringify(readV) === JSON.stringify(finalV));
+    console.log("    inviato :", JSON.stringify(finalV));
+    console.log("    riletto :", JSON.stringify(readV));
+    // Confronto per-asse sui VALORI: jsonb riordina fisicamente le chiavi
+    // (lunghezza, poi alfabetico), quindi JSON.stringify(a)===JSON.stringify(b)
+    // fallirebbe anche a valori identici. Tolleranza minima per la precisione.
+    const sameValues = !!readV && (Object.keys(finalV) as Array<keyof TraitVector>)
+      .every((ax) => Math.abs(Number(readV[ax]) - finalV[ax]) < 1e-9);
+    check("scrittura → rilettura: stessi valori per asse", sameValues);
     check("valore scritto NON neutro", !!readV && !isNeutral(readV), readV ? fmt(readV) : "");
     await pool.query("DELETE FROM trait_snapshots WHERE id = $1", [id]);
     console.log(`    snapshot di test #${id} scritto, verificato e rimosso`);
