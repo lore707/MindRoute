@@ -100,11 +100,23 @@ const generatedResponseSchema = z.object({
 type GeneratedDestination = z.infer<typeof generatedDestinationSchema>;
 type GeneratedItinerary = z.infer<typeof generatedItinerarySchema>;
 
+// Il modello a volte VIOLA il "JSON only": premette prosa ("I'll work through
+// this…") o appende note dopo il payload. Togliere solo i fence markdown non
+// basta — in produzione un preambolo ha fatto fallire /api/profiling e
+// /from-profile con 500 dopo ~60-80s di generazione buttati. Ritagliamo dal
+// primo '{'/'[' all'ultima '}'/']' così il payload resta parsabile qualunque
+// testo lo circondi. (Stesso fix di extractJson in matching-engine-v2.)
+export function extractJsonPayload(text: string): string {
+  const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  const starts = [clean.indexOf("{"), clean.indexOf("[")].filter((i) => i >= 0);
+  if (starts.length === 0) return clean;
+  const start = Math.min(...starts);
+  const end = Math.max(clean.lastIndexOf("}"), clean.lastIndexOf("]"));
+  return end > start ? clean.slice(start, end + 1) : clean;
+}
+
 function parseModelResponse(responseText: string) {
-  const cleanJson = responseText
-    .replace(/```json\n?/g, "")
-    .replace(/```\n?/g, "")
-    .trim();
+  const cleanJson = extractJsonPayload(responseText);
   let parsed: unknown;
   try {
     parsed = JSON.parse(cleanJson);
@@ -1276,7 +1288,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
       .filter((block) => block.type === "text")
       .map((block) => (block as any).text)
       .join("");
-    const cleanJson = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const cleanJson = extractJsonPayload(responseText);
     return tripletSchema.parse(JSON.parse(cleanJson)).destinations;
   };
 
@@ -1434,7 +1446,7 @@ export async function generateItineraryStreamingStructured(
   }
 
   try {
-    const cleanJson = fullText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const cleanJson = extractJsonPayload(fullText);
     const parsed = JSON.parse(cleanJson);
     const itin = parsed.itineraries?.[0];
     if (itin) {
@@ -1577,7 +1589,7 @@ Lingua: ${lang}. Nessun testo fuori dal JSON.`;
   });
 
   const text = response.content[0].type === "text" ? response.content[0].text : "";
-  const clean = text.replace(/```json|```/g, "").trim();
+  const clean = extractJsonPayload(text);
   return JSON.parse(clean);
 }
 
@@ -1606,7 +1618,7 @@ export async function generateItineraryForDestination(
     .map((block) => (block as any).text)
     .join("");
 
-  const cleanJson = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  const cleanJson = extractJsonPayload(responseText);
   const parsed = z.object({
     destinations: z.array(generatedDestinationSchema).min(1),
     itineraries: z.array(generatedItinerarySchema).min(1),

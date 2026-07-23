@@ -40,6 +40,13 @@ function looseEnum<T extends string>(canonical: readonly T[], synonyms: Record<s
   }, z.enum(canonical as unknown as [T, ...T[]])) as unknown as z.ZodType<T>;
 }
 
+// null → undefined per i campi OPZIONALI: il modello emette spesso null per
+// "assente" (visto in prod: energy_note:null). Un singolo null non deve far
+// fallire il parse di un blocco parallelo — il fallback single-call RADDOPPIA
+// il tempo di generazione (230s osservati contro ~115s).
+const optStr = z.preprocess((v) => (v == null ? undefined : v), z.string().optional());
+const optNum = z.preprocess((v) => (v == null ? undefined : v), z.number().optional());
+
 const momentTypeSchema = looseEnum<MomentType>(
   ["transport", "accommodation", "food", "experience", "walk", "view", "rest"],
   {
@@ -114,8 +121,8 @@ const transportToNextV2Schema = z.object({
   // "bici → a piedi"); enumerating them rigidly only triggers costly 500s.
   mode: z.string(),
   duration_min: z.number(),
-  cost_estimate: z.string().optional(),
-  note: z.string().optional(),
+  cost_estimate: optStr,
+  note: optStr,
 });
 
 // Tollerante alla forma "prosa": nei blocchi paralleli il modello a volte
@@ -141,16 +148,16 @@ const momentV2Schema: z.ZodType<MomentV2, z.ZodTypeDef, any> = z.object({
     ["morning", "lunch", "afternoon", "evening", "night"],
     { mattina: "morning", mezzogiorno: "lunch", pranzo: "lunch", pomeriggio: "afternoon", sera: "evening", notte: "night" },
   ),
-  start_time: z.string().optional(),
-  end_time: z.string().optional(),
-  duration_min: z.number().optional(),
-  cost_min: z.number().optional(),
-  cost_max: z.number().optional(),
-  cost_note: z.string().optional(),
-  location_name: z.string().optional(),
-  location_address: z.string().optional(),
-  location_lat: z.number().optional(),
-  location_lng: z.number().optional(),
+  start_time: optStr,
+  end_time: optStr,
+  duration_min: optNum,
+  cost_min: optNum,
+  cost_max: optNum,
+  cost_note: optStr,
+  location_name: optStr,
+  location_address: optStr,
+  location_lat: optNum,
+  location_lng: optNum,
   image_url: z.string().default(""), // non richiesto all'LLM: riempito dall'enrichment
   image_alt: z.string().default(""), // come image_url: non più richiesto all'LLM
   booking: bookingInfoV2Schema.optional(),
@@ -164,7 +171,7 @@ const weatherForecastV2Schema = z.object({
   temp_min: z.number(),
   temp_max: z.number(),
   condition: weatherConditionSchema,
-  note: z.string().optional(),
+  note: optStr,
 });
 
 const dayRoleSchema = looseEnum<DayRole>(
@@ -181,7 +188,7 @@ const dayRoleSchema = looseEnum<DayRole>(
 
 const dayV2Schema: z.ZodType<DayV2, z.ZodTypeDef, any> = z.object({
   day_number: z.number(),
-  date: z.string().optional(),
+  date: optStr,
   role: dayRoleSchema.optional(),
   arc: z.string(),
   title_evocative: z.string(),
@@ -189,8 +196,8 @@ const dayV2Schema: z.ZodType<DayV2, z.ZodTypeDef, any> = z.object({
   hero_image_url: z.string().default(""), // idem: foto reali attaccate dopo
   weather_forecast: weatherForecastV2Schema.optional(),
   energy_level: energyLevelSchema,
-  energy_note: z.string().optional(),
-  walking_distance_km: z.number().optional(),
+  energy_note: optStr,
+  walking_distance_km: optNum,
   cost_bookable_total: z.number().default(0), // ricalcolato sempre server-side
   cost_onsite_estimate: z.number().default(0),
   moments: z.array(momentV2Schema).min(2).max(6),
@@ -216,7 +223,7 @@ export const itineraryV2Schema = z.object({
   travel_dates: z.object({ start: z.string(), end: z.string() }).optional(),
   hero_image_url: z.string().default(""), // idem: foto reali attaccate dopo
   manifesto: z.string(),
-  em_word: z.string().optional(),
+  em_word: optStr,
   highlights: z.array(highlightV2Schema),
   days: z.array(dayV2Schema),
   total_cost_bookable: z.number(),
@@ -754,7 +761,7 @@ const skeletonV2Schema = z.object({
   country: z.string(),
   duration_days: z.number(),
   manifesto: z.string(),
-  em_word: z.string().optional(),
+  em_word: optStr,
   highlights: z.array(highlightV2Schema),
   total_cost_range: z.string(),
   closing_quote: z.string(),

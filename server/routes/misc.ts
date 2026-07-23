@@ -136,6 +136,7 @@ export function registerMiscRoutes(app: Express) {
   // arrotondate: la home è la vista più aperta, Open-Meteo non va martellato.
   const weatherCache = new Map<string, { at: number; body: any }>();
   const revGeoCache = new Map<string, { at: number; label: string }>();
+  let meteoCooldownUntil = 0; // dopo un 429 upstream: niente chiamate per 5 min
   app.get("/api/weather", async (req, res) => {
     try {
       let lat = Number(req.query.lat);
@@ -163,11 +164,24 @@ export function registerMiscRoutes(app: Express) {
         return res.json({ ...hit.body, label: label || hit.body.label });
       }
 
+      // Rate-limit upstream (IP Render condiviso): dopo un 429 non martellare
+      // per 5 min — nel frattempo un dato SCADUTO è meglio di nessun dato
+      // (il meteo di 20 minuti fa resta onesto per il widget).
+      if (Date.now() < meteoCooldownUntil) {
+        if (hit) { res.set("Cache-Control", "private, max-age=120"); return res.json({ ...hit.body, label: label || hit.body.label }); }
+        return res.status(503).json({ message: "Meteo momentaneamente non disponibile" });
+      }
+
       const wr = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,is_day&timezone=auto`,
         { signal: AbortSignal.timeout(5000) },
       );
-      if (!wr.ok) throw new Error(`open-meteo ${wr.status}`);
+      if (!wr.ok) {
+        if (wr.status === 429) meteoCooldownUntil = Date.now() + 5 * 60_000;
+        // Upstream giù ma abbiamo un dato recente-ish → serviamo quello.
+        if (hit) { res.set("Cache-Control", "private, max-age=120"); return res.json({ ...hit.body, label: label || hit.body.label }); }
+        throw new Error(`open-meteo ${wr.status}`);
+      }
       const w = await wr.json() as any;
       const cur = w?.current;
       if (!cur || typeof cur.temperature_2m !== "number") throw new Error("open-meteo shape");
