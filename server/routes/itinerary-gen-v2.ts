@@ -27,7 +27,10 @@ import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, k
 type StayAffiliateContext = AffiliateContext & {
   realCheckin?: string;
   realCheckout?: string;
-  lang?: string; // per la label difensiva dell'alloggio
+  lang?: string;       // per la label difensiva dell'alloggio
+  stayAdults?: number; // da companions (L2): il link hotel riflette il gruppo reale
+  stayRooms?: number;
+  stayPref?: string;   // preferenza alloggio dichiarata (hostel/budget/boutique/luxury…)
 };
 
 // Contesto affiliate dal profilo: stessa derivazione di date del BookTab client
@@ -56,7 +59,18 @@ function buildAffiliateContext(destinationName: string, profilingInput: any): St
     realCheckin = fmt(rc); realCheckout = fmt(rco);
   }
   const lang = profilingInput?.lang === "it" ? "it" : "en";
-  return { destinationName, departure, checkin, checkout, realCheckin, realCheckout, lang };
+  // Companions (L2) → occupancy del link hotel: solo=1/1, coppia=2/1,
+  // amici=2/2 (due letti separati), famiglia=2/1. Derivato, mai inventato:
+  // senza companions restano i default 2/1. (Il param children di Expedia
+  // non è verificato → omesso.)
+  const comp = String(profilingInput?.companions ?? "").toLowerCase();
+  let stayAdults: number | undefined, stayRooms: number | undefined;
+  if (/^solo|da solo|alone/.test(comp)) { stayAdults = 1; stayRooms = 1; }
+  else if (/couple|coppia|partner/.test(comp)) { stayAdults = 2; stayRooms = 1; }
+  else if (/friend|amic/.test(comp)) { stayAdults = 2; stayRooms = 2; }
+  else if (/famil|famigl/.test(comp)) { stayAdults = 2; stayRooms = 1; }
+  const stayPref = String(profilingInput?.accommodation ?? "").toLowerCase() || undefined;
+  return { destinationName, departure, checkin, checkout, realCheckin, realCheckout, lang, stayAdults, stayRooms, stayPref };
 }
 
 // Riscrive booking.affiliate_url di UN momento col link canonico del provider.
@@ -76,13 +90,30 @@ function rewriteMomentBooking(moment: MomentV2, affCtx: StayAffiliateContext): v
     const parts = (affCtx.destinationName ?? "").split(",").map(s => s.trim()).filter(Boolean);
     const city = parts[0] ?? "";
     const country = parts.length > 1 ? parts[parts.length - 1] : undefined;
-    b.affiliate_url = expediaStaySearchUrl({
-      district: stay.district || undefined,
-      city, country,
-      checkin: affCtx.realCheckin,   // SOLO date reali: assenti → ricerca senza date
-      checkout: affCtx.realCheckout,
-      lang: affCtx.lang,             // IT → EUR+italiano, EN → USD+en_US
-    });
+
+    // PROVIDER PER PREFERENZA: boutique/design/lusso → Tablet Hotels (catalogo
+    // curato: il link stesso È il filtro). Vale sia quando il modello ha già
+    // scelto tablet_hotels sia quando la preferenza L2 lo impone — prima la
+    // riscrittura criteri scavalcava sempre su Expedia, annullando la scelta.
+    const wantsTablet = /^tablet/i.test((b.provider ?? "").trim())
+      || /boutique|design|lux|lusso/.test(affCtx.stayPref ?? "");
+    let url: string | null = null;
+    if (wantsTablet) {
+      url = resolveAffiliateUrl("tablet_hotels", affCtx); // ricerca Tablet per destinazione (CJ)
+      if (url) b.provider = "tablet_hotels";
+    }
+    if (!url) {
+      url = expediaStaySearchUrl({
+        district: stay.district || undefined,
+        city, country,
+        checkin: affCtx.realCheckin,   // SOLO date reali: assenti → ricerca senza date
+        checkout: affCtx.realCheckout,
+        lang: affCtx.lang,             // IT → EUR+italiano, EN → USD+en_US
+        adults: affCtx.stayAdults,     // dal profilo (companions), default 2/1 nel builder
+        rooms: affCtx.stayRooms,
+      });
+    }
+    b.affiliate_url = url;
     // Difesa anti-specifico-finto: se la label del modello non nomina la zona
     // (probabile property inventata), la riscriviamo sul QUARTIERE; se manca
     // pure il district, resta la città. Mai il nome di una struttura.

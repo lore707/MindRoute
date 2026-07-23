@@ -391,7 +391,7 @@ Never suggest a destination structurally incompatible with the budget. Verify th
 - "Boutique / Design": Design or boutique hotels €120-200/night.
 - "Lusso": Luxury 4-5 star €200+/night.
 - "Mix": Alternate budget and splurge nights.
-The hotel named MUST fall within this range. Verify mentally before naming.
+The lodging tier and budget_range MUST fall within this range (lodging = search criteria on a district, never a named property).
 
 ── FOOD PREFERENCE → EVERY MEAL ──
 - "Street food e mercati": ONLY street food/market under €15/person. No sit-down restaurants.
@@ -482,11 +482,11 @@ FAMILY: All activities child-safe. No extreme sports. Family restaurants. Dinner
 
 TRAVEL STYLE — itinerary architecture:
 
-BASE FISSA: ONE accommodation for ALL nights. Every evening returns to base. Day trips radiate out (max 2h each way). Same hotel named on Day 1 and Day 7.
+BASE FISSA: ONE accommodation for ALL nights. Every evening returns to base. Day trips radiate out (max 2h each way). Same base DISTRICT on Day 1 and Day 7 (lodging = search criteria, never a named property).
 
 DUE TAPPE: EXACTLY 2 distinct zones in 2 different locations. Zone 1: Days 1-3/4. Zone 2: Days 4-7/5-7. Different cities/regions (NOT same city different neighborhoods). 2 different hotels named. Different character per zone (e.g. urban/coastal, nature/city). Transition described as experience. BAD: "North Raja Ampat / South Raja Ampat". GOOD: "Thessaloniki (urban, culture) / Halkidiki (beach, nature)".
 
-SCOPERTA: Move every 1-2 days. Minimum 3 accommodations. Max 3h transport between locations. Each location different vibe. Different hotel named per location.
+SCOPERTA: Move every 1-2 days. Minimum 3 accommodations. Max 3h transport between locations. Each location different vibe. A different base DISTRICT per location (criteria, never named properties).
 
 NOT SPECIFIED: Infer from PACE_SLIDER — 0-40 = base fissa, 41-70 = due tappe, 71-100 = scoperta.
 
