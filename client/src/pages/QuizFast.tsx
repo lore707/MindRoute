@@ -76,11 +76,13 @@ const BUDGETS: (Opt & { code: string })[] = [
 // Partenze comuni (Italia): un tap riempie il campo. Resta free-text per altre.
 const DEPARTURE_SUGGESTIONS = ["Milano", "Roma", "Bergamo", "Bologna", "Venezia", "Napoli"];
 
-const CITY_SUGGESTIONS: { name: string; theme: string }[] = [
-  { name: "Lisbona", theme: "europe" }, { name: "Tokyo", theme: "asia" },
-  { name: "Parigi", theme: "romantic" }, { name: "Bali", theme: "beach" },
-  { name: "New York", theme: "city" }, { name: "Sicilia", theme: "beach" },
-  { name: "Marrakech", theme: "africa" }, { name: "Islanda", theme: "wild" },
+// Emoji CARATTERISTICA della città (mai il 📍 generico): il tram di Lisbona,
+// la lanterna di Tokyo, la Statua per NY… un colpo d'occhio che racconta.
+const CITY_SUGGESTIONS: { name: string; theme: string; emoji: string }[] = [
+  { name: "Lisbona", theme: "europe", emoji: "🚋" }, { name: "Tokyo", theme: "asia", emoji: "🏮" },
+  { name: "Parigi", theme: "romantic", emoji: "🗼" }, { name: "Bali", theme: "beach", emoji: "🌴" },
+  { name: "New York", theme: "city", emoji: "🗽" }, { name: "Sicilia", theme: "beach", emoji: "🍋" },
+  { name: "Marrakech", theme: "africa", emoji: "🕌" }, { name: "Islanda", theme: "wild", emoji: "🌋" },
 ];
 
 const STEP_DEFAULT_THEME: Record<string, string> = {
@@ -359,7 +361,7 @@ export default function QuizFast() {
                           onMouseEnter={() => hoverBg(c.theme)} onMouseLeave={() => hoverBg(CITY_SUGGESTIONS.find((x) => x.name === city)?.theme)}
                           onClick={() => { setCity(c.name); hoverBg(c.theme); }} data-testid={`fast-city-${c.name}`}
                         >
-                          <div className="qc-option-ic">📍</div>
+                          <div className="qc-option-ic">{c.emoji}</div>
                           <div className="qc-option-body"><div className="qc-option-name">{c.name}</div></div>
                           <div className="qc-option-mark"><span className="qc-circle" /></div>
                         </div>

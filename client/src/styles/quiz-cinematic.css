@@ -119,13 +119,13 @@
 .qc-precise-input::placeholder{color:var(--qc-ink-faint)}
 .qc-precise-input:focus{outline:none;border-color:var(--qc-accent);box-shadow:0 0 0 3px var(--qc-accent-soft)}
 .qc-precise-hint{margin-top:8px;font-family:var(--qc-serif);font-style:italic;font-size:12.5px;color:var(--qc-ink-faint);line-height:1.45}
-.qc-option{position:relative;display:grid;grid-template-columns:60px 1fr auto;gap:20px;align-items:center;padding:20px 24px;border:1px solid var(--qc-stroke-strong);border-radius:18px;background:linear-gradient(135deg,rgba(42,20,34,.45),rgba(26,14,26,.5));backdrop-filter:blur(18px);cursor:pointer;transition:all .35s cubic-bezier(.2,.7,.2,1);overflow:hidden;min-height:44px}
+.qc-option{position:relative;display:grid;grid-template-columns:60px 1fr auto;gap:20px;align-items:center;padding:20px 24px;border:1px solid var(--qc-stroke-strong);border-radius:18px;background:linear-gradient(135deg,rgba(42,20,34,.72),rgba(26,14,26,.78));backdrop-filter:blur(18px);cursor:pointer;transition:all .35s cubic-bezier(.2,.7,.2,1);overflow:hidden;min-height:44px}
 .qc-option::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,var(--tint,rgba(233,69,96,0)),transparent 60%);opacity:0;transition:opacity .35s;pointer-events:none}
 .qc-option:hover{transform:translateX(6px);border-color:rgba(233,69,96,.45);box-shadow:0 18px 50px -16px rgba(233,69,96,.4)}
 .qc-option:hover::before{opacity:.8}
 .qc-option.selected{border-color:var(--qc-accent);background:linear-gradient(135deg,rgba(233,69,96,.18),rgba(122,16,32,.18));box-shadow:0 0 0 1px var(--qc-accent),0 24px 60px -18px rgba(233,69,96,.5)}
 .qc-option.selected::before{opacity:.9}
-.qc-option-ic{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03));backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.12);display:grid;place-items:center;font-size:22px;position:relative;z-index:2}
+.qc-option-ic{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.05));backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.2);display:grid;place-items:center;font-size:22px;position:relative;z-index:2}
 .qc-option.selected .qc-option-ic{background:linear-gradient(135deg,rgba(233,69,96,.3),rgba(233,69,96,.15));border-color:rgba(233,69,96,.5)}
 .qc-option-body{position:relative;z-index:2;display:flex;flex-direction:column;gap:4px;min-width:0}
 .qc-option-name{font-family:var(--qc-serif);font-size:21px;font-weight:400;line-height:1.15;letter-spacing:-.01em;color:var(--qc-ink)}
@@ -243,8 +243,8 @@
 
 /* Footer nav */
 .qc-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:48px;padding-top:28px;border-top:1px solid var(--qc-stroke);flex-wrap:wrap}
-.qc-back{display:inline-flex;align-items:center;gap:10px;padding:13px 22px;min-height:44px;border:1px solid var(--qc-stroke-strong);border-radius:999px;background:rgba(26,14,26,.5);backdrop-filter:blur(8px);color:var(--qc-ink-dim);font-size:13px;letter-spacing:.04em}
-.qc-back:hover{color:var(--qc-ink);border-color:rgba(255,255,255,.3)}
+.qc-back{display:inline-flex;align-items:center;gap:10px;padding:13px 22px;min-height:44px;border:1px solid rgba(233,69,96,.38);border-radius:999px;background:rgba(26,14,26,.78);backdrop-filter:blur(10px);color:var(--qc-ink);font-size:13px;letter-spacing:.04em;transition:all .22s}
+.qc-back:hover{color:#fff;border-color:var(--qc-accent);background:rgba(233,69,96,.14);box-shadow:0 0 18px -4px rgba(233,69,96,.5)}
 .qc-continue{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:10px;padding:16px 36px;min-height:52px;border-radius:999px;background:var(--qc-accent);color:#1a0508;font-weight:500;font-size:14px;box-shadow:0 12px 40px -8px rgba(233,69,96,.7);transition:all .25s;letter-spacing:.02em}
 .qc-continue:hover{transform:translateY(-2px);box-shadow:0 18px 50px -8px rgba(233,69,96,.9)}
 .qc-continue:disabled{background:rgba(255,255,255,.08);color:var(--qc-ink-faint);box-shadow:none;cursor:not-allowed;transform:none}
@@ -402,3 +402,14 @@
 .qc-ack{display:block;font-family:var(--qc-serif);font-style:italic;font-size:14.5px;color:rgba(255,255,255,.55);margin-bottom:14px;animation:qc-ack-in .5s ease}
 .qc-ack::before{content:"\2713\00a0\00a0";color:#7fd4a8}
 @keyframes qc-ack-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* ── Pressione = luce (audit contrasto 2026-07-23) ──
+   Ogni controllo del quiz si ILLUMINA di rosso brand quando lo premi:
+   feedback tattile coerente su card, opzioni, chip e CTA. */
+.qc-option:active{transform:translateX(6px) scale(.985);border-color:var(--qc-accent);
+  box-shadow:0 0 0 1.5px var(--qc-accent),0 0 34px rgba(233,69,96,.6)}
+.qc-card:active{border-color:var(--qc-accent);box-shadow:0 0 0 2px var(--qc-accent),0 0 60px rgba(233,69,96,.55);transform:translateY(-4px) scale(.995)}
+.qc-back:active{border-color:var(--qc-accent);background:rgba(233,69,96,.22);color:#fff;
+  box-shadow:0 0 24px rgba(233,69,96,.6)}
+.qc-back.selected{border-color:var(--qc-accent);color:var(--qc-accent);background:rgba(233,69,96,.12)}
+.qc-continue:active{transform:translateY(0) scale(.98);box-shadow:0 0 0 2px rgba(233,69,96,.5),0 0 44px rgba(233,69,96,.9)}

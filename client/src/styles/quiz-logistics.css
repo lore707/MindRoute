@@ -408,3 +408,16 @@
 .ql-tier:focus-visible,.ql-toggle-row:focus-visible,.ql-when-tab:focus-visible,
 .ql-dur:focus-visible,.ql-who:focus-visible,.ql-move:focus-visible,
 .ql-strip:focus-visible{outline:2px solid #E94560;outline-offset:3px}
+
+/* ── Coerenza brand + pressione = luce (audit contrasto 2026-07-23) ──
+   Stesso sistema del quiz cinematic: basi più solide (le card erano troppo
+   trasparenti sulle foto chiare) e glow rosso alla pressione, identico
+   ovunque nel sito. */
+.ql-tier,.ql-dur,.ql-who,.ql-move{background:linear-gradient(180deg,rgba(42,20,34,.72),rgba(26,14,26,.8))}
+.ql-strip,.ql-month-cell,.ql-period-chip,.ql-depart-chip{background:rgba(26,14,26,.78)}
+.ql-tier:active,.ql-dur:active,.ql-who:active,.ql-move:active,.ql-strip:active{
+  border-color:var(--ql-accent);box-shadow:0 0 0 1.5px var(--ql-accent),0 0 34px rgba(233,69,96,.6);transform:scale(.985)}
+.ql-month-cell:active,.ql-period-chip:active,.ql-depart-chip:active,.ql-when-tab:active{
+  border-color:var(--ql-accent);background:rgba(233,69,96,.2);color:#fff;box-shadow:0 0 22px rgba(233,69,96,.6)}
+.ql-depart-chip{border-color:rgba(233,69,96,.35);color:var(--ql-ink)}
+.ql-depart-chip:hover{border-color:var(--ql-accent);background:rgba(233,69,96,.12);box-shadow:0 0 16px -4px rgba(233,69,96,.45)}
