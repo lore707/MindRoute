@@ -573,6 +573,18 @@ function durationLabelFor(min?: number): string | undefined {
 }
 function buildMomentsV2(day: any, t: (k: string) => string, lang: "en" | "it", opts: { destCity: string }): CinMoment[] {
   const moments: any[] = Array.isArray(day?.moments) ? day.moments : [];
+  // Il click sulla card apre il dettaglio SOLO se il momento ha un id non vuoto
+  // e univoco (JourneyView: `if (m.id)` + find per id). Il modello a volte
+  // emette id vuoto o duplicato — tipicamente sull'ultimo momento (sera/alloggio
+  // del giorno 1) — e quella card diventa non cliccabile. Garantiamo qui un id
+  // stabile, non vuoto e univoco per giorno.
+  const usedIds = new Set<string>();
+  const safeId = (rawId: unknown, idx: number): string => {
+    const trimmed = typeof rawId === "string" ? rawId.trim() : "";
+    const id = trimmed && !usedIds.has(trimmed) ? trimmed : `d${day?.day_number ?? "x"}m${idx + 1}`;
+    usedIds.add(id);
+    return id;
+  };
   const slotLabel = (timeLabel: string): string => {
     switch (timeLabel) {
       case "morning": return t('itin.morning');
@@ -583,7 +595,7 @@ function buildMomentsV2(day: any, t: (k: string) => string, lang: "en" | "it", o
       default: return timeLabel ?? "";
     }
   };
-  return moments.map((m) => {
+  return moments.map((m, mi) => {
     const title = m.title_evocative || m.title_operational || "";
     const desc = m.description || m.why_this || "";
     // transport_to_next → connettore qualitativo "modo · ~Nmin · costo".
@@ -631,8 +643,9 @@ function buildMomentsV2(day: any, t: (k: string) => string, lang: "en" | "it", o
       ctaProvider: bookable ? affiliateProvider(booking.provider) : undefined,
       ctaPrice: bookable ? fmtBookPrice(m.cost_min, m.cost_max) : undefined,
       ctaStatus: bookable ? booking.status : undefined,
-      // Pass-through dei campi v2 necessari al bookmark (Ondata B).
-      id: m.id,
+      // Pass-through dei campi v2 necessari al bookmark (Ondata B). id sempre
+      // non vuoto e univoco per giorno → la card è sempre apribile.
+      id: safeId(m.id, mi),
       type: m.type,
       locationName: m.location_name,
       imageUrl: m.image_url,
