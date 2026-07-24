@@ -205,7 +205,8 @@ export function registerItineraryGenRoutes(app: Express) {
         createdAt: new Date().toISOString(),
       });
       recordRecentDestination(destinationName);
-      recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id });
+      recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id,
+        proposed: (await storage.getDestinations().catch(() => [])).map((d) => ({ name: d.name })) });
       res.json(saved);
     } catch (err) {
       console.error("Error generating itinerary:", err);
@@ -399,7 +400,8 @@ export function registerItineraryGenRoutes(app: Express) {
             }
 
             recordRecentDestination(destinationName);
-            recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: finalItinId });
+            recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: finalItinId,
+              proposed: (await storage.getDestinations().catch(() => [])).map((d) => ({ name: d.name })) });
             console.log(`Background structured itinerary completed for id ${finalItinId}`);
           } catch (bgErr) {
             console.error("Background structured generation error:", bgErr);
@@ -497,7 +499,8 @@ export function registerItineraryGenRoutes(app: Express) {
       res.end();
 
       recordRecentDestination(destinationName);
-      recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id });
+      recordPickSnapshot({ userId, profilingInput: input, destinationName, itineraryId: saved.id,
+        proposed: (await storage.getDestinations().catch(() => [])).map((d) => ({ name: d.name })) });
 
       // Background: wider geocoding pass to enrich map after user has the itinerary
       (async () => {

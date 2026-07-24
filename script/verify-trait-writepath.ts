@@ -14,8 +14,8 @@
 //     runtime → riletto dal DB → confronto valori → DELETE (cleanup).
 //     Il valore DEVE risultare cambiato e non-neutro, o FAIL.
 // ─────────────────────────────────────────────────────────────────────────
-import { computeTraitVector, blendWithDestination, emaAggregate, MAPPING_VERSION, type TraitVector } from "../shared/traits";
-import { getDestinationTraitVector, deriveDestinationTraitVector } from "../server/destination-traits";
+import { computeTraitVector, blendWithRevealedPreference, emaAggregate, MAPPING_VERSION, type TraitVector } from "../shared/traits";
+import { getDestinationTraitVector, revealedPreferenceVector } from "../server/destination-traits";
 
 const fmt = (v: TraitVector) => Object.entries(v).map(([a, x]) => `${a}=${x.toFixed(2)}`).join(" ");
 const isNeutral = (v: TraitVector) => Object.values(v).every((x) => x > 0.42 && x < 0.58);
@@ -30,7 +30,11 @@ const L1_INPUT = {
   answers: ["path_a", JSON.stringify({ emotional_goals: ["Capire un posto", "Understand a place", "persone, cucina, storie vere"], pace: "balanced" })],
   companions: "couple", budget: "medium", travelStyle: null, constraints: null,
 };
-const DEST_TEXT = "Salonicco è la città dei mercati storici e dello street food: quartieri autentici lontani dai circuiti turistici, musei bizantini e vita che scorre lenta nelle taverne.";
+// Tripletta con vettori neutri noti (catalogo curato): scelta "cultura/città"
+// contro due scarti (una selvaggia-natura, una festosa-sociale). Il contrasto
+// deve rivelare la direzione su cui la scelta diverge dagli scarti.
+const CHOSEN = "Kyoto, Giappone";        // matter basso (cultura), social basso
+const REJECTED = ["Patagonia, Cile", "Napoli, Italia"];
 
 async function dry() {
   console.log("═══ 1. Vettore dal quiz L1 (risposte JSON del funnel live) ═══");
@@ -39,12 +43,16 @@ async function dry() {
   check("vettore NON neutro (la decodifica JSON funziona)", !isNeutral(quizV));
   check("asse matter tirato verso cultura (<0.42)", quizV.matter < 0.42, `matter=${quizV.matter.toFixed(2)}`);
 
-  console.log("═══ 2. Vettore destinazione derivato dal testo del matcher ═══");
-  const destV = deriveDestinationTraitVector(DEST_TEXT);
-  check("derivazione riuscita (≥2 keyword)", !!destV, destV ? fmt(destV) : "null");
+  console.log("═══ 2. Revealed preference: CONTRASTO scelta vs scartate (testo neutro) ═══");
+  const revealed = revealedPreferenceVector(CHOSEN, REJECTED);
+  check("contrasto calcolato (vettori neutri della tripletta)", !!revealed, revealed ? fmt(revealed) : "null");
+  // Kyoto è la meno "natura" del trio → il contrasto su matter deve pendere a
+  // sinistra (cultura, <0.5); la copy persuasiva NON entra più nel segnale.
+  check("il contrasto rivela cultura (matter < 0.5)", !!revealed && revealed.matter < 0.5,
+    revealed ? `matter=${revealed.matter.toFixed(2)}` : "");
 
-  console.log("═══ 3. Blend (revealed preference) ═══");
-  const blended = destV ? blendWithDestination(quizV, destV) : quizV;
+  console.log("═══ 3. Blend con deadzone (assi senza contrasto restano intatti) ═══");
+  const blended = revealed ? blendWithRevealedPreference(quizV, revealed) : quizV;
   console.log("   ", fmt(blended));
   check("il pick SPOSTA il vettore rispetto al solo quiz",
     Object.keys(quizV).some((a) => Math.abs((blended as any)[a] - (quizV as any)[a]) > 0.02));
@@ -55,9 +63,11 @@ async function dry() {
   console.log("   ", fmt(ema));
   check("EMA non neutro (il prior verrebbe iniettato nel prompt)", !isNeutral(ema));
 
-  console.log("═══ 5. Fallback esatti dal catalogo curato ═══");
+  console.log("═══ 5. Vettori neutri: catalogo + degradazione onesta ═══");
   check("kyoto → vettore dalla mappa", !!getDestinationTraitVector("Kyoto, Giappone"));
-  check("destinazione ignota senza testo → null onesto", getDestinationTraitVector("Xyzzy, Nowhere") === null);
+  check("destinazione ignota → null onesto (nome senza keyword)", getDestinationTraitVector("Xyzzy, Nowhere") === null);
+  check("contrasto impossibile senza scarti noti → null",
+    revealedPreferenceVector(CHOSEN, ["Xyzzy, Nowhere"]) === null);
 }
 
 async function db(simulateUserId: number | null) {
@@ -78,8 +88,8 @@ async function db(simulateUserId: number | null) {
   if (simulateUserId != null) {
     console.log(`═══ Simulazione E2E (user ${simulateUserId}, con cleanup) ═══`);
     const quizV = computeTraitVector(L1_INPUT);
-    const destV = deriveDestinationTraitVector(DEST_TEXT);
-    const finalV = destV ? blendWithDestination(quizV, destV) : quizV;
+    const revealed = revealedPreferenceVector(CHOSEN, REJECTED);
+    const finalV = revealed ? blendWithRevealedPreference(quizV, revealed) : quizV;
     const ins = await pool.query(
       `INSERT INTO trait_snapshots (user_id, traits, source, mapping_version, raw_signal)
        VALUES ($1, $2, 'pick', $3, $4) RETURNING id`,

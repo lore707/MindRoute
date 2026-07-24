@@ -471,12 +471,13 @@ export function registerItineraryGenV2Routes(app: Express) {
           const insertRow = itineraryV2ToInsert(enriched, destIdNum, userId, input);
           const saved = await storage.createItinerary(insertRow);
           recordRecentDestination(destinationName).catch(() => {});
-          // Il testo del matcher (whyYours+experiencePreview) alimenta la
-          // derivazione del trait vector per le destinazioni fuori catalogo.
-          const destRow = await storage.getDestination(destIdNum).catch(() => undefined);
+          // Revealed preference: passa TUTTA la tripletta proposta (il trio è
+          // l'unico contenuto della tabella destinations dopo clearAll). Il
+          // recorder ricava il segnale dal contrasto scelta-vs-scartate.
+          const trio = await storage.getDestinations().catch(() => []);
           recordPickSnapshot({
             userId, profilingInput: input, destinationName, itineraryId: saved.id,
-            destinationText: [destRow?.whyYours, destRow?.experiencePreview].filter(Boolean).join(" "),
+            proposed: trio.map((d) => ({ name: d.name })),
           });
           return { id: saved.id, itinerary: enriched };
         })();

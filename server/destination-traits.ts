@@ -52,14 +52,19 @@ const VECTORS: Record<string, TraitVector> = {
   "praga":       { exposure: 0.20, comfort: 0.25, social: 0.55, matter: 0.10, structure: 0.25 },
 };
 
-// ── Derivazione per keyword dal TESTO della destinazione ───────────────────
-// Le destinazioni del funnel live sono GENERATE dal matcher ("Pola, Istria",
-// "Salonicco"…): la mappa fissa sopra copre solo il catalogo curato, quindi
-// quasi nessun pick reale trovava un vettore → il blend "revealed preference"
-// non avveniva mai. Qui deriviamo un vettore editoriale dal testo che il
-// matcher stesso produce (whyYours + experiencePreview): keyword→contributi,
-// stessa sigmoide del quiz. Con <2 keyword il ritratto è troppo povero →
-// null (degradazione onesta: meglio nessun blend che un blend rumoroso).
+// ── Derivazione per keyword da testo NEUTRO della destinazione ─────────────
+// keyword→contributi sui 5 assi, stessa sigmoide del quiz. Con <2 keyword il
+// ritratto è troppo povero → null (degradazione onesta: meglio nessun vettore
+// che uno rumoroso).
+//
+// IMPORTANTE (correzione revealed-preference, 2026-07-24): questa derivazione
+// va alimentata SOLO con testo neutro sulla destinazione (nome, tipologia,
+// descrittori generici). NON con whyYours/experiencePreview: quella è copy che
+// il matcher scrive su misura per l'utente sulla base del suo stesso profilo —
+// derivarne il vettore era un anello di autoconferma che rinforzava il profilo
+// senza far entrare informazione nuova. Il segnale valido è il CONTRASTO tra
+// la destinazione scelta e le due scartate (revealedPreferenceVector), calcolato
+// su vettori neutri.
 import { traitSigmoid } from "@shared/traits";
 
 const KEYWORD_CONTRIB: Array<[RegExp, Partial<Record<Axis, number>>]> = [
@@ -96,14 +101,52 @@ export function deriveDestinationTraitVector(text: string | null | undefined): T
   };
 }
 
-// Mappa esatta (catalogo curato) prima; poi derivazione dal testo del matcher.
+// Vettore NEUTRO della destinazione: catalogo curato per nome (letture
+// editoriali indipendenti dall'utente), poi derivazione keyword dal solo NOME
+// (città/paese: raramente porta ≥2 keyword → null onesto). Non usa mai copy
+// persuasiva. compass.ts/daily-pick.ts passano nomi di catalogo → colpiscono
+// la mappa. Il vecchio secondo parametro `descriptionText` è stato rimosso:
+// era il canale con cui la copy persuasiva entrava nel profilo.
 export function getDestinationTraitVector(
   name: string | null | undefined,
-  descriptionText?: string | null,
 ): TraitVector | null {
   if (!name) return null;
   const key = name.split(",")[0].trim().toLowerCase();
-  return VECTORS[key] ?? deriveDestinationTraitVector(descriptionText);
+  return VECTORS[key] ?? deriveDestinationTraitVector(name);
+}
+
+// ── Revealed preference: contrasto scelta vs scartate (§9 Evoluzione) ──────
+// "Quale delle 3 destinazioni ha scelto (e quali ha scartato: lo scarto è
+// segnale quanto la scelta)". Il segnale valido NON è il vettore assoluto della
+// scelta, ma la DIREZIONE in cui la scelta differisce dalle alternative scartate,
+// su vettori neutri. Se il trio era tutto-cultura e l'utente ne sceglie una,
+// "cultura" non è rivelata (nessun contrasto): ciò che emerge è l'asse su cui la
+// scelta diverge dagli scarti. Ritorna un vettore in cui 0.5 = "nessun segnale
+// su questo asse" e lo scostamento dalla neutralità = preferenza rivelata.
+//
+// Degradazione onesta: serve il vettore neutro della scelta E di almeno una
+// scartata, altrimenti null (niente blend → snapshot quiz-only). Preferiamo
+// nessun blend a un blend non informativo.
+export function revealedPreferenceVector(
+  chosenName: string,
+  rejectedNames: string[],
+): TraitVector | null {
+  const chosen = getDestinationTraitVector(chosenName);
+  if (!chosen) return null;
+  const rejected = rejectedNames
+    .filter((n) => n && n.trim() && n !== chosenName)
+    .map((n) => getDestinationTraitVector(n))
+    .filter((v): v is TraitVector => !!v);
+  if (rejected.length === 0) return null;
+
+  const axes: Axis[] = ["exposure", "comfort", "social", "matter", "structure"];
+  const out = {} as TraitVector;
+  for (const ax of axes) {
+    const meanRejected = rejected.reduce((s, v) => s + v[ax], 0) / rejected.length;
+    const delta = chosen[ax] - meanRejected;           // [-1, 1]
+    out[ax] = Math.max(0, Math.min(1, 0.5 + delta));   // 0.5 = nessun contrasto
+  }
+  return out;
 }
 
 // ─────────────────────────────────────────────────────────────────────────

@@ -548,6 +548,31 @@ export function blendWithDestination(
 }
 
 /**
+ * Blend con un vettore di PREFERENZA RIVELATA (contrasto scelta vs scartate,
+ * vedi destination-traits.revealedPreferenceVector). Diverso da
+ * blendWithDestination: il vettore-contrasto porta 0.5 = "nessun segnale su
+ * questo asse". Perciò sugli assi entro la deadzone il quiz resta INTATTO (non
+ * va trascinato verso il neutro), e solo dove la scelta ha davvero divergiuto
+ * dagli scarti il valore si sposta. weight = quanto pesa il quiz vs il segnale.
+ */
+export function blendWithRevealedPreference(
+  quiz: TraitVector,
+  revealed: TraitVector,
+  quizWeight = 0.6,
+  deadzone = 0.08,
+): TraitVector {
+  const w = Math.max(0, Math.min(1, quizWeight));
+  const axes: Axis[] = ["exposure", "comfort", "social", "matter", "structure"];
+  const out = {} as TraitVector;
+  for (const ax of axes) {
+    out[ax] = Math.abs(revealed[ax] - 0.5) < deadzone
+      ? quiz[ax]                                   // nessun contrasto → quiz intatto
+      : quiz[ax] * w + revealed[ax] * (1 - w);
+  }
+  return out;
+}
+
+/**
  * Inverse direction: given an aggregated TraitVector, synthesize a minimal set
  * of canonical chip labels that, if fed to computeTraitVector, would produce
  * roughly the same profile. Used by the "Genera dal profilo" flow (Ondata C)

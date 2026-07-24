@@ -1,24 +1,31 @@
 // ─────────────────────────────────────────────────────────────────────────
 // Trait snapshot recorder — central helper called from the itinerary-gen
 // routes (v1 and v2). Captures a "pick" snapshot when the user commits to
-// a destination, blended with the destination's own trait vector when known.
+// a destination.
+//
+// Revealed preference (§9 Evoluzione): il segnale della scelta NON è il vettore
+// assoluto della destinazione scelta (né tantomeno derivato dalla sua copy
+// persuasiva: autoconferma), ma il CONTRASTO tra la scelta e le due scartate,
+// su vettori neutri. Per questo il recorder riceve TUTTE E TRE le destinazioni
+// proposte, non solo quella selezionata. Se il contrasto non è calcolabile
+// (vettori neutri insufficienti) → snapshot quiz-only (degradazione onesta).
 // ─────────────────────────────────────────────────────────────────────────
 
 import { storage } from "./storage";
-import { computeTraitVector, blendWithDestination, MAPPING_VERSION } from "@shared/traits";
-import { getDestinationTraitVector } from "./destination-traits";
+import { computeTraitVector, blendWithRevealedPreference, MAPPING_VERSION } from "@shared/traits";
+import { revealedPreferenceVector } from "./destination-traits";
 
 export async function recordPickSnapshot(args: {
   userId: number | null | undefined;
   profilingInput: any;
   destinationName: string;
   itineraryId: number;
-  /** Testo descrittivo della destinazione (whyYours+experiencePreview del
-   *  matcher): alimenta la derivazione del trait vector quando la destinazione
-   *  non è nel catalogo curato — cioè quasi sempre, nel funnel live. */
-  destinationText?: string | null;
+  /** Tutte e tre le destinazioni proposte nella tripletta (nome), inclusa la
+   *  scelta. Il contrasto scelta-vs-scartate è il segnale di preferenza
+   *  rivelata. Se assente/incompleta → snapshot quiz-only. */
+  proposed?: Array<{ name: string }> | null;
 }): Promise<void> {
-  const { userId, profilingInput, destinationName, itineraryId, destinationText } = args;
+  const { userId, profilingInput, destinationName, itineraryId, proposed } = args;
   if (!userId || !profilingInput) return; // anonymous → no history possible
 
   try {
@@ -30,11 +37,16 @@ export async function recordPickSnapshot(args: {
       constraints: profilingInput.constraints ?? null,
     });
 
-    const destVector = getDestinationTraitVector(destinationName, destinationText);
-    if (!destVector) {
-      console.warn(`[traits] no destination vector for "${destinationName}" (no catalog match, text ${destinationText ? "insufficient" : "missing"}) — pick snapshot is quiz-only`);
+    const rejectedNames = (proposed ?? [])
+      .map((d) => d?.name)
+      .filter((n): n is string => !!n && n !== destinationName);
+    const revealed = rejectedNames.length
+      ? revealedPreferenceVector(destinationName, rejectedNames)
+      : null;
+    if (!revealed) {
+      console.warn(`[traits] no revealed-preference contrast for "${destinationName}" (rejected: ${rejectedNames.length ? rejectedNames.join(", ") : "none passed"}, neutral vectors insufficient) — pick snapshot is quiz-only`);
     }
-    const finalVector = destVector ? blendWithDestination(quizVector, destVector) : quizVector;
+    const finalVector = revealed ? blendWithRevealedPreference(quizVector, revealed) : quizVector;
 
     await storage.createTraitSnapshot({
       userId,
@@ -57,7 +69,7 @@ export async function recordPickSnapshot(args: {
     // Log di successo (prima la scrittura era muta: impossibile distinguere
     // "scrive valori neutri" da "non scrive affatto" senza guardare il DB).
     const compact = Object.entries(finalVector).map(([a, v]) => `${a}=${(v as number).toFixed(2)}`).join(" ");
-    console.log(`[traits] pick snapshot saved user=${userId} itinerary=${itineraryId} blended=${!!destVector} ${compact}`);
+    console.log(`[traits] pick snapshot saved user=${userId} itinerary=${itineraryId} revealed=${!!revealed} ${compact}`);
   } catch (e) {
     // Trait snapshot is non-critical — never fail the itinerary generation.
     console.warn("[traits] pick snapshot failed:", e);
