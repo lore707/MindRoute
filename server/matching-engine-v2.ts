@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import { z } from "zod";
-import { buildPrompt, client, type ProfilingInput } from "./matching-engine";
+import { buildPrompt, client, extractJsonPayload, type ProfilingInput } from "./matching-engine";
 import { graphGenEnabled } from "./graph-build";
 import type {
   MomentType,
@@ -655,18 +655,11 @@ function buildAvoidDigest(input: ProfilingInput): string | null {
   return parts.length ? parts.join("\n") : null;
 }
 
-function extractJson(text: string): string {
-  // Oltre ai fence markdown, il modello a volte APPENDE prosa dopo il JSON
-  // ("{...}\nEcco perché…") → JSON.parse fallisce su "unexpected non-whitespace
-  // after JSON". Ritagliamo dal primo '{'/'[' all'ultima '}'/']' così il
-  // payload resta parsabile qualunque cosa lo circondi.
-  const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-  const starts = [clean.indexOf("{"), clean.indexOf("[")].filter((i) => i >= 0);
-  if (starts.length === 0) return clean;
-  const start = Math.min(...starts);
-  const end = Math.max(clean.lastIndexOf("}"), clean.lastIndexOf("]"));
-  return end > start ? clean.slice(start, end + 1) : clean;
-}
+// Estrattore robusto condiviso (scansione bilanciata → la più grande struttura
+// JSON che parsa). Gestisce preamboli, prosa finale E uno stray "{}"/"[]"
+// prefisso al payload reale — che il taglio ingenuo primo-'{'/ultima-'}' non
+// gestiva (prod: 500 su /api/profiling con "Unexpected non-whitespace after JSON").
+const extractJson = extractJsonPayload;
 
 async function verifyAvoidViolations(
   itinerary: ItineraryV2, input: ProfilingInput,

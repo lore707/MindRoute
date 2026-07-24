@@ -114,11 +114,50 @@ type GeneratedItinerary = z.infer<typeof generatedItinerarySchema>;
 // testo lo circondi. (Stesso fix di extractJson in matching-engine-v2.)
 export function extractJsonPayload(text: string): string {
   const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  // Scansione bilanciata: trova tutte le strutture JSON top-level (oggetti/array)
+  // rispettando stringhe ed escape, e ritorna la PIÙ GRANDE che parsa davvero.
+  // Il taglio ingenuo primo-'{'/ultima-'}' falliva quando il modello prefissava
+  // uno stray "{}"/"[]" al payload reale (prod: "{}\n{...vero...}" → JSON.parse
+  // "Unexpected non-whitespace character after JSON at position 3").
+  let best: string | null = null;
+  for (const span of balancedJsonSpans(clean)) {
+    try { JSON.parse(span); if (!best || span.length > best.length) best = span; }
+    catch { /* candidato non valido */ }
+  }
+  if (best) return best;
+  // Fallback: vecchio comportamento (meglio di niente se nulla parsa da solo).
   const starts = [clean.indexOf("{"), clean.indexOf("[")].filter((i) => i >= 0);
   if (starts.length === 0) return clean;
   const start = Math.min(...starts);
   const end = Math.max(clean.lastIndexOf("}"), clean.lastIndexOf("]"));
   return end > start ? clean.slice(start, end + 1) : clean;
+}
+
+/** Estremi delle strutture JSON top-level bilanciate in `s` (non ricorsivo nei
+ *  figli: preso un oggetto/array, salta oltre la sua chiusura). Rispetta stringhe
+ *  ed escape così parentesi dentro le stringhe non sballano il conteggio. */
+function balancedJsonSpans(s: string): string[] {
+  const spans: string[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c !== "{" && c !== "[") continue;
+    const close = c === "{" ? "}" : "]";
+    let depth = 0, inStr = false, esc = false, end = -1;
+    for (let j = i; j < s.length; j++) {
+      const d = s[j];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (d === "\\") esc = true;
+        else if (d === '"') inStr = false;
+        continue;
+      }
+      if (d === '"') inStr = true;
+      else if (d === "{" || d === "[") depth++;
+      else if (d === "}" || d === "]") { depth--; if (depth === 0) { end = j; break; } }
+    }
+    if (end > i) { spans.push(s.slice(i, end + 1)); i = end; }  // salta oltre la struttura
+  }
+  return spans;
 }
 
 function parseModelResponse(responseText: string) {
