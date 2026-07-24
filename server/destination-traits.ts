@@ -102,17 +102,19 @@ export function deriveDestinationTraitVector(text: string | null | undefined): T
 }
 
 // Vettore NEUTRO della destinazione: catalogo curato per nome (letture
-// editoriali indipendenti dall'utente), poi derivazione keyword dal solo NOME
-// (città/paese: raramente porta ≥2 keyword → null onesto). Non usa mai copy
-// persuasiva. compass.ts/daily-pick.ts passano nomi di catalogo → colpiscono
-// la mappa. Il vecchio secondo parametro `descriptionText` è stato rimosso:
-// era il canale con cui la copy persuasiva entrava nel profilo.
+// editoriali indipendenti dall'utente), poi derivazione keyword dal DESCRITTORE
+// NEUTRO emesso dal matcher (tipologia/tratti oggettivi), infine dal solo NOME.
+// Non usa MAI copy persuasiva. compass.ts/daily-pick.ts passano solo il nome di
+// catalogo → colpiscono la mappa. Il descrittore neutro (step 3, Parte 2) fa
+// firare il contrasto anche sulle destinazioni generate fuori catalogo.
 export function getDestinationTraitVector(
   name: string | null | undefined,
+  neutralDescriptor?: string | null,
 ): TraitVector | null {
   if (!name) return null;
   const key = name.split(",")[0].trim().toLowerCase();
-  return VECTORS[key] ?? deriveDestinationTraitVector(name);
+  if (VECTORS[key]) return VECTORS[key];
+  return deriveDestinationTraitVector(neutralDescriptor) ?? deriveDestinationTraitVector(name);
 }
 
 // ── Revealed preference: contrasto scelta vs scartate (§9 Evoluzione) ──────
@@ -127,23 +129,25 @@ export function getDestinationTraitVector(
 // Degradazione onesta: serve il vettore neutro della scelta E di almeno una
 // scartata, altrimenti null (niente blend → snapshot quiz-only). Preferiamo
 // nessun blend a un blend non informativo.
+export interface ProposedDest { name: string; neutralDescriptor?: string | null }
+
 export function revealedPreferenceVector(
-  chosenName: string,
-  rejectedNames: string[],
+  chosen: ProposedDest,
+  rejected: ProposedDest[],
 ): TraitVector | null {
-  const chosen = getDestinationTraitVector(chosenName);
-  if (!chosen) return null;
-  const rejected = rejectedNames
-    .filter((n) => n && n.trim() && n !== chosenName)
-    .map((n) => getDestinationTraitVector(n))
+  const chosenVec = getDestinationTraitVector(chosen.name, chosen.neutralDescriptor);
+  if (!chosenVec) return null;
+  const rejectedVecs = rejected
+    .filter((d) => d?.name && d.name.trim() && d.name !== chosen.name)
+    .map((d) => getDestinationTraitVector(d.name, d.neutralDescriptor))
     .filter((v): v is TraitVector => !!v);
-  if (rejected.length === 0) return null;
+  if (rejectedVecs.length === 0) return null;
 
   const axes: Axis[] = ["exposure", "comfort", "social", "matter", "structure"];
   const out = {} as TraitVector;
   for (const ax of axes) {
-    const meanRejected = rejected.reduce((s, v) => s + v[ax], 0) / rejected.length;
-    const delta = chosen[ax] - meanRejected;           // [-1, 1]
+    const meanRejected = rejectedVecs.reduce((s, v) => s + v[ax], 0) / rejectedVecs.length;
+    const delta = chosenVec[ax] - meanRejected;        // [-1, 1]
     out[ax] = Math.max(0, Math.min(1, 0.5 + delta));   // 0.5 = nessun contrasto
   }
   return out;

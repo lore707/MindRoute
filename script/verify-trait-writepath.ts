@@ -44,7 +44,7 @@ async function dry() {
   check("asse matter tirato verso cultura (<0.42)", quizV.matter < 0.42, `matter=${quizV.matter.toFixed(2)}`);
 
   console.log("═══ 2. Revealed preference: CONTRASTO scelta vs scartate (testo neutro) ═══");
-  const revealed = revealedPreferenceVector(CHOSEN, REJECTED);
+  const revealed = revealedPreferenceVector({ name: CHOSEN }, REJECTED.map((n) => ({ name: n })));
   check("contrasto calcolato (vettori neutri della tripletta)", !!revealed, revealed ? fmt(revealed) : "null");
   // Kyoto è la meno "natura" del trio → il contrasto su matter deve pendere a
   // sinistra (cultura, <0.5); la copy persuasiva NON entra più nel segnale.
@@ -67,7 +67,7 @@ async function dry() {
   check("kyoto → vettore dalla mappa", !!getDestinationTraitVector("Kyoto, Giappone"));
   check("destinazione ignota → null onesto (nome senza keyword)", getDestinationTraitVector("Xyzzy, Nowhere") === null);
   check("contrasto impossibile senza scarti noti → null",
-    revealedPreferenceVector(CHOSEN, ["Xyzzy, Nowhere"]) === null);
+    revealedPreferenceVector({ name: CHOSEN }, [{ name: "Xyzzy, Nowhere" }]) === null);
 }
 
 async function db(simulateUserId: number | null) {
@@ -88,7 +88,7 @@ async function db(simulateUserId: number | null) {
   if (simulateUserId != null) {
     console.log(`═══ Simulazione E2E (user ${simulateUserId}, con cleanup) ═══`);
     const quizV = computeTraitVector(L1_INPUT);
-    const revealed = revealedPreferenceVector(CHOSEN, REJECTED);
+    const revealed = revealedPreferenceVector({ name: CHOSEN }, REJECTED.map((n) => ({ name: n })));
     const finalV = revealed ? blendWithRevealedPreference(quizV, revealed) : quizV;
     const ins = await pool.query(
       `INSERT INTO trait_snapshots (user_id, traits, source, mapping_version, raw_signal)

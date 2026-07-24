@@ -269,6 +269,26 @@ function normalizeChip(label: string): string | null {
   return LABEL_TO_KEY[k] ?? null;
 }
 
+// Esposti per graph-build.ts (inferenza Intento + costruzione State): riusano
+// la stessa decodifica JSON/normalizzazione del quiz così il vocabolario resta
+// unico. Ritorna le chiavi canoniche selezionate dall'utente (dedup globale).
+export function extractChipKeys(answers: string[] | null | undefined): string[] {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of answers ?? []) {
+    if (typeof raw !== "string") continue;
+    if (/^\s*\d{1,3}\s*($|\|)/.test(raw)) continue;
+    if (/^path_[ab]$/i.test(raw.trim())) continue;
+    for (const text of expandAnswer(raw).texts) {
+      for (const tok of text.split(/[,|]/).map((s) => s.trim()).filter(Boolean)) {
+        const key = normalizeChip(tok);
+        if (key && !seen.has(key)) { seen.add(key); keys.push(key); }
+      }
+    }
+  }
+  return keys;
+}
+
 // ── Raw quiz signal → verbatim seek/avoid lists ────────────────────────────
 // The account "Ritratto" quotes what the user *literally selected*. We split
 // the answers into two buckets by which chip map a token belongs to:

@@ -48,11 +48,16 @@ export function registerProfilingRoutes(app: Express) {
       const heroImages = await Promise.all(destinations.map((d) => fetchUnsplashHero(d.name)));
       const createdDests = [];
       for (let i = 0; i < destinations.length; i++) {
+        // neutralDescriptor è emesso dal matcher ma NON è una colonna della
+        // tabella destinations (nessuna migrazione): lo togliamo prima dell'insert
+        // e lo ri-attacchiamo alla response, così il client può rimandarlo al
+        // recorder sul pick (round-trip) per il contrasto revealed-preference.
+        const { neutralDescriptor, ...destForDb } = destinations[i] as any;
         const created = await storage.createDestination({
-          ...destinations[i],
+          ...destForDb,
           imageUrl: heroImages[i]?.url ?? destinations[i].imageUrl,
         });
-        createdDests.push(created);
+        createdDests.push({ ...created, neutralDescriptor: neutralDescriptor ?? null });
       }
       await storage.saveProfilingInput(input);
 
@@ -181,11 +186,16 @@ export function registerProfilingRoutes(app: Express) {
       const heroImages = await Promise.all(destinations.map((d) => fetchUnsplashHero(d.name)));
       const createdDests = [];
       for (let i = 0; i < destinations.length; i++) {
+        // neutralDescriptor è emesso dal matcher ma NON è una colonna della
+        // tabella destinations (nessuna migrazione): lo togliamo prima dell'insert
+        // e lo ri-attacchiamo alla response, così il client può rimandarlo al
+        // recorder sul pick (round-trip) per il contrasto revealed-preference.
+        const { neutralDescriptor, ...destForDb } = destinations[i] as any;
         const created = await storage.createDestination({
-          ...destinations[i],
+          ...destForDb,
           imageUrl: heroImages[i]?.url ?? destinations[i].imageUrl,
         });
-        createdDests.push(created);
+        createdDests.push({ ...created, neutralDescriptor: neutralDescriptor ?? null });
       }
       await storage.saveProfilingInput(input);
 

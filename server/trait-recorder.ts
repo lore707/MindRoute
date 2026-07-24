@@ -20,10 +20,11 @@ export async function recordPickSnapshot(args: {
   profilingInput: any;
   destinationName: string;
   itineraryId: number;
-  /** Tutte e tre le destinazioni proposte nella tripletta (nome), inclusa la
-   *  scelta. Il contrasto scelta-vs-scartate è il segnale di preferenza
-   *  rivelata. Se assente/incompleta → snapshot quiz-only. */
-  proposed?: Array<{ name: string }> | null;
+  /** Tutte e tre le destinazioni proposte nella tripletta (nome + descrittore
+   *  neutro se disponibile), inclusa la scelta. Il contrasto scelta-vs-scartate
+   *  è il segnale di preferenza rivelata; il descrittore neutro lo fa firare
+   *  anche fuori catalogo. Se assente/incompleta → snapshot quiz-only. */
+  proposed?: Array<{ name: string; neutralDescriptor?: string | null }> | null;
 }): Promise<void> {
   const { userId, profilingInput, destinationName, itineraryId, proposed } = args;
   if (!userId || !profilingInput) return; // anonymous → no history possible
@@ -37,14 +38,12 @@ export async function recordPickSnapshot(args: {
       constraints: profilingInput.constraints ?? null,
     });
 
-    const rejectedNames = (proposed ?? [])
-      .map((d) => d?.name)
-      .filter((n): n is string => !!n && n !== destinationName);
-    const revealed = rejectedNames.length
-      ? revealedPreferenceVector(destinationName, rejectedNames)
-      : null;
+    const trio = (proposed ?? []).filter((d) => d?.name);
+    const chosen = trio.find((d) => d.name === destinationName) ?? { name: destinationName };
+    const rejected = trio.filter((d) => d.name !== destinationName);
+    const revealed = rejected.length ? revealedPreferenceVector(chosen, rejected) : null;
     if (!revealed) {
-      console.warn(`[traits] no revealed-preference contrast for "${destinationName}" (rejected: ${rejectedNames.length ? rejectedNames.join(", ") : "none passed"}, neutral vectors insufficient) — pick snapshot is quiz-only`);
+      console.warn(`[traits] no revealed-preference contrast for "${destinationName}" (rejected: ${rejected.length ? rejected.map((d) => d.name).join(", ") : "none passed"}, neutral vectors insufficient) — pick snapshot is quiz-only`);
     }
     const finalVector = revealed ? blendWithRevealedPreference(quizVector, revealed) : quizVector;
 

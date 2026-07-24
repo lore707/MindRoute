@@ -152,6 +152,10 @@ const generateItinerary = async (destId: number) => {
               // Angolo del viaggio (caso "città precisa") → modella l'itinerario.
               tagline: selectedDest.tagline ?? undefined,
               whyYours: selectedDest.whyYours,
+              // Tripletta proposta (nome + descrittore neutro): il server la usa
+              // per il contrasto revealed-preference (scelta vs scartate). Non è
+              // UX: dato che viaggia nel payload, non persistito lato destinations.
+              proposed: destinations.map((d) => ({ name: d.name, neutralDescriptor: (d as any).neutralDescriptor ?? null })),
             }),
           });
           if (v2Res.ok) {

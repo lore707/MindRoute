@@ -16,6 +16,7 @@ import { fetchUnsplashHero, fetchDayImageWithFallback, buildDestinationPhotoPool
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
+import { buildGraphBlock } from "../graph-build";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory } from "../../shared/schema";
 import { requireAuth } from "../auth";
 import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, klookExperienceSearchUrl, civitatisExperienceSearchUrl, musementExperienceSearchUrl, type AffiliateContext } from "../affiliate-config";
@@ -435,7 +436,7 @@ const inFlightV2 = new Map<number, Promise<{ id: number; itinerary: any }>>();
 export function registerItineraryGenV2Routes(app: Express) {
   app.post("/api/itinerary/generate-v2", requireAuth, itineraryLimiter, async (req, res) => {
     try {
-      const { input, destinationName, destinationId, tagline, whyYours } = req.body;
+      const { input, destinationName, destinationId, tagline, whyYours, proposed } = req.body;
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
@@ -456,6 +457,10 @@ export function registerItineraryGenV2Routes(app: Express) {
         const userId = (req.user as any)?.id ?? null;
         const prior = await getTraitPriorForUser(userId);
         let priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+        // Step 3 §12.3: il generatore L5 riceve Facts + Graph (Intento come
+        // Principio Zero + Decision Cascade) invece delle risposte grezze.
+        // "" quando GRAPH_GEN=0 → torna al prompt precedente (reversibilità).
+        const graphBlock = buildGraphBlock(input, prior, /* cascade */ true);
         // Caso "città precisa" (Option C): la card scelta porta un angolo (tagline).
         // L'intero itinerario va modellato su quel carattere, non su una Barcellona
         // generica. Inietto lo steering nel priorBlock.
@@ -466,18 +471,21 @@ export function registerItineraryGenV2Routes(app: Express) {
           // Hero + pool foto partono ORA, in parallelo alla generazione LLM
           // (~2-3 min): quando l'enrichment ne ha bisogno sono già risolti.
           const prefetch = prefetchDestinationImages(destinationName);
-          const rough = await generateItineraryV2ForDestination(input, destinationName, priorBlock);
+          const rough = await generateItineraryV2ForDestination(input, destinationName, priorBlock, graphBlock);
           const enriched = await enrichItineraryV2(rough, destinationName, input, prefetch);
           const insertRow = itineraryV2ToInsert(enriched, destIdNum, userId, input);
           const saved = await storage.createItinerary(insertRow);
           recordRecentDestination(destinationName).catch(() => {});
-          // Revealed preference: passa TUTTA la tripletta proposta (il trio è
-          // l'unico contenuto della tabella destinations dopo clearAll). Il
+          // Revealed preference: la tripletta proposta col descrittore neutro
+          // arriva dal client (round-trip, non persistito su destinations); in
+          // fallback usa i nomi dalla tabella (trio corrente dopo clearAll). Il
           // recorder ricava il segnale dal contrasto scelta-vs-scartate.
-          const trio = await storage.getDestinations().catch(() => []);
+          const trioProposed = Array.isArray(proposed) && proposed.length
+            ? proposed.map((d: any) => ({ name: String(d?.name ?? ""), neutralDescriptor: d?.neutralDescriptor ?? null })).filter((d: any) => d.name)
+            : (await storage.getDestinations().catch(() => [])).map((d) => ({ name: d.name, neutralDescriptor: null as string | null }));
           recordPickSnapshot({
             userId, profilingInput: input, destinationName, itineraryId: saved.id,
-            proposed: trio.map((d) => ({ name: d.name })),
+            proposed: trioProposed,
           });
           return { id: saved.id, itinerary: enriched };
         })();

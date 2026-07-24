@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import { buildPrompt, client, type ProfilingInput } from "./matching-engine";
+import { graphGenEnabled } from "./graph-build";
 import type {
   MomentType,
   BookingStatus,
@@ -245,8 +246,8 @@ export type ItineraryV2 = z.infer<typeof itineraryV2Schema>;
 
 const V1_OUTPUT_MARKER = "IMAGE QUERY & IMAGE URL";
 
-export function buildPromptV2(input: ProfilingInput, priorBlock = ""): string {
-  const v1 = buildPrompt(input, priorBlock);
+export function buildPromptV2(input: ProfilingInput, priorBlock = "", graphBlock = ""): string {
+  const v1 = buildPrompt(input, priorBlock, "", "", graphBlock);
   const idx = v1.indexOf(V1_OUTPUT_MARKER);
   if (idx === -1) {
     throw new Error("buildPromptV2: v1 OUTPUT FORMAT marker not found — buildPrompt has drifted");
@@ -297,7 +298,8 @@ not more buttons everywhere.
 1. THE TWO-PHASE ALGORITHM — build the skeleton BEFORE any content.
 
 PHASE A — SKELETON (assign roles first, no content yet).
-Give every day exactly ONE role. The role — not free choice — fixes the CTA logic
+${graphGenEnabled() ? `INTENT-DRIVEN ARC (§7-D2): BEFORE assigning roles, apply the arc deformation dictated by the PRINCIPIO ZERO (Intent) in the Travel Identity Graph above — position and height of the peak (apice), density of the opening days, and the role of the closing. This is the D2 stage of the Decision Cascade and it precedes content. Two travelers with the SAME Facts but different Intents MUST get structurally different skeletons (where the apice sits, how many riposo/decantazione days and where), not just different adjectives. If the Intent is composite and in tension, resolve it as a sequence across the arc (e.g. decompress first, then ignite) — never a bland middle.
+` : ""}Give every day exactly ONE role. The role — not free choice — fixes the CTA logic
 of that day's four moments. Roles:
    • arrivo        — always day 1. Journey → base. Strong anchor: lodging (evening). No experiences.
    • apice         — the trip's signature experience. The ONLY role that converts experiences.
@@ -888,9 +890,10 @@ async function generateItineraryV2SingleCall(prompt: string): Promise<ItineraryV
 export async function generateItineraryV2ForDestination(
   input: ProfilingInput,
   destinationName: string,
-  priorBlock = ""
+  priorBlock = "",
+  graphBlock = ""
 ): Promise<ItineraryV2> {
-  const prompt = buildPromptV2({ ...input, _destinationOverride: destinationName } as any, priorBlock);
+  const prompt = buildPromptV2({ ...input, _destinationOverride: destinationName } as any, priorBlock, graphBlock);
   const days = Math.min(input.days, 14);
 
   let itinerary: ItineraryV2;

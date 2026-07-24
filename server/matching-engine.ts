@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AFFILIATES, rewriteDayAffiliateLinks } from "./affiliate-config";
 import { getExperienceBank, formatExperienceBankBlock, resolveGroundingBlock } from "./experience-bank";
 import { buildTransportBlock } from "./transport-planner";
+import { graphGenEnabled } from "./graph-build";
 
 export const BUDGET_MAP: Record<string, string> = {
   "low":                        "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
@@ -60,6 +61,11 @@ const generatedDestinationSchema = z.object({
   whyYours: z.string(),
   experiencePreview: z.string(),
   practicalInfo: z.string(),
+  // Descrittore NEUTRO (step 3, Parte 2): tipologia e tratti oggettivi della
+  // destinazione in sé, senza riferimenti all'utente né linguaggio di vendita.
+  // Alimenta deriveDestinationTraitVector per il contrasto revealed-preference
+  // anche fuori dal catalogo curato. Optional: robustezza se il modello lo omette.
+  neutralDescriptor: z.string().optional(),
   imageUrl: z.string().url(),
   // Ruolo nella tripletta — direct = match più aderente al profilo,
   // lateral = stessa emozione angolo diverso, surprise = predicted-positive
@@ -155,7 +161,12 @@ function buildCheckinCheckout(leaveDate: string, days: number): {
   }
 }
 
-export function buildPrompt(input: ProfilingInput, priorBlock = "", groundingBlock = "", transportBlock = ""): string {
+export function buildPrompt(input: ProfilingInput, priorBlock = "", groundingBlock = "", transportBlock = "", graphBlock = ""): string {
+  // Generazione guidata dal Graph (step 3, §12.3): quando è presente un
+  // graphBlock e il flag è attivo, il generatore L5 riceve Facts + Graph e NON
+  // più le risposte grezze del quiz. GRAPH_GEN=0 → torna al prompt precedente.
+  const useGraph = !!graphBlock && graphGenEnabled();
+
   const rawAnswers =
     input.answers[0] === "path_a" || input.answers[0] === "path_b"
       ? input.answers.slice(1)
@@ -168,7 +179,12 @@ export function buildPrompt(input: ProfilingInput, priorBlock = "", groundingBlo
     try {
       const parsed = JSON.parse(last);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        structuredProfileBlock = JSON.stringify(parsed, null, 2);
+        // Con il Graph attivo teniamo SOLO la logistica (Facts L0): budget,
+        // durata, compagnia, date, alloggio, dieta… La parte psicologica
+        // (emotional_goals, chip) è già interpretata nel Graph e non va
+        // ri-esposta grezza al generatore.
+        const factsOnly = useGraph && parsed.logistics ? { logistics: parsed.logistics } : parsed;
+        structuredProfileBlock = JSON.stringify(factsOnly, null, 2);
         profileAnswers = rawAnswers.slice(0, -1);
       }
     } catch {
@@ -208,9 +224,9 @@ Departing from: ${input.departure} | Days: ${days} | Period: ${period}
 Travel companions: ${input.companions || "not specified"}
 Travel style preference: ${travelStyle}
 Constraints & preferences: ${input.constraints || "none"}
-${structuredProfileBlock ? `Structured profile (JSON):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
+${structuredProfileBlock ? `${useGraph ? "FACTS — logistics (authoritative, hard constraints)" : "Structured profile (JSON)"}:\n${structuredProfileBlock}\n\n` : ""}${useGraph ? "" : `Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}`}
 ${(input as any)._destinationOverride ? `\nDESTINATION ALREADY CHOSEN: ${(input as any)._destinationOverride} — generate the itinerary ONLY for this specific destination. Do not suggest alternatives.` : ''}
-${bankBlock}${priorBlock}${transportBlock ? `\n${transportBlock}` : ""}
+${bankBlock}${useGraph ? graphBlock : priorBlock}${transportBlock ? `\n${transportBlock}` : ""}
 TASK: Generate exactly 1 perfectly personalized destination with a ${days}-day itinerary.
 
 ═══════════════════════════════════════
@@ -1240,6 +1256,8 @@ EXCEPTION — PRECISE CITY: when the user named a specific city (PRECISE DESTINA
 ═══════════════════════════════════════
 RESPONSE LANGUAGE: Write all text fields in ${input.lang === 'it' ? 'Italian' : 'English'}.
 
+NEUTRAL DESCRIPTOR (field "neutralDescriptor" on every destination): 6-12 words describing the PLACE ITSELF, objectively — its type, geography, scale, and cultural/natural character. This is NOT copy: no reference to the user or their profile, no sales adjectives ("perfect", "unforgettable", "hidden gem"), no second person. It is a neutral fact sheet used internally to compare the chosen destination against the rejected ones. Examples: "Mediterranean port city, historic markets, Byzantine quarters, flat and walkable" · "Remote Atlantic volcanic archipelago, green craters, few visitors, oceanic weather" · "High-altitude Silk Road city, madrasas and tiled domes, arid continental climate".
+
 REQUIRED JSON — respond ONLY with this, no text outside:
 {
   "destinations": [
@@ -1250,6 +1268,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
       "whyYours": "EXACTLY 2 short sentences (~25 words) following the formula above — diagnosis + place/moment",
       "experiencePreview": "1 short evocative sentence in first person — what it FEELS like to be there",
+      "neutralDescriptor": "6-12 words, objective type+traits of the place itself — no user, no sales language",
       "practicalInfo": "✈️ [duration + cost] · 🏨 [hotel type + price] · 📅 [best period]"
     },
     {
@@ -1258,6 +1277,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
       "whyYours": "EXACTLY 2 short sentences (~25 words) — diagnosis + this destination/moment that delivers the same emotional experience from a different angle",
       "experiencePreview": "1 short evocative sentence in first person",
+      "neutralDescriptor": "6-12 words, objective type+traits of the place itself — no user, no sales language",
       "practicalInfo": "✈️ [duration + cost] · 🏨 [type + price] · 📅 [best period]"
     },
     {
@@ -1266,6 +1286,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
       "imageUrl": "https://images.unsplash.com/photo-[REAL_ID]?w=600&h=400&fit=crop",
       "whyYours": "EXACTLY 2 short sentences (~25 words) — diagnosis + the surprising precise reason this destination is the right answer for this profile",
       "experiencePreview": "1 short evocative sentence in first person",
+      "neutralDescriptor": "6-12 words, objective type+traits of the place itself — no user, no sales language",
       "practicalInfo": "✈️ [duration + cost] · 🏨 [type + price] · 📅 [best period]"
     }
   ]
