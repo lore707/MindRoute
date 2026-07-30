@@ -23,6 +23,7 @@ import { Link } from "wouter";
 import { useI18n } from "@/lib/i18n";
 import { unsplashSized } from "@/lib/img";
 import { track } from "@/lib/analytics";
+import { BrandMark } from "@/components/BrandMark";
 import { MotionConfig, Reveal, Stagger, StaggerItem, fade, fadeInRight, scaleIn } from "@/lib/motion";
 
 export type LandingStats = { itineraryCount: number; destinationCount: number };
@@ -603,7 +604,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         <div className="led-container">
           <div className="led-footer-grid">
             <div>
-              <div className="led-footer-mark">🦋 MindRoute</div>
+              <div className="led-footer-mark"><BrandMark size={26} idPrefix="foot" /> MindRoute</div>
               <p className="led-footer-tagline">{t("footer.tagline")}</p>
               <p className="led-footer-tagline">{t("led.foot.tagline2")}</p>
             </div>

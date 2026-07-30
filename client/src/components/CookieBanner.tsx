@@ -48,7 +48,7 @@ export function CookieBanner() {
     // z-index sopra QUALSIASI cosa dell'app: overlay dashboard (400-4000),
     // mappa fullscreen, e il pre-hero di index.html (z 2147483000). Un banner
     // di consenso che finisce sotto un overlay è un banner che non esiste.
-    <div className="fixed bottom-0 left-0 right-0 px-3 sm:p-4 md:p-6" style={{ zIndex: 2147483100, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}>
+    <div className="fixed top-0 left-0 right-0 px-3 sm:p-4 md:p-6" style={{ zIndex: 2147483100, paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}>
       <div className="max-w-4xl mx-auto rounded-2xl border border-white/10 p-4 sm:p-5 md:p-6 flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 shadow-2xl"
         style={{ background: "rgba(15,10,16,0.97)", backdropFilter: "blur(20px)" }}>
         <div className="flex-1 text-[13px] sm:text-sm text-white/60 leading-relaxed">
