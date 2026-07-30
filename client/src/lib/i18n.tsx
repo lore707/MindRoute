@@ -443,7 +443,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "footer.privacy": { en: "Privacy Policy", it: "Privacy Policy" },
   "footer.copyright": { en: "© 2026 MindRoute. Built for travelers who think differently.", it: "© 2026 MindRoute. Creato per viaggiatori che pensano diversamente." },
   "footer.affiliate": { en: "Links in itineraries may be affiliate links.", it: "I link negli itinerari possono essere link di affiliazione." },
-  "footer.tagline": { en: "Trips built around who you are, not what you filter for.", it: "Viaggi costruiti sul tuo carattere, non sulle tue preferenze." },
+  "footer.tagline": { en: "Trips built around who you truly are.", it: "Viaggi costruiti su chi sei davvero." },
   "footer.productHead": { en: "Product", it: "Prodotto" },
   "footer.productStart": { en: "Start journey", it: "Inizia il viaggio" },
   "footer.contactHead": { en: "Contact", it: "Contatti" },
