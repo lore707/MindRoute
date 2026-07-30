@@ -23,8 +23,10 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useRef, useState, Suspense, lazy } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Heart, ExternalLink, X, MapPin, Navigation, ChevronRight, Sparkles } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
+import { EASE } from "@/lib/motion";
 import { useI18n } from "@/lib/i18n";
 import { trackAffiliate } from "@/lib/analytics";
 import type { ItineraryData, Moment } from "./ItineraryCinematic";
@@ -68,6 +70,7 @@ export function JourneyView({ data, itinerary, itineraryId, savedMomentIds, onTo
   const qp = (k: string): string | null => { try { return new URLSearchParams(window.location.search).get(k); } catch { return null; } };
   const initialDayN = days.find(d => (data.momentsByDay[d.n] ?? []).length > 0)?.n ?? days[0]?.n ?? 1;
   const [activeDay, setActiveDay] = useState<number>(Number(qp("jday")) || initialDayN);
+  const reduce = useReducedMotion();
   // Su desktop Story è sempre a sinistra: il segmented governa la destra
   // (Map/Logistica), quindi si parte su "map". Su mobile si parte su "story".
   const [mode, setMode] = useState<Mode>((qp("jmode") as Mode) || (isDesktop ? "map" : "story"));
@@ -202,8 +205,13 @@ export function JourneyView({ data, itinerary, itineraryId, savedMomentIds, onTo
                 const idx = moments.indexOf(m) + 1;
                 const on = m.id && selectedId === m.id;
                 return (
-                  <div key={m.id ?? i} id={m.id ? `jr-m-${m.id}` : undefined}
+                  <motion.div key={m.id ?? i} id={m.id ? `jr-m-${m.id}` : undefined}
                     className={"jr-card" + (on ? " on" : "")}
+                    initial={reduce ? false : { opacity: 0, y: 16 }}
+                    animate={reduce ? undefined : { opacity: 1, y: 0 }}
+                    transition={{ duration: 0.42, ease: EASE, delay: Math.min((idx - 1) * 0.05, 0.4) }}
+                    whileHover={reduce ? undefined : { y: -3 }}
+                    whileTap={reduce ? undefined : { scale: 0.985 }}
                     onClick={() => { if (m.id) { setSelectedId(m.id); setDetailId(m.id); } }}>
                     <span className="jr-idx">{idx}</span>
                     {m.imageUrl && <span className="jr-thumb" style={{ backgroundImage: bgi(m.imageUrl, 200) }} />}
@@ -227,7 +235,7 @@ export function JourneyView({ data, itinerary, itineraryId, savedMomentIds, onTo
                       {m.desc && <div className="jr-desc">{m.desc}</div>}
                     </div>
                     <ChevronRight size={16} className="jr-chev" />
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>

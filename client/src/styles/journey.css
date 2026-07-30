@@ -182,3 +182,16 @@
 @supports (height: 100dvh) {
   .account-dash .jr-sheet { max-height: 90dvh; }
 }
+
+/* ── Motion premium (2026-07): micro-interazioni tattili, non bloccanti.
+   Le card dei momenti entrano a cascata (Framer) e reagiscono a hover/tap;
+   qui aggiungiamo il press su tab giorno e segmented. Solo transform → 60fps. */
+.account-dash .jr-daytab, .account-dash .jr-seg-btn { transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background 0.22s ease, border-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease; }
+.account-dash .jr-daytab:active, .account-dash .jr-seg-btn:active { transform: scale(0.96); }
+.account-dash .jr-card { transition: border-color 0.3s ease, box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1); will-change: transform; }
+.account-dash .jr-chev { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.account-dash .jr-card:hover .jr-chev { transform: translateX(3px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .account-dash .jr-daytab, .account-dash .jr-seg-btn, .account-dash .jr-card, .account-dash .jr-chev { transition: none !important; }
+}

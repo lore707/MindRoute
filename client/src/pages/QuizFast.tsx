@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { pressable } from "@/lib/pressable";
 import { useLocation } from "wouter";
 import { AnimatePresence, motion } from "framer-motion";
+import { EASE } from "@/lib/motion";
 import "@/styles/quiz-cinematic.css";
 import { useI18n } from "@/lib/i18n";
 import { FlowNav } from "@/components/FlowNav";
@@ -291,8 +292,8 @@ export default function QuizFast() {
             <motion.div key={current}
               initial={qp("noanim") === "1" ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={qp("noanim") === "1" ? undefined : { opacity: 0, y: -12 }}
-              transition={{ duration: qp("noanim") === "1" ? 0 : 0.4 }}>
+              exit={qp("noanim") === "1" ? undefined : { opacity: 0, y: -10 }}
+              transition={{ duration: qp("noanim") === "1" ? 0 : 0.32, ease: EASE }}>
 
               {current === "mode" && (
                 <>

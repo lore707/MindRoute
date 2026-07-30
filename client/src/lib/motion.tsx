@@ -22,6 +22,19 @@ import type { CSSProperties, ReactNode } from "react";
 export const EASE = [0.22, 1, 0.36, 1] as const;
 export const DUR = { fast: 0.4, base: 0.6, slow: 0.9 } as const;
 
+// Spring "premium": morbida ma reattiva, per sheet/drawer e micro-interazioni.
+// Solo transform/opacity → sempre 60fps, mai layout thrash.
+export const SPRING = { type: "spring" as const, stiffness: 320, damping: 34, mass: 0.9 };
+export const SPRING_SOFT = { type: "spring" as const, stiffness: 210, damping: 30, mass: 1 };
+// Feedback tattile riusabile (whileTap/whileHover) — non bloccante, GPU.
+export const tap = { scale: 0.97 };
+export const hoverPop = { y: -3 };
+
+// viewport di default: `amount` basso + margine negativo in basso → il reveal
+// scatta appena l'elemento affiora, così il contenuto NON resta mai invisibile
+// "in attesa" sotto la piega.
+const VIEWPORT = { once: true, amount: 0.08, margin: "0px 0px -8% 0px" } as const;
+
 export const fadeUp: Variants = {
   hidden: { opacity: 0, y: 26 },
   show: { opacity: 1, y: 0, transition: { duration: DUR.base, ease: EASE } },
@@ -67,7 +80,7 @@ export function Reveal({ children, className, style, as = "div", variants = fade
   const M = pick(as);
   const trigger = mount
     ? { initial: "hidden" as const, animate: "show" as const }
-    : { initial: "hidden" as const, whileInView: "show" as const, viewport: { once: true, amount } };
+    : { initial: "hidden" as const, whileInView: "show" as const, viewport: { ...VIEWPORT, amount } };
   return <M className={className} style={style} variants={variants} {...trigger} {...rest}>{children}</M>;
 }
 
@@ -76,7 +89,7 @@ export function Stagger({ children, className, style, as = "div", stagger, delay
   const M = pick(as);
   const trigger = mount
     ? { initial: "hidden" as const, animate: "show" as const }
-    : { initial: "hidden" as const, whileInView: "show" as const, viewport: { once: true, amount } };
+    : { initial: "hidden" as const, whileInView: "show" as const, viewport: { ...VIEWPORT, amount } };
   return <M className={className} style={style} variants={staggerParent(stagger, delayChildren)} {...trigger} {...rest}>{children}</M>;
 }
 
