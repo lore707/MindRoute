@@ -61,9 +61,11 @@
 .led-hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center 35%; }
 .led-hero-bg::after {
   content: ""; position: absolute; inset: 0;
+  /* Overlay più leggero: l'immagine dell'hero respira di più. Il lato sinistro
+     resta abbastanza scuro da tenere leggibile il titolo. */
   background:
-    linear-gradient(90deg, rgba(11, 12, 17, 0.88) 0%, rgba(11, 12, 17, 0.55) 45%, rgba(11, 12, 17, 0.25) 100%),
-    linear-gradient(180deg, rgba(11, 12, 17, 0.55) 0%, rgba(11, 12, 17, 0.05) 30%, rgba(11, 12, 17, 0.92) 100%);
+    linear-gradient(90deg, rgba(11, 12, 17, 0.78) 0%, rgba(11, 12, 17, 0.42) 45%, rgba(11, 12, 17, 0.12) 100%),
+    linear-gradient(180deg, rgba(11, 12, 17, 0.4) 0%, rgba(11, 12, 17, 0.02) 32%, rgba(11, 12, 17, 0.82) 100%);
 }
 .led-hero-inner { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr; gap: 44px; align-items: center; }
 @media (min-width: 1024px) { .led-hero-inner { grid-template-columns: minmax(0, 1.25fr) minmax(320px, 420px); gap: 64px; } }
@@ -339,7 +341,9 @@
 .led-scene { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; }
 .led-scene::after {
   content: ""; position: absolute; inset: 0;
-  background: linear-gradient(180deg, #0b0c11 0%, rgba(11, 12, 17, 0.86) 18%, rgba(11, 12, 17, 0.82) 55%, rgba(11, 12, 17, 0.9) 85%, #0b0c11 100%);
+  /* Velo più leggero: le foto delle sezioni si vedono, i bordi restano sfumati
+     verso il fondo per il raccordo tra sezioni. */
+  background: linear-gradient(180deg, #0b0c11 0%, rgba(11, 12, 17, 0.66) 14%, rgba(11, 12, 17, 0.46) 50%, rgba(11, 12, 17, 0.66) 86%, #0b0c11 100%);
 }
 .led-how > .led-container, .led-show > .led-container,
 .led-made > .led-container, .led-final > .led-container { position: relative; z-index: 1; }
@@ -392,7 +396,7 @@
   /* Il velo delle scene un filo più coperto: su schermi piccoli il
      paesaggio fa da texture, non deve competere col testo. */
   .led-scene::after {
-    background: linear-gradient(180deg, #0b0c11 0%, rgba(11, 12, 17, 0.9) 16%, rgba(11, 12, 17, 0.88) 55%, rgba(11, 12, 17, 0.93) 85%, #0b0c11 100%);
+    background: linear-gradient(180deg, #0b0c11 0%, rgba(11, 12, 17, 0.74) 15%, rgba(11, 12, 17, 0.58) 55%, rgba(11, 12, 17, 0.78) 85%, #0b0c11 100%);
   }
 }
 
