@@ -155,39 +155,6 @@ const I = {
   tiktok: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>,
 } as const;
 
-/* Newsletter — POST /api/newsletter, esito inline. Usato dalla fascia email
-   e dal footer (source diverso per capire quale converte). */
-function useNewsletter(source: "landing" | "footer") {
-  const { lang, t } = useI18n();
-  const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "busy" | "ok" | "err" | "invalid">("idle");
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const v = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) { setState("invalid"); return; }
-    setState("busy");
-    try {
-      const r = await fetch("/api/newsletter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: v, lang, source }),
-      });
-      if (!r.ok) throw new Error(String(r.status));
-      setState("ok");
-      track("newsletter_signup");
-    } catch {
-      setState("err");
-    }
-  };
-
-  const note = state === "ok" ? { cls: "ok", text: t("led.mail.success") }
-    : state === "err" ? { cls: "err", text: t("led.mail.error") }
-    : state === "invalid" ? { cls: "err", text: t("led.mail.invalid") }
-    : null;
-
-  return { email, setEmail, submit, state, note };
-}
 
 export function LandingEditorial({ onStart, stats }: { onStart: () => void; stats: LandingStats | null }) {
   const { t, lang } = useI18n();
@@ -204,9 +171,6 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
   const nf = (n: number) => n.toLocaleString(lang === "it" ? "it-IT" : "en-US");
   const itinCount = stats && stats.itineraryCount > 0 ? nf(stats.itineraryCount) : null;
   const destCount = stats && stats.destinationCount > 0 ? nf(stats.destinationCount) : null;
-
-  const mailBand = useNewsletter("landing");
-  const mailFoot = useNewsletter("footer");
 
   // /come-funziona reindirizza qui con hash — scrolla alla sezione una volta
   // montato (id="how-it-works").
@@ -525,41 +489,6 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               <div className="led-preview-honest">{I.shield} {t("led.made.honest")}</div>
             </Reveal>
           </div>
-
-          {/* Email band */}
-          <Reveal as="div" className="led-mail">
-            <div className="led-mail-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.iceland, 700)})` }}>
-              <span className="env">{I.mail}</span>
-            </div>
-            <div className="led-mail-body">
-              <div className="led-mail-title">{em("led.mail.title")}</div>
-              <p className="led-mail-sub">{t("led.mail.sub")}</p>
-              {mailBand.state === "ok" ? (
-                <div className="led-mail-note ok">{mailBand.note?.text}</div>
-              ) : (
-                <>
-                  <form className="led-mail-form" onSubmit={mailBand.submit}>
-                    <input
-                      className="led-mail-input" type="email" inputMode="email" autoComplete="email"
-                      placeholder={t("led.mail.placeholder")}
-                      value={mailBand.email}
-                      onChange={e => mailBand.setEmail(e.target.value)}
-                      aria-label={t("led.mail.placeholder")}
-                    />
-                    <button className="led-btn" type="submit" disabled={mailBand.state === "busy"}>{t("led.mail.cta")}</button>
-                  </form>
-                  <div className={"led-mail-note" + (mailBand.note ? ` ${mailBand.note.cls}` : "")}>
-                    {mailBand.note ? mailBand.note.text : t("led.mail.privacy")}
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="led-mail-feats">
-              <div className="led-mail-feat"><span className="ic">{I.bell}</span><span><span className="t" style={{ display: "block" }}>{t("led.mail.b1.t")}</span><span className="d">{t("led.mail.b1.d")}</span></span></div>
-              <div className="led-mail-feat"><span className="ic">{I.tag}</span><span><span className="t" style={{ display: "block" }}>{t("led.mail.b2.t")}</span><span className="d">{t("led.mail.b2.d")}</span></span></div>
-              <div className="led-mail-feat"><span className="ic">{I.spark}</span><span><span className="t" style={{ display: "block" }}>{t("led.mail.b3.t")}</span><span className="d">{t("led.mail.b3.d")}</span></span></div>
-            </div>
-          </Reveal>
         </div>
       </section>
 
@@ -619,25 +548,8 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               <a href="mailto:mindroutetravel@gmail.com" className="led-footer-link">{t("led.foot.contact")}</a>
             </div>
             <div>
-              <div className="led-footer-head">{t("led.foot.inspired")}</div>
-              <p className="led-footer-tagline">{t("led.foot.inspiredSub")}</p>
-              {mailFoot.state === "ok" ? (
-                <div className="led-mail-note ok" style={{ marginTop: 14 }}>{mailFoot.note?.text}</div>
-              ) : (
-                <>
-                  <form className="led-footer-form" onSubmit={mailFoot.submit}>
-                    <input
-                      className="led-footer-input" type="email" inputMode="email" autoComplete="email"
-                      placeholder={t("led.mail.placeholder")}
-                      value={mailFoot.email}
-                      onChange={e => mailFoot.setEmail(e.target.value)}
-                      aria-label={t("led.mail.placeholder")}
-                    />
-                    <button className="led-footer-send" type="submit" disabled={mailFoot.state === "busy"} aria-label={t("led.mail.cta")}>→</button>
-                  </form>
-                  {mailFoot.note && <div className={`led-mail-note ${mailFoot.note.cls}`}>{mailFoot.note.text}</div>}
-                </>
-              )}
+              <div className="led-footer-head">{t("led.foot.follow")}</div>
+              <p className="led-footer-tagline">{t("led.foot.followSub")}</p>
               <div className="led-footer-socials">
                 <a href="https://instagram.com/mindroute.travel" target="_blank" rel="noopener noreferrer" className="led-footer-social" aria-label="Instagram">{I.ig}</a>
                 <a href="https://tiktok.com/@mindroute.travel" target="_blank" rel="noopener noreferrer" className="led-footer-social" aria-label="TikTok">{I.tiktok}</a>

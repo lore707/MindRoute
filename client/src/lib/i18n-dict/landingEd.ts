@@ -142,5 +142,7 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.foot.contact":  { en: "Contact", it: "Contatti" },
   "led.foot.inspired": { en: "Stay inspired", it: "Resta ispirato" },
   "led.foot.inspiredSub": { en: "Get travel inspiration, smart tips and exclusive ideas.", it: "Ispirazione di viaggio, consigli intelligenti e idee esclusive." },
+  "led.foot.follow": { en: "Follow along", it: "Seguici" },
+  "led.foot.followSub": { en: "Travel inspiration and behind-the-scenes, on our socials.", it: "Ispirazione di viaggio e dietro le quinte, sui nostri social." },
   "led.foot.made":     { en: "Made with ❤ for curious travelers.", it: "Fatto con ❤ per viaggiatori curiosi." },
 };
