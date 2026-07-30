@@ -382,13 +382,18 @@
       hsla(260, 40%, 18%, 0.24) 0%, transparent 65%);
 }
 
-/* Reduced motion — blocca tutto */
+/* Reduced motion — rispetta la preferenza di sistema OVUNQUE. Framer è già
+   gestito via <MotionConfig reducedMotion="user">; qui neutralizziamo le
+   animazioni/transizioni CSS pure (Ken Burns, slow-zoom, hover lift…). */
 @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
   .mr-star,
   .mr-aurora-blob { animation: none !important; }
-  .mr-bg-atmosphere,
-  .mr-bg-constellations,
-  .mr-bg-aurora { transition: none !important; }
 }
 .landing-transparent-bg section,
 .landing-transparent-bg > div > div {

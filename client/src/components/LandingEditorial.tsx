@@ -23,6 +23,7 @@ import { Link } from "wouter";
 import { useI18n } from "@/lib/i18n";
 import { unsplashSized } from "@/lib/img";
 import { track } from "@/lib/analytics";
+import { MotionConfig, Reveal, Stagger, StaggerItem, fade, fadeInRight, scaleIn } from "@/lib/motion";
 
 export type LandingStats = { itineraryCount: number; destinationCount: number };
 
@@ -232,27 +233,28 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
   }, [heroImg]);
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="led">
 
       {/* ① HERO */}
       <section className="led-hero">
         <div className="led-hero-bg" style={{ backgroundImage: `url(${heroImg})` }} />
         <div className="led-container led-hero-inner">
-          <div>
-            <div className="led-eyebrow"><span className="d" />{t("led.hero.eyebrow")}</div>
-            <h1>{t("led.hero.title1")}<br /><em>{t("led.hero.title2")}</em></h1>
-            <p className="led-hero-sub">{t("led.hero.sub")}</p>
-            <div className="led-hero-row">
+          <Stagger mount stagger={0.1} delayChildren={0.08}>
+            <StaggerItem as="div" className="led-eyebrow"><span className="d" />{t("led.hero.eyebrow")}</StaggerItem>
+            <StaggerItem as="h1">{t("led.hero.title1")}<br /><em>{t("led.hero.title2")}</em></StaggerItem>
+            <StaggerItem as="p" className="led-hero-sub">{t("led.hero.sub")}</StaggerItem>
+            <StaggerItem as="div" className="led-hero-row">
               <button className="led-btn xl" onClick={onStart} data-testid="led-hero-cta">
                 {t("led.hero.cta")} <span className="led-arrow">→</span>
               </button>
               {itinCount && (
                 <div className="led-hero-counter"><strong>{itinCount}</strong> {t("led.hero.counter")}</div>
               )}
-            </div>
-          </div>
+            </StaggerItem>
+          </Stagger>
 
-          <aside className="led-season" aria-label={t("led.season.head")}>
+          <Reveal as="aside" className="led-season" variants={fadeInRight} mount aria-label={t("led.season.head")}>
             <div className="led-season-head">
               <span className="t">{I.spark} {t("led.season.head")}</span>
               <span className="m">{monthName}</span>
@@ -268,29 +270,29 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                 <span className="led-season-chev">›</span>
               </button>
             ))}
-          </aside>
+          </Reveal>
         </div>
 
         {/* Stats band — numeri REALI (o nascosti finché non ci sono) */}
         <div className="led-container">
-          <div className="led-stats">
-            <div className="led-stat">
+          <Stagger className="led-stats" stagger={0.08}>
+            <StaggerItem as="div" className="led-stat">
               <span className="led-stat-ico">{I.users}</span>
               <span><span className="led-stat-n">{itinCount ? `${itinCount}+` : "—"}</span><span className="led-stat-l" style={{ display: "block" }}>{t("led.stats.itineraries")}</span></span>
-            </div>
-            <div className="led-stat">
+            </StaggerItem>
+            <StaggerItem as="div" className="led-stat">
               <span className="led-stat-ico">{I.clock}</span>
               <span><span className="led-stat-n">{t("led.stats.timeValue")}</span><span className="led-stat-l" style={{ display: "block" }}>{t("led.stats.time")}</span></span>
-            </div>
-            <div className="led-stat">
+            </StaggerItem>
+            <StaggerItem as="div" className="led-stat">
               <span className="led-stat-ico">{I.globe}</span>
               <span><span className="led-stat-n">{destCount ? `${destCount}+` : "—"}</span><span className="led-stat-l" style={{ display: "block" }}>{t("led.stats.destinations")}</span></span>
-            </div>
-            <div className="led-stat">
+            </StaggerItem>
+            <StaggerItem as="div" className="led-stat">
               <span className="led-stat-ico">{I.heart}</span>
               <span><span className="led-stat-n">{t("led.stats.freeValue")}</span><span className="led-stat-l" style={{ display: "block" }}>{t("led.stats.free")}</span></span>
-            </div>
-          </div>
+            </StaggerItem>
+          </Stagger>
         </div>
       </section>
 
@@ -298,15 +300,15 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
       <section className="led-how" id="how-it-works">
         <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDolomiti, sceneW, 50)})` }} />
         <div className="led-container">
-          <div className="led-how-head">
+          <Reveal as="div" className="led-how-head">
             <div>
               <div className="led-eyebrow"><span className="d" />{t("led.how.eyebrow")}</div>
               <h2>{em("led.how.title")}</h2>
             </div>
             <p>{t("led.how.sub")}</p>
-          </div>
+          </Reveal>
 
-          <div className="led-steps">
+          <Reveal as="div" className="led-steps" amount={0.15}>
             <div className="led-step">
               <span className="led-step-badge">01</span>
               <span className="led-step-ico">{I.user}</span>
@@ -370,9 +372,9 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                 </div>
               </div>
             </div>
-          </div>
+          </Reveal>
 
-          <div className="led-how-band">
+          <Reveal as="div" className="led-how-band" variants={scaleIn}>
             <div className="led-how-band-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.mountains, 900)})` }} />
             <div className="led-how-band-body">
               <div className="led-how-band-title">{em("led.how.bandTitle")}</div>
@@ -382,7 +384,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                 <span className="led-how-band-join">{t("led.how.bandJoin")}</span>
               </div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -391,7 +393,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgCoast, sceneW, 50)})` }} />
         <div className="led-container">
           <div className="led-show-top">
-            <div>
+            <Reveal as="div">
               <div className="led-eyebrow"><span className="d" />{t("led.show.eyebrow")}</div>
               <h2>{em("led.show.title")}</h2>
               <p>{t("led.show.sub")}</p>
@@ -412,9 +414,9 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                   <div className="d">{t("led.show.s3.d")}</div>
                 </div>
               </div>
-            </div>
+            </Reveal>
 
-            <div className="led-feat" style={{ backgroundImage: `url(${unsplashSized(PHOTO.lofoten, 1100)})` }}>
+            <Reveal as="div" className="led-feat" variants={scaleIn} style={{ backgroundImage: `url(${unsplashSized(PHOTO.lofoten, 1100)})` }}>
               <div className="led-feat-top">
                 <span className="led-feat-tag">✦ {t("led.show.cardTag")}</span>
               </div>
@@ -436,16 +438,16 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                   <div className="led-feat-day more">+3 {t("led.show.moreDays")} ›</div>
                 </div>
               </div>
-            </div>
+            </Reveal>
           </div>
 
           <div className="led-show-gridhead">
             <div className="led-eyebrow"><span className="d" />{t("led.show.gridEyebrow")}</div>
             <button className="led-show-explore" onClick={onStart}>{t("led.show.explore")} →</button>
           </div>
-          <div className="led-cards">
+          <Stagger className="led-cards" stagger={0.08} amount={0.15}>
             {MOOD_CARDS.map((c, i) => (
-              <div key={i} className="led-card" style={{ backgroundImage: `url(${unsplashSized(c.img, 520)})` }}>
+              <StaggerItem key={i} as="div" className="led-card" variants={fade} style={{ backgroundImage: `url(${unsplashSized(c.img, 520)})` }}>
                 <span className="led-card-badge">{b(c.badge)}</span>
                 <div className="led-card-body">
                   <div className="led-card-name">{c.name}</div>
@@ -453,11 +455,11 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                   <div className="led-card-meta">{b(c.meta)}</div>
                   <div className="led-card-desc">{b(c.desc)}</div>
                 </div>
-              </div>
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
 
-          <div className="led-quote">
+          <Reveal as="div" className="led-quote">
             <span className="led-quote-mark">"</span>
             <p className="led-quote-text">{t("led.show.quote")}</p>
             <div className="led-quote-stats">
@@ -468,7 +470,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                 <div className="led-quote-stat"><div className="n">{destCount}+</div><div className="l">{t("led.stats.destinations")}</div></div>
               )}
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -477,7 +479,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDesert, sceneW, 50)})` }} />
         <div className="led-container">
           <div className="led-made-grid">
-            <div>
+            <Reveal as="div">
               <div className="led-eyebrow"><span className="d" />{t("led.made.eyebrow")}</div>
               <h2>{em("led.made.title")}</h2>
               <p>{t("led.made.sub")}</p>
@@ -487,10 +489,10 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                 <div className="led-feature"><span className="ic">{I.target}</span><span><span className="t" style={{ display: "block" }}>{t("led.made.f3.t")}</span><span className="d">{t("led.made.f3.d")}</span></span></div>
                 <div className="led-feature"><span className="ic">{I.trend}</span><span><span className="t" style={{ display: "block" }}>{t("led.made.f4.t")}</span><span className="d">{t("led.made.f4.d")}</span></span></div>
               </div>
-            </div>
+            </Reveal>
 
             {/* Anteprima prodotto — dati demo dichiarati */}
-            <div className="led-preview">
+            <Reveal as="div" className="led-preview" variants={scaleIn}>
               <span className="led-preview-label">{t("led.made.previewLabel")}</span>
               <div className="led-preview-head">
                 <div>
@@ -520,11 +522,11 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                 ))}
               </div>
               <div className="led-preview-honest">{I.shield} {t("led.made.honest")}</div>
-            </div>
+            </Reveal>
           </div>
 
           {/* Email band */}
-          <div className="led-mail">
+          <Reveal as="div" className="led-mail">
             <div className="led-mail-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.iceland, 700)})` }}>
               <span className="env">{I.mail}</span>
             </div>
@@ -556,7 +558,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               <div className="led-mail-feat"><span className="ic">{I.tag}</span><span><span className="t" style={{ display: "block" }}>{t("led.mail.b2.t")}</span><span className="d">{t("led.mail.b2.d")}</span></span></div>
               <div className="led-mail-feat"><span className="ic">{I.spark}</span><span><span className="t" style={{ display: "block" }}>{t("led.mail.b3.t")}</span><span className="d">{t("led.mail.b3.d")}</span></span></div>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -565,8 +567,8 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgAurora, sceneW, 50)})` }} />
         <div className="led-container">
           <div className="led-final-grid">
-            <div className="led-final-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgCoast, 900)})` }} />
-            <div>
+            <Reveal as="div" className="led-final-img" variants={scaleIn} style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgCoast, 900)})` }} />
+            <Reveal as="div">
               <div className="led-eyebrow"><span className="d" />{t("led.final.eyebrow")}</div>
               <h2>{em("led.final.title")}</h2>
               <p className="led-final-sub">{t("led.final.sub")}</p>
@@ -584,15 +586,15 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                 <span><span className="ck">✓</span>{t("led.final.p2")}</span>
                 <span><span className="ck">✓</span>{t("led.final.p3")}</span>
               </div>
-            </div>
+            </Reveal>
           </div>
 
-          <div className="led-partners">
-            <span className="led-partners-head">{t("led.partners.head")}</span>
+          <Stagger className="led-partners" stagger={0.06} amount={0.4}>
+            <StaggerItem as="span" className="led-partners-head">{t("led.partners.head")}</StaggerItem>
             {PARTNERS.map(p => (
-              <span key={p.label} className={"led-partner" + (p.serif ? " serif" : "")}>{p.label}</span>
+              <StaggerItem key={p.label} as="span" className={"led-partner" + (p.serif ? " serif" : "")}>{p.label}</StaggerItem>
             ))}
-          </div>
+          </Stagger>
         </div>
       </section>
 
@@ -649,5 +651,6 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         </div>
       </footer>
     </div>
+    </MotionConfig>
   );
 }

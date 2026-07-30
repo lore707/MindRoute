@@ -390,7 +390,38 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MOTION cinematografico (2026-07) — Ken Burns hero, slow-zoom scene,
+   hover lift più marcati con la curva condivisa. Gli ingressi/stagger sono
+   gestiti in JS da lib/motion (Framer, reduced-motion via MotionConfig).
+   ═══════════════════════════════════════════════════════════════ */
+.led { --led-ease: cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* Hero: lento zoom "Ken Burns" — è un layer di sfondo, non toccato da Framer. */
+.led-hero-bg { will-change: transform; animation: led-kenburns 34s var(--led-ease) infinite alternate; transform-origin: 60% 40%; }
+@keyframes led-kenburns { from { transform: scale(1.02); } to { transform: scale(1.11); } }
+
+/* Scene di sezione: respiro lentissimo, quasi impercettibile. */
+.led-scene { will-change: transform; animation: led-scenezoom 44s ease-in-out infinite alternate; }
+@keyframes led-scenezoom { from { transform: scale(1.04); } to { transform: scale(1.12); } }
+
+/* Hover lift coerenti (curva condivisa, più cinematografici). Questi elementi
+   entrano con sola-opacità (variante `fade`), quindi il transform è libero. */
+.led-card { transition: transform 0.5s var(--led-ease), box-shadow 0.5s var(--led-ease); }
+.led-card:hover { transform: translateY(-8px) scale(1.012); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55); }
+.led-step { transition: transform 0.5s var(--led-ease), box-shadow 0.5s var(--led-ease), border-color 0.4s ease; }
+.led-step:hover { transform: translateY(-6px); border-color: var(--led-line2); box-shadow: 0 26px 60px rgba(0, 0, 0, 0.45); }
+.led-pcard { transition: transform 0.5s var(--led-ease), box-shadow 0.5s var(--led-ease); }
+.led-pcard:hover { transform: translateY(-5px); box-shadow: 0 22px 52px rgba(0, 0, 0, 0.5); }
+.led-season-item { transition: background 0.16s ease, transform 0.4s var(--led-ease); }
+.led-season-item:hover { transform: translateX(4px); }
+.led-btn { transition: transform 0.25s var(--led-ease), box-shadow 0.25s var(--led-ease), filter 0.25s ease; }
+.led-btn:hover { transform: translateY(-2px); }
+.led-btn:active { transform: translateY(0) scale(0.97); }
+.led-arrow { display: inline-block; transition: transform 0.25s var(--led-ease); }
+.led-btn:hover .led-arrow { transform: translateX(4px); }
+
 /* Motion preferenze ridotte */
 @media (prefers-reduced-motion: reduce) {
-  .led * { transition: none !important; animation: none !important; }
+  .led *, .led *::before, .led *::after { transition: none !important; animation: none !important; }
 }
