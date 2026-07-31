@@ -522,6 +522,50 @@
   .lt-axis { grid-template-columns: 88px 1fr; }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ATTO II · Come ragiona MindRoute — timeline verticale (il loop).
+   Sostituisce le 4 step card: non un workflow, un ragionamento.
+   ═══════════════════════════════════════════════════════════════ */
+/* Il ragionamento è un testo lungo che vive DIRETTAMENTE sulla scena (niente
+   card sopra): qui il paesaggio deve tornare texture, o ruba leggibilità. */
+.led-how .led-scene::after {
+  background: linear-gradient(180deg, #050609 0%, rgba(8, 9, 14, 0.9) 14%, rgba(8, 9, 14, 0.86) 50%, rgba(8, 9, 14, 0.92) 86%, var(--led-bg) 100%);
+}
+.led-think-head { max-width: 700px; margin-bottom: 56px; }
+.led-think-head h2 { font-size: clamp(32px, 4.4vw, 56px); line-height: 1.06; color: #fff; margin: 18px 0 18px; text-wrap: balance; }
+.led-think-head h2 em { font-style: italic; color: var(--led-accent-2); }
+.led-think-head p { font-size: clamp(15px, 1.4vw, 18px); line-height: 1.6; color: var(--led-ink-dim); max-width: 560px; text-wrap: pretty; }
+
+.led-think { position: relative; padding-left: 8px; }
+.led-think-step, .led-think-loop { position: relative; display: grid; grid-template-columns: 44px 1fr; gap: 20px; padding-bottom: 46px; }
+.led-think-loop { padding-bottom: 0; }
+/* La linea: traccia continua fra un nodo e il successivo. */
+.led-think-step::before { content: ""; position: absolute; left: 21px; top: 30px; bottom: -4px; width: 2px;
+  background: linear-gradient(180deg, rgba(240, 67, 90, 0.5), rgba(240, 67, 90, 0.12)); }
+.lt-node { grid-column: 1; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid rgba(240, 67, 90, 0.45);
+  background: radial-gradient(circle at 50% 35%, rgba(240, 67, 90, 0.3), rgba(240, 67, 90, 0.05));
+  box-shadow: 0 0 0 6px rgba(240, 67, 90, 0.05), 0 8px 26px -8px rgba(240, 67, 90, 0.5); }
+.lt-node .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--led-grad); box-shadow: 0 0 12px rgba(240, 67, 90, 0.9); }
+.lt-node.loop { color: var(--led-accent-2); font-size: 19px; }
+.lt-body { grid-column: 2; padding-top: 2px; }
+.lt-num { display: block; font-size: 11px; letter-spacing: 0.18em; font-weight: 700; color: var(--led-accent); margin-bottom: 8px; }
+.led-think .lt-body h3 { font-family: var(--led-serif); font-size: clamp(21px, 2.2vw, 29px); line-height: 1.15; color: #fff; margin: 0 0 10px; text-wrap: balance; }
+.led-think .lt-body p { font-size: clamp(14px, 1.3vw, 16.5px); line-height: 1.6; color: var(--led-ink-dim); max-width: 620px; text-wrap: pretty; margin: 0; }
+.led-think-loop .lt-body p { font-family: var(--led-serif); font-style: italic; font-size: clamp(16px, 1.7vw, 21px); color: var(--led-accent-2); padding-top: 9px; }
+
+@media (min-width: 900px) {
+  /* Desktop: il testo respira di più, la colonna resta stretta e leggibile. */
+  .led-think { padding-left: 40px; }
+  .led-think-step, .led-think-loop { gap: 28px; padding-bottom: 58px; }
+}
+@media (max-width: 520px) {
+  .led-think { padding-left: 0; }
+  .led-think-step, .led-think-loop { grid-template-columns: 38px 1fr; gap: 16px; padding-bottom: 38px; }
+  .lt-node { width: 38px; height: 38px; }
+  .led-think-step::before { left: 18px; top: 26px; }
+}
+
 /* Motion preferenze ridotte */
 @media (prefers-reduced-motion: reduce) {
   .led *, .led *::before, .led *::after { transition: none !important; animation: none !important; }

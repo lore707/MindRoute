@@ -99,16 +99,6 @@ function seasonOf(m: number): keyof typeof SEASONAL {
   return "winter";
 }
 
-/* Grid "posti veri, per ogni umore" — archetipi curati, senza contatori o
-   rating inventati. */
-const MOOD_CARDS: Array<{ name: string; country: Bi; badge: Bi; meta: Bi; desc: Bi; img: string }> = [
-  { name: "Kyoto",     country: { en: "Japan", it: "Giappone" },     badge: { en: "Cultural escape", it: "Fuga culturale" },  meta: { en: "6 days · Spring", it: "6 giorni · Primavera" }, desc: { en: "Temples, rituals and timeless beauty at every corner.", it: "Templi, riti e bellezza senza tempo a ogni angolo." }, img: PHOTO.kyoto },
-  { name: "Patagonia", country: { en: "Argentina", it: "Argentina" },badge: { en: "Adventure escape", it: "Fuga d'avventura" },meta: { en: "7 days · Nov–Mar", it: "7 giorni · Nov–Mar" },  desc: { en: "Granite peaks, glaciers and wind that resets you.", it: "Cime di granito, ghiacciai e un vento che ti azzera." }, img: PHOTO.patagonia },
-  { name: "Procida",   country: { en: "Italy", it: "Italia" },       badge: { en: "Coastal escape", it: "Fuga sul mare" },    meta: { en: "4 days · Spring", it: "4 giorni · Primavera" }, desc: { en: "Pastel villages, sea views and la dolce vita.", it: "Borghi pastello, viste sul mare e dolce vita." }, img: PHOTO.procida },
-  { name: "Marocco",   country: { en: "Morocco", it: "Marocco" },    badge: { en: "Desert escape", it: "Fuga nel deserto" },  meta: { en: "7 days · Autumn", it: "7 giorni · Autunno" },   desc: { en: "Dunes, markets and a culture that vibrates.", it: "Dune, mercati e una cultura che vibra." }, img: PHOTO.sahara },
-  { name: "Isole Faroe",country:{ en: "Denmark", it: "Danimarca" },  badge: { en: "Nature escape", it: "Fuga nella natura" }, meta: { en: "5 days · Summer", it: "5 giorni · Estate" },    desc: { en: "Cliffs, waterfalls and weather with a personality.", it: "Scogliere, cascate e un meteo con carattere." }, img: PHOTO.faroe },
-];
-
 /* Anteprima prodotto — dati DEMO dichiarati (label "Anteprima del prodotto"). */
 const PREVIEW_CARDS: Array<{ name: string; sub: Bi; badgeKey: string; tags: Bi[]; days: number; travel: Bi; from: string; img: string; primary?: boolean }> = [
   { name: "Azzorre", sub: { en: "Portugal", it: "Portogallo" }, badgeKey: "led.made.bestMatch", tags: [{ en: "Nature", it: "Natura" }, { en: "Relaxation", it: "Relax" }, { en: "Scenic", it: "Scenografico" }], days: 6, travel: { en: "✈ ~5h", it: "✈ ~5h" }, from: "€190", img: PHOTO.azores, primary: true },
@@ -330,79 +320,32 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
       <section className="led-how" id="how-it-works">
         <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDolomiti, sceneW, 50)})` }} />
         <div className="led-container">
-          <Reveal as="div" className="led-how-head">
-            <div>
-              <div className="led-eyebrow"><span className="d" />{t("led.how.eyebrow")}</div>
-              <h2>{em("led.how.title")}</h2>
-            </div>
-            <p>{t("led.how.sub")}</p>
+          <Reveal as="div" className="led-think-head">
+            <div className="led-eyebrow"><span className="d" />{t("led.think.eyebrow")}</div>
+            <h2>{t("led.think.title1")}<br /><em>{t("led.think.title2")}</em></h2>
+            <p>{t("led.think.sub")}</p>
           </Reveal>
 
-          <Reveal as="div" className="led-steps" amount={0.15}>
-            <div className="led-step">
-              <span className="led-step-badge">01</span>
-              <span className="led-step-ico">{I.user}</span>
-              <div className="led-step-title">{t("led.how.s1.title")}</div>
-              <div className="led-step-desc">{t("led.how.s1.desc")}</div>
-              <div className="led-mini">
-                <div className="led-mini-photo" style={{ backgroundImage: `url(${unsplashSized(PHOTO.journal, 480, 55)})` }} />
-                <div className="led-mini-q">{t("led.how.v1.q")}</div>
-                <div className="led-mini-hint">{t("led.how.v1.hint")}</div>
-                <div className="led-mini-opt on">⛰ {t("led.how.v1.o1")}</div>
-                <div className="led-mini-opt off">🌴 {t("led.how.v1.o2")}</div>
-              </div>
-            </div>
-
-            <div className="led-step">
-              <span className="led-step-badge">02</span>
-              <span className="led-step-ico">{I.brain}</span>
-              <div className="led-step-title">{t("led.how.s2.title")}</div>
-              <div className="led-step-desc">{t("led.how.s2.desc")}</div>
-              <div className="led-mini">
-                <div className="led-mini-map" style={{ backgroundImage: `linear-gradient(180deg, rgba(11,12,17,.55), rgba(11,12,17,.72)), url(${unsplashSized(PHOTO.worldmap, 480, 55)})`, backgroundSize: "cover", backgroundPosition: "center" }}>
-                  <span className="pin" style={{ top: "22%", left: "18%" }} />
-                  <span className="pin" style={{ top: "40%", left: "62%" }} />
-                  <span className="pin" style={{ top: "64%", left: "34%" }} />
-                  <span className="pin" style={{ top: "28%", left: "82%" }} />
-                  <div className="led-mini-chip">
-                    <div className="a">{t("led.how.v2.tag")}</div>
-                    <div className="b">{t("led.how.v2.place")}</div>
-                    <div className="c">{t("led.how.v2.pct")}</div>
-                  </div>
+          {/* Timeline del ragionamento: la linea è SEMPRE disegnata (traccia),
+              il tratto acceso cresce quando lo step entra — se l'animazione non
+              parte resta comunque tutto leggibile e connesso. */}
+          <div className="led-think">
+            {[1, 2, 3, 4].map((n) => (
+              <Reveal as="div" className="led-think-step" key={n} amount={0.35}>
+                <span className="lt-node" aria-hidden="true"><span className="dot" /></span>
+                <div className="lt-body">
+                  <span className="lt-num">{String(n).padStart(2, "0")}</span>
+                  <h3>{t(`led.think.s${n}.t`)}</h3>
+                  <p>{t(`led.think.s${n}.d`)}</p>
                 </div>
-              </div>
-            </div>
-
-            <div className="led-step">
-              <span className="led-step-badge">03</span>
-              <span className="led-step-ico">{I.mapp}</span>
-              <div className="led-step-title">{t("led.how.s3.title")}</div>
-              <div className="led-step-desc">{t("led.how.s3.desc")}</div>
-              <div className="led-mini">
-                <div className="led-mini-photo" style={{ backgroundImage: `url(${unsplashSized(PHOTO.patagonia, 480, 55)})` }} />
-                <div className="led-mini-day">{t("led.how.v3.day")}</div>
-                <div className="led-mini-place">{t("led.how.v3.place")}</div>
-                <div className="led-mini-row"><span className="dot" />{t("led.how.v3.r1")}<span className="tm">8:00</span></div>
-                <div className="led-mini-row"><span className="dot" />{t("led.how.v3.r2")}<span className="tm">13:00</span></div>
-                <div className="led-mini-row"><span className="dot" />{t("led.how.v3.r3")}<span className="tm">19:30</span></div>
-              </div>
-            </div>
-
-            <div className="led-step">
-              <span className="led-step-badge">04</span>
-              <span className="led-step-ico">{I.bag}</span>
-              <div className="led-step-title">{t("led.how.s4.title")}</div>
-              <div className="led-step-desc">{t("led.how.s4.desc")}</div>
-              <div className="led-mini led-mini-book">
-                <div className="led-mini-book-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.patagonia, 420)})` }} />
-                <div className="led-mini-book-body">
-                  <div className="a">{t("led.how.v4.tag")}</div>
-                  <div className="b">{t("led.how.v4.sub")}</div>
-                  <span className="led-mini-cta">{t("led.how.v4.cta")} →</span>
-                </div>
-              </div>
-            </div>
-          </Reveal>
+              </Reveal>
+            ))}
+            {/* Chiusura del cerchio: il loop torna all'inizio */}
+            <Reveal as="div" className="led-think-loop" amount={0.5}>
+              <span className="lt-node loop" aria-hidden="true">↻</span>
+              <div className="lt-body"><p>{t("led.think.loop")}</p></div>
+            </Reveal>
+          </div>
 
           <Reveal as="div" className="led-how-band" variants={scaleIn}>
             <div className="led-how-band-img" style={{ backgroundImage: `url(${unsplashSized(PHOTO.mountains, 900)})` }} />
@@ -471,23 +414,9 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
             </Reveal>
           </div>
 
-          <div className="led-show-gridhead">
-            <div className="led-eyebrow"><span className="d" />{t("led.show.gridEyebrow")}</div>
-            <button className="led-show-explore" onClick={onStart}>{t("led.show.explore")} →</button>
-          </div>
-          <Stagger className="led-cards" stagger={0.08} amount={0.15}>
-            {MOOD_CARDS.map((c, i) => (
-              <StaggerItem key={i} as="div" className="led-card" variants={fade} style={{ backgroundImage: `url(${unsplashSized(c.img, 520)})` }}>
-                <span className="led-card-badge">{b(c.badge)}</span>
-                <div className="led-card-body">
-                  <div className="led-card-name">{c.name}</div>
-                  <div className="led-card-country">{b(c.country)}</div>
-                  <div className="led-card-meta">{b(c.meta)}</div>
-                  <div className="led-card-desc">{b(c.desc)}</div>
-                </div>
-              </StaggerItem>
-            ))}
-          </Stagger>
+          {/* La griglia "posti veri, per ogni umore" è stata rimossa: era un
+              CATALOGO di destinazioni, cioè esattamente ciò che la nuova
+              narrazione rinnega ("non partiamo dai posti"). */}
 
           <Reveal as="div" className="led-quote">
             <span className="led-quote-mark">"</span>

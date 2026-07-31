@@ -29,6 +29,22 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.truth.axis3":      { en: "Nature", it: "Natura" },
   "led.truth.axis4":      { en: "Crowds", it: "Folla" },
   "led.truth.youCap":     { en: "A destination that fits who you are — not everyone at once. (Illustrative profile)", it: "Una destinazione che assomiglia a te — non a tutti insieme. (Profilo illustrativo)" },
+
+  // ── Atto II · Come ragiona MindRoute (il loop, non il workflow) ──────────
+  "led.think.eyebrow": { en: "How MindRoute thinks", it: "Come ragiona MindRoute" },
+  "led.think.title1":  { en: "Not a workflow.", it: "Non un procedimento." },
+  "led.think.title2":  { en: "A way of reasoning.", it: "Un modo di ragionare." },
+  "led.think.sub":     { en: "Four movements that close into a loop: every journey you take makes the next one more yours.", it: "Quattro movimenti che si chiudono in un cerchio: ogni viaggio che fai rende il prossimo più tuo." },
+
+  "led.think.s1.t": { en: "Understand you", it: "Capire chi sei" },
+  "led.think.s1.d": { en: "We don't ask where you want to go. We ask who you are — and read your answers as a profile, not as filters.", it: "Non ti chiediamo dove vuoi andare. Ti chiediamo chi sei — e leggiamo le risposte come un profilo, non come filtri." },
+  "led.think.s2.t": { en: "Understand what you need today", it: "Capire di cosa hai bisogno oggi" },
+  "led.think.s2.d": { en: "You're not the same person after a promotion as after a breakup. What this trip has to give you matters more than your usual taste.", it: "Non sei la stessa persona dopo una promozione e dopo una rottura. Ciò che questo viaggio deve darti conta più dei tuoi gusti abituali." },
+  "led.think.s3.t": { en: "Design the journey around you", it: "Disegnare il viaggio intorno a te" },
+  "led.think.s3.d": { en: "Neighbourhood first, then the shape of the days, then what fills them. Every choice can name the reason it exists.", it: "Prima il quartiere, poi la forma delle giornate, poi cosa le riempie. Ogni scelta sa dire perché esiste." },
+  "led.think.s4.t": { en: "Learn from every journey", it: "Imparare da ogni viaggio" },
+  "led.think.s4.d": { en: "What you choose — and what you leave behind — tells us more than any question could.", it: "Quello che scegli — e quello che scarti — ci dice più di qualsiasi domanda." },
+  "led.think.loop":  { en: "And it starts again, closer to you.", it: "E si ricomincia, più vicino a te." },
   "led.season.head":    { en: "Best for this season", it: "Il meglio della stagione" },
 
   // ── Stats band (numeri reali da /api/stats) ─────────────────────────────
