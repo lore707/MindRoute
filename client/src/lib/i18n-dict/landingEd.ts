@@ -88,6 +88,28 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.why.n2": { en: "Nightlife", it: "Vita notturna" },
   "led.why.n3": { en: "Resort luxury", it: "Lusso da resort" },
   "led.why.cap": { en: "Illustrative example.", it: "Esempio illustrativo." },
+
+  // ── Atto IV · Memoria — ogni viaggio entra nel successivo ────────────────
+  "led.mem.eyebrow": { en: "Memory", it: "La memoria" },
+  "led.mem.title1":  { en: "Every journey becomes", it: "Ogni viaggio diventa" },
+  "led.mem.title2":  { en: "part of the next one.", it: "parte del prossimo." },
+  "led.mem.sub":     { en: "Most tools start from zero every time. MindRoute doesn't: what you choose, what you skip and what you actually go on leaves a mark on your profile.", it: "Quasi tutti gli strumenti ripartono da zero ogni volta. MindRoute no: quello che scegli, quello che salti e quello che fai davvero lascia un segno sul tuo profilo." },
+  "led.mem.t1":      { en: "First journey", it: "Primo viaggio" },
+  "led.mem.t1p":     { en: "Japan", it: "Giappone" },
+  "led.mem.t1l":     { en: "You linger on slow mornings", it: "Ti fermi sulle mattine lente" },
+  "led.mem.t2":      { en: "Second journey", it: "Secondo viaggio" },
+  "led.mem.t2p":     { en: "Portugal", it: "Portogallo" },
+  "led.mem.t2l":     { en: "You choose villages over capitals", it: "Scegli i borghi invece delle capitali" },
+  "led.mem.t3":      { en: "Third journey", it: "Terzo viaggio" },
+  "led.mem.t3p":     { en: "Chile", it: "Cile" },
+  "led.mem.t3l":     { en: "Proposed because of the two before it", it: "Proposto grazie ai due precedenti" },
+  "led.mem.learn":   { en: "Learned", it: "Imparato" },
+  "led.mem.cap":     { en: "Illustrative example: the profile shifts with real journeys, not with a single answer.", it: "Esempio illustrativo: il profilo si sposta con i viaggi veri, non con una singola risposta." },
+
+  // ── Atto V · Chiusura ────────────────────────────────────────────────────
+  "led.end.l1":  { en: "Stop following everyone else's journey.", it: "Smetti di seguire il viaggio di tutti gli altri." },
+  "led.end.l2":  { en: "Start understanding yours.", it: "Inizia a capire il tuo." },
+  "led.end.cta": { en: "Discover my travel identity", it: "Scopri la tua identità di viaggio" },
   "led.season.head":    { en: "Best for this season", it: "Il meglio della stagione" },
 
   // ── Stats band (numeri reali da /api/stats) ─────────────────────────────

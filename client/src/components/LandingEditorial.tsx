@@ -458,6 +458,49 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
         </div>
       </section>
 
+      {/* ── ATTO IV · MEMORIA — ogni viaggio entra nel successivo ── */}
+      <section className="led-mem" id="memory">
+        <div className="led-mem-bg" aria-hidden="true"><GraphField opacity={0.5} /></div>
+        <div className="led-container">
+          <Reveal as="div" className="led-mem-head">
+            <div className="led-eyebrow"><span className="d" />{t("led.mem.eyebrow")}</div>
+            <h2>{t("led.mem.title1")}<br /><em>{t("led.mem.title2")}</em></h2>
+            <p>{t("led.mem.sub")}</p>
+          </Reveal>
+
+          {/* Tre viaggi: ognuno lascia un segno che sposta il profilo, e il
+              terzo esiste GRAZIE ai due precedenti. È l'EMA + preferenza
+              rivelata raccontata come storia. */}
+          <div className="led-mem-track">
+            {([
+              { k: "t1", axis: t("led.truth.axis2"), delta: "+8", pct: 46 },
+              { k: "t2", axis: t("led.truth.axis1"), delta: "+6", pct: 68 },
+              { k: "t3", axis: t("led.truth.axis3"), delta: "+5", pct: 82 },
+            ] as const).map((s, i) => (
+              <Reveal as="div" className={"led-mem-step" + (i === 2 ? " last" : "")} key={s.k} amount={0.3}>
+                <div className="mm-when">{t(`led.mem.${s.k}`)}</div>
+                <div className="mm-card">
+                  <div className="mm-place">{t(`led.mem.${s.k}p`)}</div>
+                  <div className="mm-learn">
+                    <span className="lbl">{t("led.mem.learn")}</span>
+                    <span className="txt">{t(`led.mem.${s.k}l`)}</span>
+                  </div>
+                  <div className="mm-shift">
+                    <span className="ax">{s.axis}</span>
+                    <span className="bar"><motion.span className="fill" style={{ width: `${s.pct}%` }}
+                      initial={reduce ? false : { scaleX: 0 }} whileInView={{ scaleX: 1 }}
+                      viewport={{ once: true, amount: 0 }}
+                      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }} /></span>
+                    <span className="dl">{s.delta}</span>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal as="p" className="led-mem-cap">{t("led.mem.cap")}</Reveal>
+        </div>
+      </section>
+
       {/* ④ MADE FOR YOU + EMAIL — sfondo dune al tramonto */}
       <section className="led-made">
         <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgDesert, sceneW, 50)})` }} />
@@ -543,6 +586,29 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
             {PARTNERS.map(p => (
               <StaggerItem key={p.label} as="span" className={"led-partner" + (p.serif ? " serif" : "")}>{p.label}</StaggerItem>
             ))}
+          </Stagger>
+        </div>
+      </section>
+
+      {/* ── ATTO V · CHIUSURA — nero, tipografica, l'ultima convinzione ── */}
+      <section className="led-end">
+        <div className="led-end-bg" aria-hidden="true"><GraphField opacity={0.45} /></div>
+        <div className="led-container led-end-inner">
+          <Stagger stagger={0.12} amount={0.3}>
+            <StaggerItem as="p" className="led-end-l1">{t("led.end.l1")}</StaggerItem>
+            <StaggerItem as="p" className="led-end-l2"><em>{t("led.end.l2")}</em></StaggerItem>
+            <StaggerItem as="div" className="led-end-cta">
+              <button className="led-btn xl" onClick={onStart} data-testid="led-end-cta">
+                {t("led.end.cta")} <span className="led-arrow">→</span>
+              </button>
+            </StaggerItem>
+            {/* I numeri REALI tornano qui, piccoli: prova, non promessa. */}
+            {(itinCount || destCount) && (
+              <StaggerItem as="div" className="led-end-stats">
+                {itinCount && <span><strong>{itinCount}+</strong> {t("led.stats.itineraries")}</span>}
+                {destCount && <span><strong>{destCount}+</strong> {t("led.stats.destinations")}</span>}
+              </StaggerItem>
+            )}
           </Stagger>
         </div>
       </section>

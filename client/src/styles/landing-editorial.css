@@ -646,6 +646,64 @@
   .led-why-dest { min-height: 200px; }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ATTO IV · Memoria — i viaggi che spostano il profilo. La sezione
+   iconica: è il vantaggio che nessun prompt può replicare.
+   ═══════════════════════════════════════════════════════════════ */
+.led-mem { position: relative; background: #07080d; padding: 110px 0 120px; overflow: hidden; }
+.led-mem-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.led-mem > .led-container { position: relative; z-index: 1; }
+.led-mem-head { max-width: 720px; margin-bottom: 54px; }
+.led-mem-head h2 { font-size: clamp(30px, 4.2vw, 54px); line-height: 1.06; color: #fff; margin: 18px 0 18px; text-wrap: balance; }
+.led-mem-head h2 em { font-style: italic; color: var(--led-accent-2); }
+.led-mem-head p { font-size: clamp(15px, 1.4vw, 18px); line-height: 1.6; color: var(--led-ink-dim); max-width: 600px; text-wrap: pretty; }
+
+.led-mem-track { display: grid; grid-template-columns: 1fr; gap: 18px; }
+@media (min-width: 900px) { .led-mem-track { grid-template-columns: repeat(3, 1fr); gap: 22px; align-items: stretch; } }
+
+.led-mem-step { position: relative; display: flex; flex-direction: column; gap: 10px; }
+/* Il filo che lega un viaggio al successivo (orizzontale su desktop). */
+@media (min-width: 900px) {
+  .led-mem-step:not(.last)::after { content: ""; position: absolute; top: 50%; right: -22px; width: 22px; height: 2px;
+    background: linear-gradient(90deg, rgba(240, 67, 90, 0.55), rgba(240, 67, 90, 0.12)); }
+}
+.mm-when { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; color: var(--led-accent); }
+.mm-card { flex: 1; border-radius: 18px; padding: 20px; display: flex; flex-direction: column; gap: 14px;
+  background: linear-gradient(180deg, rgba(26, 22, 32, 0.7), rgba(14, 13, 19, 0.8));
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 22px 50px -24px rgba(0, 0, 0, 0.7); }
+.led-mem-step.last .mm-card { border-color: rgba(240, 67, 90, 0.32); }
+.mm-place { font-family: var(--led-serif); font-size: 27px; color: #fff; line-height: 1.05; }
+.mm-learn { display: flex; flex-direction: column; gap: 4px; }
+.mm-learn .lbl { font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; color: var(--led-ink-dim); }
+.mm-learn .txt { font-size: 14px; line-height: 1.45; color: rgba(255, 255, 255, 0.88); text-wrap: pretty; }
+.mm-shift { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "ax dl" "bar bar"; gap: 6px 10px; align-items: center; margin-top: auto; }
+.mm-shift .ax { grid-area: ax; font-size: 11.5px; color: var(--led-ink-dim); }
+.mm-shift .dl { grid-area: dl; font-size: 12px; font-weight: 700; color: var(--led-accent-2); }
+.mm-shift .bar { grid-area: bar; height: 5px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); overflow: hidden; display: block; }
+.mm-shift .fill { display: block; height: 100%; border-radius: 5px; background: var(--led-grad); transform-origin: left center; }
+.led-mem-cap { margin-top: 26px; font-size: 12.5px; font-style: italic; color: rgba(255, 255, 255, 0.4); }
+
+/* ═══════════════════════════════════════════════════════════════
+   ATTO V · Chiusura — nero, tipografica, una sola convinzione.
+   ═══════════════════════════════════════════════════════════════ */
+.led-end { position: relative; background: #050609; padding: 130px 0 140px; overflow: hidden; }
+.led-end-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.led-end-inner { position: relative; z-index: 1; text-align: center; }
+.led-end-l1, .led-end-l2 { margin: 0; font-family: var(--led-serif); font-size: clamp(28px, 4.8vw, 60px); line-height: 1.12; text-wrap: balance; }
+.led-end-l1 { color: rgba(255, 255, 255, 0.55); }
+.led-end-l2 { color: #fff; margin-top: 6px; }
+.led-end-l2 em { font-style: italic; color: var(--led-accent-2); }
+.led-end-cta { margin-top: 40px; }
+.led-end-stats { margin-top: 28px; display: flex; justify-content: center; gap: 26px; flex-wrap: wrap; font-size: 13px; color: rgba(255, 255, 255, 0.5); }
+.led-end-stats strong { color: var(--led-accent-2); font-weight: 600; }
+
+@media (max-width: 520px) {
+  .led-mem { padding: 80px 0 90px; }
+  .led-end { padding: 96px 0 104px; }
+}
+
 /* Motion preferenze ridotte */
 @media (prefers-reduced-motion: reduce) {
   .led *, .led *::before, .led *::after { transition: none !important; animation: none !important; }
