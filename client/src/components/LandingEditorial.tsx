@@ -106,14 +106,6 @@ const PREVIEW_CARDS: Array<{ name: string; sub: Bi; badgeKey: string; tags: Bi[]
   { name: "Kyoto", sub: { en: "Japan", it: "Giappone" }, badgeKey: "led.made.uniquePick", tags: [{ en: "Culture", it: "Cultura" }, { en: "Temples", it: "Templi" }, { en: "Calm", it: "Calma" }], days: 8, travel: { en: "✈ ~14h", it: "✈ ~14h" }, from: "€650", img: PHOTO.kyoto },
 ];
 
-/* Featured itinerary (showcase) — tappe Lofoten reali, come nel mockup. */
-const FEAT_DAYS: Array<{ label: Bi; img: string }> = [
-  { label: { en: "Arrival in Svolvær", it: "Arrivo a Svolvær" }, img: PHOTO.bgAurora },
-  { label: { en: "Hike to Ryten", it: "Trekking al Ryten" }, img: PHOTO.faroe },
-  { label: { en: "Hamnøy & Reinebringen", it: "Hamnøy e Reinebringen" }, img: PHOTO.lofoten },
-  { label: { en: "Kvalvika Beach", it: "Spiaggia di Kvalvika" }, img: PHOTO.azores },
-];
-
 /* Partner REALI monetizzati (resolveAffiliateUrl) — mai Booking/GetYourGuide. */
 const PARTNERS: Array<{ label: string; serif?: boolean }> = [
   { label: "Tripadvisor" },
@@ -365,58 +357,48 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
       <section className="led-show">
         <div className="led-scene" style={{ backgroundImage: `url(${unsplashSized(PHOTO.bgCoast, sceneW, 50)})` }} />
         <div className="led-container">
-          <div className="led-show-top">
-            <Reveal as="div">
-              <div className="led-eyebrow"><span className="d" />{t("led.show.eyebrow")}</div>
-              <h2>{em("led.show.title")}</h2>
-              <p>{t("led.show.sub")}</p>
-              <div className="led-show-steps">
-                <div className="led-show-step">
-                  <span className="ic">{I.user}</span>
-                  <div className="t">{t("led.show.s1.t")}</div>
-                  <div className="d">{t("led.show.s1.d")}</div>
-                </div>
-                <div className="led-show-step">
-                  <span className="ic">{I.target}</span>
-                  <div className="t">{t("led.show.s2.t")}</div>
-                  <div className="d">{t("led.show.s2.d")}</div>
-                </div>
-                <div className="led-show-step hot">
-                  <span className="ic">{I.mapp}</span>
-                  <div className="t">{t("led.show.s3.t")}</div>
-                  <div className="d">{t("led.show.s3.d")}</div>
-                </div>
-              </div>
-            </Reveal>
+          <Reveal as="div" className="led-proof-head">
+            <div className="led-eyebrow"><span className="d" />{t("led.proof.eyebrow")}</div>
+            <h2>{t("led.proof.title1")}<br /><em>{t("led.proof.title2")}</em></h2>
+            <p>{t("led.proof.sub")}</p>
+          </Reveal>
 
-            <Reveal as="div" className="led-feat" variants={scaleIn} style={{ backgroundImage: `url(${unsplashSized(PHOTO.lofoten, 1100)})` }}>
-              <div className="led-feat-top">
-                <span className="led-feat-tag">✦ {t("led.show.cardTag")}</span>
-              </div>
-              <div className="led-feat-body">
-                <div className="led-feat-name">Lofoten</div>
-                <div className="led-feat-country">{lang === "it" ? "Norvegia" : "Norway"}</div>
-                <div className="led-feat-meta">{I.cal} 7 {t("led.made.days")} · {lang === "it" ? "Inverno" : "Winter"}</div>
-                <p className="led-feat-desc">{t("led.show.cardDesc")}</p>
-                <div className="led-feat-tags">
-                  {(lang === "it" ? ["Natura", "Fotografia", "Avventura", "Relax"] : ["Nature", "Photography", "Adventure", "Relaxation"]).map(x => <span key={x}>{x}</span>)}
-                </div>
-                <div className="led-feat-days">
-                  {FEAT_DAYS.map((d, i) => (
-                    <div key={i} className="led-feat-day">
-                      <span className="led-feat-day-img" style={{ backgroundImage: `url(${unsplashSized(d.img, 120)})` }} />
-                      <span><span className="a">{t("led.show.dayLabel")} {i + 1}</span><span className="b" style={{ display: "block" }}>{b(d.label)}</span></span>
+          {/* Due telefoni affiancati: stessa città, stesso budget, due profili.
+              È la discriminazione del Graph resa visibile — quella che il motore
+              produce davvero. Dati illustrativi, e lo diciamo. */}
+          <div className="led-proof">
+            {(["a", "b"] as const).map((k) => (
+              <Reveal as="div" className={"led-phone" + (k === "b" ? " alt" : "")} key={k} variants={scaleIn} amount={0.2}>
+                <div className="ph-frame">
+                  <span className="ph-notch" aria-hidden="true" />
+                  <div className="ph-screen">
+                    <div className="ph-head">
+                      <span className="ph-city">{lang === "it" ? "Lisbona" : "Lisbon"}</span>
+                      <span className="ph-who">{t(`led.proof.${k}.name`)}</span>
+                      <span className="ph-tags">{t(`led.proof.${k}.tags`)}</span>
                     </div>
-                  ))}
-                  <div className="led-feat-day more">+3 {t("led.show.moreDays")} ›</div>
+                    <div className="ph-row base">
+                      <span className="lbl">{t("led.proof.base")}</span>
+                      <span className="val">{t(`led.proof.${k}.base`)}</span>
+                    </div>
+                    <div className="ph-day">
+                      {(["m", "a", "e"] as const).map((slot) => (
+                        <div className="ph-slot" key={slot}>
+                          <span className="tm">{slot === "m" ? "09:00" : slot === "a" ? "15:00" : "20:30"}</span>
+                          <span className="txt">{t(`led.proof.${k}.${slot}`)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="ph-row rhythm">
+                      <span className="lbl">{t("led.proof.rhythm")}</span>
+                      <span className="val">{t(`led.proof.${k}.rhythm`)}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Reveal>
+              </Reveal>
+            ))}
           </div>
-
-          {/* La griglia "posti veri, per ogni umore" è stata rimossa: era un
-              CATALOGO di destinazioni, cioè esattamente ciò che la nuova
-              narrazione rinnega ("non partiamo dai posti"). */}
+          <Reveal as="p" className="led-proof-cap">{t("led.proof.disclaimer")}</Reveal>
 
           <Reveal as="div" className="led-quote">
             <span className="led-quote-mark">"</span>
@@ -430,6 +412,49 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               )}
             </div>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ── ATTO III · DENTRO LA DECISIONE — ogni consiglio ha un motivo ── */}
+      <section className="led-why" id="why">
+        <div className="led-container">
+          <Reveal as="div" className="led-why-head">
+            <div className="led-eyebrow"><span className="d" />{t("led.why.eyebrow")}</div>
+            <h2>{t("led.why.title1")}<br /><em>{t("led.why.title2")}</em></h2>
+            <p>{t("led.why.sub")}</p>
+          </Reveal>
+
+          <div className="led-why-grid">
+            <Reveal as="div" className="led-why-dest" variants={scaleIn}
+              style={{ backgroundImage: `url(${unsplashSized(PHOTO.kyoto, 700)})` }}>
+              <div className="wd-body">
+                <div className="wd-name">Kyoto</div>
+                <div className="wd-country">{lang === "it" ? "Giappone" : "Japan"}</div>
+              </div>
+            </Reveal>
+
+            {/* Il ragionamento che si scopre: prima cosa combacia, poi cosa è
+                stato escluso. Stagger = il sistema che "pensa" a voce alta. */}
+            <div className="led-why-lists">
+              <Stagger className="wl-block" stagger={0.07} amount={0.2}>
+                <StaggerItem as="div" className="wl-h">{t("led.why.for")}</StaggerItem>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <StaggerItem as="div" className="wl-item yes" key={i}>
+                    <span className="mk" aria-hidden="true">✓</span>{t(`led.why.y${i}`)}
+                  </StaggerItem>
+                ))}
+              </Stagger>
+              <Stagger className="wl-block" stagger={0.07} delayChildren={0.15} amount={0.2}>
+                <StaggerItem as="div" className="wl-h">{t("led.why.against")}</StaggerItem>
+                {[1, 2, 3].map((i) => (
+                  <StaggerItem as="div" className="wl-item no" key={i}>
+                    <span className="mk" aria-hidden="true">✕</span>{t(`led.why.n${i}`)}
+                  </StaggerItem>
+                ))}
+              </Stagger>
+              <Reveal as="p" className="led-why-cap">{t("led.why.cap")}</Reveal>
+            </div>
+          </div>
         </div>
       </section>
 
