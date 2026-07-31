@@ -3,11 +3,11 @@
 // proof NON stanno qui: arrivano reali da /api/stats (scelta esplicita).
 export const landingEdDict: Record<string, { en: string; it: string }> = {
   // ── Hero ────────────────────────────────────────────────────────────────
-  "led.hero.eyebrow":   { en: "AI-powered travel profiling", it: "Profilazione di viaggio con AI" },
-  "led.hero.title1":    { en: "Travel starts with", it: "Il viaggio nasce da" },
-  "led.hero.title2":    { en: "who you are.", it: "chi sei davvero." },
-  "led.hero.sub":       { en: "Answer 4 questions. Get 3 destinations chosen for your personality, with a complete itinerary ready to book.", it: "Rispondi a 4 domande. Ricevi 3 destinazioni scelte per la tua personalità, con un itinerario completo pronto da prenotare." },
-  "led.hero.cta":       { en: "Find my destination", it: "Trova la mia destinazione" },
+  "led.hero.eyebrow":   { en: "A different way to choose where to go", it: "Un altro modo di scegliere dove andare" },
+  "led.hero.title1":    { en: "Not every destination", it: "Non ogni destinazione" },
+  "led.hero.title2":    { en: "is meant for everyone.", it: "è fatta per tutti." },
+  "led.hero.sub":       { en: "MindRoute learns who you are, remembers every journey and recommends destinations that become more personal over time.", it: "MindRoute impara chi sei, ricorda ogni viaggio e ti consiglia destinazioni che diventano più tue nel tempo." },
+  "led.hero.cta":       { en: "Discover my travel identity", it: "Scopri la tua identità di viaggio" },
   "led.hero.counter":   { en: "itineraries already created", it: "itinerari già creati" },
   "led.season.head":    { en: "Best for this season", it: "Il meglio della stagione" },
 

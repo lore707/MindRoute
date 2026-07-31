@@ -67,11 +67,12 @@
     linear-gradient(90deg, rgba(11, 12, 17, 0.78) 0%, rgba(11, 12, 17, 0.42) 45%, rgba(11, 12, 17, 0.12) 100%),
     linear-gradient(180deg, rgba(11, 12, 17, 0.4) 0%, rgba(11, 12, 17, 0.02) 32%, rgba(11, 12, 17, 0.82) 100%);
 }
-.led-hero-inner { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr; gap: 44px; align-items: center; }
-@media (min-width: 1024px) { .led-hero-inner { grid-template-columns: minmax(0, 1.25fr) minmax(320px, 420px); gap: 64px; } }
+/* Hero editoriale a colonna singola (via la card stagionale): il copy è il
+   protagonista, larghezza contenuta perché resti da "manifesto". */
+.led-hero-inner { position: relative; z-index: 2; max-width: 820px; }
 
-.led-hero h1 { font-size: clamp(46px, 7vw, 96px); line-height: 1.0; margin: 22px 0 26px; color: #fff; text-shadow: 0 4px 32px rgba(0, 0, 0, 0.45); text-wrap: balance; }
-.led-hero-sub { font-size: clamp(16px, 1.5vw, 19px); line-height: 1.55; color: rgba(255, 255, 255, 0.85); max-width: 520px; margin-bottom: 34px; text-wrap: pretty; }
+.led-hero h1 { font-size: clamp(44px, 6.4vw, 88px); line-height: 1.02; margin: 22px 0 26px; color: #fff; text-shadow: 0 4px 32px rgba(0, 0, 0, 0.45); text-wrap: balance; max-width: 15ch; }
+.led-hero-sub { font-size: clamp(16px, 1.5vw, 20px); line-height: 1.55; color: rgba(255, 255, 255, 0.88); max-width: 600px; margin-bottom: 34px; text-wrap: pretty; }
 .led-hero-sub em { font-style: italic; color: var(--led-accent-2); }
 .led-hero-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
 .led-hero-counter { font-size: 14px; color: rgba(255, 255, 255, 0.82); }

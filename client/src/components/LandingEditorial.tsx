@@ -166,7 +166,6 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
     () => now.toLocaleString(lang === "it" ? "it-IT" : "en-US", { month: "long" }),
     [now, lang],
   );
-  const picks = SEASONAL[seasonOf(now.getMonth())];
 
   const nf = (n: number) => n.toLocaleString(lang === "it" ? "it-IT" : "en-US");
   const itinCount = stats && stats.itineraryCount > 0 ? nf(stats.itineraryCount) : null;
@@ -218,24 +217,6 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               )}
             </StaggerItem>
           </Stagger>
-
-          <Reveal as="aside" className="led-season" variants={fadeInRight} mount aria-label={t("led.season.head")}>
-            <div className="led-season-head">
-              <span className="t">{I.spark} {t("led.season.head")}</span>
-              <span className="m">{monthName}</span>
-            </div>
-            {picks.map((p, i) => (
-              <button key={i} className="led-season-item" onClick={onStart}>
-                <span className="led-season-thumb" style={{ backgroundImage: `url(${unsplashSized(p.img, 140)})` }} />
-                <span>
-                  <span className="led-season-name">{p.name}</span>
-                  <span className="led-season-country" style={{ display: "block" }}>{b(p.country)}</span>
-                </span>
-                <span className="led-season-note"><span className="hl">{b(p.hl)}</span>{b(p.note)}</span>
-                <span className="led-season-chev">›</span>
-              </button>
-            ))}
-          </Reveal>
         </div>
 
         {/* Stats band — numeri REALI (o nascosti finché non ci sono) */}
