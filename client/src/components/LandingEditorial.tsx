@@ -20,10 +20,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
+import { motion, useReducedMotion } from "framer-motion";
 import { useI18n } from "@/lib/i18n";
 import { unsplashSized } from "@/lib/img";
 import { track } from "@/lib/analytics";
 import { BrandMark } from "@/components/BrandMark";
+import { GraphField } from "@/components/GraphField";
 import { MotionConfig, Reveal, Stagger, StaggerItem, fade, fadeInRight, scaleIn } from "@/lib/motion";
 
 export type LandingStats = { itineraryCount: number; destinationCount: number };
@@ -155,9 +157,41 @@ const I = {
   tiktok: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>,
 } as const;
 
+/* ── Atto I · Interludio tipografico ─────────────────────────────────────
+   Respiro fra hero e argomentazione: tre "battute" a tutta altezza su nero,
+   ciascuna rivelata quando entra nel viewport. Il campo di punti (la firma)
+   sta dietro, STICKY a un viewport: la camera tiene mentre il testo scorre —
+   e il canvas resta grande quanto lo schermo, non quanto la sezione.
+
+   Perché Reveal e non lo scroll-progress: un'opacità legata al progresso di
+   scroll può non agganciarsi (misure/observer) e lasciare una fascia nera
+   VUOTA. Reveal è lo stesso meccanismo del resto della pagina, già provato:
+   entra e resta. Niente scroll-jacking, niente sticky sul testo. */
+function CinematicInterlude() {
+  const { t } = useI18n();
+  const lines = [t("led.intro.l1"), t("led.intro.l2"), t("led.intro.l3")];
+  return (
+    <section className="led-intro" aria-label={lines[2]}>
+      <div className="led-intro-bg" aria-hidden="true"><GraphField opacity={0.55} /></div>
+      {lines.map((line, i) => (
+        <div className="led-intro-beat" key={i}>
+          <Reveal as="p" className={"led-intro-line" + (i === 2 ? " accent" : "")} amount={0.4}>
+            {i === 2 ? <em>{line}</em> : line}
+          </Reveal>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/* Mete "di tutti" nel pannello rumore — nomi propri, localizzata solo Islanda. */
+const NOISE_DESTS = (lang: "en" | "it") =>
+  ["Bali", "Santorini", "Tokyo", lang === "it" ? "Islanda" : "Iceland", "Lofoten"];
+const NOISE_SOURCES = ["Instagram", "TikTok", "Pinterest", "YouTube"];
 
 export function LandingEditorial({ onStart, stats }: { onStart: () => void; stats: LandingStats | null }) {
   const { t, lang } = useI18n();
+  const reduce = useReducedMotion();
   const em = (key: string) => <span dangerouslySetInnerHTML={{ __html: t(key) }} />;
   const b = (x: Bi) => x[lang] ?? x.en;
 
@@ -171,14 +205,16 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
   const itinCount = stats && stats.itineraryCount > 0 ? nf(stats.itineraryCount) : null;
   const destCount = stats && stats.destinationCount > 0 ? nf(stats.destinationCount) : null;
 
-  // /come-funziona reindirizza qui con hash — scrolla alla sezione una volta
-  // montato (id="how-it-works").
+  // Hash → scrolla alla sezione una volta montato (es. /come-funziona
+  // reindirizza con #how-it-works). Con ?noanim=1 lo scroll è istantaneo:
+  // serve alla QA headless, dove lo smooth-scroll non completa mai.
   useEffect(() => {
-    if (window.location.hash === "#how-it-works") {
-      requestAnimationFrame(() => {
-        document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const instant = new URLSearchParams(window.location.search).get("noanim") === "1";
+    requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: instant ? "auto" : "smooth", block: "start" });
+    });
   }, []);
 
   // Preload dell'hero (LCP): è un background CSS, quindi <link rel=preload>.
@@ -219,26 +255,74 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
           </Stagger>
         </div>
 
-        {/* Stats band — numeri REALI (o nascosti finché non ci sono) */}
+      </section>
+      {/* La stats band coi numeri reali torna nell'atto Prodotto (Fase 4):
+          nell'atto I romperebbe il ritmo manifesto→respiro. */}
+
+      {/* ── ATTO I · Interludio — respiro tipografico ── */}
+      <CinematicInterlude />
+
+      {/* ── ATTO I · LA VERITÀ — il rumore dei feed vs il tuo punto di partenza ── */}
+      <section className="led-truth" id="truth">
         <div className="led-container">
-          <Stagger className="led-stats" stagger={0.08}>
-            <StaggerItem as="div" className="led-stat">
-              <span className="led-stat-ico">{I.users}</span>
-              <span><span className="led-stat-n">{itinCount ? `${itinCount}+` : "—"}</span><span className="led-stat-l" style={{ display: "block" }}>{t("led.stats.itineraries")}</span></span>
-            </StaggerItem>
-            <StaggerItem as="div" className="led-stat">
-              <span className="led-stat-ico">{I.clock}</span>
-              <span><span className="led-stat-n">{t("led.stats.timeValue")}</span><span className="led-stat-l" style={{ display: "block" }}>{t("led.stats.time")}</span></span>
-            </StaggerItem>
-            <StaggerItem as="div" className="led-stat">
-              <span className="led-stat-ico">{I.globe}</span>
-              <span><span className="led-stat-n">{destCount ? `${destCount}+` : "—"}</span><span className="led-stat-l" style={{ display: "block" }}>{t("led.stats.destinations")}</span></span>
-            </StaggerItem>
-            <StaggerItem as="div" className="led-stat">
-              <span className="led-stat-ico">{I.heart}</span>
-              <span><span className="led-stat-n">{t("led.stats.freeValue")}</span><span className="led-stat-l" style={{ display: "block" }}>{t("led.stats.free")}</span></span>
-            </StaggerItem>
-          </Stagger>
+          <Reveal as="div" className="led-truth-head">
+            <div className="led-eyebrow"><span className="d" />{t("led.truth.eyebrow")}</div>
+            <h2>{t("led.truth.title1")}<br /><em>{t("led.truth.title2")}</em></h2>
+            <p>{t("led.truth.sub")}</p>
+          </Reveal>
+
+          <div className="led-truth-panels">
+            {/* Il rumore: tutte le fonti puntano alle stesse mete */}
+            <Reveal as="div" className="led-truth-panel">
+              <div className="lt-label">{t("led.truth.noiseLabel")}</div>
+              <div className="lt-sources">
+                {NOISE_SOURCES.map(s => <span key={s} className="lt-source">{s}</span>)}
+              </div>
+              <svg className="lt-lines" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true">
+                {NOISE_SOURCES.map((_, si) =>
+                  NOISE_DESTS(lang).map((_, di) => (
+                    <line key={`${si}-${di}`}
+                      x1={45 + si * 70} y1="0"
+                      x2={30 + di * 60} y2="60"
+                      stroke="rgba(255,255,255,0.10)" strokeWidth="1" />
+                  )),
+                )}
+              </svg>
+              <div className="lt-dests">
+                {NOISE_DESTS(lang).map(d => <span key={d} className="lt-dest">{d}</span>)}
+              </div>
+              <div className="lt-cap">{t("led.truth.noiseCap")}</div>
+            </Reveal>
+
+            {/* Il punto di partenza: TU → identità → una meta tua */}
+            <Reveal as="div" className="led-truth-panel you">
+              <div className="lt-label">{t("led.truth.youLabel")}</div>
+              <div className="lt-you-chip">{t("led.truth.you")}</div>
+              <div className="lt-flow" aria-hidden="true">↓</div>
+              <div className="lt-axes">
+                {[
+                  { k: t("led.truth.axis1"), v: 82 },
+                  { k: t("led.truth.axis2"), v: 74 },
+                  { k: t("led.truth.axis3"), v: 66 },
+                  { k: t("led.truth.axis4"), v: 14 },
+                ].map(a => (
+                  <div key={a.k} className="lt-axis">
+                    <span className="k">{a.k}</span>
+                    {/* La larghezza finale è nello style: se l'animazione non
+                        parte (osservatore mancato, reduced-motion) la barra è
+                        comunque CORRETTA e piena. Animiamo solo scaleX → GPU. */}
+                    <span className="bar"><motion.span className="fill" style={{ width: `${a.v}%` }}
+                      initial={reduce ? false : { scaleX: 0 }} whileInView={{ scaleX: 1 }}
+                      viewport={{ once: true, amount: 0 }}
+                      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} /></span>
+                  </div>
+                ))}
+              </div>
+              <div className="lt-flow" aria-hidden="true">↓</div>
+              <div className="lt-you-dest">Madeira</div>
+              <div className="lt-cap">{t("led.truth.youCap")}</div>
+            </Reveal>
+          </div>
         </div>
       </section>
 

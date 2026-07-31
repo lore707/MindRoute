@@ -35,6 +35,13 @@ export const hoverPop = { y: -3 };
 // "in attesa" sotto la piega.
 const VIEWPORT = { once: true, amount: 0.08, margin: "0px 0px -8% 0px" } as const;
 
+// QA headless: con ?noanim=1 Reveal/Stagger renderizzano subito visibili
+// (niente initial/whileInView). Sotto virtual-time gli IntersectionObserver
+// non scattano e le sezioni resterebbero a opacity 0 — stessa convenzione
+// già usata da QuizFast. In produzione nessuno passa il param.
+const NOANIM = typeof window !== "undefined"
+  && new URLSearchParams(window.location.search).get("noanim") === "1";
+
 export const fadeUp: Variants = {
   hidden: { opacity: 0, y: 26 },
   show: { opacity: 1, y: 0, transition: { duration: DUR.base, ease: EASE } },
@@ -78,25 +85,29 @@ function pick(as: El) {
 /** Blocco che appare (fade-up di default) al montaggio o all'ingresso nel viewport. */
 export function Reveal({ children, className, style, as = "div", variants = fadeUp, mount = false, amount = 0.25, ...rest }: Common & { variants?: Variants }) {
   const M = pick(as);
-  const trigger = mount
-    ? { initial: "hidden" as const, animate: "show" as const }
-    : { initial: "hidden" as const, whileInView: "show" as const, viewport: { ...VIEWPORT, amount } };
-  return <M className={className} style={style} variants={variants} {...trigger} {...rest}>{children}</M>;
+  const trigger = NOANIM
+    ? {}
+    : mount
+      ? { initial: "hidden" as const, animate: "show" as const }
+      : { initial: "hidden" as const, whileInView: "show" as const, viewport: { ...VIEWPORT, amount } };
+  return <M className={className} style={style} variants={NOANIM ? undefined : variants} {...trigger} {...rest}>{children}</M>;
 }
 
 /** Contenitore che scala i figli <StaggerItem> in sequenza. */
 export function Stagger({ children, className, style, as = "div", stagger, delayChildren, mount = false, amount = 0.2, ...rest }: Common & { stagger?: number; delayChildren?: number }) {
   const M = pick(as);
-  const trigger = mount
-    ? { initial: "hidden" as const, animate: "show" as const }
-    : { initial: "hidden" as const, whileInView: "show" as const, viewport: { ...VIEWPORT, amount } };
-  return <M className={className} style={style} variants={staggerParent(stagger, delayChildren)} {...trigger} {...rest}>{children}</M>;
+  const trigger = NOANIM
+    ? {}
+    : mount
+      ? { initial: "hidden" as const, animate: "show" as const }
+      : { initial: "hidden" as const, whileInView: "show" as const, viewport: { ...VIEWPORT, amount } };
+  return <M className={className} style={style} variants={NOANIM ? undefined : staggerParent(stagger, delayChildren)} {...trigger} {...rest}>{children}</M>;
 }
 
 /** Figlio di <Stagger>. Renderizza il tag originale con la sua className/style. */
 export function StaggerItem({ children, className, style, as = "div", variants = fadeUp, ...rest }: Common & { variants?: Variants }) {
   const M = pick(as);
-  return <M className={className} style={style} variants={variants} {...rest}>{children}</M>;
+  return <M className={className} style={style} variants={NOANIM ? undefined : variants} {...rest}>{children}</M>;
 }
 
 export { MotionConfig };

@@ -9,6 +9,26 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.hero.sub":       { en: "MindRoute learns who you are, remembers every journey and recommends destinations that become more personal over time.", it: "MindRoute impara chi sei, ricorda ogni viaggio e ti consiglia destinazioni che diventano più tue nel tempo." },
   "led.hero.cta":       { en: "Discover my travel identity", it: "Scopri la tua identità di viaggio" },
   "led.hero.counter":   { en: "itineraries already created", it: "itinerari già creati" },
+
+  // ── Atto I · Interludio tipografico (fullscreen, scroll-driven) ──────────
+  "led.intro.l1": { en: "Every day, we all save the same destinations.", it: "Ogni giorno salviamo tutti le stesse destinazioni." },
+  "led.intro.l2": { en: "Until we stop asking one simple question.", it: "Finché smettiamo di farci una domanda semplice." },
+  "led.intro.l3": { en: "What do I actually want?", it: "Io, che cosa voglio davvero?" },
+
+  // ── Atto I · La Verità (rumore dei feed vs punto di partenza MindRoute) ──
+  "led.truth.eyebrow":    { en: "The truth", it: "La verità" },
+  "led.truth.title1":     { en: "We don't start from places.", it: "Non partiamo dai posti." },
+  "led.truth.title2":     { en: "We start from people.", it: "Partiamo dalle persone." },
+  "led.truth.sub":        { en: "Feeds point everyone to the same places. MindRoute asks a different question first: who are you — and what do you need right now?", it: "I feed spingono tutti verso gli stessi posti. MindRoute prima fa una domanda diversa: chi sei — e di cosa hai bisogno adesso?" },
+  "led.truth.noiseLabel": { en: "Everyone's feed", it: "Il feed di tutti" },
+  "led.truth.noiseCap":   { en: "The same destinations, for millions of different people.", it: "Le stesse destinazioni, per milioni di persone diverse." },
+  "led.truth.youLabel":   { en: "Your starting point", it: "Il tuo punto di partenza" },
+  "led.truth.you":        { en: "You", it: "Tu" },
+  "led.truth.axis1":      { en: "Authenticity", it: "Autenticità" },
+  "led.truth.axis2":      { en: "Slow pace", it: "Ritmo lento" },
+  "led.truth.axis3":      { en: "Nature", it: "Natura" },
+  "led.truth.axis4":      { en: "Crowds", it: "Folla" },
+  "led.truth.youCap":     { en: "A destination that fits who you are — not everyone at once. (Illustrative profile)", it: "Una destinazione che assomiglia a te — non a tutti insieme. (Profilo illustrativo)" },
   "led.season.head":    { en: "Best for this season", it: "Il meglio della stagione" },
 
   // ── Stats band (numeri reali da /api/stats) ─────────────────────────────
