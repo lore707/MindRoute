@@ -16,18 +16,18 @@
   --led-bg: #0b0c11;
   --led-bg2: #0e1017;
   --led-ink: #f5f4f2;
-  --led-ink-dim: rgba(245, 244, 242, 0.62);
-  --led-ink-faint: rgba(245, 244, 242, 0.40);
+  --led-ink-dim: rgba(245, 244, 242, 0.76);
+  --led-ink-faint: rgba(245, 244, 242, 0.56);
   --led-accent: #f0435a;
-  --led-accent-2: #ff7a6e;
+  --led-accent-2: #ff4f5c;
   --led-line: rgba(245, 244, 242, 0.10);
 
   /* tipografia — 3 livelli */
-  --t-manifesto: clamp(38px, 5vw, 76px);
-  --t-manifesto-s: clamp(28px, 3.4vw, 44px);
-  --t-narrative: 16px;
-  --t-interface: 12.5px;
-  --t-eyebrow: 10.5px;
+  --t-manifesto: clamp(38px, 5.8vw, 96px);
+  --t-manifesto-s: clamp(28px, 4.2vw, 60px);
+  --t-narrative: 18px;
+  --t-interface: 13.5px;
+  --t-eyebrow: 11.5px;
 
   /* spazio */
   --sp-1: 72px; --sp-2: 96px; --sp-3: 120px; --sp-4: 180px; --sp-5: 220px;
@@ -38,7 +38,7 @@
   --sh-ambient: 0 40px 120px -40px rgba(0, 0, 0, 0.75);
   --sh-lift: 0 24px 60px -24px rgba(0, 0, 0, 0.6);
   --bl-1: 12px; --bl-2: 24px; --bl-3: 48px;
-  --op-veil-light: 0.45; --op-veil-heavy: 0.72;
+  --op-veil-light: 0.34; --op-veil-heavy: 0.56;
   --touch-floor: 44px;
 
   /* tempo */
@@ -67,7 +67,7 @@
 .led h1 em, .led h2 em { font-style: italic; color: var(--led-accent-2); }
 .led p { margin: 0; }
 
-.led-narr { font-size: var(--t-narrative); line-height: 1.65; color: var(--led-ink-dim); max-width: 560px; }
+.led-narr { font-size: var(--t-narrative); line-height: 1.65; color: var(--led-ink-dim); max-width: 620px; }
 .led-eyebrow {
   font-size: var(--t-eyebrow); text-transform: uppercase; letter-spacing: 0.16em;
   font-weight: 600; color: var(--led-accent); display: inline-flex; align-items: center; gap: var(--gap-1);
@@ -77,9 +77,9 @@
 /* Il CTA pieno è l'ECCEZIONE dichiarata al doc 07 (clarity first, doc 00 #13). */
 .led-btn {
   position: relative; display: inline-flex; align-items: center; gap: var(--gap-2);
-  min-height: 52px; padding: 0 26px; border: 0; border-radius: var(--r-pill);
+  min-height: 56px; padding: 0 30px; border: 0; border-radius: var(--r-pill);
   background: var(--led-accent); color: #fff; font-family: var(--sans);
-  font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none;
+  font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none;
   transition: filter var(--d-xs) var(--e-calm), transform var(--d-xs) var(--e-calm);
 }
 .led-btn:hover { filter: brightness(1.08); }
@@ -95,7 +95,7 @@
 .led-tcta {
   display: inline-flex; align-items: center; gap: var(--gap-2); position: relative;
   background: none; border: 0; padding: 0; cursor: pointer;
-  font-family: var(--sans); font-size: 13.5px; font-weight: 600; color: var(--led-accent);
+  font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--led-accent);
   transition: gap var(--d-xs) var(--e-calm);
 }
 .led-tcta:hover { gap: 22px; }
@@ -126,7 +126,7 @@
 }
 .led-thread-node.on {
   background: var(--led-accent-2); transform: scale(1.4);
-  box-shadow: 0 0 var(--bl-1) var(--led-accent-2), 0 0 var(--bl-3) rgba(255, 122, 110, 0.4);
+  box-shadow: 0 0 var(--bl-1) var(--led-accent-2), 0 0 var(--bl-3) rgba(255, 79, 92, 0.4);
 }
 .led-thread-num {
   position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
@@ -157,15 +157,15 @@
 .led-hero-veil {
   position: absolute; inset: 0; z-index: -1;
   background:
-    linear-gradient(90deg, rgba(11, 12, 17, 0.95) 0%, rgba(11, 12, 17, 0.8) 40%, rgba(11, 12, 17, 0.2) 74%, rgba(11, 12, 17, 0.5) 100%),
-    linear-gradient(180deg, rgba(11, 12, 17, 0.75) 0%, transparent 32%, rgba(11, 12, 17, 0.92) 100%);
+    linear-gradient(90deg, rgba(11, 12, 17, 0.88) 0%, rgba(11, 12, 17, 0.6) 42%, rgba(11, 12, 17, 0.05) 76%, rgba(11, 12, 17, 0.3) 100%),
+    linear-gradient(180deg, rgba(11, 12, 17, 0.58) 0%, transparent 34%, rgba(11, 12, 17, 0.84) 100%);
 }
 .led-hero-inner { max-width: 640px; }
 .led-hero h1 { margin: var(--gap-3) 0 var(--gap-3); }
 .led-hero .led-narr { margin-bottom: var(--gap-4); max-width: 440px; }
 .led-hero-row { display: flex; align-items: center; gap: var(--gap-3); flex-wrap: wrap; }
-.led-hero-note { font-size: var(--t-interface); color: var(--led-ink-dim); line-height: 1.5; }
-.led-hero-note strong { color: var(--led-ink); font-weight: 600; display: block; font-size: 13.5px; }
+.led-hero-note { font-size: 14.5px; color: var(--led-ink-dim); line-height: 1.5; }
+.led-hero-note strong { color: var(--led-ink); font-weight: 600; display: block; font-size: 15.5px; }
 .led-scroll {
   position: absolute; left: 50%; bottom: var(--gap-3); transform: translateX(-50%);
   display: grid; justify-items: center; gap: 6px;
@@ -175,19 +175,19 @@
 @keyframes led-bob { 0%, 100% { transform: translateY(0); opacity: 0.55; } 50% { transform: translateY(5px); opacity: 1; } }
 
 /* ── 02 · LA VERITÀ — i feed convergono ─────────────────────── */
-.led-truth { background: var(--led-bg2); }
+
 .led-truth-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: var(--sp-1); align-items: center; }
 .led-truth h2 { max-width: 12ch; }
-.led-truth-note { font-size: 14px; line-height: 1.7; color: var(--led-ink-dim); max-width: 42ch; }
+.led-truth-note { font-size: 16.5px; line-height: 1.7; color: var(--led-ink-dim); max-width: 42ch; }
 
 /* Muro + convergenza + mete nello STESSO contenitore: le linee partono dal
    muro e arrivano sui chip. Rettangoli di proposito: sono i feed, non la
    nostra fotografia. Desaturati e ripetuti: devono sembrare tutti uguali. */
-.led-conv-wrap { position: relative; min-height: 380px; }
+.led-conv-wrap { position: relative; min-height: 460px; }
 .led-feedwall { position: absolute; inset: 0 54% 0 0; }
 .led-feedcard {
   position: absolute; border-radius: var(--r-s); background-size: cover; background-position: center;
-  box-shadow: var(--sh-lift); filter: saturate(0.32) brightness(0.66) contrast(0.92);
+  box-shadow: var(--sh-lift); filter: saturate(0.45) brightness(0.82) contrast(0.94);
 }
 .led-feedcard::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit;
@@ -201,7 +201,7 @@
 }
 .led-dest {
   display: inline-flex; align-items: center; gap: var(--gap-2);
-  padding: 10px 18px; border-radius: var(--r-pill); font-size: 13px; color: var(--led-ink);
+  padding: 13px 22px; border-radius: var(--r-pill); font-size: 15px; color: var(--led-ink);
   background: rgba(245, 244, 242, 0.05); box-shadow: inset 0 0 0 1px var(--led-line);
   -webkit-backdrop-filter: blur(var(--bl-1)); backdrop-filter: blur(var(--bl-1));
 }
@@ -212,20 +212,21 @@
 .led-chain { display: flex; align-items: flex-start; gap: var(--gap-1); }
 .led-chain-step { display: grid; justify-items: center; gap: var(--gap-2); flex: 1 1 0; min-width: 0; }
 .led-chain-ring {
-  width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+  width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
   color: var(--led-accent-2);
-  background: radial-gradient(circle at 50% 40%, rgba(255, 122, 110, 0.22), transparent 68%);
-  box-shadow: inset 0 0 0 1px rgba(255, 122, 110, 0.3), 0 0 var(--bl-2) -8px var(--led-accent-2);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 79, 92, 0.22), transparent 68%);
+  box-shadow: inset 0 0 0 1px rgba(255, 79, 92, 0.3), 0 0 var(--bl-2) -8px var(--led-accent-2);
 }
-.led-chain-label { font-size: 11px; color: var(--led-ink-dim); text-align: center; line-height: 1.35; }
-.led-chain-link { flex: 0 0 auto; margin-top: 21px; color: var(--led-ink-faint); font-size: 11px; }
-.led .led-refl-note { margin-top: var(--sp-1); font-size: 14px; line-height: 1.7; color: var(--led-ink-dim); }
+.led-chain-label { font-size: 13px; color: var(--led-ink-dim); text-align: center; line-height: 1.35; }
+.led-chain-link { flex: 0 0 auto; margin-top: 29px; color: var(--led-ink-faint); font-size: 11px; }
+.led .led-refl-note { margin-top: var(--sp-1); font-size: 16px; line-height: 1.7; color: var(--led-ink-dim); }
 .led-refl-note em { font-style: normal; color: var(--led-ink); }
 
 /* ── 04 · PROOF — stessa città, due viaggi ──────────────────── */
-.led-proof .led-scene-veil, .led-mem .led-scene-veil, .led-who .led-scene-veil {
-  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.86) 18%,
-    rgba(11, 12, 17, 0.9) 82%, var(--led-bg) 100%);
+.led-proof .led-scene-veil, .led-mem .led-scene-veil, .led-who .led-scene-veil,
+.led-truth .led-scene-veil, .led-app .led-scene-veil {
+  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.66) 18%,
+    rgba(11, 12, 17, 0.72) 82%, var(--led-bg) 100%);
 }
 .led-proof-head { max-width: 520px; margin-bottom: var(--sp-1); }
 .led-proof-head h2 { margin-bottom: var(--gap-3); }
@@ -233,11 +234,11 @@
 .led-tripcard {
   position: relative; border-radius: var(--r-m); min-height: 430px;
   display: flex; flex-direction: column; padding: var(--gap-4);
-  background: rgba(11, 12, 17, 0.55);
+  background: rgba(11, 12, 17, 0.5);
   -webkit-backdrop-filter: blur(var(--bl-2)); backdrop-filter: blur(var(--bl-2));
   box-shadow: inset 0 0 0 1px var(--led-line), var(--sh-ambient);
 }
-.led-tripcard h3 { font-family: var(--serif); font-size: 22px; font-weight: 400; margin: 0; color: var(--led-ink); }
+.led-tripcard h3 { font-family: var(--serif); font-size: 27px; font-weight: 400; margin: 0; color: var(--led-ink); }
 .led-tripcard .who { font-size: var(--t-interface); color: var(--led-accent-2); margin: 6px 0 var(--gap-4); }
 .led-day { display: grid; grid-template-columns: auto 1fr; gap: var(--gap-2); padding-bottom: var(--gap-3); }
 .led-day-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--led-accent); margin-top: 6px; }
@@ -248,8 +249,8 @@
 .led-day:last-child { padding-bottom: 0; }
 .led-day:last-child .led-day-dot::after { display: none; }
 .led-day-n { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--led-ink-faint); }
-.led-day-t { font-size: 13.5px; color: var(--led-ink); line-height: 1.45; }
-.led-day-s { font-size: 12.5px; color: var(--led-ink-dim); }
+.led-day-t { font-size: 15.5px; color: var(--led-ink); line-height: 1.45; }
+.led-day-s { font-size: 13.5px; color: var(--led-ink-dim); }
 .led-swap {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3;
   width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
@@ -265,58 +266,58 @@
 .led-route .pin { fill: var(--led-accent-2); }
 .led-track { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--gap-2); margin-top: var(--gap-4); }
 .led-stop { display: grid; gap: var(--gap-2); align-content: start; }
-.led-stop-y { font-size: 11px; letter-spacing: 0.12em; color: var(--led-ink-faint); }
-.led-stop-n { font-size: 13px; color: var(--led-ink); }
-.led-stop-img { height: 84px; border-radius: var(--r-s); background-size: cover; background-position: center; filter: saturate(0.8); }
+.led-stop-y { font-size: 12px; letter-spacing: 0.12em; color: var(--led-ink-faint); }
+.led-stop-n { font-size: 15px; color: var(--led-ink); }
+.led-stop-img { height: 108px; border-radius: var(--r-s); background-size: cover; background-position: center; filter: saturate(0.8); }
 .led-stop.next .led-stop-y, .led-stop.next .led-stop-n { color: var(--led-accent-2); }
-.led-stop.next .led-stop-img { box-shadow: inset 0 0 0 1px rgba(255, 122, 110, 0.45), 0 0 var(--bl-3) -14px var(--led-accent-2); }
+.led-stop.next .led-stop-img { box-shadow: inset 0 0 0 1px rgba(255, 79, 92, 0.45), 0 0 var(--bl-3) -14px var(--led-accent-2); }
 
 /* ── 06 · IL PRODOTTO ───────────────────────────────────────── */
-.led-app { background: var(--led-bg2); }
+
 .led-app-grid { display: grid; grid-template-columns: 0.7fr 1.3fr; gap: var(--sp-1); align-items: center; }
 .led-shell {
   border-radius: var(--r-m); overflow: hidden; box-shadow: var(--sh-ambient);
-  background: linear-gradient(180deg, #12141c, #0d0f16);
-  display: grid; grid-template-columns: 168px 1fr; min-height: 384px;
+  background: linear-gradient(180deg, #171a24, #0f1119);
+  display: grid; grid-template-columns: 196px 1fr; min-height: 450px;
 }
 .led-shell-side { padding: var(--gap-3); display: grid; align-content: start; gap: 2px; background: rgba(0, 0, 0, 0.25); }
 .led-shell-brand { display: flex; align-items: center; gap: var(--gap-1); font-size: 13px; color: var(--led-ink); margin-bottom: var(--gap-3); }
-.led-shell-nav { display: flex; align-items: center; gap: var(--gap-2); padding: 9px 10px; border-radius: var(--r-s); font-size: 12.5px; color: var(--led-ink-dim); }
+.led-shell-nav { display: flex; align-items: center; gap: var(--gap-2); padding: 11px 12px; border-radius: var(--r-s); font-size: 14px; color: var(--led-ink-dim); }
 .led-shell-nav.on { color: var(--led-ink); background: rgba(245, 244, 242, 0.06); }
 .led-shell-nav .ic { color: var(--led-accent); display: grid; place-items: center; }
 .led-shell-main { padding: var(--gap-3); display: grid; gap: var(--gap-3); align-content: start; }
 .led-shell-h { font-size: var(--t-interface); color: var(--led-ink-dim); }
 .led-recs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-2); }
-.led-rec { border-radius: var(--r-s); overflow: hidden; position: relative; min-width: 0; min-height: 112px; background-size: cover; background-position: center; }
+.led-rec { border-radius: var(--r-s); overflow: hidden; position: relative; min-width: 0; min-height: 150px; background-size: cover; background-position: center; }
 .led-rec-b { position: absolute; inset: auto 0 0; padding: var(--gap-2); background: linear-gradient(180deg, transparent, rgba(11, 12, 17, 0.55) 40%, rgba(11, 12, 17, 0.95)); }
-.led-rec-n { font-size: 12px; color: var(--led-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.led-rec-m { font-size: 10.5px; color: var(--led-accent-2); }
+.led-rec-n { font-size: 13.5px; color: var(--led-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.led-rec-m { font-size: 12px; color: var(--led-accent-2); }
 .led-preview-label {
   display: inline-flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--led-ink-faint); margin-bottom: var(--gap-2);
+  text-transform: uppercase; color: var(--led-ink-dim); margin-bottom: var(--gap-2);
 }
 .led-journal { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--gap-2); }
-.led-journal-i { height: 52px; border-radius: var(--r-s); background-size: cover; background-position: center; filter: saturate(0.75) brightness(0.85); }
+.led-journal-i { height: 66px; border-radius: var(--r-s); background-size: cover; background-position: center; filter: saturate(0.75) brightness(0.85); }
 
 /* ── 07 · CHIUSURA ──────────────────────────────────────────── */
 .led-end { position: relative; isolation: isolate; min-height: 76svh; display: grid; align-items: center; padding: var(--sp-4) 0; }
 .led-end-photo { position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center; }
 .led-end-veil {
   position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.55) 40%, rgba(11, 12, 17, 0.9) 100%);
+  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.34) 42%, rgba(11, 12, 17, 0.82) 100%);
 }
 .led-end h1 { max-width: 17ch; margin: var(--gap-3) 0 var(--gap-4); }
 .led-end-stats { display: flex; gap: var(--gap-4); flex-wrap: wrap; margin-top: var(--gap-4); font-size: var(--t-interface); color: var(--led-ink-dim); }
 .led-end-stats strong { color: var(--led-ink); font-weight: 600; }
 
 /* ── footer ─────────────────────────────────────────────────── */
-.led-footer { padding: var(--sp-2) 0 var(--sp-1); background: var(--led-bg); box-shadow: inset 0 1px 0 var(--led-line); }
+.led-footer { position: relative; isolation: isolate; padding: var(--sp-2) 0 var(--sp-1); background: var(--led-bg2); box-shadow: inset 0 1px 0 var(--led-line); }
 .led-footer-grid { display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: var(--gap-4); }
 .led-footer-mark { display: flex; align-items: center; gap: var(--gap-1); font-size: 15px; color: var(--led-ink); margin-bottom: var(--gap-2); }
 .led-footer-tag { font-size: var(--t-interface); color: var(--led-ink-dim); line-height: 1.6; max-width: 30ch; }
-.led-footer-head { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--led-ink-faint); margin-bottom: var(--gap-2); }
+.led-footer-head { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--led-ink-dim); margin-bottom: var(--gap-2); }
 .led-footer-link {
-  position: relative; display: block; font-size: 13px; color: var(--led-ink-dim);
+  position: relative; display: block; font-size: 14px; color: var(--led-ink-dim);
   text-decoration: none; padding: 9px 0; transition: color var(--d-xs) var(--e-calm);
 }
 .led-footer-link:hover { color: var(--led-ink); }

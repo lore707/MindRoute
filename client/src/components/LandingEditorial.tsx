@@ -248,6 +248,8 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
 
         {/* ── 02 · LA VERITÀ — i feed convergono sulle stesse mete ── */}
         <section className="led-scene led-truth" id="s-truth">
+          <div className="led-scene-photo" style={{ backgroundImage: `url(${sized(PHOTO.faroe)})` }} aria-hidden="true" />
+          <div className="led-scene-veil" aria-hidden="true" />
           <div className="led-container led-truth-grid">
             <Reveal as="div">
               <div className="led-eyebrow"><span className="d" />{t("led.truth.eyebrow")}</div>
@@ -307,7 +309,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
 
         {/* ── 04 · LA PROVA — stessa città, due viaggi ── */}
         <section className="led-scene led-proof" id="s-proof">
-          <div className="led-scene-photo" style={{ backgroundImage: `url(${sized(PHOTO.bgCoast)})` }} aria-hidden="true" />
+          <div className="led-scene-photo" style={{ backgroundImage: `url(${sized(PHOTO.alentejo)})` }} aria-hidden="true" />
           <div className="led-scene-veil" aria-hidden="true" />
           <div className="led-container">
             <Reveal as="div" className="led-proof-head">
@@ -378,6 +380,8 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
 
         {/* ── 06 · IL PRODOTTO — solo adesso ── */}
         <section className="led-scene led-app" id="s-app">
+          <div className="led-scene-photo" style={{ backgroundImage: `url(${sized(PHOTO.bgDolomiti)})` }} aria-hidden="true" />
+          <div className="led-scene-veil" aria-hidden="true" />
           <div className="led-container led-app-grid">
             <Reveal as="div">
               <h2>{t("led.app.t1")}<br /><em>{t("led.app.t2")}</em></h2>
