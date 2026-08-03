@@ -288,7 +288,7 @@
 .led-shell-h { font-size: var(--t-interface); color: var(--led-ink-dim); }
 .led-recs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-2); }
 .led-rec { border-radius: var(--r-s); overflow: hidden; position: relative; min-width: 0; min-height: 112px; background-size: cover; background-position: center; }
-.led-rec-b { position: absolute; inset: auto 0 0; padding: var(--gap-2); background: linear-gradient(180deg, transparent, rgba(11, 12, 17, 0.92)); }
+.led-rec-b { position: absolute; inset: auto 0 0; padding: var(--gap-2); background: linear-gradient(180deg, transparent, rgba(11, 12, 17, 0.55) 40%, rgba(11, 12, 17, 0.95)); }
 .led-rec-n { font-size: 12px; color: var(--led-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .led-rec-m { font-size: 10.5px; color: var(--led-accent-2); }
 .led-preview-label {
@@ -378,6 +378,7 @@
   .led-chain-step { flex: 0 0 27%; }
   .led-chain-link { display: none; }
   .led-hero-row .led-btn { width: 100%; justify-content: center; }
+  .led-scroll { display: none; }
 }
 
 /* ── riduci movimento: il mondo si semplifica, non sparisce ── */
