@@ -1,5 +1,7 @@
 # MindRoute — CLAUDE.md
 
+Il sistema di ragionamento di MindRoute è specificato in docs/ARCHITETTURA-COGNITIVA.md (gerarchia dei livelli, ordine di costruzione) e docs/REASONING-ENGINE.md (pipeline, Graph Core/State, Decision Cascade). Ogni modifica al matching engine, al profilo utente o alla generazione dell'itinerario deve essere conforme a questi documenti. Leggerli prima di proporre modifiche in quelle aree.
+
 > **For data flows, file map, schema overview, image/PDF pipelines, and hard invariants, read `ARCHITECTURE.md` first.** This file covers stack and conventions only.
 >
 > **Knowledge base:** `docs/` holds the full engineering handoff — start with
@@ -7,6 +9,90 @@
 > (why things are the way they are, rejected alternatives). Security posture in
 > `docs/SECURITY.md`, GA4 event catalog in `docs/ANALYTICS.md`, priorities in
 > `docs/ROADMAP.md`. Where `ARCHITECTURE.md` and `docs/` disagree, `docs/` wins.
+
+## MindRoute Operating System
+
+`docs/operating-system/` is the **creative and product source of truth**: brand philosophy,
+visual and motion language, layout, storytelling, typography, colour, materials, space,
+interaction, and the landing storyboard. Start from `docs/operating-system/README.md`;
+`constitution.md` holds the non-negotiable rules that govern every other document there,
+and the three appendices cover connections between documents, shared vocabulary
+(`appendix-grammar.md`), and things that must never be done (`appendix-guardrails.md`).
+
+The existing engineering docs remain the **engineering source of truth**: `ARCHITECTURE.md`,
+`docs/AI-GUIDE.md`, `docs/DECISIONS.md`, `docs/SECURITY.md`, `docs/ANALYTICS.md`,
+`docs/SEO.md`, `docs/ROADMAP.md`, plus `docs/ARCHITETTURA-COGNITIVA.md` and
+`docs/REASONING-ENGINE.md` for the reasoning system. Nothing in the Operating System
+replaces them.
+
+**How they interact:** the Operating System decides *what* an experience should be and
+*why*; the engineering docs decide *how* it is built and what it must not break. When
+they appear to conflict, it is a design problem, not a licence to pick one — surface the
+conflict instead of silently resolving it. Hard technical invariants (port 5000, shared
+schema first, Zod-validated contracts, `t()` for user-visible strings, semantic colour
+tokens) always hold.
+
+### When To Read Which Documents
+
+Landing page
+
+→ Read the entire Design Bible.
+
+Dashboard
+
+→ Read Brand Philosophy, Visual Language, Layout Principles, Spatial System, Interaction Principles and Engineering Principles.
+
+Frontend components
+
+→ Read Typography, Materials, Motion Cookbook and Engineering Principles.
+
+Animations
+
+→ Read Motion Language, Motion Cookbook and Interaction Principles.
+
+New product features
+
+→ Read Brand Philosophy, Storytelling Principles, Constitution and Engineering Principles.
+
+Matching engine
+
+→ Read REASONING-ENGINE.md and ARCHITETTURA-COGNITIVA.md.
+
+Backend
+
+→ Read ARCHITECTURE.md and AI-GUIDE.md.
+
+### Design Rules
+
+Never implement generic SaaS interfaces.
+
+Never introduce UI patterns that contradict the Design Bible.
+
+Never prioritize implementation convenience over emotional experience.
+
+Every visual decision must reinforce MindRoute's identity.
+
+Every interaction must have narrative purpose.
+
+Every animation must exist inside the Motion Cookbook.
+
+If uncertain,
+
+read the Constitution.
+
+### Before writing code
+
+Before implementing any frontend change, verify consistency with the Operating System:
+
+1. Does the change respect `constitution.md` and `appendix-guardrails.md`?
+2. Does it use the existing tokens and scales (typography, colour, spacing, materials) instead of new one-off values?
+3. If it moves: is the motion in `03-motion-language`'s vocabulary, and is there already a recipe in `11-motion-cookbook`? Reduced-motion handled?
+4. If it speaks: does the copy follow `05-storytelling-principles` (truth first, no invented specifics, illustrative demos labelled), in **both IT and EN**?
+5. Is it responsive on desktop, tablet and phone — verified, not assumed?
+
+If the change requires breaking one of these, stop and say so before implementing.
+
+---
 
 ## What is this project
 
