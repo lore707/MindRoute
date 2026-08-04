@@ -69,24 +69,36 @@ const NOISE_POOL = (lang: "en" | "it") => [
   "Lisboa", lang === "it" ? "Praga" : "Prague",
 ];
 
-/* Scena 04 — due profili sintetici, stessa città. ETICHETTATO come esempio. */
-const TRIPS: Array<{ who: Bi; days: Array<{ t: Bi; s: Bi }> }> = [
+/* Scena 04 — due profili sintetici, stessa città. ETICHETTATO come esempio.
+   Struttura presa 1:1 dal prodotto (itinerary-agenda.css): quattro fasce
+   fisse Mattina · Pranzo · Pomeriggio · Sera, ognuna col suo colore, e i
+   momenti con orario + titolo serif + dettaglio. Un giorno solo per card:
+   la divergenza si legge meglio ora per ora (07:30 contro 10:00) che
+   giorno per giorno. */
+const BANDS: Array<{ k: string; l: Bi; c: string }> = [
+  { k: "m", l: { en: "Morning", it: "Mattina" }, c: "#D4A853" },
+  { k: "p", l: { en: "Lunch", it: "Pranzo" }, c: "#6FB4A8" },
+  { k: "a", l: { en: "Afternoon", it: "Pomeriggio" }, c: "#E94560" },
+  { k: "s", l: { en: "Evening", it: "Sera" }, c: "#9B8CE0" },
+];
+
+const TRIPS: Array<{ who: Bi; slots: Array<{ time: string; t: Bi; d: Bi }> }> = [
   {
     who: { en: "For the Explorer", it: "Per chi esplora" },
-    days: [
-      { t: { en: "Alfama at first light", it: "Alfama alle prime luci" }, s: { en: "Before the crowds", it: "Prima della folla" } },
-      { t: { en: "Sintra, on foot", it: "Sintra, a piedi" }, s: { en: "Two stops, no rush", it: "Due tappe, senza fretta" } },
-      { t: { en: "Local markets", it: "Mercati di quartiere" }, s: { en: "Fado, late", it: "Fado, a tarda sera" } },
-      { t: { en: "Coastal walk", it: "Cammino sulla costa" }, s: { en: "Farewell dinner", it: "Cena d'addio" } },
+    slots: [
+      { time: "07:30", t: { en: "Alfama at first light", it: "Alfama alle prime luci" }, d: { en: "Before the buses", it: "Prima dei bus" } },
+      { time: "13:00", t: { en: "A neighbourhood tasca", it: "Tasca di quartiere" }, d: { en: "Where the locals eat", it: "Dove mangiano i vicini" } },
+      { time: "15:30", t: { en: "Sintra, on foot", it: "Sintra, a piedi" }, d: { en: "Two stops, no rush", it: "Due tappe, senza fretta" } },
+      { time: "21:00", t: { en: "Fado in a small room", it: "Fado in una sala piccola" }, d: { en: "Late, no booking", it: "Tardi, senza prenotare" } },
     ],
   },
   {
     who: { en: "For the Dreamer", it: "Per chi sogna" },
-    days: [
-      { t: { en: "Tiles and quiet rooms", it: "Azulejos e stanze silenziose" }, s: { en: "Café, journaling", it: "Caffè, taccuino" } },
-      { t: { en: "Bairro Alto after dark", it: "Bairro Alto dopo il tramonto" }, s: { en: "Slow afternoon first", it: "Prima un pomeriggio lento" } },
-      { t: { en: "A creative workshop", it: "Un laboratorio creativo" }, s: { en: "Sunset sailing", it: "Vela al tramonto" } },
-      { t: { en: "Flavours of the city", it: "I sapori della città" }, s: { en: "Rooftop, last night", it: "Rooftop, ultima sera" } },
+    slots: [
+      { time: "10:00", t: { en: "Tiles and quiet rooms", it: "Azulejos e stanze silenziose" }, d: { en: "Coffee, notebook", it: "Caffè e taccuino" } },
+      { time: "13:30", t: { en: "A long lunch on the terrace", it: "Pranzo lento sul terrazzo" }, d: { en: "Nothing after", it: "Nessuna tappa dopo" } },
+      { time: "17:00", t: { en: "A ceramics workshop", it: "Laboratorio di ceramica" }, d: { en: "Two hours, with your hands", it: "Due ore, con le mani" } },
+      { time: "20:30", t: { en: "Sunset sailing", it: "Vela al tramonto" }, d: { en: "Walk back along the river", it: "Rientro a piedi sul fiume" } },
     ],
   },
 ];
@@ -381,15 +393,18 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               {TRIPS.map((trip, ti) => (
                 <Reveal as="div" className="led-tripcard" key={ti}>
                   <h3>{lang === "it" ? "Lisbona" : "Lisbon"}, {lang === "it" ? "Portogallo" : "Portugal"}</h3>
-                  <p className="who">{b(trip.who)}</p>
+                  <p className="who">{b(trip.who)} &middot; {t("led.proof.day")} 2</p>
                   <Stagger stagger={0.09}>
-                    {trip.days.map((d, di) => (
-                      <StaggerItem as="div" className="led-day" key={di}>
-                        <span className="led-day-dot" aria-hidden="true" />
-                        <span>
-                          <span className="led-day-n">{t("led.proof.day")} {di + 1}</span>
-                          <span className="led-day-t" style={{ display: "block" }}>{b(d.t)}</span>
-                          <span className="led-day-s">{b(d.s)}</span>
+                    {trip.slots.map((sl, di) => (
+                      <StaggerItem as="div" className="led-band" key={di} style={{ ["--pc" as any]: BANDS[di].c }}>
+                        <span className="led-band-head">
+                          <span className="led-band-dot" aria-hidden="true" />
+                          <span className="led-band-l">{b(BANDS[di].l)}</span>
+                          <span className="led-band-t">{sl.time}</span>
+                        </span>
+                        <span className="led-moment">
+                          <span className="led-moment-t">{b(sl.t)}</span>
+                          <span className="led-moment-d">{b(sl.d)}</span>
                         </span>
                       </StaggerItem>
                     ))}
@@ -467,10 +482,10 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                   <div className="led-shell-brand"><BrandMark size={18} idPrefix="shell" /> MindRoute</div>
                   {[
                     { ic: I.home, k: "led.app.navHome", on: true },
-                    { ic: I.book, k: "led.app.navJournal" },
-                    { ic: I.mapi, k: "led.app.navMap" },
-                    { ic: I.star, k: "led.app.navRecs" },
-                    { ic: I.user, k: "led.app.navProfile" },
+                    { ic: I.route, k: "led.app.navResume" },
+                    { ic: I.user, k: "led.app.navPortrait" },
+                    { ic: I.mapi, k: "led.app.navTrips" },
+                    { ic: I.book, k: "led.app.navAtlas" },
                   ].map((n) => (
                     <div className={"led-shell-nav" + (n.on ? " on" : "")} key={n.k}>
                       <span className="ic">{n.ic}</span>{t(n.k)}

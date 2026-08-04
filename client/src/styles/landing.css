@@ -269,25 +269,37 @@
 .led-proof-head h2 { margin-bottom: var(--gap-3); }
 .led-proof-pair { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-3); }
 .led-tripcard {
-  position: relative; border-radius: var(--r-m); min-height: 430px;
+  position: relative; border-radius: var(--r-m); min-height: 0;
   display: flex; flex-direction: column; padding: var(--gap-4);
   background: rgba(11, 12, 17, 0.5);
   -webkit-backdrop-filter: blur(var(--bl-2)); backdrop-filter: blur(var(--bl-2));
   box-shadow: inset 0 0 0 1px var(--led-line), var(--sh-ambient);
 }
 .led-tripcard h3 { font-family: var(--serif); font-size: 27px; font-weight: 400; margin: 0; color: var(--led-ink); }
-.led-tripcard .who { font-size: var(--t-interface); color: var(--led-accent-2); margin: 6px 0 var(--gap-4); }
-.led-day { display: grid; grid-template-columns: auto 1fr; gap: var(--gap-2); padding-bottom: var(--gap-3); }
-.led-day-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--led-accent); margin-top: 6px; }
-.led-day-dot::after {
-  content: ""; position: absolute; left: 50%; top: 12px; width: 1px; height: 100%;
-  transform: translateX(-50%); background: linear-gradient(180deg, var(--led-line), transparent);
+.led-tripcard .who { font-size: var(--t-interface); color: var(--led-accent-2); margin: 6px 0 var(--gap-3); }
+/* Le fasce, prese 1:1 dal prodotto (itinerary-agenda.css): testata colorata
+   con nodo e orario, poi il momento sulla linea del tempo. --pc = colore
+   della fascia, passato inline dal componente. */
+.led-band { margin-bottom: var(--gap-2); }
+.led-band-head {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--pc) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pc) 26%, transparent);
 }
-.led-day:last-child { padding-bottom: 0; }
-.led-day:last-child .led-day-dot::after { display: none; }
-.led-day-n { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--led-ink-faint); }
-.led-day-t { font-size: 15.5px; color: var(--led-ink); line-height: 1.45; }
-.led-day-s { font-size: 13.5px; color: var(--led-ink-dim); }
+.led-band-dot {
+  width: 11px; height: 11px; border-radius: 50%; background: var(--pc); flex: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc) 22%, transparent);
+}
+.led-band-l { font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--pc); font-weight: 600; }
+.led-band-t { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--led-ink); font-variant-numeric: tabular-nums; }
+.led-moment {
+  display: block; margin: 6px 0 0 5px; padding: 11px 14px;
+  border-left: 3px solid color-mix(in srgb, var(--pc) 60%, transparent);
+  border-radius: 0 12px 12px 0;
+  background: color-mix(in srgb, var(--pc) 7%, rgba(245, 244, 242, 0.05));
+}
+.led-moment-t { display: block; font-family: var(--serif); font-size: 17px; line-height: 1.2; color: var(--led-ink); }
+.led-moment-d { display: block; font-size: 13px; color: var(--led-ink-dim); margin-top: 3px; }
 .led-swap {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3;
   width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
