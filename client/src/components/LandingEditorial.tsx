@@ -111,7 +111,7 @@ const TOOLS: Bi[] = [
   { en: "Blogs & forums", it: "Blog e forum" },
   { en: "Notes", it: "Note sparse" },
 ];
-const TOOL_TILT = [-4, 3, -2, 5, -5, 2];
+const TOOL_TILT = [-3, 2, -2, 3, -3, 1];
 
 /* Scena 06 — anteprima prodotto, dati demo dichiarati. */
 const RECS: Array<{ n: string; c: Bi; m: string; img: string }> = [

@@ -318,7 +318,7 @@
 /* ── 06 · IL PRODOTTO ───────────────────────────────────────── */
 /* la dispersione, resa visibile: sei etichette storte, spente, mai allineate.
    Nomi generici e non marchi: niente visibilita' regalata, niente rischi. */
-.led-tools { display: flex; flex-wrap: wrap; gap: var(--gap-3) var(--gap-2); max-width: 34ch; }
+.led-tools { display: flex; flex-wrap: wrap; gap: var(--gap-3); max-width: 34ch; }
 .led-tool {
   padding: 8px 14px; border-radius: var(--r-s); font-size: 13px;
   color: var(--led-ink-faint); background: rgba(245, 244, 242, 0.03);
