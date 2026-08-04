@@ -125,12 +125,20 @@ const TOOLS: Bi[] = [
 ];
 const TOOL_TILT = [-3, 2, -2, 3, -3, 1];
 
-/* Scena 06 — anteprima prodotto, dati demo dichiarati. */
-const RECS: Array<{ n: string; c: Bi; m: string; img: string }> = [
-  { n: "Kyoto", c: { en: "Japan", it: "Giappone" }, m: "96%", img: PHOTO.kyoto },
-  { n: "Madeira", c: { en: "Portugal", it: "Portogallo" }, m: "91%", img: PHOTO.azores },
-  { n: "Lofoten", c: { en: "Norway", it: "Norvegia" }, m: "88%", img: PHOTO.lofoten },
-];
+/* Scena 06 — anteprima prodotto, dati demo dichiarati.
+   Formato preso dal prodotto (account-dashboard.css .pick): UNA card grande
+   con tag oro, nome serif e il riquadro "Perche' e' per te" col filetto oro.
+   Non tre cartoline con "% affinita'": quelle non esistono nella dashboard. */
+const PICK = {
+  img: PHOTO.kyoto,
+  name: "Kyoto",
+  country: { en: "Japan", it: "Giappone" } as Bi,
+  meta: { en: "6 days · late autumn", it: "6 giorni · fine autunno" } as Bi,
+  why: {
+    en: "You keep choosing slow mornings and walkable places — and you came back from Portugal wanting quiet, not more cities.",
+    it: "Continui a scegliere mattine lente e posti che si girano a piedi — e dal Portogallo sei tornato cercando quiete, non altre citta\u0300.",
+  } as Bi,
+};
 
 /* ── icone (stroke 1.6, mai colorate se non per segnalare) ─── */
 const I = {
@@ -429,7 +437,11 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
             </Reveal>
 
             <Reveal as="div">
-              <div style={{ position: "relative" }}>
+              {/* La cornice e' quella dell'Atlante vero (.atlas-mapcard): card
+                  scura, angoli 20px, legenda in alto a sinistra. La rotta
+                  disegnata e' lo stato "viaggio selezionato" del prodotto. */}
+              <div className="led-atlas">
+                <span className="led-atlas-legend">{t("led.mem.legend")}</span>
                 <GraphField opacity={0.4} />
                 <svg className="led-route" viewBox="0 0 620 200" role="img" aria-label={t("led.mem.routeAlt")}>
                   <path className="rt" d="M62 104 L186 132 L310 78 L434 116 L558 54" />
@@ -493,16 +505,16 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                   ))}
                 </div>
                 <div className="led-shell-main">
-                  <div className="led-shell-h">{t("led.app.recsHead")}</div>
-                  <div className="led-recs">
-                    {RECS.map((r) => (
-                      <div className="led-rec" key={r.n} style={{ backgroundImage: `url(${sized(r.img, 400, 55)})` }}>
-                        <div className="led-rec-b">
-                          <div className="led-rec-n">{r.n}, {b(r.c)}</div>
-                          <div className="led-rec-m">{r.m} {t("led.app.match")}</div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="led-pick" style={{ backgroundImage: `url(${sized(PICK.img, 900, 60)})` }}>
+                    <span className="led-pick-tag">{t("led.app.pickTag")}</span>
+                    <span className="led-pick-body">
+                      <span className="led-pick-meta">{b(PICK.meta)}</span>
+                      <span className="led-pick-nm">{PICK.name}, {b(PICK.country)}</span>
+                      <span className="led-pick-why">
+                        <span className="k">{t("led.app.whyK")}</span>
+                        <span className="w">{b(PICK.why)}</span>
+                      </span>
+                    </span>
                   </div>
                   <div className="led-shell-h">{t("led.app.journalHead")}</div>
                   <div className="led-journal">

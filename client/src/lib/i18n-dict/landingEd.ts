@@ -57,6 +57,7 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.mem.t1":         { en: "Your journey evolves", it: "Il tuo viaggio evolve" },
   "led.mem.t2":         { en: "with you.", it: "con te." },
   "led.mem.sub":        { en: "Here they all stay: where you went, what you chose, what it taught us about you. Every trip shapes the next — so the following suggestion is never the first one again.", it: "Qui restano tutti: dove sei andato, cosa hai scelto, cosa ci ha insegnato di te. Ogni viaggio dà forma al prossimo — così il consiglio successivo non è mai più il primo." },
+  "led.mem.legend":     { en: "Your atlas", it: "Il tuo atlante" },
   "led.mem.routeAlt":   { en: "A route connecting past journeys", it: "Una rotta che collega i viaggi passati" },
   "led.mem.disclaimer": { en: "Illustrative example — the profile moves with real trips, never with a single answer.", it: "Esempio illustrativo — il profilo si sposta con i viaggi veri, mai con una singola risposta." },
 
@@ -72,12 +73,13 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.app.navPortrait":  { en: "Portrait", it: "Ritratto" },
   "led.app.navTrips":     { en: "Trips", it: "Viaggi" },
   "led.app.navAtlas":     { en: "Atlas", it: "Atlante" },
-  "led.app.recsHead":     { en: "Your next recommendations", it: "I tuoi prossimi consigli" },
+  "led.app.pickTag":      { en: "A place that's you", it: "Una meta che ti somiglia" },
+  "led.app.whyK":         { en: "Why it fits you", it: "Perché è per te" },
   "led.app.journalHead":  { en: "Your journey journal", it: "Il tuo diario di viaggio" },
   "led.app.chatHead":     { en: "And when you are there, it stays with you", it: "E quando sei lì, resta con te" },
   "led.app.chatQ":        { en: "It's raining — what do I do today?", it: "Piove — cosa faccio oggi?" },
   "led.app.chatA":        { en: "Moved the coastal walk to tomorrow. Today: the tile museum, then the café you saved.", it: "Ho spostato il cammino sulla costa a domani. Oggi: il museo degli azulejos, poi il caffè che avevi salvato." },
-  "led.app.match":        { en: "match", it: "affinità" },
+  
 
   // ── 07 · L'inizio ───────────────────────────────────────────────────────
   "led.end.eyebrow": { en: "Your journey starts here", it: "Il tuo viaggio comincia qui" },

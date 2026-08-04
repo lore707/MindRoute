@@ -310,9 +310,19 @@
 
 /* ── 05 · MEMORIA — la rotta nel tempo ──────────────────────── */
 .led-mem-grid { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: var(--sp-1); align-items: center; }
+/* cornice dell'Atlante vero (.atlas-mapcard): card scura, angoli 20px */
+.led-atlas {
+  position: relative; border-radius: var(--r-m); overflow: hidden; background: #08060c;
+  box-shadow: inset 0 0 0 1px var(--led-line), var(--sh-lift); padding: var(--gap-2) 0;
+}
+.led-atlas-legend {
+  position: absolute; top: 12px; left: 12px; z-index: 2; font-size: 10px;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--led-ink-faint);
+  background: rgba(8, 6, 12, 0.6); padding: 6px 11px; border-radius: var(--r-pill);
+}
 .led-route { width: 100%; height: auto; display: block; }
 .led-route .rt { fill: none; stroke: var(--led-accent); stroke-width: 1.2; opacity: 0.7; stroke-dasharray: 4 5; }
-.led-route .pin { fill: var(--led-accent-2); }
+.led-route .pin { fill: var(--led-accent-2); filter: drop-shadow(0 0 6px var(--led-accent-2)); }
 .led-track { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--gap-2); margin-top: var(--gap-4); }
 .led-stop { display: grid; gap: var(--gap-2); align-content: start; }
 .led-stop-y { font-size: 12px; letter-spacing: 0.12em; color: var(--led-ink-faint); }
@@ -361,11 +371,40 @@
 .led-shell-nav .ic { color: var(--led-accent); display: grid; place-items: center; }
 .led-shell-main { padding: var(--gap-3); display: grid; gap: var(--gap-3); align-content: start; }
 .led-shell-h { font-size: var(--t-interface); color: var(--led-ink-dim); }
-.led-recs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-2); }
-.led-rec { border-radius: var(--r-s); overflow: hidden; position: relative; min-width: 0; min-height: 128px; background-size: cover; background-position: center; }
-.led-rec-b { position: absolute; inset: auto 0 0; padding: var(--gap-2); background: linear-gradient(180deg, transparent, rgba(11, 12, 17, 0.55) 40%, rgba(11, 12, 17, 0.95)); }
-.led-rec-n { font-size: 13.5px; color: var(--led-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.led-rec-m { font-size: 12px; color: var(--led-accent-2); }
+/* La daily pick, dal prodotto (account-dashboard.css .pick): foto a tutta
+   card, tag oro, nome serif e il riquadro "perche'" col filetto oro. */
+.led-pick {
+  position: relative; isolation: isolate; border-radius: var(--r-m); overflow: hidden;
+  min-height: 300px; display: flex; flex-direction: column; justify-content: flex-end;
+  background-size: cover; background-position: center; box-shadow: var(--sh-lift);
+}
+.led-pick::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(13, 7, 13, 0.25) 0%, rgba(13, 7, 13, 0.2) 38%,
+    rgba(13, 7, 13, 0.82) 72%, rgba(13, 7, 13, 0.97) 100%);
+}
+.led-pick-tag {
+  position: absolute; top: 16px; left: 16px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 15px; border-radius: var(--r-pill);
+  background: rgba(20, 10, 16, 0.62); box-shadow: inset 0 0 0 1px rgba(212, 168, 83, 0.5);
+  -webkit-backdrop-filter: blur(var(--bl-1)); backdrop-filter: blur(var(--bl-1));
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #E7C87F; font-weight: 600;
+}
+.led-pick-body { position: relative; z-index: 2; padding: var(--gap-3); display: block; }
+.led-pick-meta { display: block; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255, 255, 255, 0.72); font-weight: 600; margin-bottom: 8px; }
+.led-pick-nm { display: block; font-family: var(--serif); font-size: clamp(26px, 2.6vw, 36px); line-height: 1; color: var(--led-ink); margin-bottom: 13px; }
+.led-pick-why {
+  position: relative; display: block; padding: 13px 16px 13px 19px; border-radius: 12px;
+  background: rgba(13, 7, 13, 0.5); box-shadow: inset 0 0 0 1px rgba(212, 168, 83, 0.28);
+  -webkit-backdrop-filter: blur(var(--bl-1)); backdrop-filter: blur(var(--bl-1)); max-width: 560px;
+}
+.led-pick-why::before {
+  content: ""; position: absolute; left: 0; top: 11px; bottom: 11px; width: 3px; border-radius: 3px;
+  background: #D4A853; box-shadow: 0 0 10px rgba(212, 168, 83, 0.6);
+}
+.led-pick-why .k { display: block; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: #D4A853; font-weight: 700; margin-bottom: 5px; }
+.led-pick-why .w { display: block; font-family: var(--serif); font-style: italic; font-size: 14.5px; line-height: 1.45; color: rgba(255, 255, 255, 0.9); }
+
 .led-preview-label {
   display: inline-flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--led-ink-dim); margin-bottom: var(--gap-2);
@@ -446,8 +485,8 @@
   .led-stop-img { grid-row: span 2; width: 88px; height: 60px; }
   .led-tools { max-width: none; }
   .led-msg { max-width: 92%; }
-  .led-recs { grid-template-columns: 1fr; }
-  .led-rec { min-height: 96px; }
+  .led-pick { min-height: 360px; }
+  .led-pick-why .w { font-size: 13.5px; }
   .led-journal { grid-auto-flow: column; }
   .led-footer-grid { grid-template-columns: 1fr 1fr; }
   .led-footer-grid > :first-child { grid-column: 1 / -1; }
