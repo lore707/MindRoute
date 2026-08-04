@@ -53,16 +53,18 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.proof.disclaimer": { en: "Illustrative example — two synthetic profiles.", it: "Esempio illustrativo — due profili sintetici." },
 
   // ── 05 · La memoria ─────────────────────────────────────────────────────
+  "led.mem.truth":      { en: "Every trip starts from scratch. No tool remembers where you have already been — or what you liked once you got there.", it: "Ogni viaggio riparte da zero. Nessuno strumento ricorda dove sei già stato — né cosa ti è piaciuto una volta arrivato." },
   "led.mem.t1":         { en: "Your journey evolves", it: "Il tuo viaggio evolve" },
   "led.mem.t2":         { en: "with you.", it: "con te." },
-  "led.mem.sub":        { en: "Every trip teaches us something. Every memory shapes what comes next — so the next suggestion is never the first one again.", it: "Ogni viaggio ci insegna qualcosa. Ogni ricordo dà forma al prossimo — così il consiglio successivo non è mai più il primo." },
+  "led.mem.sub":        { en: "Here they all stay: where you went, what you chose, what it taught us about you. Every trip shapes the next — so the following suggestion is never the first one again.", it: "Qui restano tutti: dove sei andato, cosa hai scelto, cosa ci ha insegnato di te. Ogni viaggio dà forma al prossimo — così il consiglio successivo non è mai più il primo." },
   "led.mem.routeAlt":   { en: "A route connecting past journeys", it: "Una rotta che collega i viaggi passati" },
   "led.mem.disclaimer": { en: "Illustrative example — the profile moves with real trips, never with a single answer.", it: "Esempio illustrativo — il profilo si sposta con i viaggi veri, mai con una singola risposta." },
 
   // ── 06 · Il prodotto ────────────────────────────────────────────────────
+  "led.app.truth":        { en: "To put one trip together you jump between six tools — and none of them talks to the others.", it: "Per mettere insieme un viaggio salti fra sei strumenti — e nessuno parla con gli altri." },
   "led.app.t1":           { en: "All your journeys.", it: "Tutti i tuoi viaggi." },
   "led.app.t2":           { en: "In one place.", it: "In un posto solo." },
-  "led.app.sub":          { en: "Your map. Your stories. Your next adventure — and the reason it was chosen for you.", it: "La tua mappa. Le tue storie. La tua prossima avventura — e il motivo per cui è stata scelta per te." },
+  "led.app.sub":          { en: "Days, map, stays, flights, notes: you decide and organise in one place, and book from there in one click. Nothing to copy from one tab to another.", it: "Giorni, mappa, alloggio, voli, appunti: decidi e organizzi in un posto solo, e prenoti da lì con un clic. Niente da ricopiare da una scheda all'altra." },
   "led.app.cta":          { en: "Explore the experience", it: "Esplora l'esperienza" },
   "led.app.previewLabel": { en: "Product preview", it: "Anteprima del prodotto" },
   "led.app.navHome":      { en: "Home", it: "Home" },
@@ -72,6 +74,9 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.app.navProfile":   { en: "Profile", it: "Profilo" },
   "led.app.recsHead":     { en: "Your next recommendations", it: "I tuoi prossimi consigli" },
   "led.app.journalHead":  { en: "Your journey journal", it: "Il tuo diario di viaggio" },
+  "led.app.chatHead":     { en: "And when you are there, it stays with you", it: "E quando sei lì, resta con te" },
+  "led.app.chatQ":        { en: "It's raining — what do I do today?", it: "Piove — cosa faccio oggi?" },
+  "led.app.chatA":        { en: "Moved the coastal walk to tomorrow. Today: the tile museum, then the café you saved.", it: "Ho spostato il cammino sulla costa a domani. Oggi: il museo degli azulejos, poi il caffè che avevi salvato." },
   "led.app.match":        { en: "match", it: "affinità" },
 
   // ── 07 · L'inizio ───────────────────────────────────────────────────────

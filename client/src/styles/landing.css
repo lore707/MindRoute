@@ -309,13 +309,38 @@
 .led-stop.next .led-stop-y, .led-stop.next .led-stop-n { color: var(--led-accent-2); }
 .led-stop.next .led-stop-img { box-shadow: inset 0 0 0 1px rgba(255, 79, 92, 0.45), 0 0 var(--bl-3) -14px var(--led-accent-2); }
 
+/* la verita' che apre una scena: piccola, sopra il titolo, mai un titolo */
+.led-truth-line {
+  font-size: 15px; line-height: 1.6; color: var(--led-ink-faint);
+  max-width: 46ch; margin-bottom: var(--gap-3);
+}
+
 /* ── 06 · IL PRODOTTO ───────────────────────────────────────── */
+/* la dispersione, resa visibile: sei etichette storte, spente, mai allineate.
+   Nomi generici e non marchi: niente visibilita' regalata, niente rischi. */
+.led-tools { display: flex; flex-wrap: wrap; gap: var(--gap-3) var(--gap-2); max-width: 34ch; }
+.led-tool {
+  padding: 8px 14px; border-radius: var(--r-s); font-size: 13px;
+  color: var(--led-ink-faint); background: rgba(245, 244, 242, 0.03);
+  box-shadow: inset 0 0 0 1px var(--led-line);
+}
+
+/* il compagno: due battute, non una finta chat completa */
+.led-chat { display: grid; gap: var(--gap-1); justify-items: start; }
+.led-msg {
+  max-width: 86%; padding: 10px 14px; border-radius: var(--r-m); font-size: 13px;
+  line-height: 1.45; color: var(--led-ink); background: rgba(245, 244, 242, 0.06);
+}
+.led-msg.me {
+  justify-self: end; color: #fff;
+  background: linear-gradient(180deg, rgba(240, 67, 90, 0.9), rgba(240, 67, 90, 0.72));
+}
 
 .led-app-grid { display: grid; grid-template-columns: 0.7fr 1.3fr; gap: var(--sp-1); align-items: center; }
 .led-shell {
   border-radius: var(--r-m); overflow: hidden; box-shadow: var(--sh-ambient);
   background: linear-gradient(180deg, #171a24, #0f1119);
-  display: grid; grid-template-columns: 196px 1fr; min-height: 450px;
+  display: grid; grid-template-columns: 196px 1fr; min-height: 520px;
 }
 .led-shell-side { padding: var(--gap-3); display: grid; align-content: start; gap: 2px; background: rgba(0, 0, 0, 0.25); }
 .led-shell-brand { display: flex; align-items: center; gap: var(--gap-1); font-size: 13px; color: var(--led-ink); margin-bottom: var(--gap-3); }
@@ -325,7 +350,7 @@
 .led-shell-main { padding: var(--gap-3); display: grid; gap: var(--gap-3); align-content: start; }
 .led-shell-h { font-size: var(--t-interface); color: var(--led-ink-dim); }
 .led-recs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-2); }
-.led-rec { border-radius: var(--r-s); overflow: hidden; position: relative; min-width: 0; min-height: 150px; background-size: cover; background-position: center; }
+.led-rec { border-radius: var(--r-s); overflow: hidden; position: relative; min-width: 0; min-height: 128px; background-size: cover; background-position: center; }
 .led-rec-b { position: absolute; inset: auto 0 0; padding: var(--gap-2); background: linear-gradient(180deg, transparent, rgba(11, 12, 17, 0.55) 40%, rgba(11, 12, 17, 0.95)); }
 .led-rec-n { font-size: 13.5px; color: var(--led-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .led-rec-m { font-size: 12px; color: var(--led-accent-2); }
@@ -334,7 +359,7 @@
   text-transform: uppercase; color: var(--led-ink-dim); margin-bottom: var(--gap-2);
 }
 .led-journal { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--gap-2); }
-.led-journal-i { height: 66px; border-radius: var(--r-s); background-size: cover; background-position: center; filter: saturate(0.75) brightness(0.85); }
+.led-journal-i { height: 58px; border-radius: var(--r-s); background-size: cover; background-position: center; filter: saturate(0.75) brightness(0.85); }
 
 /* ── 07 · CHIUSURA ──────────────────────────────────────────── */
 .led-end { position: relative; isolation: isolate; min-height: 76svh; display: grid; align-items: center; padding: var(--sp-4) 0; }
@@ -407,6 +432,8 @@
   .led-track { grid-auto-flow: row; grid-auto-columns: auto; gap: var(--gap-3); }
   .led-stop { grid-template-columns: 88px 1fr; align-items: center; gap: var(--gap-3); }
   .led-stop-img { grid-row: span 2; width: 88px; height: 60px; }
+  .led-tools { max-width: none; }
+  .led-msg { max-width: 92%; }
   .led-recs { grid-template-columns: 1fr; }
   .led-rec { min-height: 96px; }
   .led-journal { grid-auto-flow: column; }

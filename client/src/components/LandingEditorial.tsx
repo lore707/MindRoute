@@ -100,6 +100,19 @@ const MEMORY: Array<{ y: string; n: Bi; img: string; next?: boolean }> = [
   { y: "—", n: { en: "Chile?", it: "Cile?" }, img: PHOTO.patagonia, next: true },
 ];
 
+/* Scena 06 — gli strumenti fra cui si salta oggi per organizzare UN viaggio.
+   Nomi generici, mai marchi: non regaliamo visibilita' a terzi e non ci
+   esponiamo. Ruotati e sbiaditi: dispersione. */
+const TOOLS: Bi[] = [
+  { en: "Flights", it: "Voli" },
+  { en: "Stays", it: "Alloggio" },
+  { en: "Maps", it: "Mappe" },
+  { en: "Reviews", it: "Recensioni" },
+  { en: "Blogs & forums", it: "Blog e forum" },
+  { en: "Notes", it: "Note sparse" },
+];
+const TOOL_TILT = [-4, 3, -2, 5, -5, 2];
+
 /* Scena 06 — anteprima prodotto, dati demo dichiarati. */
 const RECS: Array<{ n: string; c: Bi; m: string; img: string }> = [
   { n: "Kyoto", c: { en: "Japan", it: "Giappone" }, m: "96%", img: PHOTO.kyoto },
@@ -395,6 +408,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
           <div className="led-scene-veil" aria-hidden="true" />
           <div className="led-container led-mem-grid">
             <Reveal as="div">
+              <p className="led-truth-line">{t("led.mem.truth")}</p>
               <h2>{t("led.mem.t1")} <em>{t("led.mem.t2")}</em></h2>
               <p className="led-narr" style={{ marginTop: "var(--gap-3)" }}>{t("led.mem.sub")}</p>
             </Reveal>
@@ -430,7 +444,16 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
           <div className="led-scene-veil" aria-hidden="true" />
           <div className="led-container led-app-grid">
             <Reveal as="div">
-              <h2>{t("led.app.t1")}<br /><em>{t("led.app.t2")}</em></h2>
+              <p className="led-truth-line">{t("led.app.truth")}</p>
+              {/* la dispersione, resa visibile: sei etichette storte e sbiadite */}
+              <div className="led-tools" aria-hidden="true">
+                {TOOLS.map((tool, i) => (
+                  <span className="led-tool" key={i} style={{ transform: `rotate(${TOOL_TILT[i]}deg)` }}>
+                    {b(tool)}
+                  </span>
+                ))}
+              </div>
+              <h2 style={{ marginTop: "var(--gap-4)" }}>{t("led.app.t1")}<br /><em>{t("led.app.t2")}</em></h2>
               <p className="led-narr" style={{ margin: "var(--gap-3) 0 var(--gap-4)" }}>{t("led.app.sub")}</p>
               <button className="led-tcta" onClick={onStart} data-testid="led-app-cta">
                 {t("led.app.cta")} <span aria-hidden="true">→</span>
@@ -471,6 +494,13 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                     {[PHOTO.iceland, PHOTO.kyoto, PHOTO.alentejo, PHOTO.lofoten, PHOTO.faroe].map((img, i) => (
                       <span className="led-journal-i" key={i} style={{ backgroundImage: `url(${sized(img, 240, 50)})` }} aria-hidden="true" />
                     ))}
+                  </div>
+                  {/* Il compagno non e' una quarta funzione: e' la stessa promessa
+                      ("un posto solo") estesa al viaggio vero. */}
+                  <div className="led-shell-h">{t("led.app.chatHead")}</div>
+                  <div className="led-chat">
+                    <span className="led-msg me">{t("led.app.chatQ")}</span>
+                    <span className="led-msg">{t("led.app.chatA")}</span>
                   </div>
                 </div>
               </div>
