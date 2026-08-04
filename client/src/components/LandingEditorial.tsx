@@ -192,16 +192,18 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
   // Muro di feed: posizioni fisse (mai random → nessun salto fra i render).
   // Le stesse QUATTRO foto si ripetono: è il punto della scena — i feed di
   // tutti mostrano gli stessi posti. Sovrapposte, desaturate, indistinguibili.
-  const wall = useMemo(
+  /* Scena 02 — L'IMBUTO. La grafica DEVE dire quello che dice la frase:
+     tante persone diverse, tutte incanalate, verso le stesse cinque mete.
+     Posizioni fisse (mai random): niente salti fra un render e l'altro.
+     Coordinate in % → l'SVG usa preserveAspectRatio="none", i punti sono
+     span HTML (un cerchio scalato non deformato). */
+  const crowd = useMemo(
     () => [
-      { img: PHOTO.kyoto,   x: "0%",  y: "8%",  w: "23%", h: "50%" },
-      { img: PHOTO.iceland, x: "17%", y: "0%",  w: "23%", h: "46%" },
-      { img: PHOTO.kyoto,   x: "34%", y: "12%", w: "22%", h: "44%" },
-      { img: PHOTO.procida, x: "6%",  y: "44%", w: "23%", h: "48%" },
-      { img: PHOTO.iceland, x: "24%", y: "50%", w: "22%", h: "44%" },
-      { img: PHOTO.lofoten, x: "40%", y: "46%", w: "20%", h: "42%" },
-      { img: PHOTO.procida, x: "45%", y: "4%",  w: "18%", h: "34%" },
-    ],
+      [2, 10], [10, 5], [17, 13], [25, 8], [6, 22], [14, 26], [21, 20], [29, 25],
+      [1, 36], [9, 40], [16, 33], [24, 42], [31, 36], [4, 52], [12, 55], [19, 48],
+      [27, 56], [34, 50], [0, 67], [8, 70], [15, 62], [23, 72], [30, 66], [5, 83],
+      [13, 87], [20, 79], [28, 89], [35, 77],
+    ] as Array<[number, number]>,
     [],
   );
 
@@ -257,20 +259,22 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               <p className="led-truth-note">{t("led.truth.note")}</p>
             </Reveal>
 
-            {/* Muro + convergenza + mete in UN solo contenitore: così le linee
-                partono davvero dal muro e finiscono davvero sui chip. */}
-            <Reveal as="div" className="led-conv-wrap">
-              <div className="led-feedwall">
-                {wall.map((c, i) => (
-                  <span key={i} className="led-feedcard"
-                    style={{ left: c.x, top: c.y, width: c.w, height: c.h, backgroundImage: `url(${sized(c.img, 400, 50)})` }} />
-                ))}
-              </div>
+            {/* L'imbuto: persone diverse → un solo canale → le stesse mete. */}
+            <Reveal as="div" className="led-conv-wrap" role="img" aria-label={t("led.truth.figureAlt")}>
               <svg className="led-conv" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                {[14, 32, 50, 68, 86].map((y, i) => (
-                  <path key={i} d={`M 46 ${44 + (i - 2) * 5} C 55 ${44 + (i - 2) * 5}, 59 ${y}, 68 ${y}`} />
+                {crowd.map(([x, y], i) => (
+                  <path key={i} className="in" d={`M ${x} ${y} C ${x + 14} ${y}, 34 ${50 + (y - 50) * 0.2}, 44 50`} />
+                ))}
+                {[10, 30, 50, 70, 90].map((y, i) => (
+                  <path key={i} className="out" d={`M 44 50 C 56 50, 58 ${y}, 70 ${y}`} />
                 ))}
               </svg>
+              {crowd.map(([x, y], i) => (
+                <span key={i} className="led-person" style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true" />
+              ))}
+              <span className="led-funnel" aria-hidden="true" />
+              <span className="led-conv-cap left">{t("led.truth.capLeft")}</span>
+              <span className="led-conv-cap right">{t("led.truth.capRight")}</span>
               <Stagger className="led-dests" stagger={0.08}>
                 {NOISE(lang).map((d) => (
                   <StaggerItem as="span" className="led-dest" key={d}>

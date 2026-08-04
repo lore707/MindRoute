@@ -180,24 +180,35 @@
 .led-truth h2 { max-width: 12ch; }
 .led-truth-note { font-size: 16.5px; line-height: 1.7; color: var(--led-ink-dim); max-width: 42ch; }
 
-/* Muro + convergenza + mete nello STESSO contenitore: le linee partono dal
-   muro e arrivano sui chip. Rettangoli di proposito: sono i feed, non la
-   nostra fotografia. Desaturati e ripetuti: devono sembrare tutti uguali. */
-.led-conv-wrap { position: relative; min-height: 460px; }
-.led-feedwall { position: absolute; inset: 0 54% 0 0; }
-.led-feedcard {
-  position: absolute; border-radius: var(--r-s); background-size: cover; background-position: center;
-  box-shadow: var(--sh-lift); filter: saturate(0.45) brightness(0.82) contrast(0.94);
+/* L'IMBUTO — la figura DEVE dire quello che dice la frase accanto: tante
+   persone diverse, incanalate, verso le stesse cinque mete. Niente fotografia:
+   qui una foto sarebbe decorazione (doc 05, "nothing decorative survives"). */
+.led-conv-wrap { position: relative; min-height: 440px; }
+/* le persone: tutte diverse per posizione, tutte identiche per destino */
+.led-person {
+  position: absolute; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--led-ink-faint); transform: translate(-50%, -50%);
+  box-shadow: 0 0 var(--bl-1) rgba(245, 244, 242, 0.25);
 }
-.led-feedcard::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit;
-  background: linear-gradient(180deg, rgba(11, 12, 17, 0.25) 30%, rgba(11, 12, 17, 0.72));
+/* il collo dell'imbuto: il punto in cui tutti diventano uguali */
+.led-funnel {
+  position: absolute; left: 44%; top: 50%; width: 13px; height: 13px;
+  border-radius: 50%; transform: translate(-50%, -50%); background: var(--led-accent-2);
+  box-shadow: 0 0 var(--bl-2) var(--led-accent-2), 0 0 var(--bl-3) rgba(255, 79, 92, 0.5);
 }
 .led-conv { position: absolute; inset: 0; width: 100%; height: 100%; }
-.led-conv path { fill: none; stroke: var(--led-accent); stroke-width: 0.7; opacity: 0.5; vector-effect: non-scaling-stroke; }
+.led-conv path { fill: none; vector-effect: non-scaling-stroke; }
+.led-conv .in { stroke: var(--led-ink); stroke-width: 0.6; opacity: 0.26; }
+.led-conv .out { stroke: var(--led-accent); stroke-width: 1.1; opacity: 0.75; }
+.led-conv-cap {
+  position: absolute; bottom: -4px; font-size: 11.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--led-ink-faint); white-space: nowrap;
+}
+.led-conv-cap.left { left: 0; }
+.led-conv-cap.right { right: 0; color: var(--led-accent-2); }
 .led-dests {
   position: absolute; right: 0; top: 50%; transform: translateY(-50%);
-  display: grid; gap: var(--gap-2); justify-items: start; width: 32%;
+  display: grid; gap: var(--gap-2); justify-items: start; width: 30%;
 }
 .led-dest {
   display: inline-flex; align-items: center; gap: var(--gap-2);
@@ -223,8 +234,14 @@
 .led-refl-note em { font-style: normal; color: var(--led-ink); }
 
 /* ── 04 · PROOF — stessa città, due viaggi ──────────────────── */
+/* La Verita' e' l'unica scena in cui la FIGURA e' il contenuto: la
+   fotografia va molto piu' indietro, altrimenti compete col diagramma. */
+.led-truth .led-scene-veil {
+  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.85) 20%,
+    rgba(11, 12, 17, 0.88) 80%, var(--led-bg) 100%);
+}
 .led-proof .led-scene-veil, .led-mem .led-scene-veil, .led-who .led-scene-veil,
-.led-truth .led-scene-veil, .led-app .led-scene-veil {
+.led-app .led-scene-veil {
   background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.66) 18%,
     rgba(11, 12, 17, 0.72) 82%, var(--led-bg) 100%);
 }
@@ -355,12 +372,12 @@
     background: linear-gradient(180deg, rgba(11, 12, 17, 0.5) 0%, rgba(11, 12, 17, 0.15) 30%, rgba(11, 12, 17, 0.96) 76%);
   }
   .led-hero-photo { background-position: center 28%; }
-  /* mobile: il muro sopra, le mete sotto in riga scorrevole */
-  .led-conv-wrap { min-height: 0; display: grid; gap: var(--gap-3); }
-  .led-feedwall { position: relative; inset: auto; height: 230px; }
-  .led-conv { display: none; }
+  /* mobile: l'imbuto resta ma si accorcia, le mete scendono sotto */
+  .led-conv-wrap { min-height: 220px; margin-bottom: calc(var(--sp-1) + 20px); }
+  .led-conv .out { display: none; }
+  .led-conv-cap.right { display: none; }
   .led-dests {
-    position: relative; right: auto; top: auto; transform: none; width: 100%;
+    position: absolute; right: 0; left: 0; top: calc(100% + var(--gap-4)); transform: none; width: 100%;
     grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto;
     padding-bottom: var(--gap-1); scrollbar-width: thin;
   }

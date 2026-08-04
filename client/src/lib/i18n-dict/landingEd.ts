@@ -22,9 +22,12 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.hero.scroll":  { en: "Scroll to explore", it: "Scorri per scoprire" },
 
   // ── 02 · La verità ──────────────────────────────────────────────────────
-  "led.truth.eyebrow": { en: "The problem nobody names", it: "Il problema che nessuno dice" },
+  "led.truth.eyebrow":  { en: "How we choose today", it: "Come scegliamo oggi" },
   "led.truth.t1":      { en: "We all see", it: "Vediamo tutti" },
   "led.truth.t2":      { en: "the same places.", it: "gli stessi posti." },
+  "led.truth.capLeft":  { en: "Millions of different people", it: "Milioni di persone diverse" },
+  "led.truth.capRight": { en: "The same five places", it: "Le stesse cinque mete" },
+  "led.truth.figureAlt": { en: "Many different people funnelled toward the same five destinations", it: "Tante persone diverse incanalate verso le stesse cinque destinazioni" },
   "led.truth.note":    { en: "Algorithms shape our desires. Our choices start to look the same — and so do our trips.", it: "Gli algoritmi modellano i nostri desideri. Le nostre scelte iniziano a somigliarsi — e con loro i nostri viaggi." },
 
   // ── 03 · Chi viaggia ────────────────────────────────────────────────────
