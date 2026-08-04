@@ -26,9 +26,10 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.truth.t1":      { en: "We all see", it: "Vediamo tutti" },
   "led.truth.t2":      { en: "the same places.", it: "gli stessi posti." },
   "led.truth.capLeft":  { en: "Millions of different people", it: "Milioni di persone diverse" },
-  "led.truth.capRight": { en: "The same five places", it: "Le stesse cinque mete" },
-  "led.truth.figureAlt": { en: "Many different people funnelled toward the same five destinations", it: "Tante persone diverse incanalate verso le stesse cinque destinazioni" },
-  "led.truth.note":    { en: "Algorithms shape our desires. Our choices start to look the same — and so do our trips.", it: "Gli algoritmi modellano i nostri desideri. Le nostre scelte iniziano a somigliarsi — e con loro i nostri viaggi." },
+  "led.truth.funnel":   { en: "The feed", it: "Il feed" },
+  "led.truth.capRight": { en: "Always the same handful", it: "Sempre gli stessi posti" },
+  "led.truth.figureAlt": { en: "Many different people funnelled through the feed toward the same handful of destinations", it: "Tante persone diverse incanalate dal feed verso la stessa manciata di destinazioni" },
+  "led.truth.note":    { en: "Reels, TikToks, travel boards: the feed repeats the same places until they start to feel like ours.", it: "Reel, TikTok, board di viaggio: il feed ci ripete gli stessi posti finché non ci sembrano nostri." },
 
   // ── 03 · Chi viaggia ────────────────────────────────────────────────────
   "led.who.t1": { en: "Before asking where to go, we ask", it: "Prima di chiedere dove andare, chiediamo" },

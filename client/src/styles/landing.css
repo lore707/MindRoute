@@ -191,6 +191,11 @@
   box-shadow: 0 0 var(--bl-1) rgba(245, 244, 242, 0.25);
 }
 /* il collo dell'imbuto: il punto in cui tutti diventano uguali */
+.led-funnel-cap {
+  position: absolute; left: 44%; top: 50%; transform: translate(-50%, 22px);
+  font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--led-accent-2); white-space: nowrap;
+}
 .led-funnel {
   position: absolute; left: 44%; top: 50%; width: 13px; height: 13px;
   border-radius: 50%; transform: translate(-50%, -50%); background: var(--led-accent-2);
@@ -198,7 +203,18 @@
 }
 .led-conv { position: absolute; inset: 0; width: 100%; height: 100%; }
 .led-conv path { fill: none; vector-effect: non-scaling-stroke; }
-.led-conv .in { stroke: var(--led-ink); stroke-width: 0.6; opacity: 0.26; }
+ /* il tracciato: sempre disegnato, cosi' l'imbuto si legge anche da fermo */
+.led-conv .in { stroke: var(--led-ink); stroke-width: 0.6; opacity: 0.22; }
+/* A05 — i segnali che risalgono verso il feed: lenti, lineari, mai ritmici
+   (ogni linea ha durata e ritardo suoi). Sono in piu', mai portanti. */
+.led-conv .sig {
+  stroke: var(--led-accent-2); stroke-width: 1.1; opacity: 0.62;
+  stroke-dasharray: 2 30; animation: led-drift 10s linear infinite;
+}
+.led-conv .sig:nth-child(3n)   { animation-duration: 14s; animation-delay: -4s; }
+.led-conv .sig:nth-child(4n+1) { animation-duration: 12s; animation-delay: -7s; }
+.led-conv .sig:nth-child(5n)   { animation-duration: 17s; animation-delay: -11s; }
+@keyframes led-drift { to { stroke-dashoffset: -320; } }
 .led-conv .out { stroke: var(--led-accent); stroke-width: 1.1; opacity: 0.75; }
 .led-conv-cap {
   position: absolute; bottom: -4px; font-size: 11.5px; letter-spacing: 0.14em;
@@ -213,10 +229,14 @@
 .led-dest {
   display: inline-flex; align-items: center; gap: var(--gap-2);
   padding: 13px 22px; border-radius: var(--r-pill); font-size: 15px; color: var(--led-ink);
+  min-width: 160px;
   background: rgba(245, 244, 242, 0.05); box-shadow: inset 0 0 0 1px var(--led-line);
   -webkit-backdrop-filter: blur(var(--bl-1)); backdrop-filter: blur(var(--bl-1));
 }
 .led-dest .pin { color: var(--led-accent); display: grid; place-items: center; }
+/* il nome entra in dissolvenza quando il chip ruota (A01, senza spostamento) */
+.led-dest .nm { animation: led-swap var(--d-m) var(--e-enter); }
+@keyframes led-swap { from { opacity: 0; } to { opacity: 1; } }
 
 /* ── 03 · RIFLESSIONE + la trasformazione ───────────────────── */
 .led-refl-grid { display: grid; grid-template-columns: 0.92fr 1.08fr; gap: var(--sp-1); align-items: center; }
@@ -401,6 +421,7 @@
 
 /* ── riduci movimento: il mondo si semplifica, non sparisce ── */
 @media (prefers-reduced-motion: reduce) {
-  .led-scroll .ch { animation: none; }
+  .led-scroll .ch, .led-conv .sig, .led-dest .nm { animation: none; }
+  .led-conv .sig { display: none; }
   .led *, .led *::before, .led *::after { transition-duration: 0.01ms !important; }
 }

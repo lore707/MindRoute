@@ -59,9 +59,14 @@ const PHOTO = {
 
 type Bi = { en: string; it: string };
 
-/* Le mete "di tutti" — quelle che gli algoritmi mostrano a chiunque. */
-const NOISE = (lang: "en" | "it") => [
-  "Bali", "Santorini", lang === "it" ? "Islanda" : "Iceland", "Tokyo", "Paris",
+/* Le mete "di tutti". Il punto NON e' che siano cinque: e' che sono sempre
+   la stessa manciata, in qualunque feed. Per questo i chip ruotano dentro un
+   pool piu' largo invece di restare fissi. */
+const NOISE_POOL = (lang: "en" | "it") => [
+  "Bali", "Santorini", lang === "it" ? "Islanda" : "Iceland", "Tokyo",
+  lang === "it" ? "Parigi" : "Paris", "Dubai", lang === "it" ? "Maldive" : "Maldives",
+  "Amsterdam", "Barcelona", "New York", "Marrakech", lang === "it" ? "Roma" : "Rome",
+  "Lisboa", lang === "it" ? "Praga" : "Prague",
 ];
 
 /* Scena 04 — due profili sintetici, stessa città. ETICHETTATO come esempio. */
@@ -155,6 +160,33 @@ function IdentityThread({ ids }: { ids: string[] }) {
   );
 }
 
+/* I chip delle mete ruotano: uno alla volta, ogni 2.4s, dentro un pool piu'
+   largo. Serve a dire che non sono CINQUE mete — e' sempre la stessa manciata,
+   chiunque tu sia. Con "riduci movimento" restano fermi sui primi cinque. */
+function useRotatingDestinations(pool: string[], slots = 5) {
+  const [idx, setIdx] = useState<number[]>(() => [0, 1, 2, 3, 4].slice(0, slots));
+  useEffect(() => {
+    const reduce = typeof window !== "undefined"
+      && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || pool.length <= slots) return;
+    let slot = 0;
+    const id = window.setInterval(() => {
+      setIdx((prev) => {
+        const next = [...prev];
+        // prende il primo indice del pool non gia' a schermo
+        let cand = (Math.max(...prev) + 1) % pool.length;
+        let guard = 0;
+        while (prev.includes(cand) && guard++ < pool.length) cand = (cand + 1) % pool.length;
+        next[slot] = cand;
+        slot = (slot + 1) % slots;
+        return next;
+      });
+    }, 2400);
+    return () => window.clearInterval(id);
+  }, [pool, slots]);
+  return idx.map((i) => pool[i]);
+}
+
 const SCENES = ["s-hero", "s-truth", "s-who", "s-proof", "s-memory", "s-app", "s-end"];
 
 export function LandingEditorial({ onStart, stats }: { onStart: () => void; stats: LandingStats | null }) {
@@ -197,6 +229,9 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
      Posizioni fisse (mai random): niente salti fra un render e l'altro.
      Coordinate in % → l'SVG usa preserveAspectRatio="none", i punti sono
      span HTML (un cerchio scalato non deformato). */
+  const noisePool = useMemo(() => NOISE_POOL(lang), [lang]);
+  const shownDests = useRotatingDestinations(noisePool);
+
   const crowd = useMemo(
     () => [
       [2, 10], [10, 5], [17, 13], [25, 8], [6, 22], [14, 26], [21, 20], [29, 25],
@@ -262,8 +297,13 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
             {/* L'imbuto: persone diverse → un solo canale → le stesse mete. */}
             <Reveal as="div" className="led-conv-wrap" role="img" aria-label={t("led.truth.figureAlt")}>
               <svg className="led-conv" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                {/* due strati: il tracciato FISSO (la forma dell'imbuto si legge
+                    sempre, anche da fermo) e i segnali che vi scorrono sopra */}
                 {crowd.map(([x, y], i) => (
-                  <path key={i} className="in" d={`M ${x} ${y} C ${x + 14} ${y}, 34 ${50 + (y - 50) * 0.2}, 44 50`} />
+                  <path key={`p${i}`} className="in" d={`M ${x} ${y} C ${x + 14} ${y}, 34 ${50 + (y - 50) * 0.2}, 44 50`} />
+                ))}
+                {crowd.map(([x, y], i) => (
+                  <path key={`s${i}`} className="sig" d={`M ${x} ${y} C ${x + 14} ${y}, 34 ${50 + (y - 50) * 0.2}, 44 50`} />
                 ))}
                 {[10, 30, 50, 70, 90].map((y, i) => (
                   <path key={i} className="out" d={`M 44 50 C 56 50, 58 ${y}, 70 ${y}`} />
@@ -273,12 +313,14 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                 <span key={i} className="led-person" style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true" />
               ))}
               <span className="led-funnel" aria-hidden="true" />
+              <span className="led-funnel-cap" aria-hidden="true">{t("led.truth.funnel")}</span>
               <span className="led-conv-cap left">{t("led.truth.capLeft")}</span>
               <span className="led-conv-cap right">{t("led.truth.capRight")}</span>
               <Stagger className="led-dests" stagger={0.08}>
-                {NOISE(lang).map((d) => (
-                  <StaggerItem as="span" className="led-dest" key={d}>
-                    <span className="pin">{I.pin}</span>{d}
+                {shownDests.map((d, i) => (
+                  <StaggerItem as="span" className="led-dest" key={i}>
+                    <span className="pin">{I.pin}</span>
+                    <span className="nm" key={d}>{d}</span>
                   </StaggerItem>
                 ))}
               </Stagger>
