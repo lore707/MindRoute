@@ -23,7 +23,7 @@
  * la linea è sempre disegnata, cambia solo il nodo acceso.
  * ─────────────────────────────────────────────────────────────── */
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useI18n } from "@/lib/i18n";
 import { unsplashSized } from "@/lib/img";
@@ -370,17 +370,14 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               <h2>{t("led.who.t1")} <em>{t("led.who.t2")}</em> {t("led.who.t3")}</h2>
             </Reveal>
             <Reveal as="div">
-              <div className="led-chain">
-                {chain.map((c, i) => (
-                  <Fragment key={c.k}>
-                    <span className="led-chain-step">
-                      <span className="led-chain-ring">{c.ic}</span>
-                      <span className="led-chain-label">{t(c.k)}</span>
-                    </span>
-                    {i < chain.length - 1 && <span className="led-chain-link" aria-hidden="true">→</span>}
-                  </Fragment>
+              <Stagger className="led-chain" stagger={0.09}>
+                {chain.map((c) => (
+                  <StaggerItem as="span" className="led-chain-step" key={c.k}>
+                    <span className="led-chain-ring">{c.ic}</span>
+                    <span className="led-chain-label">{t(c.k)}</span>
+                  </StaggerItem>
                 ))}
-              </div>
+              </Stagger>
               <p className="led-refl-note"><em>{t("led.who.n1")}</em><br />{t("led.who.n2")}</p>
             </Reveal>
           </div>
