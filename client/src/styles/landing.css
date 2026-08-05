@@ -109,33 +109,6 @@
   outline: 2px solid var(--led-accent-2); outline-offset: 3px; border-radius: var(--r-s);
 }
 
-/* ── il filo dell'identità (guida verticale, A12) ───────────── */
-.led-thread {
-  position: fixed; left: 30px; top: 0; bottom: 0; z-index: 30;
-  pointer-events: none; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 34px;
-}
-.led-thread::before {
-  content: ""; position: absolute; top: 12%; bottom: 12%; width: 1px; left: 50%;
-  background: linear-gradient(180deg, transparent, var(--led-line) 14%, var(--led-line) 86%, transparent);
-}
-.led-thread-node {
-  position: relative; width: 7px; height: 7px; border-radius: 50%;
-  background: rgba(245, 244, 242, 0.20);
-  transition: background var(--d-s) var(--e-calm), box-shadow var(--d-s) var(--e-calm), transform var(--d-s) var(--e-calm);
-}
-.led-thread-node.on {
-  background: var(--led-accent-2); transform: scale(1.4);
-  box-shadow: 0 0 var(--bl-1) var(--led-accent-2), 0 0 var(--bl-3) rgba(255, 79, 92, 0.4);
-}
-.led-thread-num {
-  position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
-  font-size: 10px; letter-spacing: 0.14em; color: var(--led-ink-faint);
-  opacity: 0; transition: opacity var(--d-s) var(--e-calm);
-}
-.led-thread-node.on .led-thread-num { opacity: 1; color: var(--led-accent-2); }
-@media (max-width: 1279px) { .led-thread { display: none; } }
-
 /* ── scena: struttura comune ────────────────────────────────── */
 .led-scene { position: relative; isolation: isolate; padding: var(--sp-3) 0; overflow: clip; }
 .led-scene-photo {
@@ -160,7 +133,7 @@
 }
 
 /* ── 01 · HERO ──────────────────────────────────────────────── */
-.led-hero { position: relative; isolation: isolate; min-height: 92svh; display: grid; align-items: center; padding: var(--sp-2) 0; }
+.led-hero { position: relative; isolation: isolate; overflow: clip; min-height: 92svh; display: grid; align-items: center; padding: var(--sp-2) 0; }
 .led-hero-photo {
   position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center 38%;
   animation: led-breathe 22s ease-in-out infinite;                /* A04 */
@@ -442,7 +415,7 @@
 .led-journal-i { height: 58px; border-radius: var(--r-s); background-size: cover; background-position: center; filter: saturate(0.75) brightness(0.85); }
 
 /* ── 07 · CHIUSURA ──────────────────────────────────────────── */
-.led-end { position: relative; isolation: isolate; min-height: 76svh; display: grid; align-items: center; padding: var(--sp-4) 0; }
+.led-end { position: relative; isolation: isolate; overflow: clip; min-height: 76svh; display: grid; align-items: center; padding: var(--sp-4) 0; }
 .led-end-photo {
   position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center;
   animation: led-breathe 26s ease-in-out infinite; animation-delay: -9s;

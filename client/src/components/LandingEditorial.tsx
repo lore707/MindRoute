@@ -156,45 +156,8 @@ const I = {
   tiktok:<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>,
 } as const;
 
-/* ── Filo dell'identità (A12) ───────────────────────────────────
-   La linea è SEMPRE disegnata: cambia solo il nodo acceso. Non è una barra di
-   avanzamento — è il Graph che attraversa la pagina. Un solo
-   IntersectionObserver per tutte le scene: niente listener di scroll. */
-function IdentityThread({ ids }: { ids: string[] }) {
-  const [active, setActive] = useState(0);
-  useEffect(() => {
-    const els = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
-    if (!els.length) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        // la scena più visibile vince
-        let best: { i: number; r: number } | null = null;
-        for (const e of entries) {
-          const i = els.indexOf(e.target as HTMLElement);
-          if (i < 0 || !e.isIntersecting) continue;
-          if (!best || e.intersectionRatio > best.r) best = { i, r: e.intersectionRatio };
-        }
-        if (best) setActive(best.i);
-      },
-      { threshold: [0.15, 0.4, 0.7] },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [ids]);
-
-  return (
-    <div className="led-thread" aria-hidden="true">
-      {ids.map((id, i) => (
-        <span key={id} className={"led-thread-node" + (i === active ? " on" : "")}>
-          <span className="led-thread-num">{String(i + 1).padStart(2, "0")}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/* I chip delle mete ruotano: uno alla volta, ogni 2.4s, dentro un pool piu'
-   largo. Serve a dire che non sono CINQUE mete — e' sempre la stessa manciata,
+/* I chip delle mete ruotano: uno alla volta, ogni 2.4s, dentro un pool più
+   largo. Serve a dire che non sono CINQUE mete — è sempre la stessa manciata,
    chiunque tu sia. Con "riduci movimento" restano fermi sui primi cinque. */
 function useRotatingDestinations(pool: string[], slots = 5) {
   const [idx, setIdx] = useState<number[]>(() => [0, 1, 2, 3, 4].slice(0, slots));
@@ -206,7 +169,6 @@ function useRotatingDestinations(pool: string[], slots = 5) {
     const id = window.setInterval(() => {
       setIdx((prev) => {
         const next = [...prev];
-        // prende il primo indice del pool non gia' a schermo
         let cand = (Math.max(...prev) + 1) % pool.length;
         let guard = 0;
         while (prev.includes(cand) && guard++ < pool.length) cand = (cand + 1) % pool.length;
@@ -219,8 +181,6 @@ function useRotatingDestinations(pool: string[], slots = 5) {
   }, [pool, slots]);
   return idx.map((i) => pool[i]);
 }
-
-const SCENES = ["s-hero", "s-truth", "s-who", "s-proof", "s-memory", "s-app", "s-end"];
 
 export function LandingEditorial({ onStart, stats }: { onStart: () => void; stats: LandingStats | null }) {
   const { t, lang } = useI18n();
@@ -287,7 +247,6 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
   return (
     <MotionConfig reducedMotion="user">
       <div className="led">
-        <IdentityThread ids={SCENES} />
 
         {/* Nessuna nav qui: la nav globale è già montata dall'app shell.
             Duplicarla darebbe due barre sovrapposte. */}
