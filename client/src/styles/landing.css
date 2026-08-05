@@ -487,15 +487,21 @@
     background: linear-gradient(180deg, rgba(11, 12, 17, 0.5) 0%, rgba(11, 12, 17, 0.15) 30%, rgba(11, 12, 17, 0.96) 76%);
   }
   .led-hero-photo { background-position: center 28%; }
-  /* mobile: l'imbuto resta ma si accorcia, le mete scendono sotto */
-  .led-conv-wrap { min-height: 220px; margin-bottom: calc(var(--sp-1) + 20px); }
-  .led-conv .out { display: none; }
-  .led-conv-cap.right { display: none; }
-  .led-dests {
-    position: absolute; right: 0; left: 0; top: calc(100% + var(--gap-4)); transform: none; width: 100%;
-    grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto;
-    padding-bottom: var(--gap-1); scrollbar-width: thin;
+  /* mobile: l'imbuto resta INTERO — folla, collo, mete accanto. Le mete
+     sotto rompevano la lettura: la figura dice "incanalati VERSO", e un
+     "verso" che va a capo non e' piu' un imbuto. Si stringono, non si
+     spostano. */
+  .led-conv-wrap { min-height: 300px; }
+  .led-dests { width: 32%; gap: 6px; }
+  .led-dest {
+    min-width: 0; max-width: 100%; padding: 7px 10px; font-size: 11px; gap: 5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex;
   }
+  .led-dest .pin { flex: none; }
+  .led-dest .pin svg { width: 10px; height: 10px; }
+  .led-conv-cap { font-size: 9.5px; letter-spacing: 0.1em; }
+  .led-funnel { width: 10px; height: 10px; }
+  .led-person { width: 5px; height: 5px; }
   .led-proof-pair { grid-template-columns: 1fr; gap: var(--gap-2); }
   .led-tripcard { min-height: 0; padding: var(--gap-3); }
   .led-swap { position: static; transform: none; margin: 0 auto; }
