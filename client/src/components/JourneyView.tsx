@@ -335,20 +335,25 @@ export function JourneyView({ data, itinerary, itineraryId, savedMomentIds, onTo
           <div className="jr-sheet-grab" />
           <button className="jr-sheet-x" onClick={() => setDetailId(null)} aria-label={t("jr.close")}><X size={18} /></button>
           <div className="jr-sheet-scroll">
-            {m.imageUrl && <div className="jr-sheet-hero" style={{ backgroundImage: bgi(m.imageUrl, 900) }} />}
-            <div className="jr-sheet-body">
-              <div className="jr-sheet-top">
-                <div>
+            {/* Articolo, non scheda: la fotografia porta il titolo e si dissolve
+                nel corpo — nessun bordo netto fra immagine e testo. */}
+            <div className={"jr-sheet-head" + (m.imageUrl ? "" : " noimg")}
+              style={m.imageUrl ? { backgroundImage: bgi(m.imageUrl, 1200) } : undefined}>
+              <div className="jr-sheet-head-in">
+                <div className="jr-sheet-meta">
                   {m.kindLabel && <span className="jr-sheet-kind">{m.kindLabel}</span>}
-                  <h3 className="jr-sheet-title">{m.title}</h3>
+                  {timeWindow && <span className="jr-sheet-when">{timeWindow}</span>}
                 </div>
-                {onToggleSaved && itineraryId && m.id && (
-                  <button className={"jr-fav lg" + (savedMomentIds?.has(m.id) ? " on" : "")} title={t("jr.save")}
-                    onClick={() => onToggleSaved(m.id!, m)}>
-                    <Heart size={18} fill={savedMomentIds?.has(m.id) ? "currentColor" : "none"} />
-                  </button>
-                )}
+                <h3 className="jr-sheet-title">{m.title}</h3>
               </div>
+              {onToggleSaved && itineraryId && m.id && (
+                <button className={"jr-fav lg float" + (savedMomentIds?.has(m.id) ? " on" : "")} title={t("jr.save")}
+                  onClick={() => onToggleSaved(m.id!, m)}>
+                  <Heart size={18} fill={savedMomentIds?.has(m.id) ? "currentColor" : "none"} />
+                </button>
+              )}
+            </div>
+            <div className="jr-sheet-body">
               <div className="jr-sheet-facts">
                 {m.durationLabel && <span>◷ {m.durationLabel}</span>}
                 {m.transport && <span>{m.transport}</span>}
@@ -356,23 +361,19 @@ export function JourneyView({ data, itinerary, itineraryId, savedMomentIds, onTo
 
               {m.desc && <p className="jr-sheet-desc">{m.desc}</p>}
 
+              {/* L'INSIGHT — non un paragrafo fra gli altri: è l'unica cosa che
+                  nessun altro strumento sa dire. Filetto corallo, corsivo serif,
+                  aria intorno. La voce del compagno, non una didascalia. */}
               {m.why && (
-                <div className="jr-sheet-sec">
-                  <div className="jr-sheet-sh">{L("Perché l'ho scelto", "Why I chose it")}</div>
-                  <p className="jr-sheet-why">{m.why}</p>
-                </div>
-              )}
-
-              {timeWindow && (
-                <div className="jr-sheet-sec">
-                  <div className="jr-sheet-sh">{L("Momento ideale", "Best time")}</div>
-                  <p className="jr-sheet-time">{timeWindow}</p>
-                </div>
+                <aside className="jr-insight">
+                  <div className="jr-insight-k">{L("Perché proprio questo", "Why this one")}</div>
+                  <p className="jr-insight-t">{m.why}</p>
+                </aside>
               )}
 
               {m.planB && (
                 <div className="jr-sheet-sec">
-                  <div className="jr-sheet-sh">{L("Alternativa vicina", "Nearby alternative")}</div>
+                  <div className="jr-sheet-sh">{L("Se salta", "If it falls through")}</div>
                   <p className="jr-sheet-alt">{m.planB}</p>
                 </div>
               )}
