@@ -437,20 +437,14 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
               {/* La cornice e' quella dell'Atlante vero (.atlas-mapcard): card
                   scura, angoli 20px, legenda in alto a sinistra. La rotta
                   disegnata e' lo stato "viaggio selezionato" del prodotto. */}
-              <div className="led-atlas">
-                <span className="led-atlas-legend">{t("led.mem.legend")}</span>
-                <GraphField opacity={0.4} />
-                <svg className="led-route" viewBox="0 0 620 200" role="img" aria-label={t("led.mem.routeAlt")}>
-                  <path className="rt" d="M62 104 L186 132 L310 78 L434 116 L558 54" />
-                  {[[62, 104], [186, 132], [310, 78], [434, 116], [558, 54]].map(([x, y], i) => (
-                    <circle key={i} className="pin" cx={x} cy={y} r={i === 4 ? 5 : 3.4} />
-                  ))}
-                </svg>
-              </div>
+              <div className="led-mem-field" aria-hidden="true"><GraphField opacity={0.35} /></div>
 
-              <Stagger className="led-track" stagger={0.09}>
+              {/* Il filo passa SOPRA i viaggi veri: nodo per tappa, tratto
+                  pieno fra quelli fatti, tratteggiato verso quello proposto. */}
+              <Stagger className="led-track" stagger={0.09} role="img" aria-label={t("led.mem.routeAlt")}>
                   {MEMORY.map((m, i) => (
                     <StaggerItem as="div" className={"led-stop" + (m.next ? " next" : "")} key={i}>
+                      <span className="led-stop-node" aria-hidden="true" />
                       <span className="led-stop-img" style={{ backgroundImage: `url(${sized(m.img, 320, 55)})` }} aria-hidden="true" />
                       <span className="led-stop-y">{m.y}</span>
                       <span className="led-stop-n">{b(m.n)}</span>
