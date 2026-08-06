@@ -9,6 +9,7 @@
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "verify:times": "tsx script/verify-moment-slots.ts",
+    "verify:edit": "tsx script/verify-edit-roundtrip.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {

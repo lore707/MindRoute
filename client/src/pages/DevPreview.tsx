@@ -205,6 +205,45 @@ const MOCK_ITIN: ItineraryData = {
   })) as any,
   mapCenter: S, geometry: { spanKm: 8.2, walkMinutes: 112, walkable: true },
 };
+// Variante con le tappe che ALIMENTANO la Logistica: alloggio con criteri di
+// zona (mai una property), esperienza come categoria, tavola, trasferimento.
+// Sono le stesse forme che il generatore produce davvero.
+const MOCK_ITIN_LOG: ItineraryData = {
+  ...MOCK_ITIN,
+  momentsByDay: {
+    ...MOCK_ITIN.momentsByDay,
+    1: [
+      {
+        t: "Sera", ic: "🏨", title: "La base, finalmente", desc: "Check-in e primo giro isolato.",
+        band: "sera", type: "accommodation", id: "d1acc", dayNumber: 1,
+        kindLabel: "Alloggio", startTime: "18:30",
+        ctaUrl: "https://expedia.com/affiliate/Hotel-Search?destination=Ladadika%2C%20Salonicco",
+        ctaProvider: "hotels", cta: "Vedi hotel disponibili a Ladadika",
+        stay: {
+          district: "Ladadika", style: "boutique in edificio storico", budgetRange: "€80–120/notte",
+          why: "A piedi dal lungomare e dai mercati, ma fuori dal rumore della via principale.",
+        },
+      },
+      {
+        t: "Mattina", ic: "✈️", title: "Milano → Salonicco", desc: "Volo diretto del mattino.",
+        band: "mattina", type: "transport", id: "d1tr", dayNumber: 1, kindLabel: "Volo", startTime: "07:20",
+      },
+    ] as any,
+    3: [
+      {
+        t: "Pomeriggio", ic: "🚌", title: "Verso Halkidiki", desc: "Il trasferimento alla seconda base.",
+        band: "pomeriggio", type: "transport", id: "d3tr", dayNumber: 3,
+        kindLabel: "Trasferimento", locationName: "Halkidiki", startTime: "15:00",
+      },
+      {
+        t: "Sera", ic: "🍽", title: "Cena al porto", desc: "Pesce, senza cerimonie.",
+        band: "sera", type: "food", id: "d3food", dayNumber: 3,
+        kindLabel: "Tavola", locationName: "Taverna Aktaion", costLabel: "€25–35", startTime: "20:30",
+      },
+    ] as any,
+  },
+};
+
 const MOCK_RAW = {
   schemaVersion: 2, destinationName: "Salonicco, Grecia", days: [
     { day_number: 1, moments: [] }, { day_number: 3, moments: [] },
@@ -279,12 +318,42 @@ export default function DevPreview() {
   //   s=/itinerary/2/logistica  → 5 Logistica     s=/itinerary/2/modifica   → 6 Modifica
   if (view === "flow") {
     const s = (() => { try { return new URLSearchParams(window.location.search).get("s"); } catch { return null; } })();
-    const mockProfile = { days: 5, budget: "medium", departure: "Milano", _l1: { mode: "meta", city: "Salonicco" } };
+    const mockProfile = { days: 5, budget: "medium", departure: "Milano", companions: "coppia", _l1: { mode: "meta", city: "Salonicco" } };
+    // Link della forma reale (non di produzione: qui non c'e' rete ne' DB) +
+    // criteri alloggio + budget + una prenotazione gia' cliccata e confermata,
+    // cosi' la Logistica si vede negli stati che un utente incontra davvero.
+    const MOCK_AFF: Record<string, string> = {
+      expedia_flights: "https://expedia.com/affiliate/flights?d=SKG",
+      hotels: "https://expedia.com/affiliate/Hotel-Search?destination=Ladadika%2C%20Salonicco",
+      tablet_hotels: "https://tablethotels.com/affiliate/salonicco",
+      viator: "https://viator.com/affiliate/searchResults/all?text=cibo%20di%20strada%20Salonicco",
+      civitatis: "https://civitatis.com/affiliate/salonicco",
+      tripadvisor: "https://tripadvisor.com/affiliate/Restaurants-Salonicco",
+      flixbus: "https://flixbus.com/affiliate/salonicco",
+    };
+    const RAW_WITH_LOGISTICS = {
+      ...MOCK_RAW,
+      budgetSummary: JSON.stringify({ items: [
+        { label: "Prenotabile ora", total: "€520" },
+        { label: "In loco (stima)", total: "€310" },
+        { label: "Totale", total: "€830" },
+      ] }),
+      tripMeta: {
+        total_cost_bookable: 520, total_cost_onsite_estimate: 310, total_cost_range: "€780–900/pp",
+        affiliate_clicks: { flight: true, hotel: true },
+        booked: { flight: true },
+      },
+    };
     return (
       <ItineraryFlow
-        data={MOCK_ITIN} itinerary={MOCK_RAW} affiliateUrls={{}} profilingInput={mockProfile}
+        data={MOCK_ITIN_LOG} itinerary={RAW_WITH_LOGISTICS} affiliateUrls={MOCK_AFF} profilingInput={mockProfile}
         itineraryId={2} savedMomentIds={new Set(["m3"])} onToggleSaved={() => {}}
         previewPath={s ?? "/itinerary/2"}
+        onSavePdf={() => {}}
+        onSaveDays={async (days) => {
+          // In anteprima non c'e' server: mostriamo cosa sarebbe stato salvato.
+          console.log("[preview] PATCH /edit →", JSON.stringify(days).slice(0, 400));
+        }}
       />
     );
   }

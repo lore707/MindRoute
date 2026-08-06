@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { fromEditedMoment } from "@shared/edited-moment";
 import { Link, useRoute, useLocation } from "wouter";
 // CSS dell'area itinerario, code-split su questa route lazy (vedi index.css).
 import "@/styles/account-dashboard.css";
@@ -452,26 +453,22 @@ function buildMoments(
   // dai 4 slot. I 4 slot restano scritti (raggruppati) come fallback per PDF e
   // altri lettori, ma qui editedMoments è la verità.
   if (Array.isArray(day?.editedMoments) && day.editedMoments.length) {
-    return day.editedMoments.map((m: any, ei: number): CinMoment => ({
-      t: m.t ?? "", ic: m.ic ?? "📍", title: m.title ?? "", desc: m.desc ?? "",
-      // La fascia salvata vince su quella dedotta dall'etichetta: con l'editor
-      // del flusso l'utente può spostare una tappa fra le fasce.
-      band: (m.band === "mattina" || m.band === "pranzo" || m.band === "pomeriggio" || m.band === "sera")
-        ? m.band : bandFromLabel(m.t),
-      kindLabel: m.kindLabel ?? kindLabelFor(m.type, "it"),
-      cta: m.cta, ctaUrl: m.ctaUrl, ctaPrice: m.ctaPrice, ctaStatus: m.ctaStatus, ctaProvider: m.ctaProvider,
-      locationName: m.locationName, imageUrl: m.imageUrl, type: m.type,
-      // Campi che prima l'editing BUTTAVA VIA: personalizzare un giorno
-      // cancellava l'insight, gli orari e i costi di TUTTE le sue tappe.
-      startTime: m.startTime, endTime: m.endTime,
-      durationLabel: m.durationLabel, costLabel: m.costLabel,
-      transport: m.transport, planB: m.planB, why: m.why,
-      lat: typeof m.lat === "number" ? m.lat : undefined,
-      lng: typeof m.lng === "number" ? m.lng : undefined,
-      // id di ricambio: senza, la card resta MUTA al click (JourneyView apre
-      // il dettaglio solo `if (m.id)`) e il momento sembra rotto.
-      id: (typeof m.id === "string" && m.id.trim()) ? m.id.trim() : `d${dayIndex + 1}e${ei + 1}`,
-    }));
+    // La lista dei campi che sopravvivono a una modifica vive in UN posto solo
+    // (shared/edited-moment.ts), condivisa con la schermata che li scrive:
+    // due liste separate si erano gia' disallineate, e l'editing cancellava
+    // insight, orari e costi di tutte le tappe del giorno.
+    return day.editedMoments.map((m: any, ei: number): CinMoment => {
+      const r = fromEditedMoment(m, `d${dayIndex + 1}e${ei + 1}`);
+      return {
+        ...r,
+        t: r.t ?? "", ic: r.ic ?? "📍", title: r.title ?? "", desc: r.desc ?? "",
+        // La fascia salvata vince su quella dedotta dall'etichetta: nell'editor
+        // l'utente può spostare una tappa fra le fasce.
+        band: (r.band === "mattina" || r.band === "pranzo" || r.band === "pomeriggio" || r.band === "sera")
+          ? r.band : bandFromLabel(r.t),
+        kindLabel: r.kindLabel ?? kindLabelFor(r.type, "it"),
+      } as CinMoment;
+    });
   }
   const isFirst = dayIndex === 0;
   const isLast = dayIndex === dayCount - 1;

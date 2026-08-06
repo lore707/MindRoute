@@ -94,7 +94,9 @@ export function LogisticsScreen() {
           )}
           {/* La conferma è accettata dal server SOLO dopo il click sul link:
               niente spunte a caso, e lo stato vale su qualsiasi dispositivo. */}
-          <button className={"mrf-pill sm" + (isChecked ? " acc" : "")}
+          {/* Quando e' fatto e' uno STATO, non un invito: niente corallo pieno
+              accanto al tag verde, o sembra che manchi ancora qualcosa. */}
+          <button className={"mrf-pill sm" + (isChecked ? " done" : "")}
             onClick={() => f.toggleBooked(it.id)} disabled={!wasClicked && !isChecked}>
             {isChecked ? <Check size={13} /> : null} {isChecked ? f.t("if.log.booked") : f.t("if.log.bookedMark")}
           </button>

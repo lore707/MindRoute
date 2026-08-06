@@ -32,6 +32,11 @@ jobs:
       - name: Verify moment time contract
         run: npm run verify:times
 
+      # Cosa sopravvive a una modifica dell'utente. Un campo perso qui non da'
+      # errore: da' una tappa che ha perso l'orario e il "perche' proprio questo".
+      - name: Verify edit round-trip
+        run: npm run verify:edit
+
       - name: Build
         run: npm run build
         env:

@@ -98,6 +98,7 @@ export const itineraryFlowDict: Record<string, { en: string; it: string }> = {
   "if.ed.saveErr": { en: "Could not save. Try again.", it: "Non sono riuscito a salvare. Riprova." },
   "if.ed.add": { en: "Add a stop", it: "Aggiungi tappa" },
   "if.ed.remove": { en: "Remove this stop", it: "Rimuovi questa tappa" },
+  "if.ed.reorder": { en: "Drag to reorder", it: "Trascina per riordinare" },
   "if.ed.moveUp": { en: "Move up", it: "Sposta su" },
   "if.ed.moveDown": { en: "Move down", it: "Sposta giù" },
   "if.ed.newTitle": { en: "New stop", it: "Nuova tappa" },

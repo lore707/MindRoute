@@ -129,6 +129,9 @@
 .mrf-pill.wide { width: 100%; }
 .mrf-pill.sm { min-height: 36px; padding: 0 14px; font-size: 12px; }
 .mrf-pill:disabled { opacity: .45; cursor: not-allowed; }
+/* Fatto: verde sobrio, non un secondo bottone d'azione. */
+.mrf-pill.done { color: #6FB4A8; border-color: rgba(111, 180, 168, .45); background: rgba(111, 180, 168, .1); }
+.mrf-pill.done:hover { background: rgba(111, 180, 168, .16); border-color: #6FB4A8; }
 
 /* ═══════════════════ 1 · OVERVIEW ═══════════════════ */
 .mrf-ov-hero { padding: 18px var(--gutter) 0; max-width: 560px; margin: 0 auto; }
@@ -568,7 +571,18 @@
   display: grid; grid-template-columns: 46px 1fr 40px 28px; gap: 10px; align-items: center;
   padding: 10px 0; border-bottom: 1px solid var(--stroke);
 }
-.mrf-ed-row.drag { opacity: .45; }
+/* Riga in trascinamento: si stacca dalla lista e segue il dito. `touch-action`
+   sulla maniglia e' obbligatorio, altrimenti il browser interpreta il gesto
+   come uno scroll e il riordino non parte mai su telefono. */
+.mrf-ed-row.drag {
+  position: relative; z-index: 20;
+  background: rgba(233, 69, 96, .1);
+  border-radius: var(--r-s);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+  border-bottom-color: transparent;
+}
+.mrf-ed-h { touch-action: none; -webkit-user-select: none; user-select: none; }
+.mrf-ed-h:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; border-radius: 8px; }
 .mrf-ed-time {
   font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-dim);
   display: flex; align-items: center; gap: 6px;
