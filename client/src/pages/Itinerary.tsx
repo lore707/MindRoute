@@ -454,11 +454,14 @@ function buildMoments(
   // dai 4 slot. I 4 slot restano scritti (raggruppati) come fallback per PDF e
   // altri lettori, ma qui editedMoments è la verità.
   if (Array.isArray(day?.editedMoments) && day.editedMoments.length) {
-    return day.editedMoments.map((m: any): CinMoment => ({
+    return day.editedMoments.map((m: any, ei: number): CinMoment => ({
       t: m.t ?? "", ic: m.ic ?? "📍", title: m.title ?? "", desc: m.desc ?? "",
       band: bandFromLabel(m.t), kindLabel: kindLabelFor(m.type, "it"),
       cta: m.cta, ctaUrl: m.ctaUrl, ctaPrice: m.ctaPrice, ctaStatus: m.ctaStatus, ctaProvider: m.ctaProvider,
-      locationName: m.locationName, imageUrl: m.imageUrl, id: m.id, type: m.type,
+      locationName: m.locationName, imageUrl: m.imageUrl, type: m.type,
+      // id di ricambio: senza, la card resta MUTA al click (JourneyView apre
+      // il dettaglio solo `if (m.id)`) e il momento sembra rotto.
+      id: (typeof m.id === "string" && m.id.trim()) ? m.id.trim() : `d${dayIndex + 1}e${ei + 1}`,
     }));
   }
   const isFirst = dayIndex === 0;
@@ -501,6 +504,7 @@ function buildMoments(
     moments.push({
       t: s.label, ic: s.ic, title, desc,
       band: bandFromTimeLabel(s.key),
+      id: `d${dayIndex + 1}s${s.key}`,   // senza id la card non si apre
       cta, ctaUrl,
       ctaStatus: ctaUrl && linkKey ? bookStatusFor(linkKey) : undefined,
       ctaProvider: ctaUrl && linkKey ? affiliateProvider(linkKey) : undefined,
@@ -538,10 +542,11 @@ const MOMENT_TYPE_VERB: Record<string, string> = {
 // Fascia canonica dal time_label v2 (EN+IT) o dalla chiave-slot v1.
 function bandFromTimeLabel(tl?: string): "mattina" | "pranzo" | "pomeriggio" | "sera" {
   switch ((tl ?? "").toLowerCase()) {
-    case "lunch": case "mezzogiorno": return "pranzo";
+    case "lunch": case "pranzo": case "mezzogiorno": case "noon": case "midday": return "pranzo";
     case "afternoon": case "pomeriggio": return "pomeriggio";
-    case "evening": case "night": case "sera": case "notte": return "sera";
-    default: return "mattina"; // morning/mattina/sconosciuto
+    // "cena"/"dinner" finivano nel default → la cena compariva di MATTINA
+    case "evening": case "night": case "sera": case "notte": case "cena": case "dinner": return "sera";
+    default: return "mattina"; // morning/mattina/colazione/sconosciuto
   }
 }
 // Fascia da un'etichetta già localizzata (editedMoments v1: "Mattina"/"Pranzo"…).
@@ -549,7 +554,8 @@ function bandFromLabel(label?: string): "mattina" | "pranzo" | "pomeriggio" | "s
   const l = (label ?? "").toLowerCase();
   if (l.includes("pranz") || l.includes("lunch") || l.includes("mezzogiorno")) return "pranzo";
   if (l.includes("pomerig") || l.includes("afternoon")) return "pomeriggio";
-  if (l.includes("ser") || l.includes("even") || l.includes("nott") || l.includes("night")) return "sera";
+  if (l.includes("ser") || l.includes("even") || l.includes("nott") || l.includes("night")
+      || l.includes("cena") || l.includes("dinner")) return "sera";
   return "mattina";
 }
 // Etichetta breve del tipo per la pill "kind" (IT/EN) — contenuto = type generato.

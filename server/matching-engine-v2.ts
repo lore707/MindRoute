@@ -147,7 +147,16 @@ const momentV2Schema: z.ZodType<MomentV2, z.ZodTypeDef, any> = z.object({
   // normalizziamo al token EN così i consumer (icone/slot) restano coerenti.
   time_label: looseEnum<MomentV2["time_label"]>(
     ["morning", "lunch", "afternoon", "evening", "night"],
-    { mattina: "morning", mezzogiorno: "lunch", pranzo: "lunch", pomeriggio: "afternoon", sera: "evening", notte: "night" },
+    {
+      // IT
+      mattina: "morning", mattino: "morning", colazione: "morning",
+      mezzogiorno: "lunch", pranzo: "lunch",
+      pomeriggio: "afternoon",
+      sera: "evening", serata: "evening", cena: "evening", notte: "night",
+      // EN — sinonimi che il modello emette anche quando chiediamo i canonici
+      breakfast: "morning", noon: "lunch", midday: "lunch",
+      dinner: "evening", supper: "evening",
+    },
   ),
   start_time: optStr,
   end_time: optStr,

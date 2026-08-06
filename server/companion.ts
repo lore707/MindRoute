@@ -21,6 +21,28 @@ import type { Itinerary } from "@shared/schema";
 
 const COMPANION_MODEL = "claude-haiku-4-5-20251001";
 
+/* I token che il client sa collocare in una fascia. Un valore libero finisce
+   nel default ("mattina"): una cena aggiunta in chat compariva al mattino. */
+function canonicalTimeLabel(raw: unknown): "morning" | "lunch" | "afternoon" | "evening" | "night" {
+  const k = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (["lunch", "pranzo", "mezzogiorno", "noon", "midday"].includes(k)) return "lunch";
+  if (["afternoon", "pomeriggio"].includes(k)) return "afternoon";
+  if (["evening", "sera", "serata", "cena", "dinner", "supper"].includes(k)) return "evening";
+  if (["night", "notte"].includes(k)) return "night";
+  if (["morning", "mattina", "mattino", "colazione", "breakfast"].includes(k)) return "morning";
+  // orario esplicito ("20:30") → fascia dall'ora
+  const hh = /^(\d{1,2})[:.]/.exec(k);
+  if (hh) {
+    const h = Number(hh[1]);
+    if (h >= 5 && h < 12) return "morning";
+    if (h < 15) return "lunch";
+    if (h < 18) return "afternoon";
+    if (h < 23) return "evening";
+    return "night";
+  }
+  return "afternoon";   // neutro: non finge una colazione
+}
+
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
 // ── Where in the trip are we? ──────────────────────────────────────────────
@@ -383,7 +405,7 @@ const COMPANION_TOOLS = [
       properties: {
         day_number: { type: "number", description: "Which day to add it to (the Day N number shown in the plan)." },
         title: { type: "string", description: "Short title of the new place/activity." },
-        time_label: { type: "string", description: "Optional time/slot label, e.g. '20:00' or 'Evening'." },
+        time_label: { type: "string", description: "Slot: one of morning, lunch, afternoon, evening, night. A clock time like '20:30' also works." },
         location_name: { type: "string", description: "Optional real place name." },
         lat: { type: "number", description: "Optional latitude (use find_nearby's value when available)." },
         lng: { type: "number", description: "Optional longitude." },
@@ -625,10 +647,12 @@ async function executeTool(
       if (!title) return { result: "add_moment needs a title.", label: it ? "Titolo mancante" : "Missing title" };
       const newMoment: any = {
         id: `comp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
-        time_label: typeof input?.time_label === "string" && input.time_label.trim() ? input.time_label.trim() : (it ? "Aggiunto" : "Added"),
+        // Normalizzato ai token canonici: un time_label libero ("Aggiunto",
+        // "cena") mandava il momento nella fascia MATTINA lato client.
+        time_label: canonicalTimeLabel(input?.time_label),
         title_operational: title,
         title_evocative: title,
-        type: "activity",
+        type: "experience",   // "activity" non esiste in MomentType
       };
       if (typeof input?.note === "string" && input.note.trim()) newMoment.description = input.note.trim();
       if (typeof input?.location_name === "string" && input.location_name.trim()) newMoment.location_name = input.location_name.trim();
