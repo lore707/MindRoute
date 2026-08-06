@@ -12,6 +12,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { itineraryLimiter } from "../rate-limiter";
 import { generateItineraryV2ForDestination, type ItineraryV2 } from "../matching-engine-v2";
+import { normalizeDayTimes } from "../moment-times";
 import { fetchUnsplashHero, fetchDayImageWithFallback, buildDestinationPhotoPool, mapWithConcurrency } from "../unsplash";
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
@@ -249,6 +250,7 @@ function makePoolAllocator(pool: Array<{ id: string; url: string }>): () => stri
 
 // Enrichment di UN solo giorno (companion regenerate_day): immagine del giorno,
 // immagine + geocode per ogni momento, ricalcolo costi. Mutua il giorno in place.
+
 export async function enrichDayV2(day: DayV2, destinationName: string, profilingInput?: any): Promise<void> {
   const affCtx = buildAffiliateContext(destinationName, profilingInput);
   const [heroData, pool] = await Promise.all([
@@ -262,6 +264,7 @@ export async function enrichDayV2(day: DayV2, destinationName: string, profiling
   for (const m of day.moments) {
     await enrichMoment(m, destinationName, day.day_number, day.hero_image_url, affCtx, nextImg);
   }
+  normalizeDayTimes(day);
   recomputeDayCosts(day);
 }
 
@@ -338,6 +341,7 @@ export async function enrichItineraryV2(
       if (mp) allMapPoints.push(mp);
     }
 
+    normalizeDayTimes(day);
     recomputeDayCosts(day);
   });
 

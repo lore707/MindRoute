@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { buildPrompt, client, extractJsonPayload, type ProfilingInput } from "./matching-engine";
 import { graphGenEnabled } from "./graph-build";
+import { parseClock, bandFromClock } from "./moment-times";
 import type {
   MomentType,
   BookingStatus,
@@ -31,13 +32,37 @@ import type {
 // → fallback costoso al legacy stream. Qui normalizziamo (trim+lowercase+
 // sinonimi IT) RICONDUCENDO al token canonico EN, così il resto dell'app — che
 // indicizza per chiave inglese — continua a funzionare. (1A audit)
-function looseEnum<T extends string>(canonical: readonly T[], synonyms: Record<string, T> = {}): z.ZodType<T> {
+/* Enum tollerante sull'output del modello.
+ *
+ * Con `fallback` NON LANCIA MAI: un valore inatteso ma sensato ("cena",
+ * "brunch", "sightseeing") viene ricondotto al default e loggato, invece di far
+ * fallire la validazione dell'intero blocco-giorno. Era esattamente la causa
+ * del bug "la cena esce doppia o non esce": un'etichetta fuori lista buttava
+ * via il giorno e lo mandava nel fallback single-call.
+ *
+ * Senza `fallback` il comportamento resta stretto (usato dove un valore
+ * sbagliato è peggio di un errore).
+ */
+function looseEnum<T extends string>(
+  canonical: readonly T[],
+  synonyms: Record<string, T> = {},
+  fallback?: T,
+  fieldName = "enum",
+): z.ZodType<T> {
   const set = new Set<string>(canonical as readonly string[]);
   return z.preprocess((v) => {
-    if (typeof v !== "string") return v;
+    if (typeof v !== "string") return fallback !== undefined && v == null ? fallback : v;
     const k = v.trim().toLowerCase();
     if (set.has(k)) return k;
-    return synonyms[k] ?? v;
+    const syn = synonyms[k];
+    if (syn) return syn;
+    if (fallback !== undefined) {
+      // Visibile nei log: un valore che ricorre è un sinonimo da aggiungere,
+      // non rumore da ignorare.
+      console.warn(`[v2] ${fieldName}: valore non riconosciuto "${v}" → "${fallback}"`);
+      return fallback;
+    }
+    return v;
   }, z.enum(canonical as unknown as [T, ...T[]])) as unknown as z.ZodType<T>;
 }
 
@@ -59,6 +84,7 @@ const momentTypeSchema = looseEnum<MomentType>(
     vista: "view", panorama: "view", veduta: "view",
     riposo: "rest", pausa: "rest", relax: "rest",
   },
+  "experience", "moment.type", // il tipo piu' generico: non promette nulla di falso
 ) satisfies z.ZodType<MomentType>;
 
 const bookingStatusSchema = looseEnum<BookingStatus>(
@@ -68,11 +94,15 @@ const bookingStatusSchema = looseEnum<BookingStatus>(
     consigliato: "reserve_recommended", consigliata: "reserve_recommended", "prenotazione_consigliata": "reserve_recommended",
     "senza_prenotazione": "walk_in", "accesso_libero": "walk_in", walkin: "walk_in",
   },
+  // Fallback SICURO: davanti a uno stato ignoto non promettiamo una
+  // prenotabilita' che non sappiamo esistere.
+  "walk_in", "booking.status",
 ) satisfies z.ZodType<BookingStatus>;
 
 const energyLevelSchema = looseEnum<EnergyLevel>(
   ["low", "medium", "high"],
   { basso: "low", bassa: "low", medio: "medium", media: "medium", alto: "high", alta: "high" },
+  "medium", "day.energy_level",
 ) satisfies z.ZodType<EnergyLevel>;
 
 const weatherConditionSchema = looseEnum<WeatherCondition>(
@@ -84,6 +114,7 @@ const weatherConditionSchema = looseEnum<WeatherCondition>(
     misto: "mixed", variabile: "mixed",
     neve: "snow", nevoso: "snow",
   },
+  "mixed", "weather.condition",
 ) satisfies z.ZodType<WeatherCondition>;
 
 // Alloggio = criteri di ricerca (mai un nome di property): zona, tipo, fascia,
@@ -137,8 +168,21 @@ const planBV2Schema = z.preprocess(
   }),
 );
 
+const TIME_LABELS = new Set(["morning", "lunch", "afternoon", "evening", "night"]);
+
 // Input `any`: i campi immagine hanno default('') quindi l'input ammette l'assenza.
-const momentV2Schema: z.ZodType<MomentV2, z.ZodTypeDef, any> = z.object({
+const momentV2Schema: z.ZodType<MomentV2, z.ZodTypeDef, any> = z.preprocess((v: any) => {
+  // L'ORARIO COMANDA sulla fascia. Prima il time_label era l'unica fonte e un
+  // valore fuori lista faceva fallire il blocco; ora, se c'e' un start_time
+  // valido, la fascia si deduce da li' — e resta coerente con cio' che l'utente
+  // legge sulla timeline e sulla mappa.
+  if (!v || typeof v !== "object") return v;
+  const clock = parseClock(v.start_time);
+  if (clock == null) return v;
+  const label = typeof v.time_label === "string" ? v.time_label.trim().toLowerCase() : "";
+  if (!TIME_LABELS.has(label)) return { ...v, time_label: bandFromClock(clock) };
+  return v;
+}, z.object({
   id: z.string(),
   type: momentTypeSchema,
   title_evocative: z.string(),
@@ -157,6 +201,9 @@ const momentV2Schema: z.ZodType<MomentV2, z.ZodTypeDef, any> = z.object({
       breakfast: "morning", noon: "lunch", midday: "lunch",
       dinner: "evening", supper: "evening",
     },
+    // Ultima rete: etichetta ignota E nessun orario da cui dedurre. Prima qui
+    // si LANCIAVA, e il giorno intero finiva nel fallback single-call.
+    "afternoon", "moment.time_label",
   ),
   start_time: optStr,
   end_time: optStr,
@@ -175,7 +222,7 @@ const momentV2Schema: z.ZodType<MomentV2, z.ZodTypeDef, any> = z.object({
   why_this: z.string(),
   transport_to_next: transportToNextV2Schema.optional(),
   plan_b: planBV2Schema.optional(),
-});
+})) as unknown as z.ZodType<MomentV2, z.ZodTypeDef, any>;
 
 const weatherForecastV2Schema = z.object({
   temp_min: z.number(),
@@ -194,6 +241,7 @@ const dayRoleSchema = looseEnum<DayRole>(
     transfer: "trasferimento", transit: "trasferimento",
     departure: "partenza",
   },
+  "esplorazione", "day.role",
 );
 
 const dayV2Schema: z.ZodType<DayV2, z.ZodTypeDef, any> = z.object({
@@ -427,6 +475,17 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
      → prose, no CTA.
    • Any moment without a coherent partner → honest prose.
 
+2d. START_TIME — REQUIRED on every single moment. Not optional, not "when obvious".
+   - Format strictly "HH:MM" on a 24-hour clock ("09:30", "13:00", "20:15").
+   - Times inside one day MUST increase strictly from the first moment to the last.
+     A moment can never start before the previous one ends.
+   - Leave a realistic gap: previous start_time + previous duration_min +
+     transport_to_next.duration_min ≤ this start_time.
+   - Keep them plausible for the local rhythm of the destination (dinner at 19:00 in
+     Oslo, 21:30 in Seville) and coherent with the profile's pace.
+   - They are HONEST ESTIMATES, not opening hours you looked up — but the reader plans
+     the day on them, so an incoherent sequence is worse than a vague one.
+
 3. MOMENT IMAGE
    - Do NOT include any image_url or hero_image_url fields. Real photos are
      attached by the system afterwards — any URL you write is discarded.
@@ -479,6 +538,9 @@ afternoon, evening), so the frontend draws every day identically. Standard funct
    - total_cost_range = display-ready string, e.g. "€1.800–2.400/pp".
 ${budgetTargetBlock}
 
+7b. END_TIME — do NOT output it. The system derives it from start_time + duration_min,
+   so it can never contradict them.
+
 8. TRANSPORT_TO_NEXT
    - On every moment EXCEPT the last of the day, include transport_to_next.
    - mode + duration_min + cost_estimate (string like "€5–8" or omit if free walk).
@@ -517,6 +579,9 @@ ${budgetTargetBlock}
    - Rest days: zero CTA. No out-of-context CTA anywhere; pranzo never has a CTA.
    - Experience partner chosen by region (§2c). Each provider is from the allowed set.
    - Each image is real or omitted; each practical figure is honest/indicative.
+   - EVERY moment has a start_time in "HH:MM", and within each day they increase
+     strictly (§2d). Re-read the day's times as a sequence before returning: if one
+     starts before the previous one has plausibly ended, fix it.
 
 ═══════════════════════════════════════════════════════════════════════════
 REQUIRED JSON OUTPUT — v2 schema

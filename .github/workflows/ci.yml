@@ -26,6 +26,12 @@ jobs:
       - name: TypeScript check
         run: npm run check
 
+      # Contratto temporale dei momenti: nessun valore ignoto deve far fallire
+      # un giorno, e gli orari mostrati devono essere coerenti. E' logica pura,
+      # non serve DB.
+      - name: Verify moment time contract
+        run: npm run verify:times
+
       - name: Build
         run: npm run build
         env:
