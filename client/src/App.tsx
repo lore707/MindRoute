@@ -81,12 +81,22 @@ function Router() {
           <Route path="/destinations">
             <RequireAuth><Destinations /></RequireAuth>
           </Route>
-          <Route path="/itinerary/:id" component={Itinerary} />
-          <Route path="/i/:token" component={SharedItinerary} />
-          <Route path="/privacy" component={Privacy} />
+          {/* La generazione ha la precedenza: "stream" non è un id. */}
           <Route path="/itinerary/stream/:id">
             <RequireAuth><ItineraryStream /></RequireAuth>
           </Route>
+          {/* Flusso a schermate (2026-08): ogni schermata ha il suo URL, così
+              il tasto indietro del browser funziona e i link si condividono.
+              Tutte servite dalla stessa pagina, che legge il percorso. */}
+          <Route path="/itinerary/:id" component={Itinerary} />
+          <Route path="/itinerary/:id/g/:n" component={Itinerary} />
+          <Route path="/itinerary/:id/g/:n/t/:mid" component={Itinerary} />
+          <Route path="/itinerary/:id/g/:n/mappa" component={Itinerary} />
+          <Route path="/itinerary/:id/logistica" component={Itinerary} />
+          <Route path="/itinerary/:id/modifica" component={Itinerary} />
+          <Route path="/itinerary/:id/modifica/:n" component={Itinerary} />
+          <Route path="/i/:token" component={SharedItinerary} />
+          <Route path="/privacy" component={Privacy} />
           <Route path="/my-account" component={MyAccount} />
           <Route path="/compare" component={Compare} />
           {DevPreview && <Route path="/__preview/dashboard" component={DevPreview} />}

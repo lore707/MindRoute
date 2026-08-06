@@ -1,0 +1,184 @@
+/* ════════════════════════════════════════════════════════════
+   RouteMap — stili della mappa, importati dal componente stesso.
+   Prima vivevano dentro itinerary-dashboard.css scopati su
+   `.account-dash`: fuori dal vecchio dashboard la mappa restava NERA.
+   Qui sono auto-scopati sui nomi `.rmap-*`, che sono gia' unici, cosi'
+   la mappa funziona ovunque venga montata.
+   I token (--ink, --stroke, --accent, --serif, --gold) devono essere
+   definiti dal contenitore: il flusso li dichiara in flow.css.
+   ════════════════════════════════════════════════════════════ */
+.rmap-wrap{position:relative}
+/* stage = solo mappa + overlay essenziali (toolbar, risultati, card):
+   tutto ciò che è absolute si ancora QUI, non al wrap (che ora contiene
+   anche barra giorni, filtri e striscia-tappe in flusso). */
+.rmap-stage{position:relative}
+.rmap{width:100%;height:clamp(360px,52vh,560px);background:#11161f}
+/* basemap CARTO dark schiarito+contrastato: strade ed etichette leggibili, mood notturno preservato */
+.rmap .leaflet-tile{filter:brightness(1.5) contrast(1.08) saturate(1.22)}
+.rmap-loading{display:grid;place-items:center;height:clamp(360px,52vh,560px);color:var(--ink-dim);font-family:var(--serif);font-style:italic;font-size:14px}
+/* fullscreen: colonna a tutto viewport — barra giorni / filtri / mappa
+   (flex:1) / striscia-tappe. Safe-area per notch e home indicator. */
+.rmap-wrap--full{position:fixed;inset:0;z-index:4000;background:#0b0e14;display:flex;flex-direction:column;overflow:hidden}
+.rmap-wrap--full .rmap-days{padding-top:calc(12px + env(safe-area-inset-top))}
+.rmap-wrap--full .rmap-stage{flex:1;min-height:0;display:flex;flex-direction:column}
+.rmap-wrap--full .rmap{flex:1;height:auto;min-height:0;border-radius:0}
+.rmap-wrap--full .rmap-strip{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+/* ── barra giorni: in flusso sopra la mappa, scroll orizzontale ── */
+.rmap-days{display:flex;gap:8px;align-items:center;padding:2px 22px 12px;overflow-x:auto;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.rmap-days::-webkit-scrollbar{display:none}
+.rmap-day{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 16px;
+  border-radius:999px;border:1px solid var(--stroke-2);background:rgba(255,255,255,.03);
+  color:var(--ink-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;line-height:1}
+.rmap-day .w{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);transition:color .2s}
+.rmap-day .n{font-family:var(--serif);font-size:18px;color:var(--ink);transition:color .2s}
+.rmap-day:hover{border-color:var(--accent);color:var(--ink)}
+.rmap-day.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.rmap-day.on .w,.rmap-day.on .n{color:#fff}
+/* toolbar: ricerca + posizione + fullscreen.
+   left:64px, non 14: a top-left c'è lo zoom di Leaflet (+/−) e la search
+   vi finiva sotto (overlap). */
+.rmap-toolbar{position:absolute;top:14px;left:64px;z-index:620;display:flex;gap:6px;align-items:center;max-width:calc(100% - 78px)}
+.rmap-search{display:flex;align-items:center;background:rgba(13,7,13,.78);backdrop-filter:blur(10px);border:1px solid var(--stroke-2);border-radius:999px;overflow:hidden}
+.rmap-search input{background:transparent;border:0;outline:0;color:var(--ink);font-size:13px;padding:8px 12px;width:clamp(120px,30vw,240px)}
+.rmap-search input::placeholder{color:var(--ink-faint)}
+.rmap-icbtn{display:grid;place-items:center;width:34px;height:34px;flex:0 0 auto;border-radius:50%;border:1px solid var(--stroke-2);
+  background:rgba(13,7,13,.78);backdrop-filter:blur(10px);color:var(--ink-dim);font-size:16px;cursor:pointer;transition:all .2s}
+.rmap-icbtn:hover{color:var(--ink);border-color:var(--accent)}
+.rmap-search .rmap-icbtn{border:0;background:transparent;width:32px}
+/* risultati ricerca */
+.rmap-results{position:absolute;top:56px;left:64px;z-index:620;width:clamp(220px,40vw,340px);margin:0;padding:6px;list-style:none;
+  background:rgba(13,7,13,.92);backdrop-filter:blur(12px);border:1px solid var(--stroke-2);border-radius:14px;box-shadow:0 24px 60px -20px rgba(0,0,0,.85);max-height:280px;overflow:auto}
+.rmap-results li button{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:9px;padding:8px 10px;cursor:pointer;transition:background .15s}
+.rmap-results li button:hover{background:rgba(255,255,255,.06)}
+.rmap-results .rr-t{display:block;color:var(--ink);font-size:13px;font-weight:600}
+.rmap-results .rr-a{display:block;color:var(--ink-faint);font-size:11px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── filtri: riga richiudibile in flusso (motore + categorie) ── */
+.rmap-filterrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 22px 12px}
+.rmap-chip{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 13px;border-radius:999px;
+  border:1px solid var(--stroke-2);background:rgba(255,255,255,.03);
+  color:var(--ink-dim);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;line-height:1}
+.rmap-chip:hover{color:var(--ink);border-color:var(--accent)}
+.rmap-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.rmap-chip--cat.on{color:#fff}
+/* il toggle "Filtri" aperto non è un filtro attivo: stato soft, non accent pieno */
+.rmap-chip--toggle.on{background:rgba(233,69,96,.12);border-color:var(--accent);color:var(--ink)}
+/* legenda */
+.rmap-legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:13px 22px 16px;
+  font-family:var(--serif);font-style:italic;font-size:12px;color:var(--ink-dim);border-top:1px solid var(--stroke)}
+.rmap-sw{width:14px;height:14px;border-radius:50%;display:inline-block}
+.rmap-sw.rmap-line{width:16px;height:2px;border-radius:2px;margin-left:12px}
+/* pin numerati */
+.rmap-pin{width:34px;height:34px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);
+  background:var(--accent);border:2.5px solid #fff;box-shadow:0 6px 18px -4px rgba(0,0,0,.85),0 0 0 3px rgba(233,69,96,.3);display:grid;place-items:center;transition:transform .2s}
+.rmap-pin span{transform:rotate(-45deg);font-weight:700;font-size:15px;color:#fff;line-height:1}
+.rmap-pin-wrap:hover .rmap-pin{transform:rotate(45deg) scale(1.12)}
+/* tappa numerata del percorso del giorno: cerchio accent, numero dritto */
+.rmap-pin--num{border-radius:50%;transform:none;width:32px;height:32px;background:var(--accent)}
+.rmap-pin--num span{transform:none;font-size:15px}
+.rmap-pin-wrap:hover .rmap-pin--num{transform:scale(1.14)}
+/* ancora alloggio: cerchio oro più grande, glifo casa */
+.rmap-pin--hotel{border-radius:50%;transform:none;width:38px;height:38px;background:var(--gold);
+  box-shadow:0 7px 20px -4px rgba(0,0,0,.9),0 0 0 4px rgba(212,168,83,.35)}
+.rmap-pin--hotel span{transform:none;color:#1a1208;font-size:19px}
+.rmap-pin-wrap:hover .rmap-pin--hotel{transform:scale(1.1)}
+/* anello oro = tappa prenotabile */
+.rmap-pin--book{box-shadow:0 6px 18px -4px rgba(0,0,0,.85),0 0 0 3px rgba(212,168,83,.7)}
+/* pin salvato: cerchio oro, stella dritta */
+.rmap-pin--saved{border-radius:50%;transform:none;background:var(--gold)}
+.rmap-pin--saved span{transform:none;color:#1a1208}
+.rmap-pin-wrap:hover .rmap-pin--saved{transform:scale(1.12)}
+/* chip-motore (vicino all'alloggio / se piove): on = oro */
+.rmap-chip--engine.on{background:var(--gold);border-color:var(--gold);color:#1a1208}
+/* card operativa: pannello a destra (desktop), bottom-sheet (mobile) */
+.rmap-card{position:absolute;z-index:640;right:14px;bottom:14px;width:clamp(260px,30vw,320px);
+  background:rgba(13,7,13,.94);backdrop-filter:blur(16px);border:1px solid var(--stroke-2);border-radius:18px;overflow:hidden;
+  box-shadow:0 30px 70px -24px rgba(0,0,0,.85);animation:it-cardin .25s ease}
+.rmap-card-x{position:absolute;top:10px;right:10px;z-index:2;width:28px;height:28px;border-radius:50%;
+  background:rgba(13,7,13,.6);border:1px solid var(--stroke-2);color:var(--ink-dim);display:grid;place-items:center;font-size:13px;cursor:pointer}
+.rmap-card-x:hover{color:var(--ink);border-color:var(--accent)}
+.rmap-card-img{height:130px;background-size:cover;background-position:center}
+.rmap-card-body{padding:14px 16px 16px}
+.rmap-card-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px}
+.rmap-card-day{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--accent);
+  background:rgba(233,69,96,.12);border:1px solid rgba(233,69,96,.4);padding:3px 9px;border-radius:99px}
+.rmap-card-kind{font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--ink-faint)}
+.rmap-card-t{font-family:var(--serif);font-size:19px;line-height:1.18;color:var(--ink);margin-bottom:9px;text-wrap:balance}
+.rmap-card-facts{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink-dim);margin-bottom:10px}
+.rmap-card-desc{font-size:12.5px;line-height:1.5;color:var(--ink-dim);margin-bottom:13px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rmap-card-acts{display:flex;flex-wrap:wrap;gap:7px}
+.rmap-card-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;text-decoration:none;cursor:pointer;
+  padding:8px 12px;border-radius:9px;border:1px solid var(--stroke-2);background:rgba(255,255,255,.04);color:var(--ink-dim);transition:all .16s}
+.rmap-card-btn:hover{color:var(--ink);border-color:var(--accent)}
+.rmap-card-btn--p{background:var(--accent);border-color:var(--accent);color:#fff}
+.rmap-card-btn--p:hover{color:#fff;filter:brightness(1.07)}
+.rmap-card-btn--book{background:rgba(212,168,83,.16);border-color:color-mix(in srgb,var(--gold) 55%,transparent);color:var(--gold)}
+.rmap-card-btn--book:hover{color:#1a1208;background:var(--gold)}
+@media(max-width:640px){
+  .rmap-card{left:10px;right:10px;bottom:10px;width:auto}
+  .rmap-card-img{height:104px}
+}
+/* ── striscia-tappe del giorno: ponte narrativo mappa↔giorni ── */
+.rmap-strip{display:flex;gap:10px;padding:14px 22px 18px;overflow-x:auto;
+  scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;border-top:1px solid var(--stroke)}
+.rmap-strip::-webkit-scrollbar{display:none}
+.rmap-stop{scroll-snap-align:center;flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  min-height:56px;max-width:250px;padding:8px 14px 8px 9px;border-radius:14px;text-align:left;
+  border:1px solid var(--stroke-2);background:rgba(255,255,255,.03);color:var(--ink-dim);cursor:pointer;transition:all .2s}
+.rmap-stop:hover{border-color:var(--accent)}
+.rmap-stop.on{border-color:var(--accent);background:rgba(233,69,96,.1)}
+.rmap-stop-n{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  background:var(--accent);color:#fff;font-size:13px;font-weight:700}
+.rmap-stop-n.h{background:var(--gold);color:#1a1208;font-size:15px}
+.rmap-stop-img{flex:0 0 auto;width:38px;height:38px;border-radius:10px;background-size:cover;background-position:center}
+.rmap-stop-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rmap-stop-t .l{font-size:12.5px;font-weight:600;color:var(--ink);max-width:150px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rmap-stop-t .m{font-size:11px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ── etichetta-tratta sul percorso: "🚶 12 min" ── */
+.rmap-leg-wrap{background:none;border:none}
+.rmap-leg{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;
+  font-size:10.5px;font-weight:700;color:#fff;background:rgba(13,7,13,.85);
+  border:1px solid rgba(233,69,96,.55);padding:3px 8px;border-radius:999px;box-shadow:0 4px 12px -4px rgba(0,0,0,.75)}
+/* marker "vicino a me": pallino blu pulsante */
+.rmap-me{width:16px;height:16px;border-radius:50%;background:#4c9be8;border:2px solid #fff;box-shadow:0 0 0 4px rgba(76,155,232,.35)}
+/* popup dark */
+.rmap-popup .leaflet-popup-content-wrapper{background:rgba(17,22,31,.97);color:var(--ink);border:1px solid var(--stroke-2);border-radius:14px;box-shadow:0 20px 50px -18px rgba(0,0,0,.8)}
+.rmap-popup .leaflet-popup-tip{background:rgba(17,22,31,.97);border:1px solid var(--stroke-2)}
+.rmap-popup .leaflet-popup-content{margin:12px 16px}
+.rmap-pop-t{font-family:var(--serif);font-size:15px;color:var(--ink);line-height:1.25;margin-bottom:3px}
+.rmap-pop-m{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:9px}
+.rmap-pop-a{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#fff;background:var(--accent);
+  padding:6px 11px;border-radius:8px;text-decoration:none;transition:opacity .2s}
+.rmap-pop-a:hover{opacity:.88}
+/* riga "salva come" + chip categoria + rimuovi dentro i popup */
+.rmap-save-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:9px;padding-top:9px;border-top:1px solid var(--stroke)}
+.rmap-save-lbl{font-size:11px;color:var(--ink-faint);margin-right:2px}
+.rmap-cat{width:26px;height:26px;display:grid;place-items:center;border-radius:7px;border:1px solid var(--stroke-2);
+  background:rgba(255,255,255,.05);color:var(--ink);font-size:14px;cursor:pointer;transition:all .15s;padding:0}
+.rmap-cat:hover{border-color:var(--gold);background:rgba(212,168,83,.18)}
+.rmap-cat--wide{width:auto;padding:0 12px;height:28px;font-size:12px;font-weight:600;gap:5px}
+.rmap-del{margin-top:9px;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--ink-dim);
+  background:transparent;border:1px solid var(--stroke-2);padding:5px 10px;border-radius:8px;cursor:pointer;transition:all .15s}
+.rmap-del:hover{color:#fff;border-color:var(--accent);background:var(--accent)}
+/* attribution leggibile su dark */
+.rmap .leaflet-control-attribution{background:rgba(13,7,13,.66);color:var(--ink-faint)}
+.rmap .leaflet-control-attribution a{color:var(--ink-dim)}
+@media (max-width:640px){
+  .rmap-days{padding:2px 14px 10px}
+  .rmap-filterrow{padding:0 14px 10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .rmap-filterrow::-webkit-scrollbar{display:none}
+  .rmap-filterrow .rmap-chip{flex:0 0 auto}
+  .rmap-strip{padding:12px 14px 16px}
+  .rmap{height:clamp(320px,48vh,520px)}
+  /* 16px = niente auto-zoom di iOS al focus */
+  .rmap-search input{font-size:16px;width:clamp(110px,38vw,220px)}
+  .rmap-results{left:10px;right:10px;width:auto}
+}
+@media (pointer:coarse){
+  .rmap-chip{min-height:44px;padding:0 15px}
+  /* hit-area estesa sui controlli flottanti piccoli (⌕ ◎ ⤢) senza ingrossarli */
+  .rmap-icbtn{position:relative}
+  .rmap-icbtn::before{content:"";position:absolute;inset:-6px;border-radius:50%}
+}

@@ -9,6 +9,7 @@ import { itineraryDashDict } from "./i18n-dict/itineraryDash";
 import { residualDict } from "./i18n-dict/residual";
 import { miscDict } from "./i18n-dict/misc";
 import { landingEdDict } from "./i18n-dict/landingEd";
+import { itineraryFlowDict } from "./i18n-dict/itineraryFlow";
 
 type Lang = "en" | "it";
 
@@ -625,6 +626,7 @@ Object.assign(
   residualDict,
   miscDict,
   landingEdDict,
+  itineraryFlowDict,
 );
 
 interface I18nContextType {

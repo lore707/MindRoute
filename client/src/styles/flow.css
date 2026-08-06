@@ -1,0 +1,690 @@
+/* ════════════════════════════════════════════════════════════════════════
+   FLOW — l'itinerario come sequenza di schermate (2026-08).
+   Sostituisce l'app-shell a sidebar: qui non ci sono tab, c'è un percorso.
+   Overview → Giorno → Tappa, con Mappa / Logistica / Modifica come rami.
+
+   Tutto è scoped su `.mrf`. Token locali derivati da quelli di prodotto
+   (accento corallo, Playfair + DM Sans, raggi 12/20/999): nessun valore
+   nuovo inventato, solo la scala del mockup.
+   ════════════════════════════════════════════════════════════════════════ */
+
+.mrf {
+  --acc: #E94560;
+  --acc-soft: rgba(233, 69, 96, .14);
+  --acc-line: rgba(233, 69, 96, .34);
+  --ink: #F5F4F2;
+  --ink-dim: rgba(245, 244, 242, .64);
+  --ink-faint: rgba(245, 244, 242, .40);
+  --bg: #0A0C12;
+  --card: rgba(255, 255, 255, .045);
+  --card-2: rgba(255, 255, 255, .07);
+  --stroke: rgba(255, 255, 255, .10);
+  --stroke-2: rgba(255, 255, 255, .18);
+  --serif: var(--font-serif, 'Playfair Display', serif);
+  --sans: var(--font-sans, 'DM Sans', sans-serif);
+  --r-s: 12px;
+  --r-m: 20px;
+  --r-pill: 999px;
+  --tap: 44px;
+  --head-h: 56px;
+  --gutter: 20px;
+
+  /* Alias per i componenti condivisi (RouteMap) che leggono i token con i
+     nomi del vecchio dashboard: senza questi la mappa perde colori e font. */
+  --accent: var(--acc);
+  --accent-soft: var(--acc-soft);
+  --gold: #D4A853;
+
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  overflow-x: clip;
+  isolation: isolate;
+}
+
+/* Ambiente: la foto del giorno attivo, lontanissima, che respira sotto tutto. */
+.mrf-bg { position: fixed; inset: 0; z-index: -2; pointer-events: none; }
+.mrf-bg-ph {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 1.1s cubic-bezier(.22, 1, .36, 1);
+  transform: scale(1.06);
+}
+.mrf-bg-ph.on { opacity: .17; }
+.mrf-bg::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(120% 80% at 50% 0%, rgba(10, 12, 18, .55) 0%, rgba(10, 12, 18, .92) 62%, var(--bg) 100%);
+}
+.mrf-grain {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .16;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E");
+}
+
+/* ── header contestuale ─────────────────────────────────────────────────── */
+.mrf-head {
+  position: sticky; top: 0; z-index: 40;
+  height: var(--head-h);
+  display: grid; grid-template-columns: var(--tap) 1fr var(--tap);
+  align-items: center; gap: 8px;
+  padding: 0 max(10px, env(safe-area-inset-left)) 0 max(10px, env(safe-area-inset-right));
+  transition: background .25s, backdrop-filter .25s, border-color .25s;
+  border-bottom: 1px solid transparent;
+}
+.mrf-head.stuck {
+  background: rgba(10, 12, 18, .78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: var(--stroke);
+}
+.mrf-hbtn {
+  width: var(--tap); height: var(--tap);
+  display: grid; place-items: center;
+  background: none; border: none; color: var(--ink); cursor: pointer;
+  border-radius: var(--r-pill);
+  transition: background .18s, transform .18s;
+}
+.mrf-hbtn:hover { background: rgba(255, 255, 255, .08); }
+.mrf-hbtn:active { transform: scale(.92); }
+.mrf-htitle { text-align: center; min-width: 0; }
+.mrf-htitle .t {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mrf-htitle .s {
+  display: block; font-size: 10.5px; letter-spacing: .1em; color: var(--acc);
+  margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── contenitore di schermata ──────────────────────────────────────────── */
+.mrf-screen { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
+.mrf-wrap { max-width: 560px; margin: 0 auto; padding: 0 var(--gutter); }
+
+/* Micro-tipografia condivisa */
+.mrf-kick {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--acc);
+}
+.mrf-sec-h {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--ink-faint); margin: 0 0 12px;
+}
+.mrf-serif { font-family: var(--serif); font-weight: 400; letter-spacing: -.02em; }
+
+/* Pill e bottoni condivisi */
+.mrf-pill {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--tap); padding: 0 20px; border-radius: var(--r-pill);
+  font-size: 13.5px; font-weight: 600; font-family: var(--sans);
+  border: 1px solid var(--stroke-2); background: transparent; color: var(--ink);
+  cursor: pointer; text-decoration: none;
+  transition: background .18s, border-color .18s, transform .18s;
+}
+.mrf-pill:hover { background: rgba(255, 255, 255, .07); border-color: var(--ink-faint); }
+.mrf-pill:active { transform: scale(.98); }
+.mrf-pill.acc { background: var(--acc); border-color: var(--acc); color: #fff; }
+.mrf-pill.acc:hover { background: #f2566c; border-color: #f2566c; }
+.mrf-pill.wide { width: 100%; }
+.mrf-pill.sm { min-height: 36px; padding: 0 14px; font-size: 12px; }
+.mrf-pill:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ═══════════════════ 1 · OVERVIEW ═══════════════════ */
+.mrf-ov-hero { padding: 18px var(--gutter) 0; max-width: 560px; margin: 0 auto; }
+.mrf-ov-title {
+  font-family: var(--serif); font-weight: 400; letter-spacing: -.03em; line-height: .92;
+  font-size: clamp(46px, 15vw, 62px); margin: 10px 0 0;
+}
+.mrf-ov-title .dot { color: var(--acc); }
+.mrf-ov-lede {
+  font-family: var(--serif); font-style: italic; font-size: 14.5px; line-height: 1.55;
+  color: var(--ink-dim); margin: 12px 0 0; max-width: 34ch; text-wrap: pretty;
+}
+
+/* Striscia giorni — orizzontale, scrollabile, scrollbar sottile visibile. */
+.mrf-ov-days {
+  display: flex; gap: 10px; overflow-x: auto; padding: 22px var(--gutter) 10px;
+  max-width: 560px; margin: 0 auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin; scrollbar-color: var(--stroke-2) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.mrf-ov-days::-webkit-scrollbar { height: 4px; }
+.mrf-ov-days::-webkit-scrollbar-thumb { background: var(--stroke-2); border-radius: 4px; }
+.mrf-ov-days::-webkit-scrollbar-track { background: transparent; }
+.mrf-daychip {
+  position: relative; flex: none; width: 126px; min-height: 96px;
+  scroll-snap-align: start;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 2px;
+  padding: 12px 12px 11px; text-align: left; cursor: pointer;
+  border: 1px solid var(--stroke); border-radius: var(--r-s);
+  background: rgba(255, 255, 255, .035); color: var(--ink);
+  transition: border-color .2s, background .2s, transform .2s;
+}
+.mrf-daychip:hover { background: var(--card-2); transform: translateY(-2px); }
+.mrf-daychip.on { border-color: var(--acc); background: var(--acc-soft); }
+/* L'arco riserva spazio al contatore SOLO quando c'è: altrimenti "Decantazione"
+   veniva troncata a "Decantazi…" anche nei giorni senza tappe. */
+.mrf-daychip .arc {
+  position: absolute; top: 11px; left: 12px; right: 12px;
+  font-size: 8.5px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--acc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mrf-daychip.counted .arc { right: 34px; }
+.mrf-daychip .n { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+.mrf-daychip .dt { font-size: 10.5px; color: var(--ink-faint); }
+.mrf-daychip .badge {
+  position: absolute; top: 8px; right: 9px;
+  width: 20px; height: 20px; border-radius: var(--r-pill);
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: rgba(255, 255, 255, .12); color: var(--ink);
+}
+.mrf-daychip.on .badge { background: var(--acc); color: #fff; }
+
+/* Card tema */
+.mrf-theme {
+  position: relative; margin: 12px 0 0; border-radius: var(--r-m); overflow: hidden;
+  min-height: 208px; display: flex; flex-direction: column; justify-content: flex-end;
+  border: 1px solid var(--stroke);
+}
+.mrf-theme-ph { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.mrf-theme-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10, 12, 18, .18) 0%, rgba(10, 12, 18, .74) 58%, rgba(10, 12, 18, .93) 100%);
+}
+.mrf-theme-in { position: relative; padding: 18px; }
+.mrf-theme-k {
+  font-size: 10px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-dim); margin-bottom: 8px;
+}
+.mrf-theme-t {
+  font-family: var(--serif); font-size: 23px; line-height: 1.22; letter-spacing: -.02em;
+  margin: 0 0 14px; text-wrap: balance;
+}
+.mrf-theme-t em { font-style: normal; color: var(--acc); }
+.mrf-theme-full {
+  font-size: 14px; line-height: 1.68; color: var(--ink-dim); margin: 0 0 14px;
+}
+
+/* Banner "date reali" e "ci sei andato?" — bordo corallo: sono domande, non
+   informazioni. Stanno in Overview, dove si decide il viaggio. */
+.mrf-banner { border-color: var(--acc-line); background: var(--acc-soft); margin-top: 22px; }
+.mrf-banner-h { font-size: 15px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 7px; }
+.mrf-banner-s { font-size: 13px; line-height: 1.6; color: var(--ink-dim); margin: 0 0 14px; text-wrap: pretty; }
+.mrf-banner-form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.mrf-date { flex: 1 1 140px; min-width: 0; }
+.mrf-date span { display: block; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 5px; }
+.mrf-date input {
+  width: 100%; min-height: var(--tap);
+  background: rgba(10, 12, 18, .5); border: 1px solid var(--stroke); border-radius: 9px;
+  color: var(--ink); font-family: var(--sans); font-size: 16px; padding: 0 12px;
+}
+.mrf-date input:focus { outline: none; border-color: var(--acc); }
+.mrf-optin { display: flex; gap: 9px; align-items: flex-start; font-size: 11.5px; line-height: 1.5; color: var(--ink-dim); margin-bottom: 14px; cursor: pointer; }
+.mrf-optin input { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--acc); flex: none; }
+.mrf-optin a { color: var(--acc); }
+.mrf-banner-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Highlights */
+.mrf-hl { display: grid; gap: 10px; margin-top: 26px; }
+.mrf-hl-i {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 13px 14px; border: 1px solid var(--stroke); border-radius: var(--r-s);
+  background: var(--card);
+}
+.mrf-hl-i .ic { font-size: 15px; color: var(--acc); line-height: 1.4; }
+.mrf-hl-i .nm { font-size: 13.5px; font-weight: 600; }
+.mrf-hl-i .ds { font-size: 12.5px; line-height: 1.55; color: var(--ink-dim); margin-top: 3px; }
+
+/* Chiusura */
+.mrf-closing {
+  margin-top: 26px; padding: 18px 0 0; border-top: 1px solid var(--stroke);
+  font-family: var(--serif); font-style: italic; font-size: 16px; line-height: 1.6;
+  color: var(--ink-dim); text-wrap: pretty;
+}
+
+/* Progresso in fondo */
+.mrf-ov-foot { margin-top: 30px; }
+.mrf-ov-facts {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ink-faint); margin-bottom: 10px;
+}
+.mrf-bar { height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.mrf-bar > i { display: block; height: 100%; background: var(--acc); border-radius: 3px; transition: width .5s cubic-bezier(.22, 1, .36, 1); }
+.mrf-ov-pct { font-size: 11.5px; color: var(--ink-dim); margin-top: 8px; }
+
+/* ═══════════════════ 2 · GIORNO ═══════════════════ */
+.mrf-d-hero { position: relative; height: 38vh; min-height: 220px; max-height: 340px; overflow: clip; }
+.mrf-d-hero-ph { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.mrf-d-hero-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10, 12, 18, .45) 0%, rgba(10, 12, 18, .1) 34%, rgba(10, 12, 18, .82) 82%, var(--bg) 100%);
+}
+/* Pallini giorno sopra la foto */
+.mrf-d-dots {
+  position: absolute; left: 0; right: 0; bottom: 14px;
+  display: flex; justify-content: center; gap: 10px;
+  padding: 0 var(--gutter);
+}
+.mrf-d-dot {
+  width: 34px; height: 34px; border-radius: var(--r-pill);
+  display: grid; place-items: center; cursor: pointer;
+  font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums;
+  border: 1px solid var(--stroke-2); background: rgba(10, 12, 18, .5); color: var(--ink-dim);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: all .2s;
+  position: relative;
+}
+/* Area tap 44px senza gonfiare il pallino (doc: touch floor). */
+.mrf-d-dot::before { content: ""; position: absolute; inset: -5px; border-radius: inherit; }
+.mrf-d-dot.on { background: var(--acc); border-color: var(--acc); color: #fff; transform: scale(1.08); }
+
+.mrf-d-head { padding: 4px var(--gutter) 0; max-width: 560px; margin: 0 auto; }
+.mrf-d-arc {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--acc); margin-bottom: 8px;
+}
+.mrf-d-title {
+  font-family: var(--serif); font-size: clamp(28px, 8vw, 36px); line-height: 1.1;
+  letter-spacing: -.025em; margin: 0; text-wrap: balance;
+}
+.mrf-d-sub { font-size: 14px; line-height: 1.62; color: var(--ink-dim); margin: 10px 0 0; text-wrap: pretty; }
+.mrf-d-stats { display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0 0; }
+.mrf-d-stat { font-size: 11.5px; color: var(--ink-faint); }
+.mrf-d-stat b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Timeline — rail continuo, il colore del pallino porta la fascia. */
+.mrf-tl { position: relative; margin: 24px 0 0; padding-left: 4px; }
+.mrf-tl::before {
+  content: ""; position: absolute; left: 9px; top: 12px; bottom: 12px; width: 1px;
+  background: linear-gradient(180deg, transparent, var(--stroke-2) 8%, var(--stroke-2) 92%, transparent);
+}
+.mrf-stop {
+  position: relative; width: 100%; text-align: left;
+  display: grid; grid-template-columns: 30px 1fr 56px; gap: 12px; align-items: start;
+  padding: 12px 0; min-height: var(--tap);
+  background: none; border: none; color: var(--ink); cursor: pointer;
+  transition: opacity .18s;
+}
+.mrf-stop:active { opacity: .7; }
+.mrf-stop-rail { position: relative; padding-top: 3px; }
+.mrf-stop-dot {
+  position: relative; z-index: 1; display: block;
+  width: 11px; height: 11px; margin-left: 4px; border-radius: var(--r-pill);
+  background: var(--bc, var(--acc));
+  box-shadow: 0 0 0 4px var(--bg);
+}
+.mrf-stop.on .mrf-stop-dot { box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px var(--acc-line); }
+.mrf-stop-body { min-width: 0; }
+.mrf-stop-time {
+  font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+  letter-spacing: .04em; color: var(--ink-dim); display: block; margin-bottom: 3px;
+}
+.mrf-stop-title {
+  font-family: var(--serif); font-size: 17px; line-height: 1.26; letter-spacing: -.01em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mrf-stop-meta {
+  font-size: 11.5px; color: var(--ink-faint); margin-top: 4px;
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+}
+.mrf-stop-meta .sep { opacity: .5; }
+.mrf-stop-thumb {
+  width: 56px; height: 56px; border-radius: var(--r-s); overflow: hidden;
+  background: var(--card-2) center / cover no-repeat;
+  border: 1px solid var(--stroke);
+}
+.mrf-stop-thumb.ph { display: grid; place-items: center; font-size: 15px; color: var(--ink-faint); }
+/* Connettore fra due tappe: come ci si sposta. */
+.mrf-link {
+  display: flex; align-items: center; gap: 8px;
+  margin-left: 34px; padding: 2px 0 6px;
+  font-size: 11px; color: var(--ink-faint);
+}
+.mrf-link .dash { flex: none; width: 14px; border-top: 1px dashed var(--stroke-2); }
+
+/* FAB */
+.mrf-fab {
+  position: fixed; z-index: 45;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  width: 56px; height: 56px; border-radius: var(--r-pill);
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--acc); color: #fff; border: none;
+  box-shadow: 0 10px 30px rgba(233, 69, 96, .38);
+  transition: transform .2s, box-shadow .2s;
+}
+.mrf-fab:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(233, 69, 96, .48); }
+.mrf-fab:active { transform: scale(.94); }
+
+/* ═══════════════════ 3 · TAPPA ═══════════════════ */
+/* Colonna piena: la barra azioni deve stare in FONDO allo schermo anche
+   quando la tappa è corta, non a metà pagina con il vuoto sotto. */
+.mrf-m {
+  padding: 10px var(--gutter) 0; max-width: 560px; margin: 0 auto;
+  display: flex; flex-direction: column;
+  min-height: calc(100vh - var(--head-h));
+  min-height: calc(100dvh - var(--head-h));
+}
+.mrf-m > .mrf-m-bar { margin-top: auto; }
+.mrf-m-title {
+  font-family: var(--serif); font-size: clamp(28px, 8.4vw, 38px); line-height: 1.08;
+  letter-spacing: -.03em; margin: 6px 0 0; text-wrap: balance;
+}
+.mrf-m-facts {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 14px 0 0;
+  font-size: 12.5px; color: var(--ink-dim);
+}
+.mrf-m-facts span { display: inline-flex; align-items: center; gap: 5px; }
+.mrf-m-facts svg { opacity: .65; }
+.mrf-m-ph {
+  margin: 18px 0 0; border-radius: var(--r-m); overflow: hidden;
+  aspect-ratio: 4 / 3; background: var(--card-2) center / cover no-repeat;
+  border: 1px solid var(--stroke);
+}
+.mrf-m-desc {
+  font-size: 15.5px; line-height: 1.72; color: rgba(245, 244, 242, .86);
+  margin: 20px 0 0; max-width: 62ch; text-wrap: pretty;
+}
+/* L'insight — riquadro, non paragrafo. È l'unica cosa che nessun altro dice. */
+.mrf-m-why {
+  margin: 22px 0 0; padding: 15px 16px;
+  border: 1px solid var(--acc-line); border-radius: var(--r-s);
+  background: var(--acc-soft);
+}
+.mrf-m-why-h {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 700; color: var(--acc); margin-bottom: 9px;
+}
+.mrf-m-why-t {
+  position: relative; padding-left: 14px;
+  font-size: 14px; line-height: 1.68; color: rgba(245, 244, 242, .9); margin: 0;
+  text-wrap: pretty;
+}
+.mrf-m-why-t::before { content: "·"; position: absolute; left: 2px; top: -1px; font-size: 20px; color: var(--acc); line-height: 1.2; }
+.mrf-m-sec { margin: 20px 0 0; }
+.mrf-m-sec-h { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 7px; }
+.mrf-m-sec p { font-size: 13.5px; line-height: 1.65; color: var(--ink-dim); margin: 0; }
+.mrf-m-note {
+  width: 100%; min-height: 84px; resize: vertical;
+  background: var(--card); border: 1px solid var(--stroke); border-radius: var(--r-s);
+  color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.6; padding: 12px;
+}
+.mrf-m-note:focus { outline: none; border-color: var(--acc-line); }
+.mrf-m-cta { margin: 24px 0 0; }
+.mrf-m-nav { display: flex; gap: 10px; margin: 20px 0 0; }
+.mrf-m-nav .mrf-pill { flex: 1; min-width: 0; }
+.mrf-m-nav .mrf-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Barra azioni in fondo */
+.mrf-m-bar {
+  position: sticky; bottom: 0; z-index: 30; margin-top: 28px;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--stroke);
+  background: rgba(10, 12, 18, .86);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mrf-m-act {
+  min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: none; border: none; color: var(--ink-dim); cursor: pointer;
+  font-size: 10.5px; font-family: var(--sans); letter-spacing: .04em;
+  transition: color .18s;
+}
+.mrf-m-act:hover { color: var(--ink); }
+.mrf-m-act.on { color: var(--acc); }
+
+/* ═══════════════════ 4 · MAPPA ═══════════════════ */
+.mrf-map {
+  position: relative;
+  height: calc(100vh - var(--head-h));
+  height: calc(100dvh - var(--head-h));
+}
+/* La catena di altezze deve arrivare fino a Leaflet: senza, il contenitore
+   misura 0 e la mappa resta un rettangolo nero. */
+.mrf-map .rmap-wrap,
+.mrf-map .rmap-stage,
+.mrf-map .rmap,
+.mrf-map .leaflet-container { width: 100%; height: 100%; }
+.mrf-map .rmap { background: #11161f; }
+.mrf-map-empty {
+  display: grid; place-items: center; height: 100%; padding: 0 30px;
+  text-align: center; color: var(--ink-faint); font-size: 13.5px;
+}
+.mrf-map-ctrls {
+  position: absolute; z-index: 500;
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 10px;
+}
+.mrf-map-ctrls .mrf-pill {
+  background: rgba(10, 12, 18, .8);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-color: var(--acc-line); color: var(--acc);
+}
+.mrf-map-go {
+  flex: none; width: var(--tap); height: var(--tap); border-radius: var(--r-pill);
+  display: grid; place-items: center; margin-left: auto; cursor: pointer;
+  background: rgba(10, 12, 18, .8); color: var(--ink);
+  border: 1px solid var(--stroke-2);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.mrf-map-go:hover { border-color: var(--acc); color: var(--acc); }
+/* A destra: a sinistra c'è lo zoom di Leaflet e si sovrapponevano. */
+.mrf-map-legend {
+  position: absolute; z-index: 500; top: 12px;
+  right: max(12px, env(safe-area-inset-right));
+  max-width: calc(100% - 80px);
+  display: flex; gap: 12px; flex-wrap: wrap;
+  padding: 8px 12px; border-radius: var(--r-pill);
+  background: rgba(10, 12, 18, .74);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--stroke);
+  font-size: 10.5px; color: var(--ink-dim);
+}
+.mrf-map-legend i { display: inline-block; width: 16px; height: 0; vertical-align: middle; margin-right: 5px; border-top: 2px solid var(--acc); }
+.mrf-map-legend i.est { border-top-style: dashed; opacity: .8; }
+
+/* Etichette orario sulla mappa (iniettate come DivIcon da RouteMap) */
+.mrf-mlabel { pointer-events: none; }
+.mrf-mlabel .in {
+  display: inline-block; white-space: nowrap;
+  padding: 3px 8px; border-radius: 7px;
+  background: rgba(10, 12, 18, .76);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, .12);
+}
+.mrf-mlabel .tm { display: block; font-size: 12px; font-weight: 700; color: #F5F4F2; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.mrf-mlabel .nm { display: block; font-size: 10px; color: rgba(245, 244, 242, .72); max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+.mrf-mlabel .sb { display: block; font-size: 9px; color: rgba(245, 244, 242, .48); max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+.mrf-mlabel.r { text-align: left; }
+.mrf-mlabel.l { text-align: right; }
+
+/* ═══════════════════ 5 · LOGISTICA ═══════════════════ */
+.mrf-lg { padding: 14px var(--gutter) 0; max-width: 560px; margin: 0 auto; }
+.mrf-lg-sec { margin: 0 0 26px; }
+.mrf-card {
+  border: 1px solid var(--stroke); border-radius: var(--r-s);
+  background: var(--card); padding: 15px;
+}
+.mrf-card + .mrf-card { margin-top: 10px; }
+.mrf-card-h { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.mrf-card-ic { font-size: 16px; line-height: 1; }
+.mrf-card-t { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.mrf-card-tag {
+  margin-left: auto; flex: none;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: var(--r-pill);
+  color: var(--ink-faint); border: 1px solid var(--stroke);
+}
+.mrf-card-tag.ess { color: var(--acc); border-color: var(--acc-line); }
+.mrf-card-tag.ok { color: #6FB4A8; border-color: rgba(111, 180, 168, .4); background: rgba(111, 180, 168, .1); }
+.mrf-facts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.mrf-fact {
+  font-size: 11.5px; color: var(--ink-dim);
+  padding: 3px 9px; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .06);
+}
+.mrf-why { font-size: 12.5px; line-height: 1.6; color: var(--ink-dim); margin: 0 0 12px; text-wrap: pretty; }
+.mrf-why em { font-style: italic; color: var(--ink); }
+.mrf-card-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mrf-alt { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--stroke); }
+.mrf-alt a { font-size: 11.5px; color: var(--ink-dim); text-decoration: none; padding: 6px 10px; border-radius: var(--r-pill); background: rgba(255, 255, 255, .05); min-height: 32px; display: inline-flex; align-items: center; }
+.mrf-alt a:hover { color: var(--ink); background: rgba(255, 255, 255, .1); }
+.mrf-hint { font-size: 11.5px; color: var(--ink-faint); margin: 8px 0 0; line-height: 1.5; }
+
+/* Note utili — griglia 2×2 */
+.mrf-notes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.mrf-note {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 13px; border: 1px solid var(--stroke); border-radius: var(--r-s); background: var(--card);
+}
+.mrf-note .ic { color: var(--ink-faint); flex: none; margin-top: 1px; }
+.mrf-note .k { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+.mrf-note .v { font-size: 13px; font-weight: 600; margin-top: 2px; line-height: 1.35; }
+
+/* Budget */
+.mrf-budget-total { font-family: var(--serif); font-size: 28px; letter-spacing: -.02em; }
+.mrf-budget-rows { margin-top: 12px; display: grid; gap: 8px; }
+.mrf-budget-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-dim); }
+.mrf-budget-row b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ═══════════════════ 6 · MODIFICA ═══════════════════ */
+.mrf-ed { padding: 14px var(--gutter) 0; max-width: 560px; margin: 0 auto; }
+.mrf-ed-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; }
+.mrf-ed-tabs::-webkit-scrollbar { display: none; }
+.mrf-ed-tab {
+  flex: none; min-height: 36px; padding: 0 16px; border-radius: var(--r-pill);
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--stroke-2); background: transparent; color: var(--ink-dim);
+  position: relative; transition: all .18s;
+}
+.mrf-ed-tab::before { content: ""; position: absolute; inset: -4px 0; }
+.mrf-ed-tab.on { background: var(--acc); border-color: var(--acc); color: #fff; }
+.mrf-ed-row {
+  display: grid; grid-template-columns: 46px 1fr 40px 28px; gap: 10px; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid var(--stroke);
+}
+.mrf-ed-row.drag { opacity: .45; }
+.mrf-ed-time {
+  font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-dim);
+  display: flex; align-items: center; gap: 6px;
+}
+.mrf-ed-time .dot { width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--bc, var(--acc)); flex: none; }
+.mrf-ed-t { font-size: 13.5px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mrf-ed-th { width: 40px; height: 40px; border-radius: 9px; background: var(--card-2) center / cover no-repeat; border: 1px solid var(--stroke); }
+.mrf-ed-h {
+  width: 28px; min-height: var(--tap); display: grid; place-items: center;
+  background: none; border: none; color: var(--ink-faint); cursor: grab;
+}
+.mrf-ed-h:active { cursor: grabbing; }
+.mrf-ed-add {
+  width: 100%; min-height: 52px; margin-top: 16px; border-radius: var(--r-s);
+  border: 1px dashed var(--stroke-2); background: transparent; color: var(--ink-dim);
+  font-size: 13px; font-family: var(--sans); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all .18s;
+}
+.mrf-ed-add:hover { border-color: var(--acc-line); color: var(--acc); }
+.mrf-ed-foot {
+  position: sticky; bottom: 0; z-index: 30; margin-top: 22px;
+  padding: 14px 0 calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, rgba(10, 12, 18, .9) 30%);
+}
+.mrf-ed-msg { font-size: 12px; text-align: center; margin-bottom: 10px; color: var(--ink-dim); }
+.mrf-ed-msg.err { color: var(--acc); }
+/* Editor di una tappa */
+.mrf-ed-panel { margin: 12px 0; padding: 14px; border: 1px solid var(--acc-line); border-radius: var(--r-s); background: var(--acc-soft); }
+.mrf-ed-field { margin-bottom: 10px; }
+.mrf-ed-field label { display: block; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 5px; }
+.mrf-ed-field input, .mrf-ed-field textarea {
+  width: 100%; background: rgba(10, 12, 18, .5); border: 1px solid var(--stroke); border-radius: 9px;
+  color: var(--ink); font-family: var(--sans); font-size: 16px; padding: 10px 12px; line-height: 1.5;
+}
+.mrf-ed-field textarea { min-height: 74px; resize: vertical; }
+.mrf-ed-field input:focus, .mrf-ed-field textarea:focus { outline: none; border-color: var(--acc); }
+
+/* ═══════════════════ stati vuoti ═══════════════════ */
+.mrf-empty { padding: 60px var(--gutter); text-align: center; color: var(--ink-faint); font-size: 13.5px; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   TABLET ≥ 768px — più aria, la stessa sequenza.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 768px) {
+  .mrf { --gutter: 34px; --head-h: 64px; }
+  .mrf-wrap, .mrf-ov-hero, .mrf-ov-days, .mrf-d-head, .mrf-m, .mrf-lg, .mrf-ed { max-width: 720px; }
+  .mrf-ov-title { font-size: 76px; }
+  .mrf-ov-lede { font-size: 16.5px; max-width: 46ch; }
+  .mrf-daychip { width: 132px; min-height: 104px; }
+  .mrf-theme { min-height: 260px; }
+  .mrf-theme-t { font-size: 28px; }
+  .mrf-d-hero { height: 42vh; max-height: 420px; }
+  .mrf-stop { grid-template-columns: 34px 1fr 72px; }
+  .mrf-stop-thumb { width: 72px; height: 72px; }
+  .mrf-stop-title { font-size: 19px; }
+  .mrf-m-desc { font-size: 16.5px; }
+  .mrf-notes { grid-template-columns: repeat(4, 1fr); }
+  .mrf-m-bar { border-radius: var(--r-m) var(--r-m) 0 0; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   DESKTOP ≥ 1024px — Giorno e Mappa smettono di essere due destinazioni e
+   diventano due metà della stessa schermata. È l'unica fusione: la sequenza
+   resta identica, guadagna solo il secondo occhio.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  .mrf { --gutter: 40px; }
+  .mrf-ov-hero, .mrf-ov-days, .mrf-wrap, .mrf-lg { max-width: 860px; }
+  .mrf-m { max-width: 760px; }
+  .mrf-ed { max-width: 860px; }
+  .mrf-ov-title { font-size: 92px; }
+  .mrf-ov-days { flex-wrap: wrap; overflow: visible; }
+  /* I capitoli riempiono la riga qualunque sia il numero di giorni: a 3 non
+     lasciano un terzo di riga vuoto, a 6 vanno a capo in griglia. */
+  .mrf-daychip { flex: 1 1 132px; width: auto; max-width: 240px; }
+  .mrf-theme { min-height: 320px; }
+  .mrf-theme-in { padding: 26px; }
+  .mrf-theme-t { font-size: 32px; }
+  .mrf-hl { grid-template-columns: 1fr 1fr; }
+
+  /* Giorno + mappa affiancati */
+  .mrf-split {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0; align-items: start;
+    height: calc(100vh - var(--head-h));
+    height: calc(100dvh - var(--head-h));
+  }
+  .mrf-split > .l { height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--stroke-2) transparent; }
+  .mrf-split > .l::-webkit-scrollbar { width: 6px; }
+  .mrf-split > .l::-webkit-scrollbar-thumb { background: var(--stroke-2); border-radius: 6px; }
+  .mrf-split > .r { height: 100%; position: sticky; top: 0; border-left: 1px solid var(--stroke); }
+  .mrf-split .mrf-d-head, .mrf-split .mrf-wrap { max-width: 100%; }
+  .mrf-split .mrf-map { height: 100%; }
+  .mrf-split .mrf-d-hero { max-height: 300px; }
+  /* Su desktop i pallini-giorno stanno sopra la foto ma allineati a sinistra. */
+  .mrf-split .mrf-d-dots { justify-content: flex-start; }
+  .mrf-fab { position: absolute; }
+
+  .mrf-m-bar {
+    position: static; grid-template-columns: repeat(3, auto); justify-content: start;
+    gap: 8px; background: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+    border-top: 1px solid var(--stroke); padding-top: 12px; margin-top: 30px;
+  }
+  .mrf-m-act { min-height: var(--tap); flex-direction: row; gap: 8px; padding: 0 14px; border-radius: var(--r-pill); font-size: 12.5px; }
+  .mrf-m-act:hover { background: rgba(255, 255, 255, .06); }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION — nessuna traslazione, nessun respiro. Solo l'opacità.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .mrf *, .mrf *::before, .mrf *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .mrf-bg-ph { transform: none; }
+}

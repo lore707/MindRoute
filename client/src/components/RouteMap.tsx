@@ -16,6 +16,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+// Gli stili della mappa viaggiano col componente: prima stavano dentro
+// itinerary-dashboard.css scopati su `.account-dash` e fuori da quel
+// contenitore la mappa restava nera.
+import "@/styles/routemap.css";
 
 export type PlaceCategory = "lodging" | "experience" | "food" | "sight" | "beach" | "custom";
 
@@ -78,6 +82,14 @@ type Props = {
   /** Journey: il contenitore ha già i suoi day-tab → nasconde la barra giorni
    *  interna (e con lei l'opzione "Tutti", che lì creava stati incoerenti). */
   hideDayBar?: boolean;
+  /** Flow (2026-08): accanto a ogni pin numerato, l'ORARIO e il nome del posto
+   *  scritti sulla mappa — così il percorso si legge senza aprire nulla.
+   *  Etichette alternate destra/sinistra per non accavallarsi. Solo vista
+   *  giorno singolo: sulla vista "Tutti" sarebbero una ragnatela illeggibile. */
+  timeLabels?: boolean;
+  /** Flow: la mappa è già dentro una schermata sua → niente chrome interna
+   *  (barra strumenti, ricerca, filtri). I controlli li mette il contenitore. */
+  bare?: boolean;
 };
 
 // Categoria → colore + glifo. Coerenti con i token editoriali del dashboard.
@@ -198,7 +210,26 @@ function legLabelIcon(minutes: number, profile: "foot" | "car"): L.DivIcon {
   });
 }
 
-export default function RouteMap({ points, center, destination, itineraryId, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, active = true, hideDayBar = false }: Props) {
+/* Etichetta-tappa: l'ORARIO sulla mappa, accanto al pin numerato, col nome del
+ * posto sotto. Alternata destra/sinistra così due tappe vicine non si coprono.
+ * Non interattiva: il click resta al pin, che è più grande dell'etichetta. */
+function stopLabelIcon(time: string, name: string, sub: string, side: "l" | "r"): L.DivIcon {
+  const rows = [
+    time ? `<span class="tm">${escapeHtml(time)}</span>` : "",
+    name ? `<span class="nm">${escapeHtml(name)}</span>` : "",
+    sub ? `<span class="sb">${escapeHtml(sub)}</span>` : "",
+  ].filter(Boolean).join("");
+  return L.divIcon({
+    className: `mrf-mlabel ${side}`,
+    html: `<span class="in">${rows}</span>`,
+    iconSize: [150, 0],
+    // Il punto di ancoraggio è la posizione del marker: negativo spinge
+    // l'etichetta a destra del pin, 166 la porta tutta a sinistra.
+    iconAnchor: side === "r" ? [-18, 16] : [168, 16],
+  });
+}
+
+export default function RouteMap({ points, center, destination, itineraryId, t, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, active = true, hideDayBar = false, timeLabels = false, bare = false }: Props) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -455,15 +486,24 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     // "Tutti" niente linee: la ragnatela tra giorni diversi non racconta nulla.
     if (singleDay && !filtersActive && dayStops.length > 1) {
       const anchors: L.LatLngTuple[] = dayStops.map(p => [p.lat, p.lng]);
+      // Continua = percorso CALCOLATO sulle strade vere. Tratteggiata = solo
+      // un collegamento stimato fra due punti. La differenza si deve vedere:
+      // una linea piena che non corrisponde a nessuna strada è una bugia.
       const draw = (path: L.LatLngTuple[], real: boolean) => {
         L.polyline(path, { color: "#000", weight: real ? 9 : 8, opacity: 0.35, lineCap: "round", lineJoin: "round" }).addTo(layer);
-        L.polyline(path, { color: ROUTE_COLOR, weight: real ? 4 : 3, opacity: real ? 0.95 : 0.8, lineCap: "round", lineJoin: "round" }).addTo(layer);
+        L.polyline(path, {
+          color: ROUTE_COLOR, weight: real ? 4 : 3, opacity: real ? 0.95 : 0.8,
+          lineCap: "round", lineJoin: "round",
+          ...(real ? {} : { dashArray: "7 7" }),
+        }).addTo(layer);
       };
       if (dayRoute?.coords && dayRoute.coords.length > 1) {
         // Strade vere (Valhalla/OSRM via server, cacheate in tripMeta).
         draw(dayRoute.coords as L.LatLngTuple[], true);
         const profile = dayRoute.profile === "car" ? "car" : "foot";
-        (dayRoute.legs ?? []).forEach((leg) => {
+        // Con le etichette-tappa attive (flow) le durate di tratta si
+        // tacciono: due strati di testo sulla stessa linea si accavallano.
+        (timeLabels ? [] : (dayRoute.legs ?? [])).forEach((leg) => {
           const min = Math.max(1, Math.round(leg.t / 60));
           // zIndex negativo: l'etichetta sta sopra la linea ma SOTTO i pin
           // (tappe vicine → il pin numerato resta leggibile).
@@ -474,7 +514,7 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
         for (let i = 1; i < anchors.length; i++) {
           const arc = curvedArc(anchors[i - 1], anchors[i]);
           draw(arc, false);
-          if (dayRoute && !dayRoute.coords) {
+          if (dayRoute && !dayRoute.coords && !timeLabels) {
             const m = distMeters(
               { lat: anchors[i - 1][0], lng: anchors[i - 1][1] },
               { lat: anchors[i][0], lng: anchors[i][1] },
@@ -503,13 +543,21 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
     ordered.forEach((p, i) => {
       const icon = singleDay ? numIcon(i + 1, p.bookable) : catIcon(normCat(p.category), p.bookable);
       L.marker([p.lat, p.lng], { icon, keyboard: false }).on("click", () => openCard(p)).addTo(layer);
+      // Orario + posto scritti sulla mappa (flow). Se il momento non ha un
+      // orario, si mostra comunque il nome: mai un orario inventato.
+      if (timeLabels && singleDay && (p.bestTime || p.label)) {
+        L.marker([p.lat, p.lng], {
+          icon: stopLabelIcon(p.bestTime ?? "", p.label ?? "", p.kindLabel ?? "", i % 2 === 0 ? "r" : "l"),
+          keyboard: false, interactive: false, zIndexOffset: -200,
+        }).addTo(layer);
+      }
     });
 
     if (latlngs.length === 1) map.setView(latlngs[0], 15, { animate: true });
     else if (latlngs.length > 1) map.fitBounds(L.latLngBounds(latlngs), { padding: [60, 60], maxZoom: 16 });
     else if (center) map.setView([center.lat, center.lng], 12);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, activeDay, center, dayRoute, filtersActive, dayStops]);
+  }, [visible, activeDay, center, dayRoute, filtersActive, dayStops, timeLabels]);
 
   // ── redraw pin salvati ──
   useEffect(() => {
@@ -678,8 +726,10 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
         </div>
       )}
 
-      {/* Filtri motore + categorie: riga richiudibile, sempre in flusso. */}
-      <div className="rmap-filterrow">
+      {/* Filtri motore + categorie: riga richiudibile, sempre in flusso.
+          In modalità `bare` (schermata Mappa del flow) sparisce: lì la mappa
+          è la schermata, non un widget, e i controlli li mette il contenitore. */}
+      <div className="rmap-filterrow" hidden={bare} style={bare ? { display: "none" } : undefined}>
         <button className={"rmap-chip rmap-chip--toggle" + (filtersOpen ? " on" : "")} onClick={() => setFiltersOpen(v => !v)}>
           {lang === "it" ? "Filtri" : "Filters"}{filtersActive ? " •" : ""} {filtersOpen ? "▴" : "▾"}
         </button>
@@ -706,7 +756,7 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
 
       {/* Stage: mappa + soli controlli flottanti essenziali (⌕ ◎ ⤢) + card. */}
       <div className="rmap-stage">
-        <div className="rmap-toolbar">
+        <div className="rmap-toolbar" style={bare ? { display: "none" } : undefined}>
           <form className="rmap-search" onSubmit={runSearch}>
             <input value={query} onChange={(e) => setQuery(e.target.value)}
               placeholder={lang === "it" ? "Cerca un posto…" : "Search a place…"}
@@ -726,12 +776,36 @@ export default function RouteMap({ points, center, destination, itineraryId, lan
         )}
 
         <div ref={elRef} className="rmap" />
+
+        {/* Controlli della schermata Mappa (flow): legenda del percorso in
+            alto, "centra su di me" e apertura navigazione in basso. */}
+        {bare && (
+          <>
+            {activeDay != null && dayStops.length > 1 && (
+              <div className="mrf-map-legend">
+                <span><i />{t("if.map.realRoute")}</span>
+                <span><i className="est" />{t("if.map.estRoute")}</span>
+              </div>
+            )}
+            <div className="mrf-map-ctrls">
+              <button className="mrf-pill" onClick={locateMe}>◎ {t("if.map.center")}</button>
+              {dayStops.length > 0 && (
+                <a className="mrf-map-go" title={t("if.map.navigate")} aria-label={t("if.map.navigate")}
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${dayStops[dayStops.length - 1].lat},${dayStops[dayStops.length - 1].lng}` +
+                    (dayStops.length > 1
+                      ? `&waypoints=${dayStops.slice(0, -1).map(p => `${p.lat},${p.lng}`).join("|")}`
+                      : "")}
+                  target="_blank" rel="noopener noreferrer">➤</a>
+              )}
+            </div>
+          </>
+        )}
         {card}
       </div>
 
       {/* Striscia-tappe del giorno: il ponte narrativo mappa↔giorni. Tap →
           la mappa vola sulla tappa e apre la card operativa. */}
-      {activeDay != null && dayStops.length > 0 && (
+      {!bare && activeDay != null && dayStops.length > 0 && (
         <div className="rmap-strip" ref={stripRef}>
           {dayStops.map((p, i) => {
             const isLodging = i === 0 && hasLodgingFirst;

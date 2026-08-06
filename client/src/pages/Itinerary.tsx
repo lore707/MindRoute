@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useRoute, useLocation } from "wouter";
 // CSS dell'area itinerario, code-split su questa route lazy (vedi index.css).
 import "@/styles/account-dashboard.css";
 import "@/styles/itinerary-dashboard.css";
-import "@/styles/journey.css";
 import "@/styles/itinerary-cinematic.css";
 import "@/styles/itinerary-redesign.css";
 import "@/styles/itinerary-agenda.css";
@@ -28,8 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { setLastOpenedItinerary } from "@/lib/last-opened";
 import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
-import { ItineraryRedesign } from "@/components/ItineraryRedesign";
-import { ItineraryDashboard } from "@/components/ItineraryDashboard";
+import { ItineraryFlow } from "@/components/ItineraryFlow";
 import { RefinePanel } from "@/components/RefinePanel";
 
 // ── URL BUILDER ───────────────────────────────────────────────────────────────
@@ -456,9 +454,20 @@ function buildMoments(
   if (Array.isArray(day?.editedMoments) && day.editedMoments.length) {
     return day.editedMoments.map((m: any, ei: number): CinMoment => ({
       t: m.t ?? "", ic: m.ic ?? "📍", title: m.title ?? "", desc: m.desc ?? "",
-      band: bandFromLabel(m.t), kindLabel: kindLabelFor(m.type, "it"),
+      // La fascia salvata vince su quella dedotta dall'etichetta: con l'editor
+      // del flusso l'utente può spostare una tappa fra le fasce.
+      band: (m.band === "mattina" || m.band === "pranzo" || m.band === "pomeriggio" || m.band === "sera")
+        ? m.band : bandFromLabel(m.t),
+      kindLabel: m.kindLabel ?? kindLabelFor(m.type, "it"),
       cta: m.cta, ctaUrl: m.ctaUrl, ctaPrice: m.ctaPrice, ctaStatus: m.ctaStatus, ctaProvider: m.ctaProvider,
       locationName: m.locationName, imageUrl: m.imageUrl, type: m.type,
+      // Campi che prima l'editing BUTTAVA VIA: personalizzare un giorno
+      // cancellava l'insight, gli orari e i costi di TUTTE le sue tappe.
+      startTime: m.startTime, endTime: m.endTime,
+      durationLabel: m.durationLabel, costLabel: m.costLabel,
+      transport: m.transport, planB: m.planB, why: m.why,
+      lat: typeof m.lat === "number" ? m.lat : undefined,
+      lng: typeof m.lng === "number" ? m.lng : undefined,
       // id di ricambio: senza, la card resta MUTA al click (JourneyView apre
       // il dettaglio solo `if (m.id)`) e il momento sembra rotto.
       id: (typeof m.id === "string" && m.id.trim()) ? m.id.trim() : `d${dayIndex + 1}e${ei + 1}`,
@@ -844,15 +853,17 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
 export default function Itinerary() {
   const { t, lang, setLang } = useI18n();
   const { toast } = useToast();
-  const [, params] = useRoute("/itinerary/:id");
-  const [, setLocation] = useLocation();
-  const id = params ? parseInt(params.id) : 0;
+  const [location, setLocation] = useLocation();
+  // L'itinerario non è più una sola rotta ma uno stack (/g/:n, /t/:mid,
+  // /mappa, /logistica, /modifica): l'id si legge dal percorso, non da un
+  // pattern fisso, altrimenti ogni sotto-schermata carica l'itinerario 0.
+  const id = useMemo(() => {
+    const m = location.match(/^\/itinerary\/(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+  }, [location]);
   const { data: itinerary, isLoading, error, refetch } = useItinerary(id);
   const [openDays, setOpenDays] = useState<Set<number>>(new Set([0]));
   const [activeTab, setActiveTab] = useState<"itin" | "book" | "overview">("itin");
-  // Vista di default = ItineraryDashboard. "Personalizza" apre l'editor
-  // collaudato (ItineraryRedesign, Modalità Cura) senza regressioni sul save.
-  const [showEditor, setShowEditor] = useState(false);
 
   // ── EDIT MODE STATE ──
   const [editMode, setEditMode] = useState(false);
@@ -1205,22 +1216,22 @@ export default function Itinerary() {
       </>
     );
 
-    // Editor "Modalità Cura" (ItineraryRedesign) aperto su richiesta dal pulsante
-    // Personalizza della dashboard. onBack torna alla dashboard.
-    if (showEditor) {
-      return (
+    return (
+      <>
         <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
-          <ItineraryRedesign
+          <ItineraryFlow
             data={cinematicData}
             itinerary={itinerary}
             affiliateUrls={affiliateUrls}
             profilingInput={profilingInput}
             onSavePdf={handleSavePdf}
             onStartOver={() => setLocation("/")}
-            onBack={() => setShowEditor(false)}
+            onShare={handleShare}
             itineraryId={itinerary.id}
             savedMomentIds={savedMomentIds}
             onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
+            onDatesConfirmed={refetch}
+            onBookingUpdated={refetch}
             onSaveDays={async (newDays) => {
               const res = await fetch(`/api/itinerary/${itinerary.id}/edit`, {
                 method: "PATCH",
@@ -1230,28 +1241,6 @@ export default function Itinerary() {
               if (!res.ok) throw new Error("save failed");
               await refetch();
             }}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <>
-        <div className="min-h-screen" style={{ background: "transparent" }} id="itinerary-pdf-content">
-          <ItineraryDashboard
-            data={cinematicData}
-            itinerary={itinerary}
-            affiliateUrls={affiliateUrls}
-            profilingInput={profilingInput}
-            onSavePdf={handleSavePdf}
-            onStartOver={() => setLocation("/")}
-            onEdit={() => setShowEditor(true)}
-            onShare={handleShare}
-            itineraryId={itinerary.id}
-            savedMomentIds={savedMomentIds}
-            onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
-            onDatesConfirmed={refetch}
-            onBookingUpdated={refetch}
           />
         </div>
         {/* L2 — raffinamento progressivo con rigenerazione (solo itinerari v2). */}

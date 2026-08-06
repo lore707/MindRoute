@@ -11,10 +11,8 @@ import "leaflet/dist/leaflet.css";
 import "@/styles/account-dashboard.css";
 import "@/styles/atlas-journey.css";
 import "@/styles/itinerary-dashboard.css";
-import "@/styles/journey.css";
 import { AccountDashboard } from "@/components/AccountDashboard";
-import { JourneyView } from "@/components/JourneyView";
-import { ItineraryDashboard } from "@/components/ItineraryDashboard";
+import { ItineraryFlow } from "@/components/ItineraryFlow";
 import { RefinePanel } from "@/components/RefinePanel";
 import QuizFast from "@/pages/QuizFast";
 import type { AccountData } from "@/components/AccountCinematic";
@@ -186,16 +184,22 @@ const jrMoments = [
 ];
 const MOCK_ITIN: ItineraryData = {
   destination: "Salonicco, Grecia", subtitle: "Esperienza", country: "Grecia", duration: "5 giorni",
-  heroImg: M.seafront, manifesto: "", highlights: [],
+  heroImg: M.seafront,
+  manifesto: "Arrivare, esplorare, connettersi. Salonicco non si visita: si attraversa lentamente, un quartiere alla volta, finché il mare non diventa il posto dove torni ogni sera.",
+  highlights: [
+    { ic: "◆", name: "Il mercato al mattino", desc: "Quando è ancora dei residenti e non dei turisti." },
+    { ic: "✦", name: "Ano Poli al tramonto", desc: "La città vecchia sopra la città, con tutto il golfo sotto." },
+  ],
   days: [
     { n: 1, arc: "Arrivo", title: "Arrivo e prima passeggiata", sub: "Dal volo alla città vecchia.", img: M.tower, date: "13 SET" },
     { n: 2, arc: "Esperienza", title: "Il cuore di Salonicco", sub: "Mercati, mare e la torre simbolo.", img: M.market, date: "14 SET" },
     { n: 3, arc: "Decantazione", title: "Ritmi lenti", sub: "Caffè, quartieri, ultimo sguardo.", img: M.cafe, date: "15 SET" },
   ],
   momentsByDay: { 1: [], 2: jrMoments as any, 3: [] },
-  closingQuote: "",
+  closingQuote: "Il posto giusto non è quello più bello. È quello che ti somiglia.",
   mapPoints: jrMoments.map((m, i) => ({
     x: 0, y: 0, label: m.title, lat: m.lat, lng: m.lng, day: 2, momentId: m.id, imageUrl: m.imageUrl,
+    bestTime: (m as any).startTime,
     durationLabel: m.durationLabel, kindLabel: m.kindLabel, desc: m.desc, type: m.type, category: (m.type === "food" ? "food" : m.type === "experience" ? "experience" : "sight"),
     bookable: !!m.cta, ctaUrl: m.ctaUrl, cta: m.cta, ctaProvider: m.ctaProvider, ctaPrice: m.ctaPrice, slot: `${i}`,
   })) as any,
@@ -259,19 +263,6 @@ export default function DevPreview() {
       </div>
     );
   }
-  // Itinerario completo (Panoramica + banner L2): ?view=itinerary (&rmin=1 = badge mini)
-  if (view === "itinerary") {
-    const mockProfile = { days: 5, budget: "medium", departure: "Milano", _l1: { mode: "meta", city: "Salonicco" } };
-    return (
-      <div className="account-dash itinerary-dash" style={{ minHeight: "100vh" }}>
-        <ItineraryDashboard
-          data={MOCK_ITIN} itinerary={MOCK_RAW} affiliateUrls={{}} profilingInput={mockProfile}
-          itineraryId={2} savedMomentIds={new Set()} onToggleSaved={() => {}}
-        />
-        <RefinePanel itineraryId={2} profilingInput={mockProfile} schemaVersion={2} lang="it" onRefined={() => {}} />
-      </div>
-    );
-  }
   // Quiz L1 senza auth-gate (il gate vive in App.tsx): ?view=quiz&mode=…&gen=1
   // Lo <style> forza visibile il contenuto animato da framer-motion: sotto
   // virtual-time headless l'animazione resta a opacity:0 e lo screenshot
@@ -282,14 +273,19 @@ export default function DevPreview() {
       <QuizFast />
     </>
   );
-  if (view === "journey") {
+  // Flusso a schermate (2026-08): ?view=flow&s=<percorso>
+  //   s=/itinerary/2            → 1 Overview      s=/itinerary/2/g/1        → 2 Giorno
+  //   s=/itinerary/2/g/1/t/m3   → 3 Tappa         s=/itinerary/2/g/1/mappa  → 4 Mappa
+  //   s=/itinerary/2/logistica  → 5 Logistica     s=/itinerary/2/modifica   → 6 Modifica
+  if (view === "flow") {
+    const s = (() => { try { return new URLSearchParams(window.location.search).get("s"); } catch { return null; } })();
+    const mockProfile = { days: 5, budget: "medium", departure: "Milano", _l1: { mode: "meta", city: "Salonicco" } };
     return (
-      <div className="account-dash itinerary-dash">
-        <main className="main">
-          <JourneyView data={MOCK_ITIN} itinerary={MOCK_RAW} itineraryId={2}
-            savedMomentIds={new Set(["m3"])} onToggleSaved={() => {}} onBook={() => {}} />
-        </main>
-      </div>
+      <ItineraryFlow
+        data={MOCK_ITIN} itinerary={MOCK_RAW} affiliateUrls={{}} profilingInput={mockProfile}
+        itineraryId={2} savedMomentIds={new Set(["m3"])} onToggleSaved={() => {}}
+        previewPath={s ?? "/itinerary/2"}
+      />
     );
   }
   return <AccountDashboard data={data} />;
