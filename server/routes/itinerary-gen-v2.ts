@@ -13,7 +13,7 @@ import { storage } from "../storage";
 import { itineraryLimiter } from "../rate-limiter";
 import { generateItineraryV2ForDestination, type ItineraryV2 } from "../matching-engine-v2";
 import { normalizeDayTimes } from "../moment-times";
-import { fetchUnsplashHero, fetchDayImageWithFallback, buildDestinationPhotoPool, mapWithConcurrency } from "../unsplash";
+import { fetchUnsplashHero, fetchDayImageWithFallback, buildDestinationPhotoPool, pickAmbientPhotos, mapWithConcurrency } from "../unsplash";
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
@@ -348,6 +348,12 @@ export async function enrichItineraryV2(
   // 3. Dedup repeated images across moments — pick day hero as fallback.
   dedupMomentImages(rough.days, heroUrl);
 
+  // 3b. Sfondi del viaggio: i paesaggi del pool che NESSUNA tappa sta usando.
+  //     Zero chiamate Unsplash in piu' — il pool e' gia' in memoria.
+  const takenImages = new Set<string>([heroUrl, ...rough.days.flatMap(d =>
+    [d.hero_image_url, ...d.moments.map(m => m.image_url)])].filter(Boolean) as string[]);
+  rough.ambient_images = pickAmbientPhotos(pool, takenImages, 5);
+
   // 4. Top-level totals — always recompute from per-day numbers.
   rough.total_cost_bookable = rough.days.reduce((a, d) => a + d.cost_bookable_total, 0);
   rough.total_cost_onsite_estimate = rough.days.reduce((a, d) => a + d.cost_onsite_estimate, 0);
@@ -374,6 +380,7 @@ export async function enrichItineraryV2(
 // refine L2 (rigenerazione completa) così i due percorsi restano coerenti.
 export function buildTripMetaV2(v2: ItineraryV2): TripMetaV2 {
   return {
+    ambient: (v2 as any).ambient_images ?? undefined,
     em_word: v2.em_word,
     travel_dates: v2.travel_dates,
     total_cost_bookable: v2.total_cost_bookable,

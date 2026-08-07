@@ -339,6 +339,8 @@ export default function DevPreview() {
         { label: "Totale", total: "€830" },
       ] }),
       tripMeta: {
+        // Paesaggi d'ambiente: quelli che vivono DIETRO l'itinerario.
+        ambient: [P.azores, P.faroe, P.lofoten, P.iceland, P.patagonia],
         total_cost_bookable: 520, total_cost_onsite_estimate: 310, total_cost_range: "€780–900/pp",
         affiliate_clicks: { flight: true, hotel: true },
         booked: { flight: true },

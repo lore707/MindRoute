@@ -289,6 +289,9 @@ export const itineraryV2Schema = z.object({
   total_cost_range: z.string(),
   closing_quote: z.string(),
   map_points: z.array(mapPointV2Schema).optional(),
+  // Sfondi del viaggio: paesaggi larghi della destinazione, riempiti
+  // dall'enrichment (mai chiesti al modello, come tutte le altre immagini).
+  ambient_images: z.array(z.string()).optional(),
 });
 
 export type ItineraryV2 = z.infer<typeof itineraryV2Schema>;

@@ -278,6 +278,12 @@ export interface TripMetaV2 {
   // v2 highlights are richer objects; v1 highlights stay as string[] in the
   // legacy column. Reader picks based on schemaVersion.
   highlights_v2?: HighlightV2[];
+  // Fotografie D'AMBIENTE del viaggio: paesaggi larghi della destinazione, che
+  // vivono DIETRO l'itinerario. Non sono le foto delle tappe (quelle raccontano
+  // un posto preciso): queste dicono soltanto "sei lì". Pescate dallo stesso
+  // pool gia' scaricato in generazione → zero chiamate Unsplash in piu'.
+  // In jsonb: nessuna migrazione.
+  ambient?: string[];
 }
 
 export const insertDestinationSchema = createInsertSchema(destinations).omit({ id: true });

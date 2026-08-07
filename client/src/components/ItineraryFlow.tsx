@@ -212,11 +212,25 @@ export function ItineraryFlow({
 
   /* ── ambiente: la foto del giorno in cui ci si trova ── */
   const currentDayN = "n" in screen && typeof screen.n === "number" ? screen.n : null;
-  const dayImages = useMemo(
-    () => days.map(d => d.img || data.heroImg).filter(Boolean),
-    [days, data.heroImg],
-  );
-  const activeImgIdx = Math.max(0, days.findIndex(d => d.n === (currentDayN ?? firstDay)));
+
+  /* Gli sfondi sono i PAESAGGI del viaggio (tripMeta.ambient): foto larghe
+   * della destinazione, diverse da quelle delle tappe — quelle raccontano un
+   * posto preciso, queste dicono soltanto "sei lì".
+   * Sugli itinerari generati prima che esistessero, si ricade sulle foto dei
+   * giorni: meglio la fotografia di ieri che un fondo nero. */
+  const ambient = useMemo<string[]>(() => {
+    const fromMeta = (itinerary as any)?.tripMeta?.ambient;
+    if (Array.isArray(fromMeta) && fromMeta.length > 0) {
+      return fromMeta.filter((u: unknown): u is string => typeof u === "string" && !!u);
+    }
+    return days.map(d => d.img || data.heroImg).filter(Boolean);
+  }, [itinerary, days, data.heroImg]);
+
+  // Il paesaggio cambia con il giorno in cui ci si trova: attraversare il
+  // viaggio si deve sentire anche dietro al contenuto.
+  const activeImgIdx = ambient.length === 0
+    ? 0
+    : (Math.max(0, (currentDayN ?? firstDay) - 1)) % ambient.length;
 
   const ctx: FlowCtx = {
     data, itinerary, itineraryId, affiliateUrls, profilingInput,
@@ -304,10 +318,10 @@ export function ItineraryFlow({
     <FlowContext.Provider value={ctx}>
       <div className="mrf">
         <div className="mrf-bg" aria-hidden="true">
-          {dayImages.map((src, i) => (
+          {ambient.map((src, i) => (
             <div key={src + i}
               className={"mrf-bg-ph" + (activeImgIdx === i ? " on" : "")}
-              style={{ backgroundImage: bg(src, isDesktop ? 1600 : 900, 52) }} />
+              style={{ backgroundImage: bg(src, isDesktop ? 1800 : 1100, 62) }} />
           ))}
         </div>
         <div className="mrf-grain" aria-hidden="true" />

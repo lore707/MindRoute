@@ -106,7 +106,7 @@ export async function fetchUnsplashHero(destinationName: string): Promise<{ url:
 export async function buildDestinationPhotoPool(
   destinationName: string,
   want = 24,
-): Promise<Array<{ id: string; url: string }>> {
+): Promise<Array<{ id: string; url: string; wide?: boolean }>> {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   if (!key) return [];
   const parts = destinationName.split(",").map(s => s.trim());
@@ -121,18 +121,40 @@ export async function buildDestinationPhotoPool(
     `${country} landscape travel`.trim(),
   ].filter(q => q.length > 2);
 
+  // Le ultime due query sono paesaggio puro: da li' escono gli sfondi.
+  const WIDE_FROM = queries.length - 2;
+
   const used = new Set<string>();
-  const pool: Array<{ id: string; url: string }> = [];
-  for (const q of queries) {
+  const pool: Array<{ id: string; url: string; wide?: boolean }> = [];
+  for (let qi = 0; qi < queries.length; qi++) {
     if (pool.length >= want) break;
-    const photos = await searchUnsplashMulti(q, used, 12);
+    const photos = await searchUnsplashMulti(queries[qi], used, 12);
     for (const p of photos) {
       if (used.has(p.id)) continue;
       used.add(p.id);
-      pool.push({ id: p.id, url: p.url });
+      pool.push({ id: p.id, url: p.url, wide: qi >= WIDE_FROM });
     }
   }
   return pool;
+}
+
+/**
+ * Sfondi del viaggio: paesaggi larghi, presi dal pool GIA' scaricato (zero
+ * chiamate in piu'), escludendo le foto gia' assegnate alle tappe — altrimenti
+ * la stessa immagine comparirebbe due volte, una davanti e una dietro.
+ * Se i paesaggi non bastano si completa col resto del pool: meglio una foto
+ * della citta' che uno sfondo nero.
+ */
+export function pickAmbientPhotos(
+  pool: Array<{ id: string; url: string; wide?: boolean }>,
+  usedUrls: ReadonlySet<string>,
+  want = 5,
+): string[] {
+  const free = pool.filter(p => p.url && !usedUrls.has(p.url));
+  const out: string[] = [];
+  for (const p of free) { if (p.wide && out.length < want) out.push(p.url); }
+  for (const p of free) { if (!p.wide && out.length < want) out.push(p.url); }
+  return out;
 }
 
 /**
