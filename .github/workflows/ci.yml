@@ -37,6 +37,11 @@ jobs:
       - name: Verify edit round-trip
         run: npm run verify:edit
 
+      # Il Ritratto non deve mai sapere piu' di quanto sa: soglie di
+      # confidenza, insight fondati su conteggi veri, limiti di parole.
+      - name: Verify portrait engine
+        run: npm run verify:portrait
+
       - name: Build
         run: npm run build
         env:
