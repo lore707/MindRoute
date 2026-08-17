@@ -20,7 +20,7 @@ import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import { buildGraphBlock } from "../graph-build";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory } from "../../shared/schema";
 import { requireAuth } from "../auth";
-import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, klookExperienceSearchUrl, civitatisExperienceSearchUrl, musementExperienceSearchUrl, type AffiliateContext } from "../affiliate-config";
+import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, klookExperienceSearchUrl, civitatisExperienceSearchUrl, musementExperienceSearchUrl, experienceProviderForRegion, type AffiliateContext } from "../affiliate-config";
 
 // Contesto affiliate esteso: oltre a checkin/checkout "di cortesia" (default a
 // +3 mesi, usati dagli altri provider come sempre), traccia le date REALI —
@@ -154,8 +154,42 @@ function rewriteMomentBooking(moment: MomentV2, affCtx: StayAffiliateContext): v
   }
 
   const url = resolveAffiliateUrl(b.provider, affCtx);
-  if (url) b.affiliate_url = url;
-  else moment.booking = undefined; // provider senza partner → declassa a walk_in
+  if (url) { b.affiliate_url = url; return; }
+
+  // RETE DI SICUREZZA sulle esperienze. Prima, un provider che non avevamo
+  // (tipicamente GetYourGuide, che il prompt vieta ma il modello a volte nomina
+  // lo stesso) faceva sparire il bottone SENZA UNA RIGA DI LOG: l'itinerario
+  // usciva con zero esperienze prenotabili e nessuno sapeva perche'.
+  // Qui invece la ricomponiamo sul partner della regione, come RICERCA per
+  // categoria — mai un prodotto nominato, coerente con la dottrina esperienze.
+  if (moment.type === "experience") {
+    const city = (affCtx.destinationName ?? "").split(",")[0].trim();
+    const query = (b.experience_recommendation?.search_query
+      || moment.location_name
+      || moment.title_operational
+      || "").trim();
+    if (city) {
+      const prov = experienceProviderForRegion(affCtx.destinationName ?? "");
+      const args = { searchQuery: query, city, lang: affCtx.lang };
+      const rescued = prov === "klook" ? klookExperienceSearchUrl(args)
+        : prov === "civitatis" ? civitatisExperienceSearchUrl(args)
+        : prov === "musement" ? musementExperienceSearchUrl(args)
+        : viatorExperienceSearchUrl(args);
+      if (rescued) {
+        console.warn(`[v2] provider esperienza non supportato "${b.provider}" → ${prov} (ricerca "${query || city}")`);
+        b.provider = prov;
+        b.affiliate_url = rescued;
+        const cat = (b.experience_recommendation?.label ?? "").trim();
+        if (cat && !(b.display_label ?? "").toLowerCase().includes(cat.toLowerCase())) {
+          b.display_label = affCtx.lang === "it" ? `Vedi esperienze: ${cat}` : `See experiences: ${cat}`;
+        }
+        return;
+      }
+    }
+  }
+
+  console.warn(`[v2] provider senza partner "${b.provider}" (${moment.type}) → booking rimosso`);
+  moment.booking = undefined; // provider senza partner → declassa a walk_in
 }
 
 async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {

@@ -18,6 +18,7 @@
  */
 import { itineraryV2Schema } from "../server/matching-engine-v2";
 import { parseClock, bandFromClock, normalizeDayTimes } from "../server/moment-times";
+import { resolveAffiliateUrl, experienceProviderForRegion } from "../server/affiliate-config";
 import type { DayV2 } from "../shared/schema";
 
 let fail = 0;
@@ -70,12 +71,38 @@ for (const label of ["brunch", "aperitivo", "golden hour", "", "qualsiasi_cosa"]
   check(`type ignoto → "experience"`, m?.type === "experience", m?.type ?? null);
 }
 {
+  // Uno stato scritto male NON deve far sparire il bottone: "walk_in" significa
+  // "nessuna prenotazione" e il rewrite cancella l'oggetto booking. Il fallback
+  // e' "da confermare": conserva il CTA senza promettere prenotabilita'.
   const r = itineraryV2Schema.safeParse(itin([
     moment({ booking: { provider: "x", affiliate_url: "u", display_label: "l", status: "boh" } }),
     moment({ id: "m2" }),
   ]));
   const st = r.success ? (r.data.days[0].moments[0] as any).booking?.status : null;
-  check(`booking.status ignoto → "walk_in" (mai promettere prenotabilita')`, st === "walk_in", st);
+  check(`booking.status ignoto → "reserve_recommended" (il CTA sopravvive)`, st === "reserve_recommended", st);
+  check(`...e NON "walk_in", che cancellerebbe il booking`, st !== "walk_in", st);
+}
+{
+  // I provider esperienza che il modello nomina anche se non li abbiamo.
+  const cases: Array<[string, string]> = [
+    ["getyourguide", "viator"], ["GetYourGuide", "viator"], ["gyg", "viator"],
+    ["tours", "viator"], ["activities", "viator"], ["esperienze", "viator"],
+    ["tiqets", "musement"], ["klook.com", "klook"], ["civitatis", "civitatis"],
+  ];
+  for (const [raw, want] of cases) {
+    const url = resolveAffiliateUrl(raw, { destinationName: "Kyoto, Giappone" });
+    check(`provider "${raw}" → link ${want} (non null)`, !!url && url.toLowerCase().includes(want), url);
+  }
+}
+{
+  // La rete di sicurezza per regione.
+  const cases: Array<[string, string]> = [
+    ["Kyoto, Giappone", "klook"], ["Napoli, Italia", "civitatis"],
+    ["Parigi, Francia", "musement"], ["Marrakech, Marocco", "viator"],
+  ];
+  for (const [dest, want] of cases) {
+    check(`${dest} → ${want}`, experienceProviderForRegion(dest) === want, experienceProviderForRegion(dest));
+  }
 }
 
 /* ── 3. l'ORARIO comanda sulla fascia ── */

@@ -324,8 +324,45 @@ function canonicalProvider(raw: string): string {
     direct_ferries: "ferry", directferries: "ferry", ferryhopper: "ferry",
     sam_boat: "samboat", samboat_it: "samboat",
     cars: "expedia_cars", car: "expedia_cars", expedia_car: "expedia_cars",
+    // Esperienze. Il modello a volte nomina un partner che NON abbiamo
+    // (GetYourGuide su tutti, nonostante il prompt lo vieti) o scrive la
+    // categoria invece del provider. Senza questi sinonimi finivano nel
+    // `default: null` e il bottone spariva senza lasciare traccia.
+    get_your_guide: "viator", getyourguide: "viator", gyg: "viator",
+    tours: "viator", tour: "viator", activities: "viator", activity: "viator",
+    experiences: "viator", experience: "viator", esperienze: "viator",
+    esperienza: "viator", attivita: "viator", visite: "viator",
+    tiqets: "musement", headout: "viator", airbnb_experiences: "viator",
+    civitatis_com: "civitatis", musement_com: "musement", klook_com: "klook",
   };
   return syn[base] ?? base;
+}
+
+/**
+ * Il partner esperienze giusto per la destinazione.
+ * Serve come RETE DI SICUREZZA: se il modello non nomina un provider che
+ * abbiamo, invece di perdere il bottone lo ricostruiamo sul partner della
+ * regione. Resta sempre una RICERCA per categoria, mai un prodotto nominato.
+ */
+export function experienceProviderForRegion(destinationName: string): "viator" | "klook" | "civitatis" | "musement" {
+  const s = (destinationName ?? "").toLowerCase();
+  const has = (...xs: string[]) => xs.some(x => s.includes(x));
+  // Asia e Pacifico: Klook ha di gran lunga il catalogo migliore.
+  if (has("giappone", "japan", "thailand", "thailandia", "vietnam", "indonesia", "bali",
+          "singapore", "malaysia", "malesia", "corea", "korea", "cina", "china",
+          "hong kong", "taiwan", "filippine", "philippines", "india", "sri lanka",
+          "nepal", "cambogia", "cambodia", "laos", "australia", "nuova zelanda", "new zealand")) return "klook";
+  // Italia, Spagna e America Latina: Civitatis e' nato li'.
+  if (has("italia", "italy", "spagna", "spain", "messico", "mexico", "argentina",
+          "cile", "chile", "peru", "colombia", "cuba", "brasile", "brazil",
+          "portogallo", "portugal")) return "civitatis";
+  // Resto d'Europa: Musement.
+  if (has("francia", "france", "germania", "germany", "austria", "grecia", "greece",
+          "croazia", "croatia", "olanda", "netherlands", "paesi bassi", "belgio",
+          "belgium", "svizzera", "switzerland", "polonia", "poland", "ungheria",
+          "hungary", "repubblica ceca", "czech", "irlanda", "ireland", "regno unito",
+          "united kingdom", "scozia", "scotland")) return "musement";
+  return "viator";
 }
 
 export function resolveAffiliateUrl(rawProvider: string, ctx: AffiliateContext): string | null {

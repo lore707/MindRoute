@@ -94,9 +94,15 @@ const bookingStatusSchema = looseEnum<BookingStatus>(
     consigliato: "reserve_recommended", consigliata: "reserve_recommended", "prenotazione_consigliata": "reserve_recommended",
     "senza_prenotazione": "walk_in", "accesso_libero": "walk_in", walkin: "walk_in",
   },
-  // Fallback SICURO: davanti a uno stato ignoto non promettiamo una
-  // prenotabilita' che non sappiamo esistere.
-  "walk_in", "booking.status",
+  // Fallback: "da confermare".
+  //
+  // Avevo scelto "walk_in" pensando fosse il piu' prudente. E' l'opposto:
+  // walk_in significa "nessuna prenotazione", e il rewrite CANCELLA l'oggetto
+  // booking — cioe' uno stato scritto male faceva sparire il bottone.
+  // Se il modello ha emesso un booking con url e label, l'intenzione era
+  // prenotare: "reserve_recommended" la conserva senza promettere una
+  // prenotabilita' immediata che non sappiamo esistere.
+  "reserve_recommended", "booking.status",
 ) satisfies z.ZodType<BookingStatus>;
 
 const energyLevelSchema = looseEnum<EnergyLevel>(
