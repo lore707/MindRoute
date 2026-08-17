@@ -18,6 +18,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { mapTileUrl, readMapStyle } from "@/lib/map-style";
 import L from "leaflet";
 import { Maximize2, Minimize2, X, ArrowRight, MapPin } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
@@ -25,7 +26,9 @@ import { useI18n } from "@/lib/i18n";
 import type { AtlasData } from "./AccountAtlas";
 import type { AccountData } from "./AccountCinematic";
 
-const CARTO = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+// Vista mondo: mostra DOVE sei stato, non come arrivarci → niente etichette,
+// che a questa scala sono rumore. Lo stile lo sceglie l'utente altrove.
+const tileUrl = () => mapTileUrl(readMapStyle(), { labels: false });
 const CARTO_ATTR = '&copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 export type Emotion = "life-changing" | "meaningful" | "loved" | "not-for-me" | "revisited";
@@ -123,7 +126,7 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
     const map = L.map(mapEl.current, { zoomControl: false, attributionControl: true, worldCopyJump: true, minZoom: 2 });
     map.setView([25, 10], 2); // Leaflet richiede center+zoom prima di ogni proiezione/fitBounds
     mapRef.current = map;
-    L.tileLayer(CARTO, { attribution: CARTO_ATTR, subdomains: "abcd", maxZoom: 10 }).addTo(map);
+    L.tileLayer(tileUrl(), { attribution: CARTO_ATTR, subdomains: "abcd", maxZoom: 10 }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     routeRef.current = L.layerGroup().addTo(map);
     fitScene(map, false);

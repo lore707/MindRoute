@@ -11,6 +11,7 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useRef } from "react";
+import { mapTileUrl, readMapStyle } from "@/lib/map-style";
 import L from "leaflet";
 import { useI18n } from "@/lib/i18n";
 // Leaflet's base CSS is imported once globally from client/src/index.css
@@ -35,7 +36,8 @@ export interface AtlasData {
   stats: { trips: number; days: number; cities: number; continents: number };
 }
 
-const CARTO_DARK = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+// Fondo dallo stile SCELTO dall'utente (condiviso con itinerario e home).
+const tileUrl = () => mapTileUrl(readMapStyle());
 const CARTO_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
@@ -95,7 +97,7 @@ export function AccountAtlas({
     });
     mapRef.current = map;
 
-    L.tileLayer(CARTO_DARK, { attribution: CARTO_ATTR, subdomains: "abcd", maxZoom: 18 }).addTo(map);
+    L.tileLayer(tileUrl(), { attribution: CARTO_ATTR, subdomains: "abcd", maxZoom: 18 }).addTo(map);
 
     const latlngs: L.LatLngExpression[] = [];
     for (const p of places) {

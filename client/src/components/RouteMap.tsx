@@ -20,6 +20,9 @@ import "leaflet/dist/leaflet.css";
 // itinerary-dashboard.css scopati su `.account-dash` e fuori da quel
 // contenitore la mappa restava nera.
 import "@/styles/routemap.css";
+// Il catalogo degli stili e la preferenza vivono in un modulo condiviso: la
+// scelta fatta qui vale anche per l'atlante e per il mini-atlante della home.
+import { MAP_STYLES, CARTO_ATTR, readMapStyle, saveMapStyle, mapTileUrl, type MapStyle } from "@/lib/map-style";
 
 export type PlaceCategory = "lodging" | "experience" | "food" | "sight" | "beach" | "custom";
 
@@ -117,43 +120,6 @@ const catLabel = (c: PlaceCategory, lang: "it" | "en") => {
   };
   return (lang === "it" ? it : en)[c];
 };
-
-/* ── STILI DELLA MAPPA ────────────────────────────────────────────────────────
- * Tutti e tre da CARTO, lo stesso fornitore che gia' usavamo: nessuna chiave
- * nuova, nessun termine di licenza nuovo, stessa attribuzione.
- *
- * Il default era "dark_all": bellissimo come atmosfera, illeggibile come mappa
- * — strade nere su fondo nero, e il percorso corallo galleggiava nel vuoto.
- * Ora si parte da Voyager: strade chiare, acqua blu, parchi verdi, etichette
- * leggibili. La notte resta disponibile per chi la preferisce.
- * ─────────────────────────────────────────────────────────────────────────── */
-export type MapStyle = "voyager" | "light" | "dark";
-
-const CARTO_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
-
-const MAP_STYLES: Record<MapStyle, { url: string; label: { it: string; en: string } }> = {
-  voyager: {
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    label: { it: "Colori", en: "Colour" },
-  },
-  light: {
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    label: { it: "Chiara", en: "Light" },
-  },
-  dark: {
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    label: { it: "Notte", en: "Night" },
-  },
-};
-
-const STYLE_KEY = "mr_map_style";
-function readStyle(): MapStyle {
-  try {
-    const v = localStorage.getItem(STYLE_KEY);
-    if (v === "voyager" || v === "light" || v === "dark") return v;
-  } catch { /* private mode */ }
-  return "voyager";
-}
 
 // Ordine delle fasce per numerare le tappe in sequenza nel giorno.
 const SLOT_ORDER: Record<string, number> = { morning: 0, mattina: 0, lunch: 1, pranzo: 1, afternoon: 2, pomeriggio: 2, evening: 3, sera: 3, night: 4, notte: 4 };
@@ -276,7 +242,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
   const searchLayer = useRef<L.LayerGroup | null>(null);
   const meLayer = useRef<L.LayerGroup | null>(null);
   const tileRef = useRef<L.TileLayer | null>(null);
-  const [mapStyle, setMapStyle] = useState<MapStyle>(() => readStyle());
+  const [mapStyle, setMapStyle] = useState<MapStyle>(() => readMapStyle());
   // Ref parallelo: l'init della mappa gira UNA volta sola e non deve dipendere
   // dallo stato (rimonterebbe tutto a ogni cambio di stile).
   const styleRef = useRef<MapStyle>(mapStyle);
@@ -452,7 +418,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     const map = L.map(elRef.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false })
       .setView(first ? [first.lat, first.lng] : [41.9, 12.5], 13);
 
-    tileRef.current = L.tileLayer(MAP_STYLES[styleRef.current].url, {
+    tileRef.current = L.tileLayer(mapTileUrl(styleRef.current), {
       subdomains: "abcd", maxZoom: 20, attribution: CARTO_ATTR,
     }).addTo(map);
 
@@ -604,11 +570,11 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
   // perderebbe zoom, selezione e la cache dei percorsi calcolati.
   useEffect(() => {
     styleRef.current = mapStyle;
-    try { localStorage.setItem(STYLE_KEY, mapStyle); } catch { /* private mode */ }
+    saveMapStyle(mapStyle);
     const map = mapRef.current;
     if (!map) return;
     if (tileRef.current) map.removeLayer(tileRef.current);
-    tileRef.current = L.tileLayer(MAP_STYLES[mapStyle].url, {
+    tileRef.current = L.tileLayer(mapTileUrl(mapStyle), {
       subdomains: "abcd", maxZoom: 20, attribution: CARTO_ATTR,
     }).addTo(map);
     tileRef.current.bringToBack();

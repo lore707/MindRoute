@@ -24,6 +24,7 @@ import { useI18n } from "@/lib/i18n";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 import type { AccountData } from "./AccountCinematic";
 import { PortraitScreen } from "@/components/PortraitScreen";
+import { mapTileUrl, readMapStyle } from "@/lib/map-style";
 
 const AccountAtlas = lazy(() => import("./AccountAtlas").then(m => ({ default: m.AccountAtlas })));
 const AtlasMap = lazy(() => import("./AtlasMap").then(m => ({ default: m.AtlasMap })));
@@ -622,7 +623,8 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
         doubleClickZoom: false, boxZoom: false, keyboard: false,
         touchZoom: false, attributionControl: false,
       });
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png").addTo(map);
+      // Widget decorativo: senza etichette, ma nello stile scelto dall'utente.
+      L.tileLayer(mapTileUrl(readMapStyle(), { labels: false }), { subdomains: "abcd" }).addTo(map);
       const pts = places.map((p) => [p.lat, p.lng] as [number, number]);
       pts.forEach((ll) => {
         L.marker(ll, { icon: L.divIcon({ className: "h2-atlas-dot", iconSize: [8, 8] }), interactive: false }).addTo(map);
