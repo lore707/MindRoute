@@ -14,7 +14,35 @@
 .rmap-stage{position:relative}
 .rmap{width:100%;height:clamp(360px,52vh,560px);background:#11161f}
 /* basemap CARTO dark schiarito+contrastato: strade ed etichette leggibili, mood notturno preservato */
-.rmap .leaflet-tile{filter:brightness(1.5) contrast(1.08) saturate(1.22)}
+/* Il filtro schiarente serviva a rendere leggibile la basemap NOTTE. Su
+   Voyager e sulla chiara laverebbe via i colori: si applica solo dove serve. */
+.rmap--dark .leaflet-tile{filter:brightness(1.5) contrast(1.08) saturate(1.22)}
+/* Voyager di suo e' un filo pallido: un soffio di saturazione e contrasto lo
+   porta al livello del resto del prodotto, senza farlo diventare un cartone. */
+.rmap--voyager .leaflet-tile{filter:saturate(1.12) contrast(1.04)}
+
+/* ── Scelta dello stile ────────────────────────────────────────────────────
+   In alto a destra, sopra la mappa. Vetro scuro: si legge sia sul chiaro sia
+   sul notturno senza cambiare aspetto. */
+.rmap-styles{position:absolute;z-index:600;top:12px;right:12px;display:flex;gap:2px;padding:3px;
+  border-radius:999px;background:rgba(10,12,18,.76);border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.rmap-style{min-height:30px;padding:0 12px;border-radius:999px;border:none;background:transparent;
+  color:rgba(245,244,242,.62);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;
+  transition:background .18s,color .18s;position:relative}
+/* Area tattile piena senza gonfiare la pastiglia. */
+.rmap-style::before{content:"";position:absolute;inset:-7px 0}
+.rmap-style:hover{color:#F5F4F2}
+.rmap-style.on{background:var(--accent,#E94560);color:#fff}
+
+/* ── Leggibilita' su fondo CHIARO ──────────────────────────────────────────
+   I pin e il percorso erano disegnati per il nero. Su Voyager e sulla chiara
+   servono un bordo e un'ombra, o si perdono dentro la mappa. */
+.rmap--voyager .rmap-pin,.rmap--light .rmap-pin{box-shadow:0 2px 10px rgba(0,0,0,.34);border:2px solid rgba(255,255,255,.92)}
+.rmap--voyager .rmap-leg,.rmap--light .rmap-leg{background:rgba(255,255,255,.94);color:#1a1a1a;border-color:rgba(0,0,0,.14)}
+/* Le etichette orario restano vetro SCURO: su una mappa chiara il contrasto
+   e' migliore di un'etichetta bianca su bianco. */
+.rmap--voyager .mrf-mlabel .in,.rmap--light .mrf-mlabel .in{border-color:rgba(0,0,0,.2);box-shadow:0 2px 10px rgba(0,0,0,.2)}
 .rmap-loading{display:grid;place-items:center;height:clamp(360px,52vh,560px);color:var(--ink-dim);font-family:var(--serif);font-style:italic;font-size:14px}
 /* fullscreen: colonna a tutto viewport — barra giorni / filtri / mappa
    (flex:1) / striscia-tappe. Safe-area per notch e home indicator. */

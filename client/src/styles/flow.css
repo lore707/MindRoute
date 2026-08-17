@@ -509,11 +509,14 @@
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
 .mrf-map-go:hover { border-color: var(--acc); color: var(--acc); }
-/* A destra: a sinistra c'è lo zoom di Leaflet e si sovrapponevano. */
+/* In BASSO, sopra i controlli: in alto a sinistra c'è lo zoom di Leaflet e in
+   alto a destra la scelta dello stile mappa. */
 .mrf-map-legend {
-  position: absolute; z-index: 500; top: 12px;
-  right: max(12px, env(safe-area-inset-right));
-  max-width: calc(100% - 80px);
+  position: absolute; z-index: 500;
+  left: max(16px, env(safe-area-inset-left));
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  justify-content: center;
   display: flex; gap: 12px; flex-wrap: wrap;
   padding: 8px 12px; border-radius: var(--r-pill);
   background: rgba(10, 12, 18, .74);
