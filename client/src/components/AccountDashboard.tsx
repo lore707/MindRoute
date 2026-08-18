@@ -25,6 +25,8 @@ import { getLastOpenedItinerary } from "@/lib/last-opened";
 import type { AccountData } from "./AccountCinematic";
 import { PortraitScreen } from "@/components/PortraitScreen";
 import { mapTileUrl, readMapStyle } from "@/lib/map-style";
+import "@/styles/leaflet-chrome.css";
+import { attachAutoSize, fitToPoints, safePoints } from "@/lib/leaflet-utils";
 
 const AccountAtlas = lazy(() => import("./AccountAtlas").then(m => ({ default: m.AccountAtlas })));
 const AtlasMap = lazy(() => import("./AtlasMap").then(m => ({ default: m.AtlasMap })));
@@ -615,6 +617,7 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     if (view !== "home" || places.length === 0 || !miniMapEl.current) return;
     let map: any = null;
     let disposed = false;
+    let detach: (() => void) | null = null;
     import("leaflet").then((mod) => {
       const L = (mod as any).default ?? mod; // interop UMD/ESM (come fa Vite per l'import statico)
       if (disposed || !miniMapEl.current) return;
@@ -625,13 +628,19 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
       });
       // Widget decorativo: senza etichette, ma nello stile scelto dall'utente.
       L.tileLayer(mapTileUrl(readMapStyle(), { labels: false }), { subdomains: "abcd" }).addTo(map);
-      const pts = places.map((p) => [p.lat, p.lng] as [number, number]);
-      pts.forEach((ll) => {
-        L.marker(ll, { icon: L.divIcon({ className: "h2-atlas-dot", iconSize: [8, 8] }), interactive: false }).addTo(map);
+      // Coordinate valide soltanto: un NaN qui faceva LANCIARE fitBounds, e
+      // l'eccezione dentro la promise lasciava la card con un buco grigio.
+      const good = safePoints(places as Array<{ lat: number; lng: number }>);
+      good.forEach((p) => {
+        L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "h2-atlas-dot", iconSize: [8, 8] }), interactive: false }).addTo(map);
       });
-      map.fitBounds(L.latLngBounds(pts), { padding: [18, 18], maxZoom: 5 });
+      fitToPoints(L, map, good, { padding: [18, 18], maxZoom: 5, singleZoom: 4, animate: false });
+      // Il mini-atlante non aveva NESSUN invalidateSize: montava dentro una card
+      // che si impagina dopo, quindi la prima misura era spesso 0 e restava un
+      // rettangolo vuoto finche' non si ricaricava la pagina.
+      detach = attachAutoSize(map, miniMapEl.current);
     }).catch(() => { /* la card mostra solo le stat */ });
-    return () => { disposed = true; if (map) map.remove(); };
+    return () => { disposed = true; detach?.(); if (map) map.remove(); };
   }, [view, data.atlas]);
 
   const scrollToRecs = () => document.getElementById("h2-recs")?.scrollIntoView({ behavior: "smooth", block: "start" });

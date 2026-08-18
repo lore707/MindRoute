@@ -20,9 +20,11 @@ import "leaflet/dist/leaflet.css";
 // itinerary-dashboard.css scopati su `.account-dash` e fuori da quel
 // contenitore la mappa restava nera.
 import "@/styles/routemap.css";
+import "@/styles/leaflet-chrome.css";
 // Il catalogo degli stili e la preferenza vivono in un modulo condiviso: la
 // scelta fatta qui vale anche per l'atlante e per il mini-atlante della home.
 import { MAP_STYLES, CARTO_ATTR, readMapStyle, saveMapStyle, mapTileUrl, type MapStyle } from "@/lib/map-style";
+import { attachAutoSize, attachTileHealth, fitToPoints, safePoints, flyDuration } from "@/lib/leaflet-utils";
 
 export type PlaceCategory = "lodging" | "experience" | "food" | "sight" | "beach" | "custom";
 
@@ -246,6 +248,9 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
   // Ref parallelo: l'init della mappa gira UNA volta sola e non deve dipendere
   // dallo stato (rimonterebbe tutto a ogni cambio di stile).
   const styleRef = useRef<MapStyle>(mapStyle);
+  // Tile che non arrivano: meglio dirlo che mostrare un rettangolo vuoto.
+  const [tilesDown, setTilesDown] = useState(false);
+  const detachRef = useRef<Array<() => void>>([]);
 
   const days = useMemo(() => {
     const s = new Set<number>();
@@ -291,7 +296,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     const p = selectedMomentId ? points.find(x => x.momentId === selectedMomentId) ?? null : null;
     setSelected(p);
     if (p && mapRef.current) {
-      mapRef.current.flyTo([p.lat, p.lng], Math.max(mapRef.current.getZoom(), 15), { duration: 0.4 });
+      mapRef.current.flyTo([p.lat, p.lng], Math.max(mapRef.current.getZoom(), 15), { duration: flyDuration(0.4) });
     }
   }, [selectedMomentId, points]);
 
@@ -427,7 +432,11 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     searchLayer.current = L.layerGroup().addTo(map);
     meLayer.current = L.layerGroup().addTo(map);
     mapRef.current = map;
-    setTimeout(() => map.invalidateSize(), 80);
+    // Osservare batte indovinare: il vecchio setTimeout(80) copriva il primo
+    // montaggio e nient'altro — poi bastava aprire un pannello per lasciare
+    // fasce grigie dove le tile non erano mai state chieste.
+    detachRef.current.push(attachAutoSize(map as any, elRef.current));
+    if (tileRef.current) detachRef.current.push(attachTileHealth(tileRef.current as any, ok => setTilesDown(!ok)));
 
     // Zoom con Ctrl/Cmd+rotella (pattern standard delle mappe embedded): lo
     // scroll della pagina resta libero, ma la mappa non sembra più "inerte".
@@ -467,9 +476,20 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
           if (!isNaN(lat) && !isNaN(lng)) map.setView([lat, lng], 12, { animate: true });
         })
         .catch(() => {});
-      return () => { cancelled = true; wheelEl?.removeEventListener("wheel", onWheel); map.remove(); mapRef.current = null; };
+      return () => {
+        cancelled = true;
+        wheelEl?.removeEventListener("wheel", onWheel);
+        detachRef.current.forEach(f => { try { f(); } catch { /* gia' staccato */ } });
+        detachRef.current = [];
+        map.remove(); mapRef.current = null;
+      };
     }
-    return () => { wheelEl?.removeEventListener("wheel", onWheel); map.remove(); mapRef.current = null; };
+    return () => {
+      wheelEl?.removeEventListener("wheel", onWheel);
+      detachRef.current.forEach(f => { try { f(); } catch { /* gia' staccato */ } });
+      detachRef.current = [];
+      map.remove(); mapRef.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -538,7 +558,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     const openCard = (p: RoutePoint) => {
       setSelected(p);
       onSelectMoment?.(p.momentId ?? null); // sync Map→Story (Journey)
-      map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: 0.5 });
+      map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: flyDuration(0.5) });
     };
 
     // Ancora alloggio.
@@ -560,9 +580,10 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
       }
     });
 
-    if (latlngs.length === 1) map.setView(latlngs[0], 15, { animate: true });
-    else if (latlngs.length > 1) map.fitBounds(L.latLngBounds(latlngs), { padding: [60, 60], maxZoom: 16 });
-    else if (center) map.setView([center.lat, center.lng], 12);
+    fitToPoints(L, map as any, latlngs.map(([lat, lng]) => ({ lat, lng })), {
+      padding: [60, 60], maxZoom: 16, singleZoom: 15,
+      fallback: center ? { lat: center.lat, lng: center.lng, zoom: 12 } : undefined,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, activeDay, center, dayRoute, filtersActive, dayStops, timeLabels]);
 
@@ -633,7 +654,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
       `<div class="rmap-pop-t">${escapeHtml(res.label)}</div>` +
       (res.address ? `<div class="rmap-pop-m">${escapeHtml(res.address)}</div>` : "") + saveRow + `</div>`;
     const m = L.marker([res.lat, res.lng], { icon: catIcon("custom"), keyboard: false }).bindPopup(html, { closeButton: true, className: "rmap-popup" }).addTo(layer);
-    map.flyTo([res.lat, res.lng], 16, { duration: 0.6 });
+    map.flyTo([res.lat, res.lng], 16, { duration: flyDuration(0.6) });
     m.openPopup();
     setResults([]);
   }
@@ -646,7 +667,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
         const { latitude, longitude } = pos.coords;
         layer.clearLayers();
         L.marker([latitude, longitude], { icon: meIcon(), keyboard: false }).addTo(layer);
-        map.flyTo([latitude, longitude], 15, { duration: 0.6 });
+        map.flyTo([latitude, longitude], 15, { duration: flyDuration(0.6) });
       },
       () => {}, { enableHighAccuracy: true, timeout: 8000 },
     );
@@ -716,7 +737,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     const map = mapRef.current;
     if (!map) return;
     setSelected(p);
-    map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: 0.5 });
+    map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: flyDuration(0.5) });
   };
 
   // Pin toccato sulla mappa → la striscia scorre fino alla tappa attiva
@@ -810,6 +831,14 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
             </button>
           ))}
         </div>
+
+        {tilesDown && (
+          <div className="rmap-offline" role="status">
+            {lang === "it"
+              ? "Le mappe non si caricano — controlla la connessione. Le tappe restano tutte qui."
+              : "Map tiles aren't loading — check your connection. Your stops are all still here."}
+          </div>
+        )}
 
         {/* Controlli della schermata Mappa (flow): legenda del percorso in
             alto, "centra su di me" e apertura navigazione in basso. */}

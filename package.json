@@ -11,6 +11,7 @@
     "verify:times": "tsx script/verify-moment-slots.ts",
     "verify:edit": "tsx script/verify-edit-roundtrip.ts",
     "verify:portrait": "tsx script/verify-portrait.ts",
+    "verify:map": "tsx script/verify-map.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {

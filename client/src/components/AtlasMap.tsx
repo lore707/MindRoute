@@ -19,6 +19,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { mapTileUrl, readMapStyle } from "@/lib/map-style";
+import "@/styles/leaflet-chrome.css";
+import { attachAutoSize, fitToPoints, flyDuration } from "@/lib/leaflet-utils";
 import L from "leaflet";
 import { Maximize2, Minimize2, X, ArrowRight, MapPin } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
@@ -130,10 +132,15 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
     L.control.zoom({ position: "bottomright" }).addTo(map);
     routeRef.current = L.layerGroup().addTo(map);
     fitScene(map, false);
-    setTimeout(() => { map.invalidateSize(); }, 60);
-    return () => { map.off(); map.remove(); mapRef.current = null; routeRef.current = null; markersRef.current.clear(); };
+    // Osservare il contenitore invece di indovinare un istante: l'atlante vive
+    // dentro una collezione che cambia larghezza (filtri, switch card/mappa).
+    const detach = attachAutoSize(map as any, mapEl.current);
+    return () => {
+      detach();
+      map.off(); map.remove(); mapRef.current = null; routeRef.current = null; markersRef.current.clear();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes.length]);
+  }, [nodes.length > 0]);
 
   // ── Marker (ricreati su cambio nodi) + refit se nessuna selezione ──
   useEffect(() => {
@@ -179,8 +186,8 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
     const n = nodes.find(x => x.id === selId);
     if (!n) return;
     const pts = (n.stops && n.stops.length >= 2) ? n.stops.map(s => [s.lat, s.lng] as [number, number]) : null;
-    if (pts) map.flyToBounds(L.latLngBounds(pts), { padding: [90, 90], maxZoom: 12, duration: 0.8 });
-    else map.flyTo([n.lat, n.lng], Math.max(map.getZoom(), 5), { duration: 0.7 });
+    if (pts) map.flyToBounds(L.latLngBounds(pts), { padding: [90, 90], maxZoom: 12, duration: flyDuration(0.8) });
+    else map.flyTo([n.lat, n.lng], Math.max(map.getZoom(), 5), { duration: flyDuration(0.7) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selId]);
 
@@ -194,7 +201,7 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
     if (nodes.length === 0) { map.setView([25, 10], 2, { animate }); return; }
     const b = L.latLngBounds(nodes.map(n => [n.lat, n.lng] as [number, number]));
     const opts = { padding: [70, 70] as [number, number], maxZoom: nodes.length === 1 ? 6 : 5 };
-    if (animate) map.flyToBounds(b, { ...opts, duration: 0.8 });
+    if (animate) map.flyToBounds(b, { ...opts, duration: flyDuration(0.8) });
     else map.fitBounds(b, opts);
   }
 

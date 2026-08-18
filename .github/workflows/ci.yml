@@ -42,6 +42,11 @@ jobs:
       - name: Verify portrait engine
         run: npm run verify:portrait
 
+      # Le mappe non devono poter portare giu' la schermata: coordinate
+      # spazzatura, zero punti, tile che non arrivano.
+      - name: Verify map safety
+        run: npm run verify:map
+
       - name: Build
         run: npm run build
         env:

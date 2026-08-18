@@ -1,0 +1,70 @@
+/* ════════════════════════════════════════════════════════════════════════
+   LEAFLET CHROME — la parte di mappa che disegna Leaflet, non noi.
+   Importato da lib/leaflet-utils.ts, che ogni mappa gia' usa: cosi' i controlli
+   sono identici sull'itinerario, sull'atlante e sul mini-atlante della home,
+   senza doversene ricordare in quattro punti diversi.
+   ════════════════════════════════════════════════════════════════════════ */
+/* Le tile entrano in dissolvenza invece di apparire a scatti mentre scorri. */
+.leaflet-container .leaflet-tile { transition: opacity .28s ease-out; }
+/* Sfondo del contenitore in attesa: un grigio neutro, non il bianco di Leaflet
+   che lampeggia su un prodotto scuro. */
+.leaflet-container { background: #12161f; font-family: inherit; }
+
+/* Zoom: vetro, non i bottoni di sistema del 2011. */
+.leaflet-touch .leaflet-bar,
+.leaflet-bar {
+  border: 1px solid rgba(255, 255, 255, .14) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .35) !important;
+  background: rgba(10, 12, 18, .76);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  width: 34px; height: 34px; line-height: 34px;
+  background: transparent; color: rgba(245, 244, 242, .84);
+  border-bottom: 1px solid rgba(255, 255, 255, .1);
+  font-size: 17px; font-weight: 600;
+}
+.leaflet-bar a:last-child { border-bottom: none; }
+.leaflet-bar a:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+.leaflet-bar a.leaflet-disabled { color: rgba(245, 244, 242, .28); background: transparent; }
+
+/* Attribuzione: obbligatoria e va lasciata leggibile, ma non deve gridare. */
+.leaflet-control-attribution {
+  background: rgba(10, 12, 18, .64) !important;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: rgba(245, 244, 242, .5) !important;
+  font-size: 9.5px !important;
+  padding: 2px 8px !important;
+  border-radius: 999px 0 0 0;
+}
+.leaflet-control-attribution a { color: rgba(245, 244, 242, .72) !important; }
+
+/* Avviso "le mappe non si caricano": sta sopra la mappa, non la sostituisce —
+   le tappe restano tutte lì, ed è la cosa che conta dirgli. */
+.rmap-offline {
+  position: absolute; z-index: 700; left: 50%; top: 16px; transform: translateX(-50%);
+  max-width: min(420px, calc(100% - 32px));
+  padding: 10px 16px; border-radius: 999px;
+  background: rgba(10, 12, 18, .88);
+  border: 1px solid rgba(233, 69, 96, .4);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  color: rgba(245, 244, 242, .9); font-size: 12px; line-height: 1.45; text-align: center;
+}
+
+/* Il cursore dice cosa si può fare: mano aperta, e chiusa mentre trascini. */
+.leaflet-grab { cursor: grab; }
+.leaflet-dragging .leaflet-grab { cursor: grabbing; }
+
+/* Focus da tastiera visibile sui marker: erano completamente invisibili. */
+.leaflet-marker-icon:focus-visible,
+.leaflet-container a:focus-visible {
+  outline: 2px solid #E94560; outline-offset: 3px; border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-container .leaflet-tile { transition: none; }
+  .leaflet-fade-anim .leaflet-tile { transition: none !important; }
+}

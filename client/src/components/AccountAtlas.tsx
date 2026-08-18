@@ -12,6 +12,8 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { mapTileUrl, readMapStyle } from "@/lib/map-style";
+import "@/styles/leaflet-chrome.css";
+import { attachAutoSize, fitToPoints } from "@/lib/leaflet-utils";
 import L from "leaflet";
 import { useI18n } from "@/lib/i18n";
 // Leaflet's base CSS is imported once globally from client/src/index.css
@@ -114,17 +116,18 @@ export function AccountAtlas({
       latlngs.push([p.lat, p.lng]);
     }
 
-    if (latlngs.length === 1) {
-      map.setView(latlngs[0], 4);
-    } else {
-      map.fitBounds(L.latLngBounds(latlngs).pad(0.25), { maxZoom: 6 });
-    }
+    // Inquadratura protetta: una coordinata non finita faceva LANCIARE
+    // fitBounds dentro l'effect, e l'eccezione portava giu' la pagina.
+    fitToPoints(L, map as any, latlngs.map((ll: any) => ({ lat: ll[0], lng: ll[1] })), {
+      padding: [40, 40], maxZoom: 6, singleZoom: 4,
+    });
 
-    // Container may mount at 0px during transitions; nudge Leaflet to recompute.
-    const timer = setTimeout(() => map.invalidateSize(), 200);
+    // Il contenitore puo' montare a 0px durante le transizioni, e cambiare
+    // taglia dopo: qui si osserva, non si indovina.
+    const detach = attachAutoSize(map as any, mapEl.current);
 
     return () => {
-      clearTimeout(timer);
+      detach();
       map.remove();
       mapRef.current = null;
     };
