@@ -875,7 +875,18 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
                 <h3>{t("acd.h2.atlasK")}</h3>
                 <button className="h2-link" onClick={() => { setViewMode("atlas"); go("trips"); }}>{t("acd.h2.viewAll")} →</button>
               </div>
-              {(data.atlas?.places?.length ?? 0) > 0 && <div className="h2-atlas-map" ref={miniMapEl} />}
+              {(data.atlas?.places?.length ?? 0) > 0
+                ? <div className="h2-atlas-map" ref={miniMapEl} />
+                /* Viaggi in archivio ma nessuno collocabile: le statistiche qui
+                   sotto mostrano numeri veri, quindi una mappa assente e basta
+                   sembra un guasto. Una riga lo spiega. */
+                : (counts.places > 0 && (
+                  <div className="h2-atlas-none">
+                    {lang === "it"
+                      ? "Le posizioni dei tuoi viaggi si stanno ancora risolvendo."
+                      : "Your journeys' locations are still resolving."}
+                  </div>
+                ))}
               <div className="h2-atlas-stats">
                 <div><span className="n">{counts.continents}</span><span className="l">{plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span></div>
                 <div><span className="n">{counts.places}</span><span className="l">{plural(counts.places, "acd.unit.place", "acd.unit.places")}</span></div>

@@ -71,6 +71,29 @@ interface Group {
   heroImageUrl: string | null;
   href: string;
   cacheDate: Date;          // date to persist a geocode miss under (old → out of feed)
+  /** Coordinate che il viaggio conosce GIÀ (tripMeta.map_points, geocodificate
+   *  alla generazione). Quando ci sono, l'atlante non geocodifica niente. */
+  own: { lat: number; lng: number } | null;
+}
+
+/* Il baricentro delle tappe di un viaggio v2.
+ *
+ * Perché conta: l'atlante geocodificava il NOME della destinazione da capo, con
+ * Nominatim, ogni volta. Ma la generazione aveva già risolto e salvato le
+ * coordinate vere delle tappe. Risultato: chiamate di rete inutili, e — quando
+ * Nominatim rifiuta l'IP del server, cosa normale in cloud — un atlante VUOTO
+ * pur avendo le coordinate in archivio. Qui si usano quelle. */
+function ownCoords(trip: any): { lat: number; lng: number } | null {
+  const pts = (trip?.tripMeta?.map_points ?? []) as Array<{ lat?: unknown; lng?: unknown }>;
+  const good = pts.filter(p =>
+    typeof p?.lat === "number" && Number.isFinite(p.lat) && Math.abs(p.lat as number) <= 90 &&
+    typeof p?.lng === "number" && Number.isFinite(p.lng) && Math.abs(p.lng as number) <= 180) as Array<{ lat: number; lng: number }>;
+  if (good.length === 0) return null;
+  // Media semplice: le tappe di un viaggio stanno nella stessa area, quindi il
+  // baricentro cade dentro la città.
+  const lat = good.reduce((acc, q) => acc + q.lat, 0) / good.length;
+  const lng = good.reduce((acc, q) => acc + q.lng, 0) / good.length;
+  return { lat, lng };
 }
 
 const MAX_LIVE_GEOCODES = 12;
@@ -96,6 +119,9 @@ export async function buildAtlas(userId: number, lang: "en" | "it" = "it"): Prom
     if (existing) {
       existing.trips += 1;
       existing.days += dayCount;
+      // Un viaggio più vecchio ma v2 può avere le coordinate che al più recente
+      // mancano: la prima che si trova vince.
+      if (!existing.own) existing.own = ownCoords(t);
     } else {
       const created = t.createdAt ? new Date(t.createdAt) : null;
       groups.set(key, {
@@ -108,6 +134,7 @@ export async function buildAtlas(userId: number, lang: "en" | "it" = "it"): Prom
         heroImageUrl: t.heroImageUrl ?? null,
         href: `/itinerary/${t.id}`,
         cacheDate: created && !isNaN(created.getTime()) ? created : new Date(Date.now() - 90 * 86400_000),
+        own: ownCoords(t),
       });
     }
   }
@@ -133,6 +160,9 @@ export async function buildAtlas(userId: number, lang: "en" | "it" = "it"): Prom
   const toGeocode: Group[] = [];
 
   for (const g of Array.from(groups.values())) {
+    // Le coordinate del viaggio stesso battono qualunque ricerca per nome:
+    // sono già risolte, sono più precise, e non costano una chiamata.
+    if (g.own) { places.push(toPlace(g, g.own)); continue; }
     const hit = known.get(norm(g.fullName)) ?? known.get(norm(g.city)) ?? memCache.get(norm(g.fullName));
     if (hit) {
       places.push(toPlace(g, hit));
@@ -162,6 +192,14 @@ export async function buildAtlas(userId: number, lang: "en" | "it" = "it"): Prom
 
   // Stable order: most-visited then alphabetical.
   places.sort((a, b) => b.trips - a.trips || a.name.localeCompare(b.name));
+
+  // Un atlante vuoto non deve essere un mistero: nei log resta scritto quante
+  // destinazioni c'erano e quali non si sono potute collocare.
+  if (places.length === 0 && groups.size > 0) {
+    console.warn(`[atlas] utente ${userId}: ${groups.size} destinazioni, NESSUNA collocata. Non risolte: ${unlocated.join(", ")}`);
+  } else if (unlocated.length > 0) {
+    console.warn(`[atlas] utente ${userId}: ${places.length} collocate, ${unlocated.length} no (${unlocated.join(", ")})`);
+  }
 
   return {
     places,

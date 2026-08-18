@@ -274,7 +274,20 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
       <div className="atlas-mapcard">
         <div className="atlas-map" ref={mapEl} />
 
-        <div className="atlas-legend">
+        {/* Nessun punto collocabile: un rettangolo vuoto con la legenda sopra
+            sembra un guasto. Meglio dire cosa succede — i viaggi ci sono, e' la
+            posizione che manca. */}
+        {nodes.length === 0 && (
+          <div className="atlas-empty" role="status">
+            <MapPin size={22} />
+            <p>{L2("Non riesco ancora a collocare i tuoi viaggi sulla mappa.",
+                   "I can't place your journeys on the map yet.")}</p>
+            <span>{L2("Ci sono tutti nella vista a schede: qui compariranno appena le posizioni si risolvono.",
+                      "They're all in the card view: they'll appear here as soon as the locations resolve.")}</span>
+          </div>
+        )}
+
+        <div className="atlas-legend" hidden={nodes.length === 0}>
           {EMO_ORDER.map(e => (<span className="atlas-lg" key={e}><span className="d" style={{ background: EMO_COLOR[e] }} />{emoLabel(e)}</span>))}
         </div>
 
@@ -282,13 +295,13 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
           {fullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}<span>{fullscreen ? L2("Riduci", "Minimise") : L2("Schermo intero", "Full screen")}</span>
         </button>
 
-        <div className="atlas-heat">
+        <div className="atlas-heat" hidden={nodes.length === 0}>
           <div className="k">{L2("Impatto dei viaggi", "Trip impact")}</div>
           <div className="bar"><span style={{ background: `linear-gradient(90deg, ${impactColor(0)}, ${impactColor(0.5)}, ${impactColor(1)})` }} /></div>
           <div className="ends"><span>{L2("basso", "low")}</span><span>{L2("alto", "high")}</span></div>
         </div>
 
-        {!sel && <div className="atlas-maphint"><MapPin size={13} /> {L2("Tocca un marker per aprire il viaggio.", "Tap a marker to open the trip.")}</div>}
+        {!sel && nodes.length > 0 && <div className="atlas-maphint"><MapPin size={13} /> {L2("Tocca un marker per aprire il viaggio.", "Tap a marker to open the trip.")}</div>}
 
         {/* Pannello di dettaglio — appare solo su selezione (glass, slide-in) */}
         {sel && (
