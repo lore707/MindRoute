@@ -10,8 +10,12 @@
 export const portraitDict: Record<string, { en: string; it: string }> = {
   // ── 1 · Hero ─────────────────────────────────────────────────────────────
   "pt.hero.kick": { en: "Your portrait", it: "Il tuo ritratto" },
-  "pt.hero.t1": { en: "This is who", it: "Ecco chi sei" },
-  "pt.hero.t2": { en: "you are", it: "" },
+  // Il titolo e' spezzato in DUE righe, e la seconda tiene incollato l'accento
+  // alla parola che lo precede: "you are today." / "sei oggi.".
+  // Prima la seconda riga era vuota in italiano, e t() ricadeva sull'inglese —
+  // a schermo usciva "Ecco chi sei you are oggi.". Nessuna chiave vuota, mai.
+  "pt.hero.l1": { en: "This is who", it: "Ecco chi" },
+  "pt.hero.l2": { en: "you are", it: "sei" },
   "pt.hero.today": { en: "today.", it: "oggi." },
   "pt.hero.lede": {
     en: "We read your choices, not your answers, to build journeys that actually fit.",

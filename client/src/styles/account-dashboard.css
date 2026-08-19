@@ -50,9 +50,13 @@
   padding:22px 0 18px;gap:10px;
   background:linear-gradient(180deg,rgba(22,12,23,.92),rgba(13,7,13,.92));
   border-right:1px solid var(--stroke);backdrop-filter:blur(18px)}
+/* Solo il marchio, senza la scatola: il riquadro con sfondo, bordo e alone lo
+   faceva sembrare un bottone fra i bottoni invece dell'identita' del prodotto.
+   L'area cliccabile resta piena (46px), e' la decorazione che sparisce. */
 .account-dash .sb-logo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;margin-bottom:14px;
-  background:radial-gradient(circle at 35% 30%,rgba(233,69,96,.22),rgba(122,16,32,.12));
-  border:1px solid rgba(233,69,96,.28);box-shadow:0 6px 22px -8px rgba(233,69,96,.5)}
+  background:none;border:none;box-shadow:none;transition:transform .18s,opacity .18s}
+.account-dash .sb-logo:hover{transform:scale(1.06)}
+.account-dash .sb-logo:active{transform:scale(.94)}
 .account-dash .sb-logo svg{width:32px;height:32px}
 .account-dash .sb-nav{display:flex;flex-direction:column;gap:6px;width:100%;align-items:center;flex:1;padding-top:6px}
 .account-dash .sb-item{position:relative;width:64px;display:flex;flex-direction:column;align-items:center;gap:5px;
@@ -504,8 +508,10 @@
   /* header slim: niente search ingombrante, spazio a brand + avatar + CTA */
   .account-dash .topbar{padding:12px 16px;gap:10px}
   .account-dash .tb-search{display:none}
+  /* Come nella sidebar: solo il marchio. L'area di tocco resta 38px, sparisce
+     la scatola — altrimenti il logo tornava a sembrare un bottone su telefono. */
   .account-dash .tb-brand{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;flex-shrink:0;
-    background:radial-gradient(circle at 35% 30%,rgba(233,69,96,.22),rgba(122,16,32,.12));border:1px solid rgba(233,69,96,.28)}
+    background:none;border:none}
   .account-dash .tb-av-m{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;flex-shrink:0;
     background:linear-gradient(135deg,#3a1e2e,#1a0e1a);border:1px solid rgba(233,69,96,.4);
     font-family:var(--serif);font-style:italic;font-size:17px;color:var(--ink)}

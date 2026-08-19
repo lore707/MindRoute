@@ -196,5 +196,26 @@ console.log("\n7. limiti di parole (specifica §6)\n");
   check("nessun testo sfora il suo limite", troppo.length === 0, troppo);
 }
 
+/* -- 8. nessuna stringa a meta' fra due lingue -- */
+console.log("\n8. italiano e inglese: nessuna stringa lasciata indietro\n");
+{
+  // "Meta' in italiano e meta' in inglese" e' un difetto che si vede solo
+  // usando il prodotto nella lingua giusta: quindi va colto qui.
+  // Nessuna eccezione: dopo il difetto del titolo ("Ecco chi sei you are oggi.")
+  // ogni chiave deve avere due valori veri. Una traduzione vuota non e' piu'
+  // ammessa nemmeno "di proposito".
+  const ammesse = new Set<string>([]);
+  const senzaLingua: string[] = [];
+  const nonTradotte: string[] = [];
+  for (const [k, v] of Object.entries(portraitDict)) {
+    if (ammesse.has(k)) continue;
+    if (typeof v.it !== "string" || v.it.trim() === "") { senzaLingua.push(k + " (IT)"); continue; }
+    if (typeof v.en !== "string" || v.en.trim() === "") { senzaLingua.push(k + " (EN)"); continue; }
+    if (v.it.trim() === v.en.trim()) nonTradotte.push(k + ': "' + v.en + '"');
+  }
+  check("ogni chiave ha entrambe le lingue", senzaLingua.length === 0, senzaLingua);
+  check("nessuna chiave con IT identico a EN", nonTradotte.length === 0, nonTradotte);
+}
+
 console.log(fail === 0 ? "\nTutto verde.\n" : `\n${fail} controlli falliti.\n`);
 process.exit(fail === 0 ? 0 : 1);

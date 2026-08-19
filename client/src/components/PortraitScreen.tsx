@@ -144,8 +144,12 @@ export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing
         <div className="mrp-hero-veil" />
         <div className="mrp-hero-in">
           <div className="mrp-kick"><Sparkles size={13} /> {t("pt.hero.kick")}</div>
+          {/* Due righe esplicite: l'accento deve restare sulla stessa riga della
+              parola che lo precede ("you are today.", "sei oggi."), non cadere
+              da solo in fondo. */}
           <h1 className="mrp-hero-t">
-            {t("pt.hero.t1")}{t("pt.hero.t2") ? <> {t("pt.hero.t2")}</> : null} <em>{t("pt.hero.today")}</em>
+            <span className="ln">{t("pt.hero.l1")}</span>
+            <span className="ln">{t("pt.hero.l2")} <em>{t("pt.hero.today")}</em></span>
           </h1>
           {headline && <p className="mrp-hero-lede">{headline}</p>}
         </div>

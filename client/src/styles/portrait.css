@@ -64,15 +64,21 @@
     linear-gradient(180deg, rgba(10, 12, 18, .55) 0%, rgba(10, 12, 18, .22) 34%, rgba(10, 12, 18, .82) 78%, rgba(10, 12, 18, .95) 100%),
     linear-gradient(90deg, rgba(10, 12, 18, .8) 0%, rgba(10, 12, 18, .25) 62%, rgba(10, 12, 18, 0) 100%);
 }
-.mrp-hero-in { position: relative; max-width: 30ch; }
+/* NON `ch`: l'unita' si misura sul font DEL CONTENITORE (DM Sans 16px), non
+   sul titolo serif da 62px. `30ch` valeva ~240px e mandava "today." a capo da
+   solo, invece di tenerlo accanto a "are". In pixel il conto torna. */
+.mrp-hero-in { position: relative; max-width: min(100%, 640px); }
 .mrp-hero-t {
   font-family: var(--serif); font-weight: 400; letter-spacing: -.03em; line-height: 1.02;
   font-size: clamp(34px, 9.5vw, 46px); margin: 0;
 }
 .mrp-hero-t em { font-style: italic; color: var(--acc); }
+/* Ogni riga e' un blocco: l'a capo cade dove lo decidiamo noi, non dove
+   capita alla larghezza del contenitore. */
+.mrp-hero-t .ln { display: block; }
 .mrp-hero-lede {
   font-size: 13.5px; line-height: 1.6; color: var(--ink-dim);
-  margin: 14px 0 0; max-width: 34ch; text-wrap: pretty;
+  margin: 14px 0 0; max-width: 42ch; text-wrap: pretty;
 }
 
 /* Confidenza + viaggi: due riquadri, non due numeri sciolti. */
@@ -265,7 +271,7 @@
 @media (min-width: 1024px) {
   .mrp-hero { min-height: 440px; }
   .mrp-hero-t { font-size: 62px; }
-  .mrp-hero-lede { font-size: 15px; }
+  .mrp-hero-lede { font-size: 15px; max-width: 46ch; }
   .mrp-evo { justify-content: space-between; overflow-x: visible; }
   .mrp-step { flex: 1 1 0; width: auto; min-width: 0; }
   .mrp-insight { grid-template-columns: 1fr 112px; }

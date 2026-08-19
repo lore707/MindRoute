@@ -660,7 +660,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const t = useCallback((key: string) => {
     const entry = translations[key];
     if (!entry) return key;
-    return entry[lang] || entry.en || key;
+    // `??` e non `||`: con `||` una traduzione volutamente VUOTA cadeva
+    // sull'inglese, e la pagina usciva meta' in una lingua e meta' nell'altra
+    // (visto sul titolo del Ritratto). Manca = undefined, non "".
+    return entry[lang] ?? entry.en ?? key;
   }, [lang]);
 
   return (
