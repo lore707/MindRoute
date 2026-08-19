@@ -538,6 +538,10 @@
 }
 .mrf-mlabel .tm { display: block; font-size: 12px; font-weight: 700; color: #F5F4F2; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .mrf-mlabel .nm { display: block; font-size: 10px; color: rgba(245, 244, 242, .72); max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+/* Su 390px due etichette vicine si accavallano: si stringono. */
+@media (max-width: 480px) {
+  .mrf-mlabel .nm, .mrf-mlabel .sb { max-width: 104px; }
+}
 .mrf-mlabel .sb { display: block; font-size: 9px; color: rgba(245, 244, 242, .48); max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
 .mrf-mlabel.r { text-align: left; }
 .mrf-mlabel.l { text-align: right; }

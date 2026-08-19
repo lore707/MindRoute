@@ -74,6 +74,7 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
   const routeAnim = useRef<number | null>(null);
 
   const [selId, setSelId] = useState<number | null>(initialSelId);
+  const [mapStyle] = useState(() => readMapStyle());
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [fullscreen, setFullscreen] = useState(initialFullscreen);
   const [localEmotion, setLocalEmotion] = useState<Record<number, Emotion | null>>({});
@@ -130,6 +131,11 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
     mapRef.current = map;
     L.tileLayer(tileUrl(), { attribution: CARTO_ATTR, subdomains: "abcd", maxZoom: 10 }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
+    // Leaflet impila tutti i controlli di un angolo uno sotto l'altro: zoom e
+    // attribuzione finivano entrambi in basso a destra e si fondevano in un
+    // unico blocco scuro di 66×98px, che sembrava un elemento rotto.
+    // L'attribuzione (obbligatoria) va in un angolo suo.
+    map.attributionControl.setPosition("bottomleft");
     routeRef.current = L.layerGroup().addTo(map);
     fitScene(map, false);
     // Osservare il contenitore invece di indovinare un istante: l'atlante vive
@@ -272,7 +278,10 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
   return (
     <div className={"atlasmap" + (fullscreen ? " fs" : "")}>
       <div className="atlas-mapcard">
-        <div className="atlas-map" ref={mapEl} />
+        {/* La classe dello stile serve al CSS: i marker dell'atlante sono
+            costruiti col BAGLIORE, che esiste solo sul nero. Su un fondo chiaro
+            servono un anello pieno e un'ombra, o spariscono dentro la mappa. */}
+        <div className={`atlas-map ms-${mapStyle}`} ref={mapEl} />
 
         {/* Nessun punto collocabile: un rettangolo vuoto con la legenda sopra
             sembra un guasto. Meglio dire cosa succede — i viaggi ci sono, e' la

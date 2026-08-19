@@ -1135,7 +1135,9 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
   const SORTS: SortMode[] = ["recent", "impact", "alpha"];
 
   const CollectionView = () => (
-    <div className="view coll2">
+    // `is-atlas` serve al CSS: su telefono la mappa deve venire PRIMA delle
+    // statistiche, altrimenti per vederla si scorrono 700px di numeri.
+    <div className={"view coll2" + (viewMode === "atlas" ? " is-atlas" : "")}>
       {/* ── Header: titolo + View Switcher + azione ── */}
       <div className="coll2-top">
         <div className="coll2-head">

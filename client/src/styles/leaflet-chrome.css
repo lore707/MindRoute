@@ -20,8 +20,14 @@
   background: rgba(10, 12, 18, .76);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
+/* La specificità va PAREGGIATA, non sperata: Leaflet dichiara
+   `.leaflet-touch .leaflet-bar a { width: 30px }` (0,2,1) e su ogni viewport
+   touch batteva il mio `.leaflet-bar a` (0,1,1). Misurato: 30px invece dei 34
+   che credevo di aver messo. */
 .leaflet-bar a,
-.leaflet-bar a:hover {
+.leaflet-bar a:hover,
+.leaflet-touch .leaflet-bar a,
+.leaflet-touch .leaflet-bar a:hover {
   width: 34px; height: 34px; line-height: 34px;
   background: transparent; color: rgba(245, 244, 242, .84);
   border-bottom: 1px solid rgba(255, 255, 255, .1);
@@ -33,6 +39,11 @@
 
 /* Attribuzione: obbligatoria e va lasciata leggibile, ma non deve gridare. */
 .leaflet-control-attribution {
+  /* Leaflet impila i controlli nello stesso angolo: nell'atlante lo zoom sta
+     in basso a destra e l'attribuzione ci finiva sotto, andando a capo dentro
+     66px — un blocco scuro alto 98px che sembrava un elemento rotto.
+     Su una riga sola si allarga verso sinistra e sparisce dal problema. */
+  white-space: nowrap;
   background: rgba(10, 12, 18, .64) !important;
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   color: rgba(245, 244, 242, .5) !important;
@@ -67,4 +78,15 @@
 @media (prefers-reduced-motion: reduce) {
   .leaflet-container .leaflet-tile { transition: none; }
   .leaflet-fade-anim .leaflet-tile { transition: none !important; }
+}
+
+/* ── Pollice ─────────────────────────────────────────────────────────────────
+   34px va bene col mouse, non col dito. Questa regola era finita in
+   atlas-journey.css, che la mappa dell'itinerario NON importa: valeva solo
+   sull'atlante. Qui la carica ogni mappa, che è il punto di questo file. */
+@media (max-width: 767px) {
+  .leaflet-bar a, .leaflet-bar a:hover,
+  .leaflet-touch .leaflet-bar a, .leaflet-touch .leaflet-bar a:hover {
+    width: 40px; height: 40px; line-height: 40px; font-size: 19px;
+  }
 }

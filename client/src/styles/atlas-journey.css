@@ -30,7 +30,7 @@
   border-radius: 999px; padding: 8px 14px; cursor: pointer; backdrop-filter: blur(10px); transition: border-color .2s; }
 .account-dash .atlas-fs:hover { border-color: var(--accent); }
 
-.account-dash .atlas-heat { position: absolute; left: 14px; bottom: 14px; z-index: 500; width: 210px;
+.account-dash .atlas-heat { position: absolute; left: 14px; bottom: 34px; z-index: 500; width: 210px;
   background: rgba(13, 9, 16, .72); border: 1px solid var(--stroke-2); border-radius: 14px; padding: 12px 14px; backdrop-filter: blur(10px); }
 .account-dash .atlas-heat .k { font-size: 11px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
 .account-dash .atlas-heat .bar { height: 6px; border-radius: 6px; overflow: hidden; }
@@ -344,4 +344,99 @@
   padding: 16px 14px; margin-bottom: 12px; border-radius: 12px;
   border: 1px dashed var(--stroke-2);
   font-size: 12px; line-height: 1.5; color: var(--ink-faint); text-align: center;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   SMARTPHONE — l'atlante su uno schermo piccolo
+   Verificato a 390×844: la mappa cominciava a 690px di 844. Per vederla si
+   scorrevano statistiche, ricerca e filtri; e una volta arrivati, la legenda
+   ne copriva quasi tutta l'altezza visibile. Non era una mappa: era un
+   rettangolo con delle etichette sopra.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  /* 1. La mappa PRIMA dei numeri. In vista Atlante la mappa è il contenuto:
+        le statistiche restano, ma sotto — dove non impediscono di arrivarci. */
+  .account-dash .coll2.is-atlas { display: flex; flex-direction: column; }
+  /* Catch-all PRIMA delle regole specifiche: un figlio senza `order` vale 0 e
+     schizza in cima. Me ne sono accorto vedendo la timeline degli anni
+     comparire sopra il titolo. */
+  .account-dash .coll2.is-atlas > * { order: 6; }
+  .account-dash .coll2.is-atlas > .coll2-top { order: 1; }
+  .account-dash .coll2.is-atlas > .coll2-filters { order: 2; }
+  .account-dash .coll2.is-atlas > .coll2-body { order: 3; margin-bottom: 18px; }
+  .account-dash .coll2.is-atlas > .coll2-timeline { order: 4; }
+  .account-dash .coll2.is-atlas > .coll2-stats { order: 5; margin-bottom: 0; }
+
+  /* 2. I continenti su UNA riga che scorre: andando a capo rubavano 44px
+        proprio sopra la mappa. */
+  .account-dash .coll2.is-atlas .atlas-filterbar,
+  .account-dash .coll2.is-atlas .coll2-filters .coll-tabs {
+    flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px;
+    scrollbar-width: thin; scrollbar-color: var(--stroke-2) transparent;
+    -webkit-overflow-scrolling: touch;
+  }
+  .account-dash .coll2.is-atlas .atlas-filterbar::-webkit-scrollbar,
+  .account-dash .coll2.is-atlas .coll2-filters .coll-tabs::-webkit-scrollbar { height: 4px; }
+  .account-dash .coll2.is-atlas .atlas-filterbar > *,
+  .account-dash .coll2.is-atlas .coll2-filters .coll-tabs > * { flex: none; }
+
+  /* 3. Legenda e scala d'impatto SOTTO la mappa, non sopra. Su 390px un
+        pannello flottante non è una rifinitura: è un ostacolo. */
+  .account-dash .atlas-legend,
+  .account-dash .atlas-heat {
+    position: static; width: auto; max-width: none;
+    margin: 0; border-radius: 0; border: none; border-top: 1px solid var(--stroke);
+    background: rgba(13, 9, 16, .58); backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .account-dash .atlas-legend {
+    padding: 10px 12px; gap: 8px 12px;
+    overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none;
+  }
+  .account-dash .atlas-legend::-webkit-scrollbar { display: none; }
+  .account-dash .atlas-legend .atlas-lg { flex: none; }
+  .account-dash .atlas-heat { padding: 11px 12px 13px; }
+  .account-dash .atlas-heat .k { margin-bottom: 6px; }
+
+  /* 4. Altezza: piena ma non infinita, e con il resto della pagina intuibile
+        sotto — così si capisce che si può continuare a scorrere. */
+  .account-dash .atlas-map { height: 46vh; min-height: 300px; max-height: 460px; }
+  @supports (height: 100dvh) {
+    .account-dash .atlas-map { height: 46dvh; }
+  }
+
+  /* 5. Schermo intero: bersaglio pieno, non un'icona da 28px. */
+  .account-dash .atlas-fs { top: 10px; right: 10px; min-width: 44px; min-height: 44px; justify-content: center; padding: 0 12px; }
+}
+
+/* ── I marker su fondo CHIARO ────────────────────────────────────────────────
+   I pallini dell'emozione sono costruiti sul BAGLIORE (box-shadow diffuso del
+   proprio colore): funziona solo sul nero. Su Voyager e sulla chiara sparivano
+   dentro la terraferma — visibile negli screenshot a 390px come tre macchie
+   pallide. Qui il bagliore diventa un anello bianco pieno più un'ombra
+   portata: la stessa informazione, leggibile su qualunque fondo. */
+.account-dash .atlas-map.ms-voyager .atlas-node .an-core,
+.account-dash .atlas-map.ms-light .atlas-node .an-core {
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .45), inset 0 0 3px rgba(255, 255, 255, .4);
+}
+/* L'alone pulsante sul chiaro diventa una sfumatura sporca: si spegne. */
+.account-dash .atlas-map.ms-voyager .atlas-node::before,
+.account-dash .atlas-map.ms-light .atlas-node::before { opacity: .22; }
+.account-dash .atlas-map.ms-voyager .atlas-node-wrap.sel .atlas-node .an-core,
+.account-dash .atlas-map.ms-light .atlas-node-wrap.sel .atlas-node .an-core {
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, .45), 0 3px 12px rgba(0, 0, 0, .5);
+}
+/* Il tooltip era vetro scuro su nero: sul chiaro serve il bordo, o galleggia. */
+.account-dash .atlas-map.ms-voyager .atlas-tip,
+.account-dash .atlas-map.ms-light .atlas-tip {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .28);
+}
+/* Anche RouteMap: stessa cura, stessi motivi. */
+.rmap--voyager .atlas-node .an-core, .rmap--light .atlas-node .an-core {
+  border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .45);
+}
+
+@media (max-width: 767px) {
+  .account-dash .atlas-map .leaflet-control-zoom { margin: 10px; }
 }
