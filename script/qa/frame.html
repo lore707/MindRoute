@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Viewport frame (dev)</title>
+<!--
+  Strumento di QA, non una pagina del prodotto.
+
+  Edge headless non scende sotto ~492px di viewport: chiedendogli una finestra
+  da 390px restituisce comunque un layout a 492 ritagliato, e quindi si
+  "verifica" il telefono guardando qualcosa che non e' il telefono. Qui la
+  pagina vera vive dentro un iframe della larghezza esatta richiesta, e lo
+  screenshot dice la verita'.
+
+  Deve essere servito dalla stessa origine (X-Frame-Options e' SAMEORIGIN: da
+  file:// l'iframe viene bloccato), ma NON sta in public/: verrebbe copiato
+  anche in produzione, e una pagina che incornicia un URL scelto da chi la
+  apre e' una superficie di clickjacking sul nostro dominio. Lo serve
+  server/index.ts, solo fuori da produzione.
+
+  Uso:  /__frame.html?w=390&h=2600&src=/__preview/dashboard
+-->
+<style>html,body{margin:0;background:#111}iframe{border:0;display:block}</style>
+<body></body>
+<script>
+  // Dopo <body>: lo script stava prima, document.body era null e l'iframe non
+  // veniva mai inserito — schermata nera e nessun errore visibile.
+  const p = new URLSearchParams(location.search);
+  // Solo percorsi di questo sito: mai un URL assoluto, mai "//altrove".
+  const raw = p.get("src") || "/__preview/dashboard";
+  const f = document.createElement("iframe");
+  f.src = /^\/[^/]/.test(raw) ? raw : "/__preview/dashboard";
+  f.width = p.get("w") || "390";
+  f.height = p.get("h") || "2400";
+  document.body.appendChild(f);
+</script>

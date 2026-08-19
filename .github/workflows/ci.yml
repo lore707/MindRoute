@@ -47,6 +47,12 @@ jobs:
       - name: Verify map safety
         run: npm run verify:map
 
+      # Le proposte cambiano una volta a settimana, non a ogni accesso. Se
+      # qualcuno ripristinasse la rotazione giornaliera nulla si romperebbe a
+      # vista: se ne accorgerebbe solo un utente che smette di fidarsi.
+      - name: Verify picks cadence
+        run: npm run verify:picks
+
       - name: Build
         run: npm run build
         env:

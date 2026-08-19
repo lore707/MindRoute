@@ -1,0 +1,320 @@
+/* generation-sheet.css — il pannello dei vincoli.
+   ───────────────────────────────────────────────────────────────
+   Una colonna sola, molto aria, niente riquadri dentro riquadri. Le righe
+   sono separate da capelli, non da card: il pannello deve sembrare un
+   documento che si compila, non un cruscotto.
+
+   Token del prodotto: corallo #E94560, fondo #0d070d, Playfair + DM Sans,
+   raggio 22px. Touch floor 44px su tutto ciò che si preme (regola fissa). */
+
+.gs-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(8, 4, 9, .72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.gs-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #0d070d;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-bottom: none;
+  border-radius: 22px 22px 0 0;
+  color: #fbf5f0;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+/* La fotografia del posto: presente, lontanissima. Non compete col testo. */
+.gs-ph {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 260px;
+  background-size: cover;
+  background-position: center;
+  opacity: .26;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.gs-x {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(251, 245, 240, .45);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease;
+}
+.gs-x:hover { color: #fbf5f0; background: rgba(255, 255, 255, .05); }
+
+.gs-in { position: relative; padding: 40px 28px 32px; }
+
+.gs-eyebrow {
+  font-size: 10.5px;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: #E94560;
+  margin-bottom: 18px;
+}
+
+.gs-title {
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(34px, 8vw, 46px);
+  line-height: 1.06;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+
+.gs-where {
+  margin-top: 10px;
+  font-size: 13px;
+  color: rgba(251, 245, 240, .42);
+}
+
+.gs-sub {
+  margin: 16px 0 0;
+  max-width: 44ch;
+  font-size: 14.5px;
+  line-height: 1.68;
+  color: rgba(251, 245, 240, .56);
+}
+
+/* ── sezioni ── */
+.gs-sec {
+  margin-top: 36px;
+  padding-top: 26px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.gs-sec-k {
+  font-size: 10.5px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(251, 245, 240, .34);
+  margin-bottom: 18px;
+}
+
+/* Le righe: etichetta a sinistra, valore a destra. Nessun bordo attorno. */
+.gs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  padding: 4px 0;
+}
+.gs-row.wrap { align-items: flex-start; flex-wrap: wrap; }
+
+.gs-row-l {
+  flex: 0 0 auto;
+  font-size: 13.5px;
+  color: rgba(251, 245, 240, .58);
+  padding-top: 2px;
+}
+
+.gs-hint {
+  margin: 6px 0 0;
+  max-width: 46ch;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(251, 245, 240, .32);
+}
+
+/* ── campi ── */
+.gs-date,
+.gs-txt {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 300px;
+  min-height: 44px;
+  padding: 0 14px;
+  text-align: right;
+  /* 16px: sotto questa soglia iOS zooma al focus (regola fissa del funnel). */
+  font-size: 16px;
+  font-family: inherit;
+  color: #fbf5f0;
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color .18s ease, background .18s ease;
+}
+.gs-date:focus,
+.gs-txt:focus { border-color: rgba(233, 69, 96, .55); background: rgba(255, 255, 255, .05); }
+.gs-txt::placeholder { color: rgba(251, 245, 240, .26); }
+
+.gs-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.gs-step button {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: rgba(251, 245, 240, .6);
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease;
+}
+.gs-step button:hover { color: #fbf5f0; border-color: rgba(255, 255, 255, .22); }
+.gs-step-v {
+  min-width: 46px;
+  text-align: center;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 22px;
+}
+
+.gs-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; justify-content: flex-end; }
+
+.gs-opt {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-family: inherit;
+  color: rgba(251, 245, 240, .6);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background .18s ease;
+}
+.gs-opt:hover { color: #fbf5f0; border-color: rgba(255, 255, 255, .24); }
+.gs-opt.on {
+  color: #fff;
+  background: #E94560;
+  border-color: #E94560;
+}
+
+/* ── i chip del ritratto ──
+   Acceso = pieno. Spento = barrato e sbiadito, NON scomparso: deve restare
+   visibile che c'era, e che è stato l'utente a toglierlo. */
+.gs-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.gs-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  max-width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  color: rgba(251, 245, 240, .86);
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: opacity .18s ease, border-color .18s ease, color .18s ease;
+}
+.gs-chip .gs-chip-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Un filo di colore per dire da quale parte del ritratto arriva la riga. */
+.gs-chip.gs-discovery { border-color: rgba(233, 69, 96, .34); }
+.gs-chip.gs-change    { border-color: rgba(157, 126, 188, .38); }
+.gs-chip.gs-direction { border-color: rgba(212, 168, 83, .38); }
+
+.gs-chip.off {
+  color: rgba(251, 245, 240, .3);
+  border-color: rgba(255, 255, 255, .08);
+  background: transparent;
+  text-decoration: line-through;
+  text-decoration-color: rgba(251, 245, 240, .3);
+}
+
+.gs-note {
+  width: 100%;
+  min-height: 76px;
+  padding: 14px 16px;
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 1.6;
+  color: #fbf5f0;
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 14px;
+  outline: none;
+  resize: none;
+  transition: border-color .18s ease;
+}
+.gs-note:focus { border-color: rgba(233, 69, 96, .55); }
+.gs-note::placeholder { color: rgba(251, 245, 240, .26); }
+
+.gs-err {
+  margin-top: 22px;
+  font-size: 13px;
+  color: #E94560;
+}
+
+.gs-go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  margin-top: 34px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: #E94560;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: filter .18s ease, opacity .18s ease;
+}
+.gs-go:hover { filter: brightness(1.07); }
+.gs-go:disabled { opacity: .55; cursor: default; }
+
+/* ── desktop: il pannello si stacca dal fondo e si centra ── */
+@media (min-width: 720px) {
+  .gs-scrim { align-items: center; padding: 32px; }
+  .gs-sheet {
+    max-height: calc(100dvh - 64px);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 22px;
+  }
+  .gs-in { padding: 52px 48px 44px; }
+  .gs-ph { height: 300px; border-radius: 22px 22px 0 0; }
+}
+
+/* ── phone stretto: le opzioni vanno a capo sotto l'etichetta ── */
+@media (max-width: 460px) {
+  .gs-row.wrap { flex-direction: column; align-items: stretch; gap: 10px; }
+  .gs-opts { margin-left: 0; justify-content: flex-start; }
+  .gs-date, .gs-txt { max-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gs-x, .gs-opt, .gs-chip, .gs-go, .gs-step button { transition: none; }
+}

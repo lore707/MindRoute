@@ -187,6 +187,36 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.atlasc.unlocatedMany":  { en: "places not placed on the map", it: "mete non posizionate sulla mappa" },
   "acd.atlasc.popOpen":        { en: "Open the itinerary →", it: "Apri l'itinerario →" },
 
+  // ── Home v4 (2026-08) ────────────────────────────────────────────────────
+  // La home smette di essere un contenitore di widget e diventa la radice:
+  // quattro fasce, una idea per fascia. Le altre sezioni mostrano ELENCHI,
+  // la home mostra SINGOLARI — è la regola che impedisce le ripetizioni.
+  "acd.h4.who":        { en: "Who you are right now",   it: "Chi sei adesso" },
+  "acd.h4.whoNew":     { en: "I don't know you yet",    it: "Non ti conosco ancora" },
+  "acd.h4.claimNew":   { en: "Seven questions, and I'll stop guessing.", it: "Sette domande, e smetto di tirare a indovinare." },
+  "acd.h4.subNew":     { en: "No account to fill in. You answer, I listen, and the first journey comes out of that.", it: "Nessun profilo da riempire. Rispondi, io ascolto, e da lì esce il primo viaggio." },
+  "acd.h4.startCta":   { en: "Start",                   it: "Comincia" },
+  "acd.h4.confidence": { en: "Confidence",              it: "Confidenza" },
+  "acd.h4.readMore":   { en: "Read the whole portrait", it: "Leggi tutto il ritratto" },
+  "acd.h4.whereK":     { en: "Where you are",           it: "Dove sei" },
+  "acd.h4.onTheRoad":  { en: "On the road now",         it: "In viaggio ora" },
+  "acd.h4.waiting":    { en: "Waiting for you",         it: "Ti sta aspettando" },
+  "acd.h4.lastOne":    { en: "The last one",            it: "L'ultimo" },
+  "acd.h4.unbooked":   { en: "{n} of {tot} booked. It doesn't happen until you book it.", it: "{n} su {tot} prenotate. Finché non prenoti, non succede." },
+  "acd.h4.openAll":    { en: "All your journeys",       it: "Tutti i tuoi viaggi" },
+  "acd.h4.proposeK":   { en: "What I'd propose",        it: "Cosa ti propongo" },
+  "acd.h4.thisWeek":   { en: "This week",               it: "Questa settimana" },
+  "acd.h4.weekNote":   { en: "It changes on Monday, or the moment I learn something new about you.", it: "Cambia lunedì, o nel momento in cui imparo qualcosa di nuovo su di te." },
+  "acd.h4.buildIt":    { en: "Build it",                it: "Costruiscilo" },
+  "acd.h4.moreIdeas":  { en: "Two more ideas",          it: "Altre due idee" },
+  "acd.h4.fewerIdeas": { en: "Hide them",               it: "Nascondile" },
+  "acd.h4.restK":      { en: "The rest is here",        it: "Il resto è qui" },
+  "acd.h4.trips":      { en: "Your journeys",           it: "I tuoi viaggi" },
+  "acd.h4.atlas":      { en: "Your atlas",              it: "Il tuo atlante" },
+  "acd.h4.moments":    { en: "Saved moments",           it: "Momenti salvati" },
+  "acd.h4.newTrip":    { en: "A new journey, whenever you want.", it: "Un viaggio nuovo, quando vuoi." },
+  "acd.h4.pill":       { en: "Day {n} of {tot}",        it: "Giorno {n} di {tot}" },
+
   // ── Home v2 (redesign 2026-07 dal mockup) ───────────────────────────────
   "acd.h2.morning":    { en: "Good morning,", it: "Buongiorno," },
   "acd.h2.afternoon":  { en: "Good afternoon,", it: "Buon pomeriggio," },

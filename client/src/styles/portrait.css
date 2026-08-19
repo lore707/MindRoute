@@ -370,3 +370,80 @@
   font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--acc); background: var(--acc-soft); border: 1px solid var(--acc-line);
 }
+
+/* ═══════════════ 6 · LE TRE PROPOSTE ═══════════════
+   La conclusione dell'analisi, non un catalogo. In home ne compare UNA con
+   una riga di motivo; qui ci sono tutte e tre, e c'è lo spazio per dire
+   perché. Stessa terna, stessa cadenza settimanale. */
+.mrp-picks-t {
+  margin: 0 0 12px;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(24px, 5vw, 34px);
+  line-height: 1.14;
+  letter-spacing: -.02em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.mrp-picks-why {
+  margin: 0 0 24px;
+  max-width: 46ch;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--ink-dim);
+}
+.mrp-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+.mrp-pick {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--tap);
+  padding: 0;
+  text-align: left;
+  background: var(--pane);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-m);
+  overflow: hidden;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .2s ease, transform .2s ease;
+}
+.mrp-pick:hover { border-color: var(--stroke-2); transform: translateY(-2px); }
+.mrp-pick:disabled { cursor: default; transform: none; }
+.mrp-pick-ph {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 2;
+  background-size: cover;
+  background-position: center;
+}
+.mrp-pick-m {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(233, 69, 96, .9);
+}
+.mrp-pick-b { display: flex; flex-direction: column; gap: 5px; padding: 16px 16px 18px; }
+.mrp-pick-n { font-family: var(--serif); font-size: 20px; line-height: 1.16; color: var(--ink); }
+.mrp-pick-c { font-size: 12px; color: var(--ink-faint); }
+.mrp-pick-tg { margin-top: 4px; font-size: 11.5px; line-height: 1.5; color: var(--ink-faint); }
+.mrp-picks-note {
+  margin: 18px 0 0;
+  max-width: 52ch;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mrp-pick { transition: none; }
+  .mrp-pick:hover { transform: none; }
+}

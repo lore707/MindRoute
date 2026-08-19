@@ -126,6 +126,14 @@ export function registerProfilingRoutes(app: Express) {
     // "weekend lungo"). Passato verbatim al matching engine come sezione
     // ad alta priorità che sovrascrive i pattern storici in conflitto.
     contextOverride: z.string().max(300).optional(),
+    // I pezzi del Ritratto che l'utente ha lasciato ACCESI nel pannello dei
+    // vincoli (id da `portraitChipId`). Assente = tutto il ritratto.
+    // Spegnere un chip lo toglie DAVVERO dal prompt: è il punto del pannello.
+    keepInsights: z.array(z.string().max(60)).max(40).optional(),
+    // Destinazione già scelta dall'utente (ha toccato una proposta, non ha
+    // chiesto "dove vado?"). Quando c'è, il matcher non cerca: declina QUESTO
+    // posto in 3 personalità di viaggio.
+    destination: z.string().max(120).optional(),
   });
 
   // Defaults pre-compilati per il modal "Genera dal profilo".
@@ -143,7 +151,7 @@ export function registerProfilingRoutes(app: Express) {
     }
   });
 
-  app.post("/api/profiling/from-profile", profilingLimiter, async (req, res) => {
+  const generateFromProfile = async (req: any, res: any) => {
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: "Devi essere loggato per usare 'Genera dal profilo'" });
     try {
@@ -165,7 +173,7 @@ export function registerProfilingRoutes(app: Express) {
       // Costruisco un ProfilingRequest valido riempiendo answers[] dalla sintesi.
       // contextOverride esce dal request body — lo separiamo perché non fa
       // parte di ProfilingRequest, va passato come parametro al matching.
-      const { contextOverride, ...microInputs } = micro;
+      const { contextOverride, keepInsights, destination: pinned, ...microInputs } = micro;
       const input = {
         ...microInputs,
         answers: synthesized,
@@ -182,12 +190,18 @@ export function registerProfilingRoutes(app: Express) {
       // "non viaggi mai d'inverno", e quelle frasi non arrivavano mai qui.
       // Ora la stessa analisi che ha letto diventa parte del prompt, quindi
       // la proposta puo' essere la RISPOSTA a quello che gli abbiamo detto.
-      const portraitBlock = await buildPortraitPromptBlock(user.id, micro.lang === "en" ? "en" : "it");
+      // …e l'utente può togliergliene pezzi dal pannello dei vincoli: quello
+      // che spegne non arriva qui. Il pannello mostra le stesse righe.
+      const portraitBlock = await buildPortraitPromptBlock(user.id, micro.lang === "en" ? "en" : "it", keepInsights ?? null);
       const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(current) + signalsBlock + portraitBlock;
       const recentNames = await getRecentDestinationNames();
       const userSeenNames = await getProposedNamesForUser(user.id);
       const seed = weeklyExplorationSeed(user.id);
-      const destinations = await generateDestinationsOnly(input, priorBlock, contextOverride, recentNames, userSeenNames, seed);
+      // Destinazione bloccata: niente "già viste da te" e niente freschezza —
+      // sarebbero istruzioni a NON proporre il posto che ha appena scelto.
+      const destinations = pinned
+        ? await generateDestinationsOnly(input, priorBlock, contextOverride, [], [], seed, pinned)
+        : await generateDestinationsOnly(input, priorBlock, contextOverride, recentNames, userSeenNames, seed);
       void recordProposedForUser(user.id, destinations.map(d => d.name));
       await storage.clearAll();
       // Fetch the 3 hero images in parallel (was sequential ≈ 3× the latency).
@@ -239,7 +253,17 @@ export function registerProfilingRoutes(app: Express) {
       console.error("Error generating from profile:", err);
       return res.status(500).json({ message: "Errore nella generazione dal profilo." });
     }
-  });
+  };
+
+  // Due porte, una macchina sola.
+  //   from-profile     → "dove vado?"  il matcher cerca.
+  //   for-destination  → "portami QUI" il matcher non cerca: declina il posto
+  //                      che l'utente ha toccato in 3 personalità di viaggio
+  //                      (stessa regola della città precisa nel quiz).
+  // Passano entrambe dal pannello dei vincoli, quindi condividono schema,
+  // filtro del ritratto e note libere: una sola strada da mantenere onesta.
+  app.post("/api/profiling/from-profile", profilingLimiter, generateFromProfile);
+  app.post("/api/profiling/for-destination", profilingLimiter, generateFromProfile);
 
   // STEP 2 — Recupera input profilazione salvato
   app.get("/api/profiling/input", async (_req, res) => {

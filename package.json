@@ -12,6 +12,7 @@
     "verify:edit": "tsx script/verify-edit-roundtrip.ts",
     "verify:portrait": "tsx script/verify-portrait.ts",
     "verify:map": "tsx script/verify-map.ts",
+    "verify:picks": "tsx script/verify-picks.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {

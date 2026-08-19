@@ -302,6 +302,11 @@ export const portraitDict: Record<string, { en: string; it: string }> = {
   "pt.next.fallbackT": { en: "The portrait is still forming.", it: "Il ritratto si sta ancora formando." },
   "pt.next.fallbackS": { en: "Travel, and it will learn you.", it: "Viaggia, e imparerà a conoscerti." },
 
+  // ── 6 · Le tre proposte (conclusione dell'analisi, 2026-08) ──────────────
+  "pt.picks.k": { en: "So here's what I'd do", it: "Allora ecco cosa farei" },
+  "pt.picks.t": { en: "Three answers to what you just read.", it: "Tre risposte a quello che hai appena letto." },
+  "pt.picks.week": { en: "They change on Monday, or the moment I learn something new about you — never at random.", it: "Cambiano lunedì, o nel momento in cui imparo qualcosa di nuovo su di te — mai a caso." },
+
   // ── vuoto ────────────────────────────────────────────────────────────────
   "pt.empty.t": { en: "Nothing to read yet.", it: "Ancora niente da leggere." },
   "pt.empty.s": {

@@ -9,9 +9,17 @@
  */
 import "leaflet/dist/leaflet.css";
 import "@/styles/account-dashboard.css";
+// Dopo account-dashboard.css, come in MyAccount: la Home v4 sovrascrive
+// (e spegne) pezzi del layout precedente. Se l'ordine cambia, la preview
+// smette di somigliare alla pagina vera.
+import "@/styles/home-v4.css";
 import "@/styles/atlas-journey.css";
 import "@/styles/itinerary-dashboard.css";
+import { useState } from "react";
 import { AccountDashboard } from "@/components/AccountDashboard";
+import { GenerationSheet, type PinnedDestination } from "@/components/GenerationSheet";
+import { portraitChips } from "@/lib/portrait-chips";
+import { useI18n } from "@/lib/i18n";
 import { ItineraryFlow } from "@/components/ItineraryFlow";
 import { RefinePanel } from "@/components/RefinePanel";
 import QuizFast from "@/pages/QuizFast";
@@ -359,5 +367,30 @@ export default function DevPreview() {
       />
     );
   }
-  return <AccountDashboard data={data} />;
+  // Il pannello dei vincoli e' una schermata a se': va guardata sui tre
+  // viewport come tutte le altre. ?sheet=1 la apre gia' aperta.
+  return <PreviewShell />;
+}
+
+function PreviewShell() {
+  const openAtBoot = (() => {
+    try { return new URLSearchParams(window.location.search).get("sheet") === "1"; } catch { return false; }
+  })();
+  const [sheet, setSheet] = useState<PinnedDestination | null>(
+    openAtBoot ? { name: "Azzorre, Portogallo", country: "Portogallo", imageUrl: P.azores, matchPct: 93 } : null,
+  );
+  // Le etichette vere: nel pannello si legge quello che l'utente leggerebbe,
+  // altrimenti lo screenshot non dice niente sul design.
+  const { t, lang } = useI18n();
+  const chips = portraitChips(data, (k, v) => {
+    let out = t(k);
+    for (const key in (v ?? {})) out = out.split(`{${key}}`).join(String(v![key]));
+    return out;
+  }, lang);
+  return (
+    <>
+      <AccountDashboard data={{ ...data, onPickDestination: (d) => setSheet(d) }} />
+      <GenerationSheet open={!!sheet} onClose={() => setSheet(null)} destination={sheet} chips={chips} />
+    </>
+  );
 }

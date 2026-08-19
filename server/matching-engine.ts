@@ -924,7 +924,7 @@ export function buildCachedPromptParts(
   };
 }
 
-export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = "", contextOverride?: string, recentNames: string[] = [], userSeenNames: string[] = [], seed?: number): Promise<GeneratedDestination[]> {
+export async function generateDestinationsOnly(input: ProfilingInput, priorBlock = "", contextOverride?: string, recentNames: string[] = [], userSeenNames: string[] = [], seed?: number, pinned?: string): Promise<GeneratedDestination[]> {
   const rawAnswers = input.answers[0] === "path_a" || input.answers[0] === "path_b"
     ? input.answers.slice(1) : input.answers;
 
@@ -982,7 +982,16 @@ Travel companions: ${input.companions || "not specified"}
 ${structuredProfileBlock ? `Structured profile (AUTHORITATIVE — mirrors exactly what the user confirmed on screen, question by question. Read EVERY top-level field AND every field inside the nested "logistics" object: budget, when, duration, companions+group, departure, movement, accommodation, food, physical_effort, diet, notes. Treat each as a hard constraint; never drop or override one with a typical-traveler assumption):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 ${priorBlock}
 ${freshnessBlock}
-${contextOverride && contextOverride.trim().length > 0 ? `
+${pinned && pinned.trim().length > 0 ? `
+═══════════════════════════════════════
+DESTINATION ALREADY CHOSEN — NOT A SUGGESTION
+═══════════════════════════════════════
+The user did not ask you where to go. They tapped a specific place and asked you to shape it around them. The destination is FIXED:
+
+  ${pinned.trim()}
+
+Apply the PRECISE DESTINATION OVERRIDE RULE below to this place. Every one of the 3 slots must be this same destination seen through a different trip personality, with the "name" field written identically and geocodably across all three, and the angle carried ONLY by "tagline". Never propose a neighbouring city, a "similar" alternative, or a wider region instead — proposing something else here is a failure, not a creative choice. The exploration seed and the freshness guidance above apply to WHICH ANGLES you pick, never to the place itself.
+` : ""}${contextOverride && contextOverride.trim().length > 0 ? `
 ═══════════════════════════════════════
 USER CONTEXT FOR THIS TRIP — overrides historical patterns where in conflict
 ═══════════════════════════════════════
@@ -994,6 +1003,8 @@ The user typed this short note for THIS specific trip. Treat it as HIGHER PRIORI
   - "qualcosa di diverso dal solito" → push TILT_M_O toward offbeat for this generation only
 Verbatim note from user:
 "${contextOverride.trim().replace(/"/g, '\\"')}"
+
+CITE IT. In at least one of the three "whyYours", the user must be able to RECOGNISE their own note in your reasoning — name the constraint you honoured and what you did with it ("cinque giorni, quindi niente trasferimenti"). A note that changes nothing visible is indistinguishable from a note you ignored, and the user set it deliberately.
 ` : ""}
 ═══════════════════════════════════════
 STEP 0 — EXTRACT CHIPS + INFER TILT (do this first, verbatim, internal)

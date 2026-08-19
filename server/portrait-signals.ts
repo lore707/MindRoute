@@ -43,7 +43,13 @@ const dayCountOf = (t: any): string | undefined =>
  * Stringa vuota quando non c'è abbastanza materiale: meglio nessun blocco che
  * un blocco che afferma cose che i dati non reggono.
  */
-export async function buildPortraitPromptBlock(userId: number, lang: "it" | "en" = "it"): Promise<string> {
+export async function buildPortraitPromptBlock(
+  userId: number,
+  lang: "it" | "en" = "it",
+  /** I chip del ritratto lasciati accesi nel pannello dei vincoli (vedi
+   *  `portraitChipId`). Assente = tutto il ritratto, come prima. */
+  keep?: string[] | null,
+): Promise<string> {
   try {
     const [itineraries, snaps] = await Promise.all([
       storage.getUserItineraries(userId),
@@ -75,7 +81,7 @@ export async function buildPortraitPromptBlock(userId: number, lang: "it" | "en"
 
     const evoTrips: EvolutionTrip[] = trips.map(t => ({ dest: t.dest, rawDate: t.rawDate }));
     const evolution = buildEvolution(valid, evoTrips, lang);
-    return formatPortraitBlock(signals, evolution, computeConfidence(signals));
+    return formatPortraitBlock(signals, evolution, computeConfidence(signals), keep);
   } catch (err) {
     // Un ritratto che non si riesce a comporre non deve impedire una
     // generazione: si perde la precisione, non il viaggio.

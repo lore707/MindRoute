@@ -103,27 +103,7 @@ export async function recordProposedForUser(userId: number | null, names: string
   }
 }
 
-// Seed di esplorazione DETERMINISTICO su (settimana ISO × utente): stessa
-// settimana + stesso utente = stesse proposte (coerenza nel ciclo decisionale,
-// che per un viaggio è di giorni/settimane); settimana nuova = angolo nuovo.
-// Utenti diversi nella stessa settimana ottengono seed diversi.
-function isoWeekKey(d = new Date()): string {
-  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  const dayNum = (date.getUTCDay() + 6) % 7; // lun=0 … dom=6
-  date.setUTCDate(date.getUTCDate() - dayNum + 3); // giovedì della settimana
-  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
-  const week = 1 + Math.round(
-    ((date.getTime() - firstThursday.getTime()) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7,
-  );
-  return `${date.getUTCFullYear()}-W${week}`;
-}
-
-export function weeklyExplorationSeed(userId: number | null): number {
-  const key = `${isoWeekKey()}:${userId ?? "anon"}`;
-  let h = 2166136261; // FNV-1a
-  for (let i = 0; i < key.length; i++) {
-    h ^= key.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return Math.abs(h) % 100000;
-}
+// La cadenza vive in shared/rotation.ts: logica pura, verificabile da riga di
+// comando (script/verify-picks.ts). Qui si ri-esporta perche' mezzo server la
+// importa gia' da questo modulo.
+export { weeklyExplorationSeed, isoWeekKey } from "@shared/rotation";

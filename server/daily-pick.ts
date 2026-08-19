@@ -2,14 +2,16 @@
 // Daily pick — "una meta che ti somiglia" per la Home della dashboard.
 // 100% deterministico e SENZA chiamate AI: aggrega gli snapshot del trait
 // engine dell'utente, classifica il catalogo per coerenza numerica (i vettori
-// attivati in 2A), esclude le mete già visitate e ne ruota una al giorno tra le
-// top. Il "perché" è templato dai 2-3 assi più marcati del profilo.
+// attivati in 2A), esclude le mete già visitate e ne ruota una a SETTIMANA tra
+// le top. Il "perché" è templato dai 2-3 assi più marcati del profilo.
+// (Il nome del file resta "daily" per non rompere gli import; la cadenza no.)
 // ─────────────────────────────────────────────────────────────────────────
 import { storage } from "./storage";
 import { destinationCatalog } from "./destination-catalog";
 import { getDestinationTraitVector, destinationCoherence } from "./destination-traits";
 import { fetchUnsplashHero } from "./unsplash";
 import { emaAggregate, AXIS_NAMES, MAPPING_VERSION, type TraitVector, type Axis } from "@shared/traits";
+import { rotationKey, weekStartISO } from "@shared/rotation";
 
 // Per-destination hero, cached per day. The catalog stores a single frozen
 // photo ID per destination, which over time reads as a tired/weak image. We
@@ -62,6 +64,8 @@ function buildWhy(user: TraitVector, lang: "en" | "it"): string {
 async function rankForUser(userId: number): Promise<{
   user: TraitVector;
   ranked: Array<{ d: typeof destinationCatalog[number]; score: number }>;
+  /** Revisione del profilo: cambia quando cambia ciò che sappiamo dell'utente. */
+  rev: number;
 } | null> {
   const snaps = await storage.getTraitSnapshots(userId);
   const vecs = snaps
@@ -75,6 +79,15 @@ async function rankForUser(userId: number): Promise<{
     trips.map((t: any) => (t.destinationName || "").split(",")[0].trim().toLowerCase()).filter(Boolean),
   );
 
+  // Quante volte l'utente ha detto "ci sono andato". Vale quanto un viaggio
+  // nuovo: il profilo REALE è cambiato, tenere le stesse proposte fino a
+  // lunedi' sarebbe ottuso.
+  const confirmed = trips.filter((t: any) => {
+    const s = (t.tripMeta as any)?.trip_status;
+    return s === "confirmed" || s === "skipped";
+  }).length;
+  const rev = vecs.length + trips.length + confirmed;
+
   const ranked = destinationCatalog
     .map((d) => {
       const v = getDestinationTraitVector(d.name);
@@ -84,27 +97,27 @@ async function rankForUser(userId: number): Promise<{
     .filter((x) => !visited.has(x.d.name.split(",")[0].trim().toLowerCase()))
     .sort((a, b) => b.score - a.score);
 
-  return ranked.length > 0 ? { user, ranked } : null;
+  return ranked.length > 0 ? { user, ranked, rev } : null;
 }
 
-function dayOfYear(): number {
-  const startOfYear = new Date(new Date().getFullYear(), 0, 0).getTime();
-  return Math.floor((Date.now() - startOfYear) / 86400000);
-}
+// La cadenza (settimanale, con ricalcolo sugli eventi) sta in
+// shared/rotation.ts: e' pura, quindi verificabile senza database.
+// `rev` = quante cose sappiamo dell'utente; cambia quando cambia il profilo.
 
 export async function computeDailyPick(userId: number, lang: "en" | "it"): Promise<DailyPick | null> {
   const r = await rankForUser(userId);
   if (!r) return null;
 
-  // Rotazione giornaliera stabile tra le top-5 (stesso pick per tutto il giorno).
+  // Rotazione settimanale stabile tra le top-5 (stesso pick per tutta la
+  // settimana, salvo eventi che cambiano il profilo).
   const top = r.ranked.slice(0, 5);
-  const day = dayOfYear();
-  const pick = top[day % top.length];
+  const key = rotationKey(userId, r.rev);
+  const pick = top[key % top.length];
 
   return {
     name: pick.d.name,
     country: pick.d.country,
-    imageUrl: await dailyHero(pick.d.name, day, pick.d.imageUrl),
+    imageUrl: await dailyHero(pick.d.name, key, pick.d.imageUrl),
     why: buildWhy(r.user, lang),
     coherence: Math.round(pick.score * 100) / 100,
   };
@@ -128,15 +141,15 @@ export async function computeDailyPicks(
   userId: number,
   lang: "en" | "it",
   n = 3,
-): Promise<{ picks: DailyPickCard[]; why: string } | null> {
+): Promise<{ picks: DailyPickCard[]; why: string; weekStart: string } | null> {
   const r = await rankForUser(userId);
   if (!r) return null;
 
   const pool = r.ranked.slice(0, Math.max(n, 8));
-  const day = dayOfYear();
+  const key = rotationKey(userId, r.rev);
   const chosen: typeof pool = [];
   for (let i = 0; i < pool.length && chosen.length < n; i++) {
-    chosen.push(pool[(day + i * Math.max(1, Math.floor(pool.length / n))) % pool.length]);
+    chosen.push(pool[(key + i * Math.max(1, Math.floor(pool.length / n))) % pool.length]);
   }
   // Dedup di sicurezza (la finestra rotante può collidere con pool piccoli).
   const seen = new Set<string>();
@@ -148,7 +161,7 @@ export async function computeDailyPicks(
       name: p.d.name,
       country: p.d.country,
       region: p.d.region,
-      imageUrl: await dailyHero(p.d.name, day, p.d.imageUrl),
+      imageUrl: await dailyHero(p.d.name, key, p.d.imageUrl),
       matchPct: Math.round(p.score * 100),
       tags: (p.d.keywords || []).slice(0, 3),
     });
@@ -156,5 +169,5 @@ export async function computeDailyPicks(
   // Ordina per match discendente: la prima card è il "best match".
   picks.sort((a, b) => b.matchPct - a.matchPct);
 
-  return { picks, why: buildWhy(r.user, lang) };
+  return { picks, why: buildWhy(r.user, lang), weekStart: weekStartISO() };
 }

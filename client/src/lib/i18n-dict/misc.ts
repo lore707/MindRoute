@@ -68,6 +68,32 @@ export const miscDict: Record<string, { en: string; it: string }> = {
   "fpm.ex.longWeekend":  { en: "long weekend",                         it: "weekend lungo" },
   "fpm.ex.different":    { en: "something different from usual",        it: "qualcosa di diverso dal solito" },
 
+  // ── GenerationSheet (pannello dei vincoli, 2026-08) ───────────────────────
+  // Sostituisce FromProfileModal: stesso lavoro, ma mostra anche COSA del
+  // ritratto entrerà nella generazione, e lascia spegnerlo.
+  "gs.eyebrow.pinned":   { en: "You chose this one",                     it: "L'hai scelta tu" },
+  "gs.eyebrow.profile":  { en: "From your profile",                      it: "Dal tuo profilo" },
+  "gs.title.profile":    { en: "A journey built on you",                 it: "Un viaggio costruito su di te" },
+  "gs.sub.pinned":       { en: "Three ways to live this place, shaped around who you are. Set the boundaries first.", it: "Tre modi di vivere questo posto, tagliati su chi sei. Prima i paletti." },
+  "gs.sub.profile":      { en: "No quiz. Three destinations from everything you've already told us — you only set the boundaries.", it: "Niente quiz. Tre destinazioni da tutto quello che ci hai già detto — tu metti solo i paletti." },
+  "gs.sec.when":         { en: "When",                                   it: "Quando" },
+  "gs.sec.you":          { en: "What I'll use of you",                   it: "Cosa userò di te" },
+  "gs.sec.note":         { en: "Anything different this time?",          it: "Qualcosa di diverso, stavolta?" },
+  "gs.lbl.date":         { en: "Departure",                              it: "Partenza" },
+  "gs.lbl.days":         { en: "Days",                                   it: "Giorni" },
+  "gs.lbl.from":         { en: "Leaving from",                           it: "Parti da" },
+  "gs.lbl.who":          { en: "With",                                   it: "Con chi" },
+  "gs.lbl.budget":       { en: "Budget",                                 it: "Budget" },
+  "gs.dateHint":         { en: "The only thing I can't work out on my own. Leave it empty and the trip comes without dates.", it: "L'unica cosa che non posso dedurre da solo. Lascia vuoto e il viaggio esce senza date." },
+  "gs.chipsHint":        { en: "Tap to switch one off. What you switch off does not reach the generation.", it: "Tocca per spegnerne uno. Quello che spegni non arriva alla generazione." },
+  "gs.chipsAllOff":      { en: "Everything off: this trip will be built on the boundaries alone.", it: "Tutto spento: questo viaggio nascerà solo dai paletti." },
+  "gs.chipsNone":        { en: "Not enough travels yet to read you. The boundaries below are all I have.", it: "Non ho ancora abbastanza viaggi per leggerti. Sotto ci sono solo i paletti." },
+  "gs.noteHint":         { en: "It gets read literally, and it outranks your history where they clash.", it: "Viene letta alla lettera, e batte la tua storia dove sono in conflitto." },
+  "gs.cta.pinned":       { en: "Build it",                               it: "Costruiscilo" },
+  "gs.cta.profile":      { en: "Find the three",                         it: "Trova le tre" },
+  "gs.working":          { en: "Working…",                               it: "Ci sto lavorando…" },
+  "gs.close":            { en: "Close",                                  it: "Chiudi" },
+
   // ── RecognitionBanner ─────────────────────────────────────────────────────
   "rec.eyebrow":         { en: "I recognised you",                      it: "Ti ho riconosciuto" },
   "rec.fallbackHeadline":{ en: "I already know what kind of traveller you are.", it: "So già che viaggiatore sei." },

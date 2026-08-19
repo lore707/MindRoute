@@ -166,6 +166,16 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
+    // Strumento di QA: Edge headless non scende sotto ~492px di viewport,
+    // quindi il telefono si verifica dentro un iframe della larghezza esatta.
+    // Fuori da produzione soltanto (vedi script/qa/frame.html).
+    app.get("/__frame.html", async (_req, res) => {
+      const { readFile } = await import("node:fs/promises");
+      const { fileURLToPath } = await import("node:url");
+      const path = await import("node:path");
+      const here = path.dirname(fileURLToPath(import.meta.url));
+      res.type("html").send(await readFile(path.resolve(here, "../script/qa/frame.html"), "utf8"));
+    });
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }

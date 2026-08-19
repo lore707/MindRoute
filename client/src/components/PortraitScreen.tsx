@@ -48,9 +48,15 @@ type Props = {
   onChallenge?: (challenge: string) => void;
   onShare?: () => void;
   sharing?: boolean;
+  /** Le proposte della settimana: qui sono la CONCLUSIONE dell'analisi. */
+  picks?: Array<{ name: string; country: string; imageUrl: string; matchPct: number; tags: string[] }> | null;
+  /** La riga templata che dice su quali assi si reggono. */
+  picksWhy?: string | null;
+  /** Toccarne una apre il pannello dei vincoli con la meta bloccata. */
+  onPickDestination?: (d: { name: string; country?: string; imageUrl?: string; matchPct?: number | null }) => void;
 };
 
-export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing }: Props) {
+export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing, picks, picksWhy, onPickDestination }: Props) {
   const { t, lang } = useI18n();
   const reduce = useReducedMotion();
   const [openInsight, setOpenInsight] = useState<string | null>(null);
@@ -370,6 +376,37 @@ export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing
           </div>
         </div>
       </motion.section>
+
+      {/* ═══ 6 · LE TRE PROPOSTE — la conclusione, non un catalogo ═══
+          Qui, e non in home, l'elenco ha senso: l'utente ha appena letto chi è
+          e come sta cambiando, e queste sono la RISPOSTA a quella lettura. In
+          home ne compare una sola, con una riga di motivo; qui ci sono tutte e
+          tre, e c'è lo spazio per dire perché. Stessa terna, stessa cadenza
+          settimanale — cambia cosa se ne può dire. */}
+      {picks && picks.length > 0 && (
+        <motion.section className="mrp-sec" {...rise(.1)}>
+          <div className="mrp-kick"><Compass size={13} /> {t("pt.picks.k")}</div>
+          <h2 className="mrp-picks-t">{t("pt.picks.t")}</h2>
+          {picksWhy && <p className="mrp-picks-why">{picksWhy}</p>}
+          <div className="mrp-picks">
+            {picks.map((p, i) => (
+              <button key={p.name + i} className="mrp-pick"
+                      onClick={() => onPickDestination?.({ name: p.name, country: p.country, imageUrl: p.imageUrl, matchPct: p.matchPct })}
+                      disabled={!onPickDestination}>
+                <span className="mrp-pick-ph" style={{ backgroundImage: bg(p.imageUrl, 520) }}>
+                  <span className="mrp-pick-m">{p.matchPct}%</span>
+                </span>
+                <span className="mrp-pick-b">
+                  <span className="mrp-pick-n">{p.name.split(",")[0]}</span>
+                  <span className="mrp-pick-c">{p.country}</span>
+                  {p.tags.length > 0 && <span className="mrp-pick-tg">{p.tags.slice(0, 3).join(" · ")}</span>}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mrp-picks-note">{t("pt.picks.week")}</p>
+        </motion.section>
+      )}
     </div>
   );
 }

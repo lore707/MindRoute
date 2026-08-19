@@ -11,7 +11,7 @@
  */
 import {
   computeConfidence, buildEvolution, buildInsights, visibleInsights,
-  nextStepInsight, takenTrips, formatPortraitBlock, type PortraitSignals,
+  nextStepInsight, takenTrips, formatPortraitBlock, portraitChipId, type PortraitSignals,
 } from "../shared/portrait-insights";
 import { portraitDict } from "../client/src/lib/i18n-dict/portrait";
 import { guardReading } from "../shared/portrait-reading-guard";
@@ -291,6 +291,63 @@ console.log("\n9. il Ritratto arriva davvero al generatore\n");
   // Non deve mai contenere un punteggio: non e' cio' che diciamo all'utente.
   check("nessun punteggio grezzo nel blocco", !/0\.\d\d/.test(blocco), null);
 }
+/* -- 9bis. i chip spenti devono togliere DAVVERO --
+ * Il pannello dei vincoli mostra le righe del ritratto come chip spegnibili.
+ * Se spegnerne uno non lo togliesse dal prompt, il pannello sarebbe teatro:
+ * l'utente crederebbe di aver escluso qualcosa che invece continua a pesare.
+ * Questo e' il test che tiene onesta quella promessa. */
+console.log("\n9bis. il pannello dei vincoli non e' decorativo\n");
+{
+  const s = signals({
+    trips: [
+      trip({ continent: "Europa", rawDate: "2026-07-01" }),
+      trip({ continent: "Europa", rawDate: "2026-08-01" }),
+      trip({ continent: "Europa", rawDate: "2026-09-01" }),
+      trip({ continent: "Asia", rawDate: "2026-06-01" }),
+    ],
+    snapshotCount: 4,
+  });
+  const evo = buildEvolution([
+    { createdAt: "2026-02-01T00:00:00Z", traits: { exposure: .2, comfort: .5, social: .5, matter: .5, structure: .5 } },
+    { createdAt: "2026-08-01T00:00:00Z", traits: { exposure: .85, comfort: .5, social: .5, matter: .5, structure: .5 } },
+  ], [{ dest: "Marrakech", rawDate: "2026-07-20T00:00:00Z" }], "it");
+
+  const tutto = formatPortraitBlock(s, evo, 85);
+  const ins = visibleInsights(s, 85);
+  check("ci sono scoperte da spegnere", ins.length > 0, ins.length);
+
+  // Assente = tutto (comportamento storico intatto).
+  check("keep assente → blocco identico a prima",
+    formatPortraitBlock(s, evo, 85, null) === tutto, null);
+  check("keep = tutti gli id → blocco identico",
+    formatPortraitBlock(s, evo, 85, [
+      ...ins.map(i => portraitChipId.insight(i.id)),
+      ...evo.filter(e => e.kind === "change").map(e => portraitChipId.change(e.axis)),
+      portraitChipId.now,
+    ]) === tutto, null);
+
+  // Spegnere una scoperta la toglie dal blocco.
+  const senzaPrima = formatPortraitBlock(s, evo, 85, [
+    ...ins.slice(1).map(i => portraitChipId.insight(i.id)),
+    ...evo.filter(e => e.kind === "change").map(e => portraitChipId.change(e.axis)),
+    portraitChipId.now,
+  ]);
+  check("spegnere una scoperta accorcia il blocco", senzaPrima.length < tutto.length, `${senzaPrima.length} < ${tutto.length}`);
+
+  // Spegnere la direzione toglie la riga "dove stanno andando".
+  const senzaNow = formatPortraitBlock(s, evo, 85,
+    ins.map(i => portraitChipId.insight(i.id)));
+  check("spegnere la direzione la toglie dal prompt", !/WHERE THEY ARE HEADING/.test(senzaNow), null);
+  // Stesso keep: anche i cambiamenti erano spenti, quindi sparisce l'ancora
+  // al viaggio in cui il cambiamento si era visto.
+  check("spegnere i cambiamenti toglie l'ancora al viaggio",
+    !senzaNow.includes("Marrakech"), null);
+
+  // Tutto spento = nessun blocco. E' una scelta legittima dell'utente, non un bug.
+  check("tutto spento → nessun ritratto nel prompt",
+    formatPortraitBlock(s, evo, 85, []) === "", null);
+}
+
 {
   // Nessun materiale = nessun blocco. Meglio niente che un'analisi inventata.
   check("profilo vuoto → blocco vuoto",

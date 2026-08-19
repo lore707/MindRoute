@@ -93,6 +93,12 @@ export type AccountData = {
   // Daily Compass: una card "growth" accettata pre-compila l'override del
   // modal "Genera dal profilo" con il testo della sfida.
   onChallenge?: (challenge: string) => void;
+  /**
+   * L'utente ha TOCCATO una destinazione proposta: non sta chiedendo "dove
+   * vado?", ha già deciso. Apre il pannello dei vincoli con la destinazione
+   * bloccata — mai una generazione al volo, perché le date non le sappiamo.
+   */
+  onPickDestination?: (d: { name: string; country?: string; imageUrl?: string; matchPct?: number | null }) => void;
   secondaryCtaLabel?: string;  // default: "↓ Continua a esplorare"
   onLogout?: () => void;
   onDelete?: () => void;

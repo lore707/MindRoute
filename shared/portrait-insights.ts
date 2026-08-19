@@ -444,6 +444,18 @@ const INSIGHT_BRIEF: Record<InsightId, string> = {
 };
 
 /**
+ * Gli identificatori dei "pezzi" del ritratto, scritti in un posto solo.
+ * Il pannello dei vincoli li usa per marcare i chip; `formatPortraitBlock` li
+ * usa per decidere cosa entra nel prompt. Se le due grafie divergessero, i
+ * chip spegnerebbero il nulla — quindi vivono qui.
+ */
+export const portraitChipId = {
+  insight: (id: InsightId) => `insight:${id}`,
+  change: (axis: string) => `change:${axis}`,
+  now: "now" as const,
+};
+
+/**
  * Il blocco di prompt che porta il Ritratto dentro la generazione.
  * Vuoto quando non c'e' abbastanza materiale: meglio nessun blocco che un
  * blocco che afferma cose non sostenute dai dati.
@@ -452,10 +464,27 @@ export function formatPortraitBlock(
   signals: PortraitSignals,
   evolution: EvolutionStep[],
   confidence = computeConfidence(signals),
+  /**
+   * Quali pezzi del ritratto l'utente ha lasciato ACCESI nel pannello dei
+   * vincoli. `null`/assente = tutti (comportamento storico).
+   *
+   * Serve perché il pannello mostra queste stesse righe come chip spegnibili:
+   * se spegnerne una non le togliesse davvero dal prompt, il pannello sarebbe
+   * teatro. Gli id li produce `portraitChipId()`, usata da entrambi i lati.
+   */
+  keep?: string[] | null,
 ): string {
-  const insights = visibleInsights(signals, confidence);
-  const direction = evolution.find(e => e.kind === "now");
-  const changes = evolution.filter(e => e.kind === "change");
+  // Array vuoto = l'utente ha spento tutto, ed e' una scelta legittima:
+  // niente ritratto nel prompt. Solo `null`/assente significa "tutto".
+  const on = Array.isArray(keep) ? new Set(keep) : null;
+  const kept = <T,>(id: string, x: T): T | null => (on && !on.has(id) ? null : x);
+
+  const insights = visibleInsights(signals, confidence)
+    .filter(i => kept(portraitChipId.insight(i.id), true));
+  const direction = kept("now", evolution.find(e => e.kind === "now")) ?? undefined;
+  const changes = evolution
+    .filter(e => e.kind === "change")
+    .filter(e => kept(portraitChipId.change(e.axis), true));
   if (insights.length === 0 && !direction) return "";
 
   const L: string[] = [];

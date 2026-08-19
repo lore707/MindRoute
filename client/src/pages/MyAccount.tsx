@@ -7,10 +7,14 @@ import "@/styles/atlas-journey.css";
 import "@/styles/account-cinematic.css";
 import "@/styles/account-portrait.css";
 import "@/styles/account-atlas.css";
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, X, Heart, GitCompare } from "lucide-react";
+// Dopo account-dashboard.css di proposito: la Home v4 e la barra a due voci
+// sovrascrivono (e spengono) pezzi del layout precedente.
+import "@/styles/home-v4.css";
+import { X, GitCompare } from "lucide-react";
 import { type AccountData } from "@/components/AccountCinematic";
 import { AccountDashboard } from "@/components/AccountDashboard";
+import { GenerationSheet, type PinnedDestination } from "@/components/GenerationSheet";
+import { portraitChips } from "@/lib/portrait-chips";
 import { useI18n } from "@/lib/i18n";
 import { type PortraitData } from "@/components/AccountPortrait";
 import { type AtlasData } from "@/components/AccountAtlas";
@@ -18,7 +22,6 @@ import { deriveTraitLabels } from "@/lib/trait-labels";
 import { getTripStatus } from "@shared/trip-status";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 import { fetchMe } from "@/hooks/use-auth";
-import { setFlow } from "@/lib/flow-storage";
 import { unsplashSized } from "@/lib/img";
 import type { TraitVector } from "@shared/traits";
 
@@ -103,7 +106,7 @@ function shortDate(iso: string | null | undefined, lang: "en" | "it" = "it"): st
 
 export default function MyAccount() {
   const [, setLocation] = useLocation();
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const [user, setUser] = useState<any>(null);
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,37 +117,13 @@ export default function MyAccount() {
   const [atlas, setAtlas] = useState<AtlasData | null>(null);
   const [atlasLoading, setAtlasLoading] = useState(true);
 
-  // ── "Genera dal profilo" modal (Ondata C, esteso con defaults pre-compilati + textarea override) ──
-  const [showFromProfile, setShowFromProfile] = useState(false);
-  const [fpLoading, setFpLoading] = useState(false);
-  const [fpError, setFpError] = useState("");
-  const [fpDays, setFpDays] = useState(7);
-  const [fpCompanions, setFpCompanions] = useState("couple");
-  const [fpDeparture, setFpDeparture] = useState("");
-  const [fpBudget, setFpBudget] = useState("medio");
-  const [fpLeaveDate, setFpLeaveDate] = useState("");
-  const [fpContextOverride, setFpContextOverride] = useState("");
-  const [fpDefaultsLoaded, setFpDefaultsLoaded] = useState(false);
-
-  const openFromProfileModal = async () => {
-    setShowFromProfile(true);
-    if (fpDefaultsLoaded) return;
-    try {
-      const r = await fetch("/api/profiling/defaults");
-      if (r.ok) {
-        const d = await r.json();
-        if (typeof d.days === "number") setFpDays(d.days);
-        if (typeof d.companions === "string") setFpCompanions(d.companions);
-        if (typeof d.departure === "string") setFpDeparture(d.departure);
-        if (typeof d.budget === "string") setFpBudget(d.budget);
-        if (typeof d.leaveDate === "string") setFpLeaveDate(d.leaveDate);
-      }
-    } catch {
-      // best-effort: se fallisce restano i default neutri
-    } finally {
-      setFpDefaultsLoaded(true);
-    }
-  };
+  // ── Pannello dei vincoli (GenerationSheet, 2026-08) ──────────────────────
+  // Una schermata sola fra "ho scelto" e "generami il viaggio". Con
+  // `sheetDest` valorizzata la destinazione è bloccata (l'utente ha toccato
+  // una proposta); senza, il matcher cerca ("genera dal profilo").
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetDest, setSheetDest] = useState<PinnedDestination | null>(null);
+  const [sheetNote, setSheetNote] = useState("");
 
   useEffect(() => {
     // ── Percorso critico: auth + viaggi. Sbloccano subito il render (hero +
@@ -218,42 +197,10 @@ export default function MyAccount() {
 
   const canGenerateFromProfile = !!traitHistory && traitHistory.snapshots.length >= 2;
 
-  const submitFromProfile = async () => {
-    setFpLoading(true); setFpError("");
-    try {
-      const res = await fetch("/api/profiling/from-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          days: fpDays,
-          leaveDate: fpLeaveDate || new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10),
-          departure: fpDeparture || "Italia",
-          budget: fpBudget,
-          companions: fpCompanions,
-          contextOverride: fpContextOverride.trim() || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({ message: "Errore" }));
-        throw new Error(j.message ?? "Errore");
-      }
-      // Seed sessionStorage with the fresh destinations + input, exactly like the
-      // quiz flow — otherwise Destinations reads stale/empty data and generation
-      // fails or targets the wrong destination.
-      const data = await res.json();
-      if (Array.isArray(data?.destinations)) {
-        setFlow("mind_destinations", JSON.stringify(data.destinations));
-      }
-      if (data?.input) {
-        setFlow("mind_profiling_input", JSON.stringify(data.input));
-      }
-      setShowFromProfile(false);
-      setLocation("/destinations");
-    } catch (e: any) {
-      setFpError(e?.message ?? "Errore generico");
-    } finally {
-      setFpLoading(false);
-    }
+  const openSheet = (dest: PinnedDestination | null, note = "") => {
+    setSheetDest(dest);
+    setSheetNote(note);
+    setSheetOpen(true);
   };
 
   // ── Derivazioni per AccountData ───────────────────────────────────────
@@ -493,24 +440,21 @@ export default function MyAccount() {
     settings,
     onNewItinerary: () => setLocation("/start"),
     onSecondaryCta: () => {
-      // "Genera dal profilo": apre il modal se abbiamo abbastanza segnale
-      // (≥2 snapshot). Altrimenti — invece di un no-op (la vecchia ancora
-      // #ac-collection non esiste più nella dashboard) — avvia il quiz, così
-      // il pulsante fa sempre qualcosa di utile.
-      if (canGenerateFromProfile) openFromProfileModal();
+      // "Genera dal profilo": apre il pannello dei vincoli se abbiamo
+      // abbastanza segnale (≥2 snapshot). Altrimenti avvia il quiz — il
+      // pulsante fa sempre qualcosa di utile.
+      if (canGenerateFromProfile) openSheet(null);
       else setLocation("/profiling");
     },
     secondaryCtaLabel: canGenerateFromProfile ? "✨ Genera dal tuo profilo" : "↓ Continua a esplorare",
-    // Card "growth" del Daily Compass: la sfida accettata diventa l'override
-    // testuale del matcher (stesso campo del modal, pre-compilato).
+    // Card "growth" del Daily Compass: la sfida accettata diventa la nota
+    // libera del pannello, già scritta.
     onChallenge: (challenge: string) => {
-      if (canGenerateFromProfile) {
-        setFpContextOverride(challenge);
-        openFromProfileModal();
-      } else {
-        setLocation("/start");
-      }
+      if (canGenerateFromProfile) openSheet(null, challenge);
+      else setLocation("/start");
     },
+    // Ha toccato una proposta: la destinazione è decisa, mancano i paletti.
+    onPickDestination: (d) => openSheet(d),
     onLogout: () => { window.location.href = "/auth/logout"; },
     onDelete: () => {
       if (confirm("Sei sicuro di voler eliminare l'account? L'azione è irreversibile.")) {
@@ -518,6 +462,19 @@ export default function MyAccount() {
       }
     },
   };
+
+  // I chip che il pannello dei vincoli mostra: sono LE STESSE righe che
+  // l'utente legge nel Ritratto, calcolate dalla stessa funzione pura, e i
+  // loro id sono quelli con cui il server filtra il prompt. Spegnerne uno lo
+  // toglie davvero dalla generazione.
+  const genChips = useMemo(
+    () => portraitChips(accountData, (k, v) => {
+      let s = t(k);
+      for (const key in (v ?? {})) s = s.split(`{${key}}`).join(String(v![key]));
+      return s;
+    }, lang),
+    [accountData, t, lang],
+  );
 
   if (loading) {
     // Skeleton del layout (non uno spinner): anticipa la struttura della
@@ -605,186 +562,16 @@ export default function MyAccount() {
         ) : null
       } />
 
-      {/* Modal "Genera dal profilo" — invariato dalla versione precedente,
-          attivato dal CTA ghost della hero quando l'utente ha ≥2 snapshot. */}
-      <AnimatePresence>
-        {showFromProfile && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: "rgba(10,8,20,0.78)", backdropFilter: "blur(10px)" }}
-            onClick={() => !fpLoading && setShowFromProfile(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.97 }}
-              transition={{ duration: 0.22 }}
-              className="w-full max-w-md rounded-[20px] md:rounded-[24px] p-5 md:p-7 max-h-[calc(100vh-32px)] overflow-y-auto"
-              style={{ background: "#15101e", border: "1px solid rgba(255,255,255,0.08)" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] uppercase text-[#E94560]">
-                  <Sparkles className="w-3 h-3" /> Shortcut profilo
-                </div>
-                <button type="button" onClick={() => !fpLoading && setShowFromProfile(false)} aria-label="Chiudi" className="flex items-center justify-center w-9 h-9 -mr-2 -mt-2 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <h3 className="font-serif text-xl text-white leading-tight mb-2">Genera dal tuo profilo</h3>
-              <p className="text-[12px] text-white/50 leading-relaxed mb-4">
-                Salti il quiz: partiamo dal tuo profilo aggregato sui {traitHistory?.snapshots.length ?? 0} viaggi precedenti. Abbiamo già riempito i campi sotto dai tuoi pattern — modifica solo se serve.
-              </p>
-
-              {/* Compagnia */}
-              <div className="mb-4">
-                <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Compagnia</label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { v: "solo", l: "Solo/a" },
-                    { v: "couple", l: "In coppia" },
-                    { v: "friends", l: "Amici" },
-                    { v: "family", l: "Famiglia" },
-                  ].map(opt => (
-                    <button
-                      key={opt.v}
-                      type="button"
-                      onClick={() => setFpCompanions(opt.v)}
-                      className="px-3.5 py-2 min-h-[40px] rounded-full text-[12px] font-semibold transition-all"
-                      style={{
-                        background: fpCompanions === opt.v ? "#E94560" : "rgba(255,255,255,0.04)",
-                        color: fpCompanions === opt.v ? "white" : "rgba(255,255,255,0.6)",
-                        border: fpCompanions === opt.v ? "1px solid #E94560" : "1px solid rgba(255,255,255,0.1)",
-                      }}
-                    >
-                      {opt.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Durata */}
-              <div className="mb-4">
-                <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Durata · <span className="text-white/70">{fpDays} giorni</span></label>
-                <input
-                  type="range" min={2} max={14} value={fpDays}
-                  onChange={(e) => setFpDays(parseInt(e.target.value, 10))}
-                  className="w-full accent-[#E94560]"
-                />
-              </div>
-
-              {/* Partenza + Data */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Parti da</label>
-                  <input
-                    type="text" value={fpDeparture} onChange={(e) => setFpDeparture(e.target.value)}
-                    placeholder="Milano, Roma…"
-                    className="w-full px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 outline-none"
-                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Quando</label>
-                  <input
-                    type="date" value={fpLeaveDate} onChange={(e) => setFpLeaveDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-sm text-white outline-none"
-                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", colorScheme: "dark" }}
-                  />
-                </div>
-              </div>
-
-              {/* Budget */}
-              <div className="mb-5">
-                <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Budget</label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { v: "basso", l: "Basso" },
-                    { v: "medio", l: "Medio" },
-                    { v: "alto", l: "Alto" },
-                    { v: "unlimited", l: "Senza limite" },
-                  ].map(opt => (
-                    <button
-                      key={opt.v}
-                      type="button"
-                      onClick={() => setFpBudget(opt.v)}
-                      className="px-3.5 py-2 min-h-[40px] rounded-full text-[12px] font-semibold transition-all"
-                      style={{
-                        background: fpBudget === opt.v ? "#E94560" : "rgba(255,255,255,0.04)",
-                        color: fpBudget === opt.v ? "white" : "rgba(255,255,255,0.6)",
-                        border: fpBudget === opt.v ? "1px solid #E94560" : "1px solid rgba(255,255,255,0.1)",
-                      }}
-                    >
-                      {opt.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-5">
-                <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">
-                  Cosa cambia questa volta? <span className="text-white/30 normal-case font-normal tracking-normal">(opzionale)</span>
-                </label>
-                <textarea
-                  value={fpContextOverride}
-                  onChange={(e) => setFpContextOverride(e.target.value.slice(0, 300))}
-                  placeholder="Es. stavolta con amici, weekend lungo, no Europa…"
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-xl text-sm text-white placeholder-white/30 outline-none resize-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
-                />
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {[
-                    "stavolta con amici",
-                    "budget alto",
-                    "no Europa",
-                    "weekend lungo",
-                    "qualcosa di diverso dal solito",
-                  ].map(ex => (
-                    <button
-                      key={ex}
-                      type="button"
-                      onClick={() => setFpContextOverride(ex)}
-                      className="px-2.5 py-1 rounded-full text-[10.5px] text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors"
-                      style={{ border: "1px solid rgba(255,255,255,0.08)" }}
-                    >
-                      {ex}
-                    </button>
-                  ))}
-                </div>
-                <div className="text-[10px] text-white/30 mt-1.5 text-right">{fpContextOverride.length}/300</div>
-              </div>
-
-              {fpError && <p className="text-[12px] text-[#E94560] mb-3">{fpError}</p>}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={submitFromProfile}
-                  disabled={fpLoading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 min-h-[48px] rounded-full font-semibold text-[14px] text-white transition-all disabled:opacity-50"
-                  style={{ background: "#E94560", boxShadow: "0 8px 24px rgba(233,69,96,0.25)" }}
-                >
-                  {fpLoading ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Generando…
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      Genera 3 destinazioni
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Il pannello dei vincoli. Una schermata sola: raccoglie le date (che
+          non possiamo dedurre) e MOSTRA quali righe del Ritratto stanno per
+          entrare nella generazione, lasciandole spegnere. */}
+      <GenerationSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        destination={sheetDest}
+        chips={genChips}
+        initialNote={sheetNote}
+      />
     </>
   );
 }
