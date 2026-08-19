@@ -93,6 +93,9 @@ export const portraitDict: Record<string, { en: string; it: string }> = {
   "pt.evo.nowT": { en: "Where you're heading", it: "Dove stai andando" },
   "pt.evo.nowK": { en: "Now", it: "Adesso" },
   "pt.evo.nowTryK": { en: "What to try next", it: "Cosa provare adesso" },
+  // Si mostra solo quando la lettura e' stata scritta sui viaggi di QUESTA
+  // persona: e' la differenza fra un ritratto e un oroscopo, e va detta.
+  "pt.evo.personal": { en: "Written on your own trips", it: "Scritta sui tuoi viaggi" },
 
   // La LETTURA: cosa quel cambiamento dice della persona, non del viaggio.
   // È il cuore del capitolo — il viaggio usato come specchio.

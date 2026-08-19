@@ -401,6 +401,26 @@ export function nextStepInsight(list: Insight[]): Insight | null {
    nel dizionario, tradotti.
    ════════════════════════════════════════════════════════════════════════ */
 
+/** I poli in parole, nella lingua dell'utente: servono a dire "da X a Y"
+ *  dentro la lettura personalizzata, senza che il server debba conoscere il
+ *  dizionario del client. */
+export const AXIS_POLE_LABELS: Record<"it" | "en", Record<Axis, { hi: string; lo: string }>> = {
+  it: {
+    exposure:  { hi: "cercare ciò che non conosci", lo: "tornare e andare più a fondo" },
+    comfort:   { hi: "scegliere l'attrito", lo: "scegliere la calma e il riposo" },
+    social:    { hi: "viaggiare attorno alle persone", lo: "viaggiare per stare solo" },
+    matter:    { hi: "scegliere il paesaggio", lo: "scegliere le città e le persone" },
+    structure: { hi: "volere la giornata pianificata", lo: "difendere il tempo non programmato" },
+  },
+  en: {
+    exposure:  { hi: "seeking the unfamiliar", lo: "returning and going deeper" },
+    comfort:   { hi: "choosing friction", lo: "choosing ease and rest" },
+    social:    { hi: "travelling around people", lo: "travelling to be alone" },
+    matter:    { hi: "choosing landscape", lo: "choosing cities and people" },
+    structure: { hi: "wanting the day planned", lo: "protecting unplanned time" },
+  },
+};
+
 const AXIS_POLES: Record<Axis, { hi: string; lo: string }> = {
   exposure:  { hi: "seeks the unfamiliar", lo: "returns and goes deeper" },
   comfort:   { hi: "chooses friction and challenge", lo: "chooses ease and rest" },

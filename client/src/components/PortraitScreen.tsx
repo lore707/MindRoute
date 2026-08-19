@@ -18,7 +18,7 @@
  * conteggi d'uso ("hai usato l'app 27 volte").
  * ─────────────────────────────────────────────────────────────── */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Leaf, Users, Compass, Sparkles, TrendingUp, Lightbulb, ArrowRight,
@@ -55,6 +55,25 @@ export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing
   const reduce = useReducedMotion();
   const [openInsight, setOpenInsight] = useState<string | null>(null);
   const [openStep, setOpenStep] = useState<string | null>(null);
+  /* Letture personalizzate, per indice di tappa.
+   *   undefined = non ancora chiesta · null = non disponibile (resta il testo
+   *   curato) · stringa = la lettura scritta sui dati veri di questa persona.
+   * Si chiedono SOLO quando la tappa si apre: la maggior parte non viene mai
+   * aperta, e generarle tutte sarebbe lavoro (e spesa) buttato. */
+  const [readings, setReadings] = useState<Record<number, string | null>>({});
+  const [loadingRead, setLoadingRead] = useState<number | null>(null);
+
+  const askReading = useCallback((idx: number) => {
+    if (idx in readings || loadingRead === idx) return;
+    setLoadingRead(idx);
+    fetch(`/api/me/portrait/reading?step=${idx}`)
+      // 204 = nessuna lettura garantibile. Non e' un errore: il testo curato
+      // e' gia' a schermo e resta li'.
+      .then(r => (r.status === 204 ? null : r.ok ? r.json() : null))
+      .then((d: { text?: string } | null) => setReadings(p => ({ ...p, [idx]: d?.text ?? null })))
+      .catch(() => setReadings(p => ({ ...p, [idx]: null })))
+      .finally(() => setLoadingRead(null));
+  }, [readings, loadingRead]);
 
   const tx = (key: string, vars: Record<string, string | number> = {}) => {
     let s = t(key);
@@ -223,7 +242,12 @@ export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing
                     : tx("pt.evo.nth", { n: s.ordinal });
                 return (
                   <button className={"mrp-step" + (now ? " now" : "") + (openStep === key ? " on" : "")}
-                    key={key} onClick={() => setOpenStep(openStep === key ? null : key)}
+                    key={key}
+                    onClick={() => {
+                      const next = openStep === key ? null : key;
+                      setOpenStep(next);
+                      if (next && !now) askReading(i);
+                    }}
                     aria-expanded={openStep === key}>
                     <span className="mrp-medal" style={img ? { backgroundImage: bg(img, 200) } : undefined}>
                       {now ? <Compass size={20} /> : (img ? null : stepIcon(i))}
@@ -256,9 +280,16 @@ export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing
                 <div className="mrp-detail" role="region">
                   <button className="mrp-detail-x" onClick={() => setOpenStep(null)} aria-label={t("if.close")}>×</button>
                   <div className="mrp-detail-k">{isNow ? t("pt.evo.nowTryK") : t("pt.evo.detailK")}</div>
-                  <p className="mrp-detail-t">
-                    {isNow ? t(`pt.evo.dir.${s.axis}.${pole}`) : t(`pt.evo.${s.axis}.${pole}.why`)}
+                  <p className={"mrp-detail-t" + (loadingRead === idx ? " loading" : "")}>
+                    {isNow
+                      ? t(`pt.evo.dir.${s.axis}.${pole}`)
+                      /* La lettura scritta sui tuoi viaggi quando c'e'; il testo
+                         curato mentre arriva, o se non e' garantibile vera. */
+                      : (readings[idx] || t(`pt.evo.${s.axis}.${pole}.why`))}
                   </p>
+                  {!isNow && readings[idx] && (
+                    <div className="mrp-detail-src">{t("pt.evo.personal")}</div>
+                  )}
                   {!isNow && (
                     <>
                       <div className="mrp-detail-k sub">{t("pt.evo.evidenceK")}</div>

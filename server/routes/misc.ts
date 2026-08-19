@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { getPortraitStepReading } from "../portrait-signals";
 import { storage } from "../storage";
 import { emaAggregate, AXIS_NAMES, type TraitVector, MAPPING_VERSION } from "@shared/traits";
 import { getTraitHeadline } from "../trait-headline";
@@ -93,6 +94,37 @@ export function registerMiscRoutes(app: Express) {
     } catch (err) {
       console.error("portrait error:", err);
       res.status(500).json({ message: "Errore nel recupero del ritratto" });
+    }
+  });
+
+  /* GET /api/me/portrait/reading?step=<indice>
+   *
+   * La lettura personalizzata di UNA tappa dell'evoluzione, scritta da Haiku
+   * sui fatti veri di questo utente e verificata prima di uscire.
+   *
+   * Il client manda SOLO l'indice della tappa: i fatti li ricompone il server
+   * dal database. Se li accettasse dal client, chiunque potrebbe far scrivere
+   * al modello una lettura su viaggi che non ha mai fatto.
+   *
+   * 204 = nessuna lettura garantibile → il client tiene il testo statico.
+   * Pigra di proposito: si genera solo la tappa che l'utente apre davvero.
+   */
+  app.get("/api/me/portrait/reading", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    try {
+      const stepIndex = Number(req.query.step);
+      if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex > 8) {
+        return res.status(400).json({ message: "step non valido" });
+      }
+      const lang = langOf(req) === "en" ? "en" : "it";
+      const text = await getPortraitStepReading(user.id, stepIndex, lang);
+      if (!text) return res.status(204).end();
+      res.json({ text });
+    } catch (err) {
+      console.error("portrait reading error:", err);
+      // Mai un 500 per una rifinitura: il testo statico c'è comunque.
+      res.status(204).end();
     }
   });
 

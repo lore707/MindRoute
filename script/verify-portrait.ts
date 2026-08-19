@@ -14,6 +14,7 @@ import {
   nextStepInsight, takenTrips, formatPortraitBlock, type PortraitSignals,
 } from "../shared/portrait-insights";
 import { portraitDict } from "../client/src/lib/i18n-dict/portrait";
+import { guardReading } from "../shared/portrait-reading-guard";
 
 let fail = 0;
 const check = (name: string, ok: boolean, got?: unknown) => {
@@ -298,6 +299,44 @@ console.log("\n9. il Ritratto arriva davvero al generatore\n");
   const povero = signals({ trips: [trip(), trip(), trip()], snapshotCount: 1 });
   check("confidenza bassa → nessuna scoperta nel blocco",
     !/WHAT WE TOLD THEM/.test(formatPortraitBlock(povero, [], 20)), null);
+}
+
+/* -- 10. il lucchetto sui fatti delle letture personalizzate -- */
+console.log("\n10. letture personalizzate: il modello non puo' inventare\n");
+{
+  const facts = { places: ["Azzorre", "Isole Faroe", "Marrakech, Marocco"], numbers: [2024, 2026, 6, 2] };
+  const ok = (t: string) => guardReading(t, facts).ok;
+  const why = (t: string) => { const r = guardReading(t, facts); return r.ok ? "ok" : `${r.reason}: ${r.offending ?? ""}`; };
+
+  // Accettate: usano solo cio' che abbiamo fornito.
+  check("frase con un luogo fornito",
+    ok("Fino alle Azzorre viaggiavi con qualcuno. Da li' hai cominciato a partire da solo."), why("Fino alle Azzorre viaggiavi con qualcuno. Da li' hai cominciato a partire da solo."));
+  check("un pezzo di un nome composto vale (Faroe da Isole Faroe)",
+    ok("Alle Faroe qualcosa e' cambiato: hai smesso di cercare compagnia in viaggio."), why("Alle Faroe qualcosa e' cambiato: hai smesso di cercare compagnia in viaggio."));
+  check("numero fornito",
+    ok("Su 6 viaggi, la solitudine e' diventata la costante piu' netta del tuo modo di partire."), why("Su 6 viaggi, la solitudine e' diventata la costante piu' netta del tuo modo di partire."));
+  check("un mese non e' un nome proprio inventato",
+    ok("Da ottobre 2024 hai iniziato a partire da solo, e nei viaggi dopo non sei tornato indietro."), why("Da ottobre 2024 hai iniziato a partire da solo, e nei viaggi dopo non sei tornato indietro."));
+
+  // RIFIUTATE: e' qui che si gioca tutto.
+  check("posto MAI visitato → rifiutata",
+    !ok("Dopo Lisbona hai cominciato a viaggiare da solo, e non sei piu' tornato indietro davvero."), why("Dopo Lisbona hai cominciato a viaggiare da solo, e non sei piu' tornato indietro davvero."));
+  check("anno MAI vissuto → rifiutata",
+    !ok("Dal 2019 viaggi da solo: e' la cosa piu' netta che i tuoi viaggi raccontano di te."), why("Dal 2019 viaggi da solo: e' la cosa piu' netta che i tuoi viaggi raccontano di te."));
+  check("conteggio inventato → rifiutata",
+    !ok("In 14 viaggi hai scelto quasi sempre la solitudine, e la cosa si vede chiaramente."), why("In 14 viaggi hai scelto quasi sempre la solitudine, e la cosa si vede chiaramente."));
+  check("preambolo del modello → rifiutata",
+    !ok("Ecco la lettura richiesta: hai iniziato a viaggiare da solo dopo le Azzorre, e non sei tornato."), why("Ecco la lettura richiesta: hai iniziato a viaggiare da solo dopo le Azzorre, e non sei tornato."));
+  check("troppo corta → rifiutata", !ok("Viaggi da solo."), why("Viaggi da solo."));
+  check("troppo lunga → rifiutata", !ok("x".repeat(300)), why("x".repeat(300)));
+
+  // La maiuscola di inizio frase NON e' un nome proprio.
+  check("inizio frase maiuscolo non viene scambiato per un luogo",
+    ok("Prima cercavi compagnia. Adesso parti da solo, e non e' piu' un ripiego ma una scelta."), why("Prima cercavi compagnia. Adesso parti da solo, e non e' piu' un ripiego ma una scelta."));
+
+  // Virgolette e spazi sporchi non devono far fallire una frase valida.
+  const sporca = guardReading('  "Alle Azzorre qualcosa e cambiato: hai smesso di cercare compagnia."  ', facts);
+  check("virgolette e spazi ripuliti", sporca.ok && !(sporca.ok && sporca.text.startsWith('"')), sporca);
 }
 
 console.log(fail === 0 ? "\nTutto verde.\n" : `\n${fail} controlli falliti.\n`);
