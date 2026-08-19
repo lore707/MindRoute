@@ -132,9 +132,19 @@ export function FromProfileModal({ open, onClose, snapshotCount }: FromProfileMo
               </button>
             </div>
             <h3 className="font-serif text-xl text-white leading-tight mb-2">Genera dal tuo profilo</h3>
-            <p className="text-[12px] text-white/50 leading-relaxed mb-4">
-              Salti il quiz: partiamo dal tuo profilo aggregato sui {snapshotCount} viaggi precedenti. Abbiamo già riempito i campi sotto dai tuoi pattern — modifica solo se serve.
+            <p className="text-[12px] text-white/50 leading-relaxed mb-3">
+              Qui decidi solo i <strong className="text-white/75 font-semibold">paletti</strong>. L'analisi del tuo profilo la portiamo noi: quello che hai appena letto nel Ritratto viaggia insieme a questa richiesta.
             </p>
+            {/* Cosa viaggia con la richiesta, detto esplicitamente: se il
+                prodotto sostiene di conoscerti, deve mostrare cosa sta usando
+                per proporti qualcosa — altrimenti "pensato per te" e' una
+                promessa che l'utente non puo' verificare. */}
+            <div className="mb-4 rounded-xl border border-[#E94560]/25 bg-[#E94560]/[0.07] px-3.5 py-3">
+              <div className="text-[9.5px] font-bold tracking-[1.6px] uppercase text-[#E94560] mb-1.5">Portiamo con noi</div>
+              <p className="text-[11.5px] text-white/60 leading-relaxed m-0">
+                Come sta cambiando il tuo modo di viaggiare, i pattern che abbiamo trovato sui tuoi {snapshotCount} viaggi, e cosa avevamo detto che valeva la pena provare.
+              </p>
+            </div>
 
             <div className="mb-4">
               <label className="block text-[10px] font-bold tracking-[1.5px] uppercase text-white/40 mb-2">Compagnia</label>

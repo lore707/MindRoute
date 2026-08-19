@@ -10,6 +10,7 @@ import { computeTraitVector, emaAggregate, synthesizeAnswersFromVector, MAPPING_
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import { formatDestinationCoherenceBlock } from "../destination-traits";
 import { getRecentCompassSignals, formatCompassSignalsBlock } from "../compass";
+import { buildPortraitPromptBlock } from "../portrait-signals";
 import { computeProfileDefaults } from "../profile-defaults";
 import { requireAuth } from "../auth";
 
@@ -175,7 +176,14 @@ export function registerProfilingRoutes(app: Express) {
       // + micro-segnali del Daily Compass ("Genera dal profilo" è proprio il
       // flusso dove pesano di più: non c'è un quiz fresco a raccontare l'oggi).
       const signalsBlock = formatCompassSignalsBlock(await getRecentCompassSignals(user.id));
-      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(current) + signalsBlock;
+      // IL RITRATTO ENTRA NELLA GENERAZIONE.
+      // Finora il generatore riceveva i cinque numeri del vettore; l'utente
+      // aveva appena letto sul proprio profilo "torni sempre in Europa" e
+      // "non viaggi mai d'inverno", e quelle frasi non arrivavano mai qui.
+      // Ora la stessa analisi che ha letto diventa parte del prompt, quindi
+      // la proposta puo' essere la RISPOSTA a quello che gli abbiamo detto.
+      const portraitBlock = await buildPortraitPromptBlock(user.id, micro.lang === "en" ? "en" : "it");
+      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(current) + signalsBlock + portraitBlock;
       const recentNames = await getRecentDestinationNames();
       const userSeenNames = await getProposedNamesForUser(user.id);
       const seed = weeklyExplorationSeed(user.id);

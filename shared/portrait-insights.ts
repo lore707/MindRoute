@@ -96,23 +96,53 @@ export const AXES = ["exposure", "comfort", "social", "matter", "structure"] as 
 export type Axis = typeof AXES[number];
 
 export type EvolutionStep = {
-  /** Anno della tappa, o null per "oggi". */
-  year: number | null;
-  isNow: boolean;
+  /** "change" = un cambiamento vero; "now" = dove stai andando adesso. */
+  kind: "change" | "now";
   axis: Axis;
-  /** true = polo alto dell'asse. */
+  /** true = polo alto dell'asse DOPO il cambiamento. */
   hi: boolean;
+  /** Da dove veniva: serve a dire "da X a Y", non solo "sei Y". */
+  fromHi: boolean;
   delta: number;
+  /** Il VIAGGIO in cui il cambiamento si e' visto. E' l'ancora giusta:
+   *  "dopo Marrakech" dice qualcosa, "2026" no — soprattutto se tutti i
+   *  viaggi sono dello stesso anno, che e' il caso normale di un account
+   *  nuovo. */
+  trip: { dest: string; img?: string; href?: string; when: string | null } | null;
+  /** Posizione nella sequenza dei viaggi (1-based): l'etichetta di ripiego
+   *  quando il viaggio non si riesce ad agganciare. */
+  ordinal: number;
+};
+
+export type EvolutionTrip = { dest: string; img?: string; href?: string; rawDate?: string };
+
+const monthLabel = (iso: string, lang: "it" | "en"): string | null => {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const M = lang === "it"
+    ? ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+    : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${M[d.getMonth()]} ${d.getFullYear()}`;
 };
 
 /**
  * Le tappe che hanno DAVVERO cambiato il modo di viaggiare.
- * Soglia 0.15 come da specifica: sotto, è rumore e non una storia.
- * Massimo 4 tappe passate + "oggi", perché una timeline con dieci puntini non
- * si legge come un'evoluzione.
+ *
+ * Tre regole che nascono da quello che si vedeva a schermo:
+ *  · soglia 0.15 (specifica): sotto, e' rumore e non una storia;
+ *  · niente due tappe di fila con lo stesso polo — "Sfidante / Sfidante" non
+ *    e' un'evoluzione, e' la stessa cosa scritta due volte;
+ *  · ogni tappa e' agganciata al VIAGGIO in cui il cambiamento si e' visto.
+ *    L'anno da solo non spiega niente quando tutti i viaggi sono dello stesso
+ *    anno — ed e' la situazione normale di un profilo nuovo.
+ *
+ * L'ultima tappa non e' un polo in piu': e' "dove stai andando", la direzione
+ * che le altre insieme disegnano.
  */
 export function buildEvolution(
   snaps: Array<{ createdAt: string; traits: Record<string, number> }>,
+  trips: EvolutionTrip[] = [],
+  lang: "it" | "en" = "it",
   maxSteps = 4,
 ): EvolutionStep[] {
   const valid = snaps
@@ -120,7 +150,13 @@ export function buildEvolution(
     .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
   if (valid.length < 2) return [];
 
-  const moves: EvolutionStep[] = [];
+  // Viaggi datati, in ordine: servono per agganciare ogni cambiamento.
+  const dated = trips
+    .filter(t => t.rawDate && !isNaN(new Date(t.rawDate).getTime()))
+    .map(t => ({ t, at: +new Date(t.rawDate!) }))
+    .sort((a, b) => a.at - b.at);
+
+  const moves: Array<Omit<EvolutionStep, "ordinal">> = [];
   for (let i = 1; i < valid.length; i++) {
     const prev = valid[i - 1].traits, cur = valid[i].traits;
     let axis: Axis | null = null, delta = 0;
@@ -129,31 +165,64 @@ export function buildEvolution(
       if (Math.abs(d) > Math.abs(delta)) { delta = d; axis = a; }
     }
     if (!axis || Math.abs(delta) < 0.15) continue;
+
+    // Il viaggio piu' vicino nel tempo allo snapshot: e' li' che il
+    // cambiamento si e' manifestato.
+    const at = +new Date(valid[i].createdAt);
+    let best: typeof dated[number] | null = null, bestDist = Infinity;
+    for (const x of dated) {
+      const d = Math.abs(x.at - at);
+      if (d < bestDist) { bestDist = d; best = x; }
+    }
     moves.push({
-      year: new Date(valid[i].createdAt).getUTCFullYear(),
-      isNow: false,
+      kind: "change",
       axis,
       hi: (cur[axis] ?? 0.5) >= 0.5,
+      fromHi: (prev[axis] ?? 0.5) >= 0.5,
       delta,
+      trip: best
+        ? { dest: best.t.dest, img: best.t.img, href: best.t.href, when: best.t.rawDate ? monthLabel(best.t.rawDate, lang) : null }
+        : null,
     });
   }
   if (moves.length === 0) return [];
 
-  // I più forti, poi rimessi in ordine cronologico: la storia si legge avanti.
-  const kept = moves
+  // I piu' forti, rimessi in ordine cronologico: la storia si legge avanti.
+  const strongest = moves
+    .slice()
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-    .slice(0, maxSteps)
-    .sort((a, b) => (a.year ?? 0) - (b.year ?? 0));
+    .slice(0, maxSteps);
+  const chrono = moves.filter(m => strongest.includes(m));
 
-  // "Oggi" chiude sempre la riga, sull'asse oggi più marcato.
-  const last = valid[valid.length - 1].traits;
-  let nowAxis: Axis = "exposure", nowDist = -1;
-  for (const a of AXES) {
-    const d = Math.abs((last[a] ?? 0.5) - 0.5);
-    if (d > nowDist) { nowDist = d; nowAxis = a; }
+  // Due tappe di fila sullo stesso polo dello stesso asse non raccontano nulla.
+  const kept: Array<Omit<EvolutionStep, "ordinal">> = [];
+  for (const m of chrono) {
+    const last = kept[kept.length - 1];
+    if (last && last.axis === m.axis && last.hi === m.hi) continue;
+    kept.push(m);
   }
-  kept.push({ year: null, isNow: true, axis: nowAxis, hi: (last[nowAxis] ?? 0.5) >= 0.5, delta: 0 });
-  return kept;
+
+  const out: EvolutionStep[] = kept.map((m, i) => ({ ...m, ordinal: i + 1 }));
+
+  // "Dove stai andando": l'asse su cui il profilo si e' spostato di piu' NEL
+  // COMPLESSO, dal primo snapshot all'ultimo. Non un polo ripetuto: una
+  // direzione.
+  const first = valid[0].traits, last = valid[valid.length - 1].traits;
+  let dirAxis: Axis = "exposure", dirDelta = 0;
+  for (const a of AXES) {
+    const d = (last[a] ?? 0.5) - (first[a] ?? 0.5);
+    if (Math.abs(d) > Math.abs(dirDelta)) { dirDelta = d; dirAxis = a; }
+  }
+  out.push({
+    kind: "now",
+    axis: dirAxis,
+    hi: (last[dirAxis] ?? 0.5) >= 0.5,
+    fromHi: (first[dirAxis] ?? 0.5) >= 0.5,
+    delta: dirDelta,
+    trip: null,
+    ordinal: out.length + 1,
+  });
+  return out;
 }
 
 /* ── insight ──────────────────────────────────────────────────────────────── */
@@ -312,4 +381,97 @@ export function visibleInsights(s: PortraitSignals, confidence: number, max = 4)
 /** L'insight che diventa il prossimo passo. Null se nessuno è azionabile. */
 export function nextStepInsight(list: Insight[]): Insight | null {
   return list.find(i => i.actionable) ?? null;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   IL PONTE VERSO LA GENERAZIONE
+   ────────────────────────────────────────────────────────────────────────
+   Il Ritratto dice all'utente "torni sempre in Europa" e "non viaggi mai
+   d'inverno". Poi l'utente preme "genera un viaggio pensato per te" — e al
+   generatore arrivavano CINQUE NUMERI (il vettore dei tratti), non quelle
+   frasi. Le due meta' del prodotto non si parlavano, e la destinazione
+   proposta non poteva rispondere a un'analisi che non aveva mai ricevuto.
+
+   Qui la stessa analisi che l'utente ha appena LETTO diventa un blocco di
+   prompt. Non e' una decorazione: e' il motivo per cui la proposta puo'
+   sembrare la risposta a quello che gli abbiamo appena detto di lui.
+
+   In inglese perche' i prompt sono in inglese; i testi a schermo restano
+   nel dizionario, tradotti.
+   ════════════════════════════════════════════════════════════════════════ */
+
+const AXIS_POLES: Record<Axis, { hi: string; lo: string }> = {
+  exposure:  { hi: "seeks the unfamiliar", lo: "returns and goes deeper" },
+  comfort:   { hi: "chooses friction and challenge", lo: "chooses ease and rest" },
+  social:    { hi: "travels around people", lo: "travels for solitude" },
+  matter:    { hi: "chooses landscape over architecture", lo: "chooses cities and human texture" },
+  structure: { hi: "wants the day planned", lo: "protects unplanned time" },
+};
+
+/** Cosa ciascuna scoperta CHIEDE alla proposta. E' la parte azionabile. */
+const INSIGHT_BRIEF: Record<InsightId, string> = {
+  "continent-loyal": "They keep returning to one continent. Propose at least one option OUTSIDE it — not as a stunt, but as the natural next step for someone who already travels well.",
+  "continent-gap": "There is a whole continent they have never visited. One of the options should open it, at a difficulty they can actually handle.",
+  "season-gap": "They never travel in the cold months. If the requested dates allow it, favour a place that is BETTER off-season, and say why.",
+  "duration-long": "They travel long and slow. Do not propose a place that is exhausted in three days.",
+  "duration-short": "Their trips are short. Favour places that reward a short stay instead of punishing it.",
+  "dreamer": "Many of their trips were planned and never taken. Favour options that are genuinely easy to depart for — the goal is a trip that HAPPENS.",
+  "nature": "Nature is a real need, not a preference. Any option without a serious natural component will feel wrong to them.",
+  "solo": "They travel to be alone. Avoid places whose appeal depends on company or nightlife.",
+  "unplanned": "They protect unplanned time. Avoid destinations that only work with reservations booked weeks ahead.",
+  "comfort-drift": "They have been drifting toward the familiar. One option should gently interrupt that drift.",
+};
+
+/**
+ * Il blocco di prompt che porta il Ritratto dentro la generazione.
+ * Vuoto quando non c'e' abbastanza materiale: meglio nessun blocco che un
+ * blocco che afferma cose non sostenute dai dati.
+ */
+export function formatPortraitBlock(
+  signals: PortraitSignals,
+  evolution: EvolutionStep[],
+  confidence = computeConfidence(signals),
+): string {
+  const insights = visibleInsights(signals, confidence);
+  const direction = evolution.find(e => e.kind === "now");
+  const changes = evolution.filter(e => e.kind === "change");
+  if (insights.length === 0 && !direction) return "";
+
+  const L: string[] = [];
+  L.push("");
+  L.push("═══════════════════════════════════════");
+  L.push("PORTRAIT READING — what we have ALREADY TOLD this user about themselves");
+  L.push("═══════════════════════════════════════");
+  L.push("This is not background colour. The user has just read these sentences on their profile page and then pressed \"generate a journey designed for me\". The destinations you propose must READ AS THE ANSWER to what follows. If a proposal could have been produced without this section, it is the wrong proposal.");
+  L.push("");
+
+  if (changes.length > 0) {
+    L.push("HOW THEIR TRAVEL HAS CHANGED (each step is a real movement in their profile, anchored to the trip where it showed):");
+    for (const c of changes) {
+      const from = c.fromHi ? AXIS_POLES[c.axis].hi : AXIS_POLES[c.axis].lo;
+      const to = c.hi ? AXIS_POLES[c.axis].hi : AXIS_POLES[c.axis].lo;
+      const where = c.trip ? ` (around ${c.trip.dest}${c.trip.when ? `, ${c.trip.when}` : ""})` : "";
+      L.push(`  - ${c.axis}: from "${from}" to "${to}"${where}`);
+    }
+    L.push("");
+  }
+
+  if (direction) {
+    const to = direction.hi ? AXIS_POLES[direction.axis].hi : AXIS_POLES[direction.axis].lo;
+    L.push(`WHERE THEY ARE HEADING: ${direction.axis} — ${to}. The trip you propose should be the NEXT STEP in that direction, not a repetition of where they already are.`);
+    L.push("");
+  }
+
+  if (insights.length > 0) {
+    L.push("WHAT WE TOLD THEM WE DISCOVERED (each line is backed by a real count over their own trips):");
+    for (const i of insights) {
+      L.push(`  - ${INSIGHT_BRIEF[i.id]}`);
+    }
+    L.push("");
+  }
+
+  L.push("HOW TO USE THIS: at least ONE of the three destinations must visibly answer the discoveries above — and its \"why this fits you\" must reference the specific pattern, not a generic trait. Never contradict a discovery without saying, in the copy, that you are doing it on purpose.");
+  L.push("");
+  return L.join("\n");
 }

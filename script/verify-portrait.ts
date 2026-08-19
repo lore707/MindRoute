@@ -11,8 +11,8 @@
  */
 import {
   computeConfidence, buildEvolution, buildInsights, visibleInsights,
-  nextStepInsight, takenTrips, type PortraitSignals,
-} from "../client/src/lib/portrait-insights";
+  nextStepInsight, takenTrips, formatPortraitBlock, type PortraitSignals,
+} from "../shared/portrait-insights";
 import { portraitDict } from "../client/src/lib/i18n-dict/portrait";
 
 let fail = 0;
@@ -115,15 +115,62 @@ console.log("\n4. evoluzione: solo i cambiamenti veri\n");
     snap(2025, { exposure: .8, comfort: .5, social: .2, matter: .5, structure: .5 }),
   ]);
   check("due cambiamenti forti + oggi = 3 tappe", storia.length === 3, storia.length);
-  check("l'ultima tappa e' 'oggi'", storia[storia.length - 1].isNow === true, storia[storia.length - 1]);
-  check("le tappe passate sono in ordine di anno",
-    storia[0].year! <= storia[1].year!, storia.map(x => x.year));
+  check("l'ultima tappa e' la DIREZIONE, non un polo in piu'",
+    storia[storia.length - 1].kind === "now", storia[storia.length - 1]);
+  check("le tappe precedenti sono cambiamenti",
+    storia.slice(0, -1).every(x => x.kind === "change"), storia.map(x => x.kind));
+  check("ogni cambiamento dice da dove veniva",
+    storia.slice(0, -1).every(x => typeof x.fromHi === "boolean"), storia.map(x => x.fromHi));
   check("un solo snapshot → niente timeline", buildEvolution([snap(2025, { exposure: .8 })]).length === 0, null);
 
   // Mai piu' di 4 tappe passate + oggi, anche con dieci anni di storia.
   const lunga = buildEvolution(Array.from({ length: 9 }, (_, i) =>
     snap(2016 + i, { exposure: i % 2 === 0 ? .1 : .9, comfort: .5, social: .5, matter: .5, structure: .5 })));
   check("timeline capata a 5 tappe totali", lunga.length <= 5, lunga.length);
+
+  // "Sfidante / Sfidante" di fila non e' un'evoluzione: e' la stessa cosa
+  // scritta due volte. Era esattamente cio' che si vedeva a schermo.
+  const ripetuta = buildEvolution([
+    snap(2026, { exposure: .5, comfort: .1, social: .5, matter: .5, structure: .5 }),
+    snap(2026, { exposure: .5, comfort: .9, social: .5, matter: .5, structure: .5 }),
+    snap(2026, { exposure: .5, comfort: .2, social: .5, matter: .5, structure: .5 }),
+    snap(2026, { exposure: .5, comfort: .95, social: .5, matter: .5, structure: .5 }),
+  ]);
+  const cambi = ripetuta.filter(x => x.kind === "change");
+  let doppioni = 0;
+  for (let i = 1; i < cambi.length; i++) {
+    if (cambi[i].axis === cambi[i - 1].axis && cambi[i].hi === cambi[i - 1].hi) doppioni++;
+  }
+  check("mai due tappe di fila sullo stesso polo", doppioni === 0, cambi.map(x => `${x.axis}:${x.hi}`));
+}
+{
+  // L'ancora e' il VIAGGIO, non l'anno: con tutti i viaggi nello stesso anno
+  // (il caso normale di un profilo nuovo) l'anno non distingue nulla.
+  const snap = (iso: string, traits: Record<string, number>) => ({ createdAt: iso, traits });
+  const conViaggi = buildEvolution(
+    [
+      snap("2026-03-01T00:00:00Z", { exposure: .2, comfort: .5, social: .5, matter: .5, structure: .5 }),
+      snap("2026-07-01T00:00:00Z", { exposure: .85, comfort: .5, social: .5, matter: .5, structure: .5 }),
+    ],
+    [
+      { dest: "Marrakech", rawDate: "2026-06-28T00:00:00Z" },
+      { dest: "Lofoten", rawDate: "2026-01-10T00:00:00Z" },
+    ],
+    "it",
+  );
+  const primo = conViaggi.find(x => x.kind === "change");
+  check("il cambiamento e' agganciato al viaggio piu' vicino",
+    primo?.trip?.dest === "Marrakech", primo?.trip);
+  check("...e porta con se' quando", !!primo?.trip?.when, primo?.trip?.when);
+
+  // Senza viaggi datati non si inventa un'ancora: resta l'ordinale.
+  const senza = buildEvolution([
+    snap("2026-03-01T00:00:00Z", { exposure: .2, comfort: .5, social: .5, matter: .5, structure: .5 }),
+    snap("2026-07-01T00:00:00Z", { exposure: .85, comfort: .5, social: .5, matter: .5, structure: .5 }),
+  ], [], "it");
+  const p0 = senza.find(x => x.kind === "change");
+  check("senza viaggi datati → nessuna ancora inventata", p0?.trip === null, p0?.trip);
+  check("...ma resta l'ordinale", (p0?.ordinal ?? 0) >= 1, p0?.ordinal);
 }
 
 /* ── 5. il prossimo passo ── */
@@ -215,6 +262,42 @@ console.log("\n8. italiano e inglese: nessuna stringa lasciata indietro\n");
   }
   check("ogni chiave ha entrambe le lingue", senzaLingua.length === 0, senzaLingua);
   check("nessuna chiave con IT identico a EN", nonTradotte.length === 0, nonTradotte);
+}
+
+/* -- 9. il ponte verso la generazione -- */
+console.log("\n9. il Ritratto arriva davvero al generatore\n");
+{
+  const s = signals({
+    trips: [
+      trip({ continent: "Europa", rawDate: "2026-07-01" }),
+      trip({ continent: "Europa", rawDate: "2026-08-01" }),
+      trip({ continent: "Europa", rawDate: "2026-09-01" }),
+      trip({ continent: "Asia", rawDate: "2026-06-01" }),
+    ],
+    snapshotCount: 4,
+  });
+  const evo = buildEvolution([
+    { createdAt: "2026-02-01T00:00:00Z", traits: { exposure: .2, comfort: .5, social: .5, matter: .5, structure: .5 } },
+    { createdAt: "2026-08-01T00:00:00Z", traits: { exposure: .85, comfort: .5, social: .5, matter: .5, structure: .5 } },
+  ], [{ dest: "Marrakech", rawDate: "2026-07-20T00:00:00Z" }], "it");
+  const blocco = formatPortraitBlock(s, evo, 85);
+
+  check("il blocco esiste", blocco.length > 200, blocco.length);
+  check("porta le SCOPERTE, non solo i numeri", /continent/i.test(blocco), null);
+  check("porta la DIREZIONE del cambiamento", /WHERE THEY ARE HEADING/.test(blocco), null);
+  check("aggancia il cambiamento al viaggio", blocco.includes("Marrakech"), null);
+  check("dice al modello COSA FARNE", /at least ONE of the three destinations/.test(blocco), null);
+  // Non deve mai contenere un punteggio: non e' cio' che diciamo all'utente.
+  check("nessun punteggio grezzo nel blocco", !/0\.\d\d/.test(blocco), null);
+}
+{
+  // Nessun materiale = nessun blocco. Meglio niente che un'analisi inventata.
+  check("profilo vuoto → blocco vuoto",
+    formatPortraitBlock(signals(), [], 0) === "", formatPortraitBlock(signals(), [], 0));
+  // Confidenza sotto soglia: niente scoperte, quindi niente da dire.
+  const povero = signals({ trips: [trip(), trip(), trip()], snapshotCount: 1 });
+  check("confidenza bassa → nessuna scoperta nel blocco",
+    !/WHAT WE TOLD THEM/.test(formatPortraitBlock(povero, [], 20)), null);
 }
 
 console.log(fail === 0 ? "\nTutto verde.\n" : `\n${fail} controlli falliti.\n`);

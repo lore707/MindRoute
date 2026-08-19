@@ -139,8 +139,18 @@
 .mrp-evo::-webkit-scrollbar-thumb { background: var(--stroke-2); border-radius: 4px; }
 .mrp-step {
   position: relative; flex: none; width: 138px;
-  text-align: center; padding: 0 6px;
+  text-align: center; padding: 0 6px 8px;
+  background: none; border: none; color: inherit; font-family: inherit; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center;
+  transition: opacity .18s;
 }
+.mrp-step:hover { opacity: .82; }
+.mrp-step.on .mrp-medal { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(233, 69, 96, .2); }
+.mrp-step-more {
+  font-size: 10px; letter-spacing: .06em; color: var(--acc);
+  margin-top: 8px; opacity: 0; transition: opacity .18s;
+}
+.mrp-step:hover .mrp-step-more, .mrp-step.on .mrp-step-more { opacity: 1; }
 /* La linea che unisce le tappe passa DIETRO i medaglioni. */
 .mrp-step::before {
   content: ""; position: absolute; top: 33px; left: 0; right: 50%;
@@ -286,4 +296,66 @@
     animation-duration: .01ms !important;
     transition-duration: .01ms !important;
   }
+}
+
+
+/* ── Il pannello di approfondimento ──────────────────────────────────────────
+   Vale per l'evoluzione e per le scoperte. Chiuso: una pillola che si legge in
+   due secondi. Aperto: il perche', la prova, e — dove ha senso — l'azione.
+   Il piu' delle volte una sezione "insight" muore perche' racconta senza mai
+   spiegare da dove viene: qui la prova è sempre a un tocco. */
+.mrp-detail {
+  position: relative; margin-top: 6px;
+  border: 1px solid var(--acc-line); border-radius: var(--r-s);
+  background: linear-gradient(135deg, rgba(233, 69, 96, .1), rgba(10, 12, 18, .66) 60%);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  padding: 18px 20px;
+  animation: mrp-open .28s cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes mrp-open { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.mrp-detail-x {
+  position: absolute; top: 8px; right: 8px;
+  width: 32px; height: 32px; border-radius: var(--r-pill);
+  background: none; border: none; color: var(--ink-faint);
+  font-size: 20px; line-height: 1; cursor: pointer;
+}
+.mrp-detail-x:hover { color: var(--ink); background: rgba(255, 255, 255, .07); }
+.mrp-detail-k {
+  font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--acc); margin-bottom: 8px;
+}
+.mrp-detail-k.sub { color: var(--ink-faint); margin-top: 16px; }
+.mrp-detail-t {
+  font-size: 15px; line-height: 1.65; color: rgba(245, 244, 242, .9);
+  margin: 0; max-width: 62ch; text-wrap: pretty;
+}
+.mrp-detail-e {
+  font-size: 13px; line-height: 1.6; color: var(--ink-dim); margin: 0; max-width: 62ch;
+}
+.mrp-detail .mrp-btn { margin-top: 18px; }
+.mrp-btn.sm { min-height: 38px; padding: 0 16px; font-size: 13px; }
+
+/* La scoperta: contenitore, area cliccabile e parte aperta. */
+.mrp-insight { display: block; padding: 0; overflow: hidden; }
+.mrp-insight-hit {
+  width: 100%; text-align: left; cursor: pointer; color: inherit; font-family: inherit;
+  background: none; border: none; padding: 15px;
+  display: grid; grid-template-columns: 1fr 96px; gap: 14px; align-items: center;
+}
+.mrp-insight-b { display: block; min-width: 0; }
+.mrp-insight-t { display: block; }
+.mrp-insight-p { display: block; }
+.mrp-insight-open {
+  padding: 0 18px 18px; border-top: 1px solid var(--stroke); margin-top: 2px; padding-top: 16px;
+  animation: mrp-open .28s cubic-bezier(.22, 1, .36, 1);
+}
+/* Aperta occupa l'intera riga: una scoperta che si legge non deve stare in
+   mezza colonna accanto a un'altra. */
+@media (min-width: 768px) {
+  .mrp-ins { align-items: start; }
+  .mrp-insight.open { grid-column: 1 / -1; }
+}
+
+@media (min-width: 1024px) {
+  .mrp-insight-hit { grid-template-columns: 1fr 112px; }
 }
