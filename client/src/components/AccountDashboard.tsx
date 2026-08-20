@@ -66,6 +66,7 @@ const ICONS: Record<string, string[]> = {
   gear: ["M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4", "M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.87 1.2V21a2 2 0 1 1-4 0v-.07a1.7 1.7 0 0 0-2.87-1.2l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 13.5H4.5a2 2 0 1 1 0-4h.07a1.7 1.7 0 0 0 1.2-2.87l-.06-.06A2 2 0 1 1 8.54 3.74l.06.06a1.7 1.7 0 0 0 1.87.34h.08A1.7 1.7 0 0 0 11.6 2.6V2.5a2 2 0 1 1 4 0v.07a1.7 1.7 0 0 0 2.87 1.2l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.54 1h.1a2 2 0 1 1 0 4H21a1.7 1.7 0 0 0-1.6 1z"],
   search: ["M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16", "M21 21l-4.3-4.3"],
   back: ["M15 18l-6-6 6-6"],
+  chat: ["M20.5 11.6c0 4-3.8 7.2-8.5 7.2-1 0-2-.15-2.9-.42L4 20l1.5-3.4C4.3 15.3 3.5 13.55 3.5 11.6c0-4 3.8-7.2 8.5-7.2s8.5 3.2 8.5 7.2Z"],
 };
 function Icon({ name }: { name: keyof typeof ICONS }) {
   return <svg viewBox="0 0 24 24">{ICONS[name].map((d, i) => <path key={i} d={d} />)}</svg>;
@@ -88,6 +89,10 @@ const MNAV: Array<{ id: ViewId; ic: keyof typeof ICONS; key: string }> = [
   { id: "home", ic: "home", key: "acd.nav.home" },
   ...NAV,
 ];
+// La quarta voce del prototipo mobile. Non e' una vista: apre il compagno di
+// viaggio, che su telefono e' l'unico modo comodo di raggiungerlo (il FAB
+// finisce sotto il pollice, o sotto la barra stessa).
+const CHAT_TAB = { ic: "chat" as const, key: "acd.h5.chat" };
 
 // Le 5 "missioni" della checklist prenotazioni (stessi id scritti da
 // Itinerary.tsx e ItineraryRedesign.tsx in mindroute_checklist_{id}).
@@ -793,226 +798,187 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     </footer>
   );
 
-  /* ──────────────── HOME v4 — la radice, non una sezione ────────────────
-     Quattro fasce, una idea per fascia (04-layout-principles: "every viewport
-     communicates exactly one idea"). La regola che tiene la home distinta
-     dalle altre sezioni: **le altre mostrano elenchi, la home mostra
-     singolari** — un viaggio, un'osservazione, una proposta. Se un blocco si
-     può mettere al plurale, appartiene a Viaggi o al Ritratto.
+  /* ──────────────── HOME v5 — dal prototipo, tradotta ────────────────
+     Tradotta, non ricopiata (docs/operating-system/16-mockup-translation-protocol).
 
-     La stessa struttura porta quattro stati: mai generato / generato ma non
-     partito / in viaggio / tornato. Cambia il peso, non l'impianto. */
+     EMOZIONE: introspezione che diventa invito. La pagina ti dice chi sei, e
+     solo dopo ti propone qualcosa.
+
+     NARRAZIONE, una idea per scena:
+       01 chi sei oggi      → lo specchio
+       02 dove sei          → il filo lasciato in sospeso
+       03 dove ti porterei  → l'invito
+       04 altre due direz.  → l'invito ha delle sfumature
+       05 il tuo mondo      → quanto hai gia' costruito
+
+     EROE per scena: 01 tipografia sopra fotografia · 02 e 03 fotografia ·
+     04 tipografia (i due ruoli) · 05 i numeri.
+
+     Le scene sono NUMERATE a schermo: la numerazione e' il filo narrativo,
+     non decorazione — dice al lettore che sta attraversando un discorso.  */
+
+  /** L'etichetta di scena: "02 · DOVE SEI". */
+  const SceneK = ({ n, k }: { n: string; k: string }) => (
+    <div className="h5-k"><span className="h5-k-n">{n}</span><span className="h5-k-t">{t(k)}</span></div>
+  );
+
   const HomeView = () => {
-    // La frase d'apertura: la lettura vera del ritratto quando c'è, altrimenti
-    // il tratto dominante. Mai una frase di riempimento.
     const claim = data.portrait?.narrative?.paradox ?? data.traits[0]?.desc ?? null;
     const lead = picks?.picks[0] ?? null;
-    const rest = picks?.picks.slice(1) ?? [];
-    const nudge = continueCard?.itineraryId != null
-      ? bookingNudge.find(b => b.href.includes(`/itinerary/${continueCard.itineraryId}`)) ?? null
-      : null;
-    // Una sola osservazione in home. Le altre vivono nel Ritratto: qui
-    // sarebbero un elenco, ed è esattamente ciò che la home non fa.
-    const note = compass?.[0] ?? null;
+    const others = picks?.picks.slice(1, 3) ?? [];
+    // I due ruoli delle alternative: la seconda si scosta, la terza contrasta.
+    // Non e' copy inventato — e' la posizione nella classifica di coerenza.
+    const roleKey = (i: number) => (i === 0 ? "acd.h5.roleDeviation" : "acd.h5.roleContrast");
+
+    // 05 · le fotografie del tuo mondo: i momenti che hai tenuto, poi i viaggi.
+    const worldPhotos = useMemo(() => {
+      const out: string[] = [];
+      for (const m of data.savedMoments ?? []) {
+        const u = m.momentSnapshot?.image_url;
+        if (u && !out.includes(u)) out.push(u);
+      }
+      for (const tr of data.trips) if (tr.img && !out.includes(tr.img)) out.push(tr.img);
+      return out;
+    }, [data.savedMoments, data.trips]);
+    const strip = worldPhotos.slice(0, 4);
+    const more = Math.max(0, worldPhotos.length - strip.length);
 
     return (
-    <div className="view h4">
-      {/* ══ FASCIA 1 · chi sei adesso ══ */}
-      <section className="h4-who">
-        <div className="h4-photo" style={{ backgroundImage: bg(photos[heroIdx] ?? data.heroImg, heroW, 60) }} />
-        <div className="h4-photo-veil" />
-        <div className="h4-in">
-          <div className="h4-eyebrow">{t(greetKey)} {data.userName}</div>
+    <div className="view h5">
+
+      {/* ══ 01 · CHI SEI OGGI ══════════════════════════════════════════════
+          Eroe: la frase. La fotografia e' atmosfera, non soggetto. */}
+      <section className="h5-who">
+        <div className="h5-who-ph" style={{ backgroundImage: bg(photos[heroIdx] ?? data.heroImg, heroW, 62) }} />
+        <div className="h5-who-veil" />
+        <div className="h5-in h5-who-in">
+          <div className="h5-eyebrow">{t(greetKey)} {data.userName}</div>
           {isEmpty || !claim ? (
             <>
-              <h1 className="h4-claim">{t("acd.h4.claimNew")}</h1>
-              <p className="h4-lede">{t("acd.h4.subNew")}</p>
-              <button className="h4-cta" onClick={data.onNewItinerary}>{t("acd.h4.startCta")} <span>→</span></button>
+              <h1 className="h5-claim">{t("acd.h4.claimNew")}</h1>
+              <p className="h5-lede">{t("acd.h4.subNew")}</p>
+              <button className="h5-cta" onClick={data.onNewItinerary}>{t("acd.h4.startCta")} <span>→</span></button>
             </>
           ) : (
             <>
-              <Html as="h1" className="h4-claim" html={claim} />
-              <div className="h4-facts">
+              <Html as="h1" className="h5-claim" html={claim} />
+              <div className="h5-stats">
                 {portraitConfidence != null && (
-                  <div><span className="n">{portraitConfidence}<em>%</em></span><span className="l">{t("acd.h4.confidence")}</span></div>
+                  <div className="h5-stat"><span className="n">{portraitConfidence}<em>%</em></span><span className="l">{t("acd.h4.confidence")}</span></div>
                 )}
-                <div><span className="n">{counts.trips}</span><span className="l">{plural(counts.trips, "acd.unit.trip", "acd.unit.trips")}</span></div>
-                <div><span className="n">{counts.continents}</span><span className="l">{plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span></div>
+                <div className="h5-stat"><span className="n">{counts.trips}</span><span className="l">{t("acd.h5.trips")}</span></div>
+                <div className="h5-stat"><span className="n">{counts.continents}</span><span className="l">{t("acd.h5.continents")}</span></div>
               </div>
-              <button className="h4-link" onClick={() => go("portrait")}>{t("acd.h4.readMore")} <span>→</span></button>
+              <button className="h5-link" onClick={() => go("portrait")}>{t("acd.h4.readMore")} <span>→</span></button>
             </>
           )}
         </div>
       </section>
 
-      {/* ══ FASCIA 2 · dove sei — UN viaggio, mai un elenco ══ */}
-      {continueCard && (
-        <section className="h4-band">
-          <div className="h4-band-k">{t("acd.h4.whereK")}</div>
-          <div className="h4-where">
-            <div className="h4-where-img" style={{ backgroundImage: bg(continueCard.img, cardW) }} />
-            <div className="h4-where-body">
-              <div className="h4-where-state">
-                {continueCard.progress ? t("acd.h4.onTheRoad") : nudge ? t("acd.h4.waiting") : t("acd.h4.lastOne")}
+      {/* ══ 02 · DOVE SEI ══ */}
+      {continueCard && !isEmpty && (
+        <section className="h5-band">
+          <SceneK n="02" k="acd.h5.k2" />
+          <article className="h5-card h5-last">
+            <div className="h5-card-ph" style={{ backgroundImage: bg(continueCard.img, cardW) }} />
+            <div className="h5-card-b">
+              <div className="h5-micro">{continueCard.progress ? t("acd.h4.onTheRoad") : t("acd.h5.lastTrip")}</div>
+              <h2 className="h5-card-t">{continueCard.title}</h2>
+              <div className="h5-meta">
+                {continueCard.region && <span>{continueCard.region}</span>}
+                {continueCard.region && continueCard.date && <span className="sep">·</span>}
+                {continueCard.date && <span>{continueCard.date}</span>}
               </div>
-              <h2 className="h4-where-name">{continueCard.title}</h2>
-              {/* Continente e data: dati che abbiamo già e che riempiono la
-                  colonna con qualcosa invece che con vuoto. */}
-              {(continueCard.region || continueCard.date) && (
-                <div className="h4-where-sub">
-                  {continueCard.region && <span>{continueCard.region}</span>}
-                  {continueCard.region && continueCard.date && <span className="sep">·</span>}
-                  {continueCard.date && <span>{continueCard.date}</span>}
+              {continueCard.quote && <p className="h5-quote">“{continueCard.quote}”</p>}
+              {continueCard.progress && (
+                <div className="h5-prog">
+                  <span className="bar"><i style={{ width: `${Math.round((continueCard.progress.n / continueCard.progress.tot) * 100)}%` }} /></span>
+                  <span className="v">{tx("acd.h4.pill", { n: continueCard.progress.n, tot: continueCard.progress.tot })}</span>
                 </div>
               )}
-              {/* La frase che l'utente ha scritto su quel viaggio, se c'è. */}
-              {continueCard.quote && <p className="h4-where-quote">“{continueCard.quote}”</p>}
-              {continueCard.progress && (
-                <>
-                  <div className="h4-rule"><span style={{ width: `${Math.round((continueCard.progress.n / continueCard.progress.tot) * 100)}%` }} /></div>
-                  <div className="h4-where-meta">{tx("acd.h4.pill", { n: continueCard.progress.n, tot: continueCard.progress.tot })}</div>
-                </>
-              )}
-              {/* Onesto: il nudge appare solo se una checklist è davvero aperta. */}
-              {!continueCard.progress && nudge && (
-                <div className="h4-where-meta">{tx("acd.h4.unbooked", { n: nudge.booked, tot: nudge.total })}</div>
-              )}
-              <div className="h4-where-acts">
-                <button className="h4-cta sm" onClick={() => setLocation(continueCard.href)}>{t("acd.h2.resumeCta")} <span>→</span></button>
-                {data.continueItems.length > 1 && (
-                  <button className="h4-link" onClick={() => go("resume")}>{t("acd.h2.viewAll")} →</button>
-                )}
+              <div className="h5-acts">
+                <button className="h5-cta sm" onClick={() => setLocation(continueCard.href)}>{t("acd.h2.resumeCta")} <span>→</span></button>
+                <button className="h5-link" onClick={() => { setViewMode("cards"); go("trips"); }}>{t("acd.h5.allTrips")} <span>→</span></button>
               </div>
             </div>
-          </div>
+          </article>
         </section>
       )}
 
-      {/* ══ FASCIA 2bis · l'osservazione. Una sola riga, non chiede niente ══ */}
-      {note && !isEmpty && (
-        <section className={"h4-note" + (cpOpen === note.id ? " open" : "")}>
-          <button className="h4-note-in" onClick={() => onCompassCard(note)}>
-            <span className="h4-note-k">{t(`acd.cp.t.${note.type}`)}</span>
-            <span className="h4-note-t">{note.title}</span>
-            {note.sub && <span className="h4-note-s">{note.sub}</span>}
-          </button>
-          {cpOpen === note.id && <CompassBody card={note} />}
-        </section>
-      )}
-
-      {/* ══ FASCIA 3 · UNA proposta, motivata. Le altre due su richiesta ══ */}
+      {/* ══ 03 · DOVE TI PORTEREI ADESSO ══ */}
       {lead && !isEmpty && (
-        <section className="h4-prop" id="h2-recs">
-          <div className="h4-prop-img" style={{ backgroundImage: bg(lead.imageUrl, featW) }} />
-          <div className="h4-prop-veil" />
-          <div className="h4-prop-in">
-            <div className="h4-eyebrow">{t("acd.h4.proposeK")} · {t("acd.h4.thisWeek")}</div>
-            <h2 className="h4-prop-name">{lead.name.split(",")[0]}</h2>
-            <div className="h4-prop-why">{picks?.why}</div>
-            <div className="h4-prop-meta">
-              <span className="h4-match">{lead.matchPct}% {t("acd.h2.match")}</span>
-              <span className="h4-week">{t("acd.h4.weekNote")}</span>
+        <section className="h5-band" id="h2-recs">
+          <SceneK n="03" k="acd.h5.k3" />
+          <article className="h5-card h5-prop">
+            <div className="h5-card-ph" style={{ backgroundImage: bg(lead.imageUrl, featW) }}>
+              <span className="h5-badge">{lead.matchPct}% <em>{t("acd.h5.affinity")}</em></span>
             </div>
-            <div className="h4-prop-acts">
-              <button className="h4-cta" onClick={() => data.onPickDestination?.({ name: lead.name, country: lead.country, imageUrl: lead.imageUrl, matchPct: lead.matchPct })}>
-                {t("acd.h4.buildIt")} <span>→</span>
-              </button>
-              {rest.length > 0 && (
-                <button className="h4-link" onClick={() => setMoreIdeas(v => !v)}>
-                  {moreIdeas ? t("acd.h4.fewerIdeas") : t("acd.h4.moreIdeas")}
+            <div className="h5-card-b">
+              <div className="h5-micro">{t("acd.h5.mainPick")}</div>
+              <h2 className="h5-card-t">{lead.name.split(",")[0]}{lead.country ? `, ${lead.country}` : ""}</h2>
+              <p className="h5-lead-line">{t("acd.h5.thisWeek")}</p>
+              {picks?.why && <p className="h5-body">{picks.why}</p>}
+              <div className="h5-acts">
+                <button className="h5-cta sm" onClick={() => data.onPickDestination?.({ name: lead.name, country: lead.country, imageUrl: lead.imageUrl, matchPct: lead.matchPct })}>
+                  {t("acd.h5.build")} <span>→</span>
                 </button>
-              )}
-            </div>
-
-            {moreIdeas && rest.length > 0 && (
-              <div className="h4-more">
-                {rest.map((p, i) => (
-                  <button key={p.name + i} className="h4-more-c"
-                          onClick={() => data.onPickDestination?.({ name: p.name, country: p.country, imageUrl: p.imageUrl, matchPct: p.matchPct })}>
-                    <span className="h4-more-img" style={{ backgroundImage: bg(p.imageUrl, 420) }} />
-                    <span className="h4-more-b">
-                      <span className="h4-more-n">{p.name.split(",")[0]}</span>
-                      <span className="h4-more-m">{p.matchPct}%</span>
-                    </span>
-                  </button>
-                ))}
+                {/* Il "perché" vero sta nel Ritratto: è lì che l'analisi vive. */}
+                <button className="h5-link" onClick={() => go("portrait")}>
+                  {tx("acd.h5.whyThis", { name: lead.name.split(",")[0] })} <span>→</span>
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          </article>
         </section>
       )}
 
-      {/* ══ FASCIA 3bis · i momenti salvati ══
-          Erano una griglia di card grandi con la × sopra la foto, dentro un
-          contenitore di un'altra pagina (.account-cinematic-extra) che sfondava
-          la larghezza: da qui il nero a destra su desktop. Ora sono una fascia
-          della home, nella stessa lingua di tutto il resto. */}
-      {!isEmpty && savedShown.length > 0 && (
-        <section className="h4-band h4-mom">
-          <div className="h4-band-k">{t("acd.h4.momentsK")}</div>
-          <div className="h4-mom-row">
-            {savedShown.map((m) => (
-              <article key={m.id ?? m.momentId} className="h4-mom-c">
-                <button className="h4-mom-hit" onClick={() => setLocation(`/itinerary/${m.itineraryId}`)}>
-                  {m.momentSnapshot?.image_url
-                    ? <span className="h4-mom-ph" style={{ backgroundImage: bg(m.momentSnapshot.image_url, 420) }} />
-                    : <span className="h4-mom-ph none" />}
-                  <span className="h4-mom-b">
-                    <span className="h4-mom-t">{m.momentSnapshot?.title ?? t("acd.h4.momentFallback")}</span>
-                    <span className="h4-mom-m">
-                      {m.momentSnapshot?.destination_name ?? m.momentSnapshot?.location_name ?? ""}
-                    </span>
-                  </span>
-                </button>
-                {data.onRemoveMoment && (
-                  <button
-                    className="h4-mom-x"
-                    aria-label={t("acd.h4.momentRemove")}
-                    title={t("acd.h4.momentRemove")}
-                    onClick={() => data.onRemoveMoment!({ id: m.id, itineraryId: m.itineraryId, momentId: m.momentId })}
-                  >×</button>
-                )}
+      {/* ══ 04 · ALTRE DUE DIREZIONI ══ */}
+      {others.length > 0 && !isEmpty && (
+        <section className="h5-band">
+          <SceneK n="04" k="acd.h5.k4" />
+          <div className="h5-two">
+            {others.map((p, i) => (
+              <article key={p.name + i} className="h5-card h5-alt">
+                <div className="h5-card-ph" style={{ backgroundImage: bg(p.imageUrl, 520) }}>
+                  <span className="h5-badge">{p.matchPct}% <em>{t("acd.h5.affinity")}</em></span>
+                </div>
+                <div className="h5-card-b">
+                  <h3 className="h5-alt-t">{p.name.split(",")[0]}{p.country ? `, ${p.country}` : ""}</h3>
+                  <div className="h5-role">{t(roleKey(i))}</div>
+                  {p.tags.length > 0 && <p className="h5-body sm">{p.tags.slice(0, 3).join(" · ")}</p>}
+                  <button className="h5-go" aria-label={t("acd.h5.build")}
+                          onClick={() => data.onPickDestination?.({ name: p.name, country: p.country, imageUrl: p.imageUrl, matchPct: p.matchPct })}>→</button>
+                </div>
               </article>
             ))}
           </div>
-          {(data.savedMoments ?? []).length > savedShown.length && (
-            <button className="h4-link" onClick={() => go("trips")}>{t("acd.h2.viewAll")} →</button>
-          )}
         </section>
       )}
 
-
-      {/* ══ FASCIA 4 · l'indice. Porte, non contenuti ══ */}
+      {/* ══ 05 · IL TUO MONDO ══ */}
       {!isEmpty && (
-        <section className="h4-index">
-          <div className="h4-band-k">{t("acd.h4.restK")}</div>
-          <div className="h4-idx-rows">
-            <button className="h4-idx" onClick={() => { setViewMode("cards"); go("trips"); }}>
-              <span className="h4-idx-n">{t("acd.h4.trips")}</span>
-              <span className="h4-idx-v">{counts.trips}</span>
-            </button>
-            <button className="h4-idx" onClick={() => { setViewMode("atlas"); go("trips"); }}>
-              <span className="h4-idx-n">{t("acd.h4.atlas")}</span>
-              <span className="h4-idx-v">{counts.continents} {plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span>
-            </button>
-            <button className="h4-idx" onClick={() => go("portrait")}>
-              <span className="h4-idx-n">{t("acd.h4.portrait")}</span>
-              <span className="h4-idx-v">{portraitConfidence != null ? `${portraitConfidence}%` : "—"}</span>
-            </button>
-          </div>
-          <div className="h4-foot">
-            <div className="h4-foot-l">
-              <span className="h4-foot-t">{t("acd.h4.newTrip")}</span>
-              <button className="h4-link" onClick={data.onNewItinerary}>{t("acd.h4.startCta")} →</button>
+        <section className="h5-band h5-last-band">
+          <SceneK n="05" k="acd.h5.k5" />
+          <div className="h5-world">
+            <div className="h5-world-l">
+              <div className="h5-world-nums">
+                <div className="h5-stat"><span className="n">{counts.trips}</span><span className="l">{t("acd.h5.trips")}</span></div>
+                <div className="h5-stat"><span className="n">{counts.places}</span><span className="l">{t("acd.h5.places")}</span></div>
+                <div className="h5-stat"><span className="n">{counts.continents}</span><span className="l">{t("acd.h5.continents")}</span></div>
+              </div>
+              <button className="h5-link" onClick={() => { setViewMode("atlas"); go("trips"); }}>{t("acd.h5.exploreAtlas")} <span>→</span></button>
             </div>
-            {/* Il meteo: una riga, in fondo, senza card attorno. */}
-            {weather && (
-              <div className="h4-wx">
-                {weather.label && <span>{weather.label}</span>}
-                <span>·</span>
-                <span>{weather.tempC}°</span>
-                <span>·</span>
-                <span>{t(wxKey(weather.code))}</span>
+
+            {strip.length > 0 && (
+              <div className="h5-strip">
+                {strip.map((src, i) => (
+                  <button key={src + i} className="h5-tile" style={{ backgroundImage: bg(src, 320) }}
+                          aria-label={t("acd.h5.exploreAtlas")}
+                          onClick={() => { setViewMode("atlas"); go("trips"); }} />
+                ))}
+                {more > 0 && (
+                  <button className="h5-tile more" onClick={() => { setViewMode("cards"); go("trips"); }}>+{more}</button>
+                )}
               </div>
             )}
           </div>
@@ -1020,7 +986,6 @@ export function AccountDashboard({ data }: { data: AccountData }) {
       )}
 
       {SiteFooter()}
-
     </div>
     );
   };
@@ -1510,6 +1475,10 @@ export function AccountDashboard({ data }: { data: AccountData }) {
             <span className="lab">{t(n.key)}</span>
           </button>
         ))}
+        <button className="mnav-i" onClick={() => window.dispatchEvent(new Event("mindroute:open-companion"))}>
+          <Icon name={CHAT_TAB.ic} />
+          <span className="lab">{t(CHAT_TAB.key)}</span>
+        </button>
       </nav>
 
       {Drawer()}

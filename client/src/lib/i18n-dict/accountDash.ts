@@ -187,6 +187,27 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.atlasc.unlocatedMany":  { en: "places not placed on the map", it: "mete non posizionate sulla mappa" },
   "acd.atlasc.popOpen":        { en: "Open the itinerary →", it: "Apri l'itinerario →" },
 
+  // ── Home v5 (dal prototipo, 2026-08-20) ─────────────────────────────────
+  // Le scene sono numerate a schermo: la numerazione È il filo narrativo.
+  "acd.h5.k2":         { en: "Where you are",           it: "Dove sei" },
+  "acd.h5.k3":         { en: "Where I'd take you now",  it: "Dove ti porterei adesso" },
+  "acd.h5.k4":         { en: "Two other directions",    it: "Altre due direzioni" },
+  "acd.h5.k5":         { en: "Your world",              it: "Il tuo mondo" },
+  "acd.h5.trips":      { en: "Trips",                   it: "Viaggi" },
+  "acd.h5.places":     { en: "Destinations",            it: "Destinazioni" },
+  "acd.h5.continents": { en: "Continents",              it: "Continenti" },
+  "acd.h5.lastTrip":   { en: "The last trip",           it: "L'ultimo viaggio" },
+  "acd.h5.allTrips":   { en: "All trips",               it: "Tutti i viaggi" },
+  "acd.h5.affinity":   { en: "affinity",                it: "affinità" },
+  "acd.h5.mainPick":   { en: "Main proposal",           it: "Proposta principale" },
+  "acd.h5.thisWeek":   { en: "This week I'd take you here.", it: "Questa settimana ti porterei qui." },
+  "acd.h5.build":      { en: "Build the trip",          it: "Costruisci il viaggio" },
+  "acd.h5.whyThis":    { en: "Why {name}?",             it: "Perché {name}?" },
+  "acd.h5.roleDeviation": { en: "The detour",           it: "La deviazione" },
+  "acd.h5.roleContrast":  { en: "The contrast",         it: "Il contrasto" },
+  "acd.h5.exploreAtlas": { en: "Explore your atlas",    it: "Esplora il tuo atlante" },
+  "acd.h5.chat":       { en: "Chat",                    it: "Chat" },
+
   // ── Home v4 (2026-08) ────────────────────────────────────────────────────
   // La home smette di essere un contenitore di widget e diventa la radice:
   // quattro fasce, una idea per fascia. Le altre sezioni mostrano ELENCHI,
