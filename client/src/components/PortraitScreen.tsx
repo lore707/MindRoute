@@ -1,85 +1,72 @@
 /**
- * PortraitScreen.tsx — "Il tuo ritratto", redesign 2026-08 sul mockup.
+ * PortraitScreen.tsx — "Il tuo Ritratto", tradotto dal prototipo 2026-08-20.
  * ───────────────────────────────────────────────────────────────
- * Cinque sezioni, nell'ordine in cui una persona si fa le domande:
+ * Tradotto, non ricopiato (docs/operating-system/16-mockup-translation-protocol).
  *
- *   1. Chi sono oggi          → frase + confidenza + viaggi analizzati
- *   2. Come sono adesso       → cosa mi accende, cosa mi spegne, cosa provare
- *   3. Come sto cambiando     → la timeline dei cambiamenti VERI
- *   4. Cosa avete scoperto    → max 4 insight, il numero solo su richiesta
- *   5. Cosa faccio adesso     → un insight che diventa un viaggio
+ *   EMOZIONE   riconoscersi. Non "ecco i tuoi dati": "ecco chi sei, e come
+ *              faccio a dirlo".
  *
- * Tutto viene da dati reali (viaggi, snapshot dei tratti, chip scelti):
- * la logica sta in lib/portrait-insights.ts, pura e verificabile. Qui dentro
- * non si calcola nulla che non venga da lì.
+ *   NARRAZIONE 1 chi sei ora → 2 i principi che restano → 3 le tensioni che
+ *              ti muovono → 4 come ci sei arrivato → 5 cosa non sappiamo
+ *              ancora. Il discorso finisce ammettendo i propri limiti: è
+ *              quello che lo rende credibile.
  *
- * Regole di copy della specifica rispettate nel dizionario (i18n-dict/portrait):
- * titoli ≤ 6 parole, spiegazioni ≤ 12, mai punteggi ("esploratore al 73%") né
- * conteggi d'uso ("hai usato l'app 27 volte").
+ *   EROE       la tipografia. Le fotografie qui sono memoria, non desiderio.
+ *
+ * LA REGOLA CHE GOVERNA TUTTO IL FILE: ogni lettura deve poter mostrare le
+ * proprie EVIDENZE — i viaggi veri su cui si regge, con nome e data. Non un
+ * numero da accettare per fiducia. Se una lettura non sa indicare su cosa si
+ * regge, non si mostra.
+ *
+ * L'approfondimento è a cascata, come nel prototipo: "Perché?" apre il
+ * ragionamento, il ragionamento apre le evidenze, le evidenze aprono la
+ * correzione. Ogni passo resta aperto sotto il precedente — il contesto si
+ * accumula invece di sostituirsi.
  * ─────────────────────────────────────────────────────────────── */
 
 import { useCallback, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  Leaf, Users, Compass, Sparkles, TrendingUp, Lightbulb, ArrowRight,
-  Share2, Star, Camera, Mountain,
-} from "lucide-react";
+import { ArrowRight, Check, Circle, HelpCircle, MessageCircle, RefreshCw, Share2, X } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
 import { EASE } from "@/lib/motion";
 import { useI18n } from "@/lib/i18n";
 import type { AccountData } from "@/components/AccountCinematic";
 import {
-  computeConfidence, buildEvolution, visibleInsights, nextStepInsight,
-  takenTrips, type Insight, type PortraitSignals,
+  computeConfidence, buildEvolution, visibleInsights, insightEvidence,
+  AXIS_POLE_LABELS, type Insight, type PortraitSignals, type EvolutionStep,
 } from "@shared/portrait-insights";
 import "@/styles/portrait.css";
 
 const bg = (url: string | undefined, w: number, q = 68) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
 
-const CONTINENTS = ["Europa", "Asia", "Africa", "Americhe", "Oceania"];
-
-const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-
 type Props = {
   data: AccountData;
-  /** Genera un itinerario dal profilo. */
   onGenerate?: () => void;
-  /** Genera partendo da una sfida esplicita (pre-compila il modal). */
   onChallenge?: (challenge: string) => void;
   onShare?: () => void;
   sharing?: boolean;
-  /** Le proposte della settimana: qui sono la CONCLUSIONE dell'analisi. */
   picks?: Array<{ name: string; country: string; imageUrl: string; matchPct: number; tags: string[] }> | null;
-  /** La riga templata che dice su quali assi si reggono. */
   picksWhy?: string | null;
-  /** Toccarne una apre il pannello dei vincoli con la meta bloccata. */
   onPickDestination?: (d: { name: string; country?: string; imageUrl?: string; matchPct?: number | null }) => void;
+  /** Apre il compagno di viaggio (la correzione conversazionale). */
+  onCompanion?: () => void;
 };
 
-export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing, picks, picksWhy, onPickDestination }: Props) {
+/** Quale pannello del rail è aperto. Si accumulano: 1 → 1+2 → 1+2+3. */
+type Drill = { insight: Insight; evidence: boolean; feedback: boolean } | null;
+
+export function PortraitScreen({
+  data, onGenerate, onChallenge, onShare, sharing, picks, picksWhy, onPickDestination, onCompanion,
+}: Props) {
   const { t, lang } = useI18n();
   const reduce = useReducedMotion();
-  const [openInsight, setOpenInsight] = useState<string | null>(null);
-  const [openStep, setOpenStep] = useState<string | null>(null);
-  /* Letture personalizzate, per indice di tappa.
-   *   undefined = non ancora chiesta · null = non disponibile (resta il testo
-   *   curato) · stringa = la lettura scritta sui dati veri di questa persona.
-   * Si chiedono SOLO quando la tappa si apre: la maggior parte non viene mai
-   * aperta, e generarle tutte sarebbe lavoro (e spesa) buttato. */
-  const [readings, setReadings] = useState<Record<number, string | null>>({});
-  const [loadingRead, setLoadingRead] = useState<number | null>(null);
 
-  const askReading = useCallback((idx: number) => {
-    if (idx in readings || loadingRead === idx) return;
-    setLoadingRead(idx);
-    fetch(`/api/me/portrait/reading?step=${idx}`)
-      // 204 = nessuna lettura garantibile. Non e' un errore: il testo curato
-      // e' gia' a schermo e resta li'.
-      .then(r => (r.status === 204 ? null : r.ok ? r.json() : null))
-      .then((d: { text?: string } | null) => setReadings(p => ({ ...p, [idx]: d?.text ?? null })))
-      .catch(() => setReadings(p => ({ ...p, [idx]: null })))
-      .finally(() => setLoadingRead(null));
-  }, [readings, loadingRead]);
+  const [drill, setDrill] = useState<Drill>(null);
+  const [evTab, setEvTab] = useState<"all" | "trips" | "chat">("all");
+  const [verdict, setVerdict] = useState<"yes" | "partly" | "no" | null>(null);
+  const [note, setNote] = useState("");
+  const [sent, setSent] = useState<"ok" | "err" | "sending" | null>(null);
+  const [openStep, setOpenStep] = useState<number | null>(null);
 
   const tx = (key: string, vars: Record<string, string | number> = {}) => {
     let s = t(key);
@@ -104,7 +91,6 @@ export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing
   const confidence = useMemo(() => computeConfidence(signals), [signals]);
   const insights = useMemo(() => visibleInsights(signals, confidence), [signals, confidence]);
   const evolution = useMemo(
-    // I viaggi servono per ancorare ogni cambiamento a DOVE si e' visto.
     () => buildEvolution(
       data.traitSnapshots ?? [],
       trips.map(x => ({ dest: x.dest, img: x.img, href: x.href, rawDate: x.rawDate })),
@@ -112,341 +98,489 @@ export function PortraitScreen({ data, onGenerate, onChallenge, onShare, sharing
     ),
     [data.traitSnapshots, trips, lang],
   );
-  const next = useMemo(() => nextStepInsight(insights), [insights]);
 
-  const doneCount = takenTrips(signals.trips).length;
-  const analysed = doneCount > 0 ? doneCount : trips.length;
-
-  // Il continente mai toccato: alimenta la terza card dello snapshot.
-  const missingContinent = useMemo(() => {
-    const seen = new Set(trips.map(x => (x.continent ?? "").trim()).filter(Boolean));
-    if (seen.size === 0) return null;
-    return CONTINENTS.find(c => !seen.has(c)) ?? null;
-  }, [trips]);
-
-  // Fotografie per medaglioni e insight: sono i viaggi REALI dell'utente.
   const photos = useMemo(() => trips.map(x => x.img).filter(Boolean), [trips]);
   const photoAt = (i: number) => (photos.length ? photos[i % photos.length] : "");
 
+  /* ── 2 · le tensioni ─────────────────────────────────────────────────────
+     Una tensione è una contraddizione REALE, non una figura retorica. Ne
+     abbiamo due fonti, entrambe misurate:
+       · lo scarto fra quello che DICI di cercare e quello che SCEGLI
+         (`portrait.revealed`, già calcolato dal server);
+       · un asse che resta al centro pur avendo molte osservazioni: non è
+         mancanza di dati, è oscillazione vera.
+     Se non ce ne sono, la sezione non compare. Inventarne una sarebbe la
+     bugia più facile e più difficile da smascherare. */
+  const tensions = useMemo(() => {
+    const out: Array<{ id: string; left: string; right: string; body: string }> = [];
+    if (p?.revealed?.saidPole && p.revealed.chosePole) {
+      out.push({
+        id: "revealed",
+        left: tx("pt2.ten.said", { pole: p.revealed.saidPole }),
+        right: tx("pt2.ten.chose", { pole: p.revealed.chosePole }),
+        body: tx("pt2.ten.revealedBody", { theme: p.revealed.theme ?? "" }),
+      });
+    }
+    const v = data.traitVector;
+    if (v && (p?.snapshotCount ?? 0) >= 4) {
+      for (const ax of Object.keys(v)) {
+        const val = v[ax];
+        if (val > 0.44 && val < 0.56) {
+          const poles = (AXIS_POLE_LABELS[lang] as Record<string, { hi: string; lo: string }>)[ax];
+          if (!poles) continue;
+          out.push({
+            id: `axis-${ax}`,
+            left: tx("pt2.ten.want", { pole: poles.lo }),
+            right: tx("pt2.ten.andAlso", { pole: poles.hi }),
+            body: tx("pt2.ten.axisBody", { n: p?.snapshotCount ?? 0 }),
+          });
+          if (out.length >= 2) break;
+        }
+      }
+    }
+    return out.slice(0, 2);
+  }, [p, data.traitVector, lang]);
+
+  /* ── 4 · quello che non sappiamo ancora ──────────────────────────────────
+     Il prototipo la mette in fondo, ed è la sezione più onesta della pagina:
+     dichiara i limiti della lettura. La magnitudine di ogni asse arriva già
+     calcolata dal server (`portrait.axes[].magnitude`). */
+  const clarity = useMemo(() => {
+    const axes = p?.axes ?? [];
+    return {
+      clear: axes.filter(a => a.magnitude === "forte"),
+      fair: axes.filter(a => a.magnitude === "chiaro" || a.magnitude === "lieve"),
+      unknown: axes.filter(a => a.magnitude === "neutro"),
+    };
+  }, [p]);
+
+  const lastUpdate = useMemo(() => {
+    const snaps = data.traitSnapshots ?? [];
+    if (snaps.length === 0) return null;
+    const last = snaps[snaps.length - 1]?.createdAt;
+    const d = last ? new Date(last) : null;
+    if (!d || isNaN(d.getTime())) return null;
+    const M = lang === "it"
+      ? ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+      : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()}`;
+  }, [data.traitSnapshots, lang]);
+
+  /* ── il rail: apri il ragionamento di una lettura ── */
+  const openWhy = useCallback((ins: Insight) => {
+    setDrill({ insight: ins, evidence: false, feedback: false });
+    setVerdict(null); setNote(""); setSent(null); setEvTab("all");
+    // Su telefono il rail è un foglio: portalo in vista.
+    if (typeof window !== "undefined" && window.innerWidth < 1100) {
+      window.setTimeout(() => document.getElementById("mrp2-rail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    }
+  }, []);
+
+  const evidence = useMemo(
+    () => (drill ? insightEvidence(drill.insight.id, signals) : []),
+    [drill, signals],
+  );
+
+  const sendFeedback = async () => {
+    if (!drill || !verdict) return;
+    setSent("sending");
+    try {
+      const r = await fetch("/api/me/portrait/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          insightId: drill.insight.id,
+          reading: tx(drill.insight.titleKey, drill.insight.vars),
+          verdict,
+          note: note.trim() || undefined,
+        }),
+      });
+      setSent(r.ok ? "ok" : "err");
+    } catch {
+      setSent("err");
+    }
+  };
+
   const rise = (delay: number) => (reduce
     ? {}
-    : { initial: { opacity: 0, y: 18 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: "-60px" }, transition: { duration: .5, ease: EASE, delay } });
+    : { initial: { opacity: 0, y: 16 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: "-60px" }, transition: { duration: .5, ease: EASE, delay } });
 
   /* ── nessun dato: non si finge un ritratto ── */
   if (!p?.available && trips.length === 0) {
     return (
-      <div className="mrp">
-        <div className="mrp-empty">
+      <div className="mrp mrp2">
+        <div className="mrp2-empty">
           <h2>{t("pt.empty.t")}</h2>
           <p>{t("pt.empty.s")}</p>
-          {onGenerate && <button className="mrp-btn acc" onClick={onGenerate}>{t("pt.next.cta")} <ArrowRight size={16} /></button>}
+          {onGenerate && <button className="mrp2-cta" onClick={onGenerate}>{t("acd.empty.cta")}</button>}
         </div>
       </div>
     );
   }
 
-  /* ── 1 · HERO ── */
-  const headline = data.traitHeadline || p?.narrative?.paradox || p?.narrative?.portrait || data.profileQuote;
-
-  /* ── 2 · SNAPSHOT ── */
-  const energize = (p?.seek ?? [])[0];
-  const drain = (p?.avoid ?? [])[0];
-  const snapCards = [
-    energize ? {
-      key: "energy", tone: "var(--tone-good)", icon: <Leaf size={14} />,
-      head: t("pt.snap.energy"), value: cap(energize), bar: 100, imp: t("pt.snap.impactHigh"),
-    } : null,
-    drain ? {
-      key: "drain", tone: "var(--tone-warn)", icon: <Users size={14} />,
-      head: t("pt.snap.drain"), value: cap(drain), bar: 34, imp: t("pt.snap.impactLow"),
-    } : null,
-    {
-      key: "reco", tone: "var(--tone-new)", icon: <Compass size={14} />,
-      head: t("pt.snap.reco"),
-      value: missingContinent ? tx("pt.snap.recoContinent", { continent: missingContinent }) : t("pt.snap.recoUnfamiliar"),
-      bar: 62, imp: t("pt.snap.impactNew"),
-    },
-  ].filter(Boolean) as Array<{ key: string; tone: string; icon: JSX.Element; head: string; value: string; bar: number; imp: string }>;
-
-  const stepIcon = (i: number) => (i === 0 ? <Mountain size={20} /> : i === 1 ? <Camera size={20} /> : <Leaf size={20} />);
+  const heroPhoto = photoAt(0) || data.heroImg;
 
   return (
-    <div className="mrp">
-      {/* ═══ 1 · CHI SEI OGGI ═══ */}
-      <motion.section className="mrp-hero" {...rise(0)}>
-        {data.heroImg && <div className="mrp-hero-ph" style={{ backgroundImage: bg(data.heroImg, 1600, 66) }} />}
-        <div className="mrp-hero-veil" />
-        <div className="mrp-hero-in">
-          <div className="mrp-kick"><Sparkles size={13} /> {t("pt.hero.kick")}</div>
-          {/* Due righe esplicite: l'accento deve restare sulla stessa riga della
-              parola che lo precede ("you are today.", "sei oggi."), non cadere
-              da solo in fondo. */}
-          <h1 className="mrp-hero-t">
-            <span className="ln">{t("pt.hero.l1")}</span>
-            <span className="ln">{t("pt.hero.l2")} <em>{t("pt.hero.today")}</em></span>
-          </h1>
-          {headline && <p className="mrp-hero-lede">{headline}</p>}
-        </div>
-        <div className="mrp-hero-stats">
-          <div className="mrp-stat" title={t("pt.hero.confWhy")}>
-            <span className="k">{t("pt.hero.confidence")}</span>
-            <span className="v">{confidence}%</span>
-          </div>
-          <div className="mrp-stat">
-            <span className="k">{t("pt.hero.basedOn")}</span>
-            <span className="v sm">
-              {analysed} {doneCount > 0 ? t("pt.hero.taken") : t("pt.hero.planned")}
-            </span>
-          </div>
-          {onShare && (
-            <button className="mrp-stat act" onClick={onShare} disabled={sharing}>
-              <span className="k">{t("acd.p3.share")}</span>
-              <span className="v sm"><Share2 size={15} /></span>
-            </button>
-          )}
-        </div>
-      </motion.section>
+    <div className="mrp mrp2">
+      <div className="mrp2-grid">
 
-      {/* ═══ 2 · COME SEI ADESSO ═══ */}
-      <motion.section className="mrp-sec" {...rise(.04)}>
-        <div className="mrp-kick"><Sparkles size={13} /> {t("pt.snap.title")}</div>
-        {snapCards.length > 1 ? (
-          <div className="mrp-snap">
-            {snapCards.map(c => (
-              <div className="mrp-card" key={c.key} style={{ ["--tone" as any]: c.tone }}>
-                <div className="mrp-card-h"><span className="mrp-card-ic">{c.icon}</span>{c.head}</div>
-                <div className="mrp-card-v">{c.value}</div>
-                <div>
-                  <div className="mrp-card-bar"><i style={{ width: `${c.bar}%` }} /></div>
-                  <div className="mrp-card-imp" style={{ marginTop: 7 }}>{c.imp}</div>
+        {/* ════════ COLONNA PRINCIPALE ════════ */}
+        <div className="mrp2-main">
+
+          {/* ── HERO ── */}
+          <section className="mrp2-hero">
+            <div className="mrp2-hero-ph" style={{ backgroundImage: bg(heroPhoto, 1400, 66) }} />
+            <div className="mrp2-hero-veil" />
+            <div className="mrp2-hero-in">
+              <div className="mrp2-kick">{t("pt2.kick")}</div>
+              <h1 className="mrp2-title">
+                {t("pt2.title")} <em>{t("pt2.titleEm")}</em>
+              </h1>
+              {p?.narrative?.portrait && <p className="mrp2-lede">{p.narrative.portrait}</p>}
+
+              <div className="mrp2-stats">
+                <div className="mrp2-stat">
+                  <span className="n">{confidence}%</span>
+                  <span className="l">{t("pt2.confidence")}</span>
+                </div>
+                <div className="mrp2-stat">
+                  <span className="n">{trips.length}</span>
+                  <span className="l">{t("pt2.tripsSeen")}</span>
+                </div>
+                <div className="mrp2-stat">
+                  <span className="n">{p?.counts?.continents ?? 0}</span>
+                  <span className="l">{t("pt2.continents")}</span>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mrp-locked">{t("pt.snap.empty")}</div>
-        )}
-      </motion.section>
 
-      {/* ═══ 3 · COME STAI CAMBIANDO ═══ */}
-      <motion.section className="mrp-sec" {...rise(.06)}>
-        <div className="mrp-kick"><TrendingUp size={13} /> {t("pt.evo.title")}</div>
-        {evolution.length >= 2 ? (
-          <>
-            <div className="mrp-evo">
-              {evolution.map((s, i) => {
-                const now = s.kind === "now";
-                const pole = s.hi ? "hi" : "lo";
-                const key = `${s.axis}-${s.kind}-${i}`;
-                const img = now ? "" : (s.trip?.img || photoAt(i));
-                // L'ancora e' il VIAGGIO. L'anno da solo non spiega niente:
-                // su un profilo nuovo tutti i viaggi hanno lo stesso anno.
-                const anchor = now
-                  ? t("pt.evo.nowK")
-                  : s.trip
-                    ? tx("pt.evo.after", { dest: s.trip.dest })
-                    : tx("pt.evo.nth", { n: s.ordinal });
-                return (
-                  <button className={"mrp-step" + (now ? " now" : "") + (openStep === key ? " on" : "")}
-                    key={key}
-                    onClick={() => {
-                      const next = openStep === key ? null : key;
-                      setOpenStep(next);
-                      if (next && !now) askReading(i);
-                    }}
-                    aria-expanded={openStep === key}>
-                    <span className="mrp-medal" style={img ? { backgroundImage: bg(img, 200) } : undefined}>
-                      {now ? <Compass size={20} /> : (img ? null : stepIcon(i))}
-                    </span>
-                    <span className="mrp-step-y">{anchor}</span>
-                    <span className="mrp-step-t">
-                      {now ? t("pt.evo.nowT") : t(`pt.evo.${s.axis}.${pole}.t`)}
-                    </span>
-                    <span className="mrp-step-p">
-                      {now
-                        ? t(`pt.evo.dirShort.${s.axis}.${pole}`)
-                        : t(`pt.evo.${s.axis}.${pole}.p`)}
-                    </span>
-                    <span className="mrp-step-more">{t("pt.evo.open")} →</span>
+              <div className="mrp2-updated">
+                {lastUpdate && <span>{tx("pt2.lastUpdate", { date: lastUpdate })}</span>}
+                {onGenerate && (
+                  <button className="mrp2-ghost" onClick={onGenerate}>
+                    <RefreshCw size={13} /> {t("pt2.refresh")}
                   </button>
+                )}
+                {onShare && (
+                  <button className="mrp2-ghost" onClick={onShare} disabled={sharing}>
+                    <Share2 size={13} /> {t("pt2.share")}
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* ── la traiettoria: ieri · oggi · verso dove ── */}
+          {evolution.length > 0 && (
+            <section className="mrp2-arc">
+              {(() => {
+                const changes = evolution.filter(e => e.kind === "change");
+                const now = evolution.find(e => e.kind === "now");
+                const poleOf = (e: EvolutionStep, from = false) => {
+                  const poles = AXIS_POLE_LABELS[lang]?.[e.axis];
+                  if (!poles) return "";
+                  return (from ? e.fromHi : e.hi) ? poles.hi : poles.lo;
+                };
+                const first = changes[0];
+                const last = changes[changes.length - 1];
+                return (
+                  <>
+                    <div className="mrp2-arc-c">
+                      <div className="mrp2-arc-k">{t("pt2.arc.yesterday")}</div>
+                      <div className="mrp2-arc-v">{first ? tx("pt2.arc.was", { pole: poleOf(first, true) }) : "—"}</div>
+                    </div>
+                    <div className="mrp2-arc-c on">
+                      <div className="mrp2-arc-k">{t("pt2.arc.today")}</div>
+                      <div className="mrp2-arc-v">{last ? tx("pt2.arc.now", { pole: poleOf(last) }) : "—"}</div>
+                    </div>
+                    <div className="mrp2-arc-c">
+                      <div className="mrp2-arc-k">{t("pt2.arc.toward")}</div>
+                      <div className="mrp2-arc-v">{now ? tx("pt2.arc.going", { pole: poleOf(now) }) : "—"}</div>
+                    </div>
+                    <div className="mrp2-arc-line"><i /><i /><i /></div>
+                  </>
                 );
-              })}
-            </div>
+              })()}
+            </section>
+          )}
 
-            {/* Il pannello: sotto il filo, non sopra. Cosi' il confronto fra
-                le tappe resta visibile mentre se ne legge una. */}
-            {(() => {
-              const idx = evolution.findIndex((s, i) => `${s.axis}-${s.kind}-${i}` === openStep);
-              if (idx < 0) return null;
-              const s = evolution[idx];
-              const pole = s.hi ? "hi" : "lo";
-              const fromPole = s.fromHi ? "hi" : "lo";
-              const isNow = s.kind === "now";
-              return (
-                <div className="mrp-detail" role="region">
-                  <button className="mrp-detail-x" onClick={() => setOpenStep(null)} aria-label={t("if.close")}>×</button>
-                  <div className="mrp-detail-k">{isNow ? t("pt.evo.nowTryK") : t("pt.evo.detailK")}</div>
-                  <p className={"mrp-detail-t" + (loadingRead === idx ? " loading" : "")}>
-                    {isNow
-                      ? t(`pt.evo.dir.${s.axis}.${pole}`)
-                      /* La lettura scritta sui tuoi viaggi quando c'e'; il testo
-                         curato mentre arriva, o se non e' garantibile vera. */
-                      : (readings[idx] || t(`pt.evo.${s.axis}.${pole}.why`))}
-                  </p>
-                  {!isNow && readings[idx] && (
-                    <div className="mrp-detail-src">{t("pt.evo.personal")}</div>
-                  )}
-                  {!isNow && (
-                    <>
-                      <div className="mrp-detail-k sub">{t("pt.evo.evidenceK")}</div>
-                      <p className="mrp-detail-e">
-                        {tx("pt.evo.evidence", {
-                          from: t(`pt.evo.${s.axis}.${fromPole}.t`),
-                          to: t(`pt.evo.${s.axis}.${pole}.t`),
-                        })}
-                        {s.trip && " " + tx("pt.evo.evidenceTrip", {
-                          dest: s.trip.dest, when: s.trip.when ? ` (${s.trip.when})` : "",
-                        })}
+          {/* ── 1 · IL TUO MODO DI VIAGGIARE ── */}
+          {insights.length > 0 && (
+            <motion.section className="mrp2-sec" {...rise(0)}>
+              <SecHead n="1" k="pt2.s1.k" sub={t("pt2.s1.sub")} />
+              <div className="mrp2-princ">
+                {insights.map((ins) => {
+                  const on = drill?.insight.id === ins.id;
+                  const conf = Math.round(ins.strength * 100);
+                  return (
+                    <article key={ins.id} className={"mrp2-p" + (on ? " on" : "")}>
+                      <h3 className="mrp2-p-t">{tx(ins.titleKey, ins.vars)}</h3>
+                      <p className="mrp2-p-b">{tx(ins.bodyKey, ins.vars)}</p>
+                      <div className="mrp2-p-f">
+                        <span className={"mrp2-conf " + confClass(conf)}>{t(confKey(conf))}</span>
+                        <span className="dot">·</span>
+                        <button className="mrp2-why" onClick={() => openWhy(ins)}>
+                          {t("pt2.why")} <ArrowRight size={13} />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </motion.section>
+          )}
+
+          {/* ── 2 · LE TENSIONI CHE TI MUOVONO ── */}
+          {tensions.length > 0 && (
+            <motion.section className="mrp2-sec" {...rise(.05)}>
+              <SecHead n="2" k="pt2.s2.k" sub={t("pt2.s2.sub")} />
+              <div className="mrp2-tens">
+                {tensions.map(tn => (
+                  <article key={tn.id} className="mrp2-t">
+                    <div className="mrp2-t-top">
+                      <span className="a">{tn.left}</span>
+                      <span className="ma">{t("pt2.but")}</span>
+                      <span className="b">{tn.right}</span>
+                    </div>
+                    <div className="mrp2-t-wave" aria-hidden="true" />
+                    <p className="mrp2-t-b">{tn.body}</p>
+                  </article>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
+          {/* ── 3 · COME CI SEI ARRIVATO ── */}
+          {evolution.filter(e => e.kind === "change").length > 0 && (
+            <motion.section className="mrp2-sec" {...rise(.05)}>
+              <SecHead n="3" k="pt2.s3.k" sub={t("pt2.s3.sub")} />
+              <div className="mrp2-time">
+                {evolution.filter(e => e.kind === "change").map((e, i) => {
+                  const poles = AXIS_POLE_LABELS[lang]?.[e.axis];
+                  const to = poles ? (e.hi ? poles.hi : poles.lo) : "";
+                  const from = poles ? (e.fromHi ? poles.hi : poles.lo) : "";
+                  const open = openStep === i;
+                  return (
+                    <article key={i} className={"mrp2-tp" + (open ? " on" : "")}>
+                      <div className="mrp2-tp-when">{e.trip?.when ?? tx("pt2.step", { n: e.ordinal })}</div>
+                      <h3 className="mrp2-tp-t">{tx("pt2.became", { pole: to })}</h3>
+                      {e.trip?.img && <div className="mrp2-tp-ph" style={{ backgroundImage: bg(e.trip.img, 420) }} />}
+                      <p className="mrp2-tp-b">
+                        {e.fromHi === e.hi
+                          ? tx("pt2.deeper", { pole: to })
+                          : tx("pt2.fromTo", { from, to })}
                       </p>
-                    </>
-                  )}
-                  {isNow && next && (
-                    <button className="mrp-btn acc sm" onClick={() => {
-                      if (next.challengeKey && onChallenge) onChallenge(tx(next.challengeKey, next.vars));
-                      else onGenerate?.();
-                    }}>
-                      {t("pt.next.cta")} <ArrowRight size={15} />
-                    </button>
-                  )}
+                      <button className="mrp2-tp-f" onClick={() => setOpenStep(open ? null : i)} aria-expanded={open}>
+                        {e.trip ? tx("pt2.afterTrip", { dest: e.trip.dest }) : tx("pt2.step", { n: e.ordinal })}
+                        <ArrowRight size={13} />
+                      </button>
+                      {open && e.trip && (
+                        <div className="mrp2-tp-open">
+                          <p>{tx("pt2.stepDetail", { dest: e.trip.dest, when: e.trip.when ?? "" })}</p>
+                          {e.trip.href && (
+                            <a className="mrp2-why" href={e.trip.href}>{t("acd.open")}</a>
+                          )}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </motion.section>
+          )}
+
+          {/* ── 4 · QUELLO CHE NON SAPPIAMO ANCORA ── */}
+          {(p?.axes?.length ?? 0) > 0 && (
+            <motion.section className="mrp2-sec" {...rise(.05)}>
+              <SecHead n="4" k="pt2.s4.k" sub={t("pt2.s4.sub")} />
+              <div className="mrp2-clar">
+                <div className="mrp2-cl">
+                  <div className="mrp2-cl-h">{t("pt2.clear")}</div>
+                  {clarity.clear.length === 0 && <div className="mrp2-cl-none">{t("pt2.none")}</div>}
+                  {clarity.clear.map(a => (
+                    <div key={a.axis} className="mrp2-cl-i ok"><Check size={13} /> {a.pole || a.axis}</div>
+                  ))}
                 </div>
-              );
-            })()}
-          </>
-        ) : (
-          <div className="mrp-locked">{t("pt.evo.empty")}</div>
-        )}
-      </motion.section>
+                <div className="mrp2-cl">
+                  <div className="mrp2-cl-h">{t("pt2.fair")}</div>
+                  {clarity.fair.length === 0 && <div className="mrp2-cl-none">{t("pt2.none")}</div>}
+                  {clarity.fair.map(a => (
+                    <div key={a.axis} className="mrp2-cl-i mid"><Circle size={13} /> {a.pole || a.axis}</div>
+                  ))}
+                </div>
+                <div className="mrp2-cl mrp2-cl-ask">
+                  <div className="mrp2-cl-h">{t("pt2.helpH")}</div>
+                  {clarity.unknown.map(a => (
+                    <div key={a.axis} className="mrp2-cl-i q"><HelpCircle size={13} /> {a.poleLeft} ↔ {a.poleRight}</div>
+                  ))}
+                  <p className="mrp2-cl-p">{t("pt2.helpP")}</p>
+                  <button className="mrp2-cta" onClick={() => (onCompanion ? onCompanion() : window.dispatchEvent(new Event("mindroute:open-companion")))}>
+                    <MessageCircle size={15} /> {t("pt2.helpCta")}
+                  </button>
+                </div>
+              </div>
+            </motion.section>
+          )}
 
-      {/* ═══ 4 · COSA ABBIAMO SCOPERTO ═══ */}
-      <motion.section className="mrp-sec" {...rise(.08)}>
-        <div className="mrp-kick"><Lightbulb size={13} /> {t("pt.ins.title")}</div>
-        {insights.length > 0 ? (
-          <div className="mrp-ins">
-            {insights.map((ins, i) => (
-              <InsightCard key={ins.id} ins={ins} photo={photoAt(i + 1)} tx={tx} t={t}
-                open={openInsight === ins.id}
-                onToggle={() => setOpenInsight(openInsight === ins.id ? null : ins.id)}
-                onUse={ins.challengeKey && onChallenge
-                  ? () => onChallenge(tx(ins.challengeKey!, ins.vars))
-                  : onGenerate} />
-            ))}
-          </div>
-        ) : (
-          <div className="mrp-locked">{t("pt.ins.locked")}</div>
-        )}
-      </motion.section>
+          {/* ── le tre proposte: la conclusione, invariata ── */}
+          {picks && picks.length > 0 && (
+            <motion.section className="mrp2-sec" {...rise(.05)}>
+              <div className="mrp-kick">{t("pt.picks.k")}</div>
+              <h2 className="mrp-picks-t">{t("pt.picks.t")}</h2>
+              {picksWhy && <p className="mrp-picks-why">{picksWhy}</p>}
+              <div className="mrp-picks">
+                {picks.map((x, i) => (
+                  <button key={x.name + i} className="mrp-pick"
+                          onClick={() => onPickDestination?.({ name: x.name, country: x.country, imageUrl: x.imageUrl, matchPct: x.matchPct })}
+                          disabled={!onPickDestination}>
+                    <span className="mrp-pick-ph" style={{ backgroundImage: bg(x.imageUrl, 520) }}>
+                      <span className="mrp-pick-m">{x.matchPct}%</span>
+                    </span>
+                    <span className="mrp-pick-b">
+                      <span className="mrp-pick-n">{x.name.split(",")[0]}</span>
+                      <span className="mrp-pick-c">{x.country}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="mrp-picks-note">{t("pt.picks.week")}</p>
+            </motion.section>
+          )}
 
-      {/* ═══ 5 · IL PROSSIMO PASSO ═══ */}
-      <motion.section className="mrp-sec" {...rise(.1)}>
-        <div className="mrp-next">
-          <div className="mrp-next-h">
-            <span className="mrp-next-ic"><Lightbulb size={19} /></span>
-            <div>
-              <h2 className="mrp-next-t">
-                {next ? tx(next.titleKey, next.vars) : t("pt.next.fallbackT")}
-              </h2>
-              <p className="mrp-next-s">{next ? t("pt.next.sub") : t("pt.next.fallbackS")}</p>
-            </div>
-          </div>
-          <div className="mrp-next-acts">
-            <button className="mrp-btn acc"
-              onClick={() => {
-                if (next?.challengeKey && onChallenge) onChallenge(tx(next.challengeKey, next.vars));
-                else onGenerate?.();
-              }}
-              disabled={!onGenerate && !onChallenge}>
-              {t("pt.next.cta")} <ArrowRight size={16} />
-            </button>
-            {next && (
-              <button className="mrp-btn icon" title={t("pt.next.seeWhy")} aria-label={t("pt.next.seeWhy")}
-                onClick={() => setOpenInsight(next.id)}>
-                <Sparkles size={17} />
-              </button>
-            )}
-          </div>
+          <div className="mrp2-alive">{t("pt2.alive")}</div>
         </div>
-      </motion.section>
 
-      {/* ═══ 6 · LE TRE PROPOSTE — la conclusione, non un catalogo ═══
-          Qui, e non in home, l'elenco ha senso: l'utente ha appena letto chi è
-          e come sta cambiando, e queste sono la RISPOSTA a quella lettura. In
-          home ne compare una sola, con una riga di motivo; qui ci sono tutte e
-          tre, e c'è lo spazio per dire perché. Stessa terna, stessa cadenza
-          settimanale — cambia cosa se ne può dire. */}
-      {picks && picks.length > 0 && (
-        <motion.section className="mrp-sec" {...rise(.1)}>
-          <div className="mrp-kick"><Compass size={13} /> {t("pt.picks.k")}</div>
-          <h2 className="mrp-picks-t">{t("pt.picks.t")}</h2>
-          {picksWhy && <p className="mrp-picks-why">{picksWhy}</p>}
-          <div className="mrp-picks">
-            {picks.map((p, i) => (
-              <button key={p.name + i} className="mrp-pick"
-                      onClick={() => onPickDestination?.({ name: p.name, country: p.country, imageUrl: p.imageUrl, matchPct: p.matchPct })}
-                      disabled={!onPickDestination}>
-                <span className="mrp-pick-ph" style={{ backgroundImage: bg(p.imageUrl, 520) }}>
-                  <span className="mrp-pick-m">{p.matchPct}%</span>
-                </span>
-                <span className="mrp-pick-b">
-                  <span className="mrp-pick-n">{p.name.split(",")[0]}</span>
-                  <span className="mrp-pick-c">{p.country}</span>
-                  {p.tags.length > 0 && <span className="mrp-pick-tg">{p.tags.slice(0, 3).join(" · ")}</span>}
-                </span>
+        {/* ════════ RAIL — interazioni e approfondimenti ════════ */}
+        <aside className="mrp2-rail" id="mrp2-rail">
+          <div className="mrp2-rail-h">{t("pt2.rail.k")}</div>
+          <p className="mrp2-rail-p">{t("pt2.rail.p")}</p>
+
+          {!drill && <div className="mrp2-rail-idle">{t("pt2.rail.idle")}</div>}
+
+          {/* ① il ragionamento */}
+          {drill && (
+            <section className="mrp2-panel">
+              <header>
+                <span className="mrp2-num">1</span>
+                <span className="mrp2-panel-k">{t("pt2.panel.principle")}</span>
+                <button className="mrp2-x" onClick={() => setDrill(null)} aria-label={t("gs.close")}><X size={15} /></button>
+              </header>
+              <h3 className="mrp2-panel-t">{tx(drill.insight.titleKey, drill.insight.vars)}</h3>
+              <p className="mrp2-panel-b">{tx(drill.insight.titleKey.replace(/\.t$/, ".d"), drill.insight.vars)}</p>
+
+              <div className="mrp2-obs-k">{t("pt2.observed")}</div>
+              <ul className="mrp2-obs">
+                <li>{tx(drill.insight.why.key, drill.insight.why.vars)}</li>
+                {evidence.length > 0 && <li>{tx("pt2.obsTrips", { n: evidence.length })}</li>}
+                <li>{tx("pt2.obsSnaps", { n: signals.snapshotCount })}</li>
+              </ul>
+
+              <div className="mrp2-obs-k">{t("pt2.confidence")}</div>
+              <div className="mrp2-bar">
+                <span className="lab">{t(confKey(Math.round(drill.insight.strength * 100)))}</span>
+                <span className="track"><i style={{ width: `${Math.round(drill.insight.strength * 100)}%` }} /></span>
+                <span className="pct">{Math.round(drill.insight.strength * 100)}%</span>
+              </div>
+
+              <button className="mrp2-step" onClick={() => setDrill(d => d && { ...d, evidence: !d.evidence })} aria-expanded={drill.evidence}>
+                {t("pt2.seeEvidence")} <span className="mrp2-badge">{evidence.length}</span>
               </button>
-            ))}
-          </div>
-          <p className="mrp-picks-note">{t("pt.picks.week")}</p>
-        </motion.section>
-      )}
+              <button className="mrp2-step" onClick={() => setDrill(d => d && { ...d, feedback: !d.feedback })} aria-expanded={drill.feedback}>
+                {t("pt2.recognise")} <MessageCircle size={14} />
+              </button>
+            </section>
+          )}
+
+          {/* ② le evidenze */}
+          {drill?.evidence && (
+            <section className="mrp2-panel">
+              <header>
+                <span className="mrp2-num">2</span>
+                <span className="mrp2-panel-k">{tx("pt2.evidenceN", { n: evidence.length })}</span>
+                <button className="mrp2-x" onClick={() => setDrill(d => d && { ...d, evidence: false })} aria-label={t("gs.close")}><X size={15} /></button>
+              </header>
+
+              {evidence.length === 0 ? (
+                <p className="mrp2-panel-b">{t("pt2.noEvidence")}</p>
+              ) : (
+                <div className="mrp2-ev">
+                  {evidence.map((e, i) => (
+                    <article key={i} className="mrp2-ev-i">
+                      <span className="ph" style={{ backgroundImage: bg(photoAt(i), 160) }} />
+                      <span className="b">
+                        <span className="n">{e.trip.dest}</span>
+                        <span className="m">
+                          {e.trip.rawDate ? shortWhen(e.trip.rawDate, lang) : ""}
+                          <em>{t("pt2.tagTrip")}</em>
+                        </span>
+                        <span className="d">{tx(e.note.key, e.note.vars)}</span>
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ③ ti riconosci? */}
+          {drill?.feedback && (
+            <section className="mrp2-panel">
+              <header>
+                <span className="mrp2-num">3</span>
+                <span className="mrp2-panel-k">{t("pt2.recogniseK")}</span>
+                <button className="mrp2-x" onClick={() => setDrill(d => d && { ...d, feedback: false })} aria-label={t("gs.close")}><X size={15} /></button>
+              </header>
+
+              {sent === "ok" ? (
+                <p className="mrp2-ok">{t("pt2.thanks")}</p>
+              ) : (
+                <>
+                  <p className="mrp2-panel-b">{t("pt2.recogniseQ")}</p>
+                  {(["yes", "partly", "no"] as const).map(v => (
+                    <button key={v} className={"mrp2-opt" + (verdict === v ? " on" : "")} onClick={() => setVerdict(v)}>
+                      <span className={"mrp2-opt-i " + v}>{v === "yes" ? <Check size={13} /> : v === "partly" ? <Circle size={13} /> : <HelpCircle size={13} />}</span>
+                      {t(`pt2.v.${v}`)}
+                    </button>
+                  ))}
+
+                  <div className="mrp2-obs-k">{t("pt2.moreQ")}</div>
+                  <textarea className="mrp2-note" rows={3} value={note} maxLength={250}
+                            onChange={e => setNote(e.target.value)} placeholder={t("pt2.notePh")} />
+                  <div className="mrp2-count">{note.length}/250</div>
+
+                  {sent === "err" && <p className="mrp2-err">{t("pt2.sendErr")}</p>}
+                  <button className="mrp2-cta wide" onClick={sendFeedback} disabled={!verdict || sent === "sending"}>
+                    {sent === "sending" ? t("gs.working") : t("pt2.send")}
+                  </button>
+                  <p className="mrp2-fine">{t("pt2.sendFine")}</p>
+                </>
+              )}
+            </section>
+          )}
+        </aside>
+      </div>
     </div>
   );
+
+  function SecHead({ n, k, sub }: { n: string; k: string; sub?: string }) {
+    return (
+      <div className="mrp2-sh">
+        <div className="mrp2-sh-t"><span className="mrp2-num">{n}</span>{t(k)}</div>
+        {sub && <p className="mrp2-sh-s">{sub}</p>}
+      </div>
+    );
+  }
 }
 
-/* ── Una scoperta.
- * Chiusa e' una pillola: titolo + una riga. Aperta dice cosa vuol dire
- * davvero, su quali numeri si regge, e — soprattutto — diventa un'azione:
- * quella scoperta puo' guidare il prossimo viaggio.
- * ─────────────────────────────────────────────────────────────── */
-function InsightCard({ ins, photo, open, onToggle, onUse, tx, t }: {
-  ins: Insight; photo: string; open: boolean; onToggle: () => void;
-  onUse?: () => void;
-  tx: (k: string, v?: Record<string, string | number>) => string;
-  t: (k: string) => string;
-}) {
-  return (
-    <div className={"mrp-insight" + (open ? " open" : "")}>
-      <button className="mrp-insight-hit" onClick={onToggle} aria-expanded={open}>
-        <span className="mrp-insight-b">
-          <span className="mrp-insight-t">{tx(ins.titleKey, ins.vars)}</span>
-          <span className="mrp-insight-p">{tx(ins.bodyKey, ins.vars)}</span>
-        </span>
-        {photo && <span className="mrp-insight-ph" style={{ backgroundImage: bg(photo, 260) }} />}
-      </button>
+/* ── piccole funzioni pure ─────────────────────────────────────────────── */
 
-      {open && (
-        <div className="mrp-insight-open">
-          <div className="mrp-detail-k">{t("pt.ins.detailK")}</div>
-          <p className="mrp-detail-t">{tx(ins.titleKey.replace(/\.t$/, ".d"), ins.vars)}</p>
+const confKey = (pct: number) => (pct >= 65 ? "pt2.conf.high" : pct >= 40 ? "pt2.conf.mid" : "pt2.conf.low");
+const confClass = (pct: number) => (pct >= 65 ? "hi" : pct >= 40 ? "mid" : "lo");
 
-          <div className="mrp-detail-k sub">{t("pt.ins.why")}</div>
-          <p className="mrp-detail-e">{tx(ins.why.key, ins.why.vars)}</p>
-
-          {ins.challengeKey && onUse && (
-            <button className="mrp-btn acc sm" onClick={onUse}>
-              {t("pt.ins.useK")} <ArrowRight size={15} />
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
+function shortWhen(iso: string, lang: "it" | "en"): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const M = lang === "it"
+    ? ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
+    : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${M[d.getMonth()]} ${d.getFullYear()}`;
 }

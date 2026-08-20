@@ -37,6 +37,14 @@
 .account-dash.is-home .field { display: none; }
 .account-dash.is-home .main { background: #140b14; }
 
+/* Anche il Ritratto porta le proprie fotografie (l eroe, le tappe, le
+   evidenze) e vive di carte traslucide: con lo sfondo ambient sotto, ogni
+   pannello finiva sopra una fotografia diversa e la pagina diventava
+   illeggibile. Fondo pieno, come nella home. */
+.account-dash.is-portrait .ax-stage,
+.account-dash.is-portrait .field { display: none; }
+.account-dash.is-portrait .main { background: #140b14; }
+
 /* ═══ La barra ═══════════════════════════════════════════════════════════ */
 
 /* Il marchio era nascosto su desktop perché il logo stava nella sidebar.

@@ -1249,6 +1249,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
         onShare={sharePortrait}
         sharing={sharing}
         onPickDestination={data.onPickDestination}
+        onCompanion={() => window.dispatchEvent(new Event("mindroute:open-companion"))}
         picks={picks?.picks ?? null}
         picksWhy={picks?.why ?? null}
       />
@@ -1449,7 +1450,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     // Lo sfondo ambient in crossfade serve alle viste fatte di card traslucide;
     // sotto la home riaffiorava solo nelle zone non coperte (la coda sopra la
     // barra del telefono), e lì sembrava una macchia.
-    <div className={"account-dash" + (view === "home" ? " is-home" : "")}>
+    <div className={"account-dash" + (view === "home" ? " is-home" : "") + (view === "portrait" ? " is-portrait" : "")}>
       <div className="field" />
       <div className="ax-stage">
         {ambient.map((src, i) => (

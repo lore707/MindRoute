@@ -37,19 +37,30 @@
   // verificare la navigazione: un click che non risponde è invisibile in
   // uno screenshot statico (è successo: un hook dentro una vista chiamata
   // condizionalmente uccideva l'albero al primo cambio di sezione).
+  // I selettori si possono concatenare con "|": si premono in sequenza,
+  // con la stessa attesa fra uno e l altro. Serve per gli approfondimenti a
+  // cascata, dove il secondo bottone esiste solo dopo il primo click.
   const sel = p.get("click");
   if (sel) {
     const wait = Number(p.get("then") || 2500);
     f.addEventListener("load", () => {
       setTimeout(() => {
-        try {
-          const d = f.contentDocument;
-          const els = Array.from(d.querySelectorAll(sel));
-          const idx = Number(p.get("nth") || 0);
-          const el = els[idx];
-          if (el) el.click();
-          else document.title = "NON TROVATO: " + sel;
-        } catch (e) { document.title = "ERRORE: " + e.message; }
+        const steps = sel.split("|");
+        const nths = (p.get("nth") || "0").split("|");
+        let i = 0;
+        const step = () => {
+          if (i >= steps.length) return;
+          try {
+            const d = f.contentDocument;
+            const els = Array.from(d.querySelectorAll(steps[i].trim()));
+            const el = els[Number(nths[i] || 0)];
+            if (el) el.click();
+            else document.title = "NON TROVATO: " + steps[i];
+          } catch (e) { document.title = "ERRORE: " + e.message; }
+          i++;
+          if (i < steps.length) setTimeout(step, wait);
+        };
+        step();
       }, wait);
     });
   }

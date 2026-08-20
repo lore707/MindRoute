@@ -524,3 +524,87 @@ export function formatPortraitBlock(
   L.push("");
   return L.join("\n");
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   LE EVIDENZE — su quali viaggi si regge una lettura
+   ────────────────────────────────────────────────────────────────────────
+   Il Ritratto dice "vivi i quartieri, non le checklist". La domanda giusta,
+   e quella che il prototipo mette al centro, è: **su cosa lo dici?**
+
+   Qui una lettura restituisce i VIAGGI VERI che la sostengono. Non un numero
+   ("basato su 9 viaggi") che l'utente deve accettare per fiducia: i nomi, le
+   date, e il motivo per cui quel viaggio è finito nel conteggio.
+
+   Se una lettura non sa indicare le sue evidenze, non merita di essere
+   mostrata come lettura — e infatti qui torna una lista vuota, non una
+   scusa.
+   ════════════════════════════════════════════════════════════════════════ */
+
+export type Evidence = {
+  trip: PortraitTrip;
+  /** Perché QUESTO viaggio conta per QUESTA lettura. Chiave i18n + vars. */
+  note: { key: string; vars: Record<string, string | number> };
+};
+
+/** I viaggi che sostengono una lettura, dal più recente. */
+export function insightEvidence(id: InsightId, s: PortraitSignals, max = 8): Evidence[] {
+  const byRecent = [...s.trips]
+    .filter(t => t.dest)
+    .sort((a, b) => {
+      const av = a.rawDate ? +new Date(a.rawDate) : 0;
+      const bv = b.rawDate ? +new Date(b.rawDate) : 0;
+      return bv - av;
+    });
+
+  const wrap = (trips: PortraitTrip[], key: string, vars: (t: PortraitTrip) => Record<string, string | number> = () => ({})): Evidence[] =>
+    trips.slice(0, max).map(t => ({ trip: t, note: { key, vars: vars(t) } }));
+
+  switch (id) {
+    case "continent-loyal": {
+      const top = topContinent(s.trips);
+      if (!top) return [];
+      return wrap(byRecent.filter(t => t.continent === top), "pt.ev.continent", t => ({ continent: t.continent ?? "" }));
+    }
+    case "continent-gap":
+      // Il vuoto non ha evidenze proprie: le evidenze sono i continenti che
+      // hai scelto invece. Dire il contrario sarebbe un trucco retorico.
+      return wrap(byRecent.filter(t => t.continent), "pt.ev.continent", t => ({ continent: t.continent ?? "" }));
+    case "season-gap":
+      return wrap(byRecent.filter(t => MONTH_OF(t.rawDate) !== null), "pt.ev.month", t => ({ month: String((MONTH_OF(t.rawDate) ?? 0) + 1) }));
+    case "duration-long":
+    case "duration-short":
+      return wrap(byRecent.filter(t => daysOfDuration(t.duration) > 0), "pt.ev.days", t => ({ n: daysOfDuration(t.duration) }));
+    case "dreamer":
+      // Il punto è la distanza fra sognati e fatti: mostriamo i NON fatti.
+      return wrap(byRecent.filter(t => !t.taken), "pt.ev.notTaken");
+    case "nature":
+    case "unplanned":
+    case "solo":
+      // Letture che nascono dai chip scelti, non dai viaggi: l'evidenza è la
+      // scelta esplicita, e i viaggi fanno da contesto.
+      return wrap(byRecent, "pt.ev.context");
+    case "comfort-drift":
+      return wrap(byRecent.filter(t => t.taken), "pt.ev.taken");
+    default:
+      return [];
+  }
+}
+
+/** Il continente più frequente, o null. Estratto perché serve anche qui. */
+function topContinent(trips: PortraitTrip[]): string | null {
+  const counts = new Map<string, number>();
+  for (const t of trips) {
+    const c = (t.continent ?? "").trim();
+    if (c) counts.set(c, (counts.get(c) ?? 0) + 1);
+  }
+  let best: string | null = null, bestN = 0;
+  // forEach e non for..of: il target TS del progetto non itera le Map.
+  counts.forEach((n, c) => { if (n > bestN) { best = c; bestN = n; } });
+  return best;
+}
+
+/** "5 giorni" → 5. Zero quando la durata non è leggibile. */
+function daysOfDuration(d?: string): number {
+  const m = (d ?? "").match(/\d+/);
+  return m ? Number(m[0]) : 0;
+}

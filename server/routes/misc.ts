@@ -295,6 +295,49 @@ export function registerMiscRoutes(app: Express) {
     }
   });
 
+  /* POST /api/me/portrait/feedback — "ti riconosci in questa lettura?"
+   *
+   * E il pezzo che rende il Ritratto CORREGGIBILE invece che oracolare: la
+   * persona puo dire che una lettura non la rappresenta piu, e quella
+   * risposta e essa stessa un segnale di profilo.
+   *
+   * Riusa compass_signals invece di aggiungere una tabella: e la stessa cosa
+   * — una micro-risposta dell utente su di se — e non richiede migrazione.
+   * Namespace nel cardId (portrait:<insightId>) per non confondere le due
+   * fonti quando il matcher le rilegge.
+   *
+   * Se la tabella non esiste ancora in prod risponde 503 e il client dice
+   * che non ha salvato: mai un finto "grazie".
+   */
+  app.post("/api/me/portrait/feedback", async (req, res) => {
+    const user = (req as any).user;
+    if (!user) return res.status(401).json({ message: "Non autenticato" });
+    const { z } = await import("zod");
+    const body = z.object({
+      insightId: z.string().min(1).max(60),
+      reading: z.string().min(1).max(200),
+      verdict: z.enum(["yes", "partly", "no"]),
+      note: z.string().max(250).optional(),
+    }).safeParse(req.body);
+    if (!body.success) return res.status(400).json({ message: "Feedback non valido" });
+    try {
+      const { db } = await import("../db");
+      const { compassSignals } = await import("@shared/schema");
+      const { insightId, reading, verdict, note } = body.data;
+      await db.insert(compassSignals).values({
+        userId: user.id,
+        cardId: `portrait:${insightId}`,
+        question: reading,
+        // La nota libera vale piu del verdetto secco: se c e, e quella a
+        // dover arrivare al matcher.
+        answer: note ? `${verdict} — ${note}` : verdict,
+      });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("portrait feedback error:", err);
+      res.status(503).json({ message: "Non riesco a salvarlo ora, riprova" });
+    }
+  });
   // GET /api/me/moment-reflection?id= — "AI Reflection" per una nota del
   // diario (stile Apple Journal). Lazy: chiamata solo quando l'utente espande
   // una nota. Haiku fact-locked + cache. null se non generabile (best-effort).
