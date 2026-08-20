@@ -14,12 +14,28 @@
    dopo account-dashboard.css, senza riscrivere quel file. */
 .account-dash .main { margin-left: 0; }
 
+/* REGRESSIONE RIPARATA — la collezione, il ritratto e "riprendi" non hanno mai
+   avuto un rientro orizzontale proprio: se lo prendevano dagli 88px di margine
+   che la sidebar lasciava a `.main`. Tolta la sidebar, il margine e' andato a
+   zero e quelle viste sono finite incollate al bordo, tagliate a sinistra e
+   sfondate a destra — sembrava che "la sezione viaggi non si aprisse".
+   Il rientro glielo diamo qui, insieme a una larghezza massima: su schermi
+   larghi il contenuto si centra invece di allungarsi.
+   La home e' esclusa: e' a tutta larghezza di proposito, e le sue scene hanno
+   gia' il proprio `--pad`. */
+.account-dash .main > .view:not(.h5) {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding-left: clamp(18px, 3vw, 40px);
+  padding-right: clamp(18px, 3vw, 40px);
+}
+
 /* Sotto la home lo sfondo ambient non serve: le fotografie le porta la pagina.
    Restava visibile solo dove il contenuto non copriva (la coda sopra la barra
    del telefono), e lì leggeva come una macchia di colore diverso. */
 .account-dash.is-home .ax-stage,
 .account-dash.is-home .field { display: none; }
-.account-dash.is-home .main { background: #0d070d; }
+.account-dash.is-home .main { background: #140b14; }
 
 /* ═══ La barra ═══════════════════════════════════════════════════════════ */
 
@@ -164,15 +180,19 @@
   --r-m: 20px;
   --r-pill: 999px;
 
-  --ink: #fbf5f0;
-  --ink-dim: rgba(251, 245, 240, .62);
-  --ink-faint: rgba(251, 245, 240, .40);
-  --ink-ghost: rgba(251, 245, 240, .28);
-  --accent: #E94560;
-  --ground: #0d070d;
-  --surface: rgba(255, 255, 255, .032);
-  --stroke: rgba(255, 255, 255, .08);
-  --stroke-2: rgba(255, 255, 255, .18);
+  --ink: #fffaf6;
+  /* Contrasti più netti: i secondari erano così spenti da leggersi come
+     disabilitati. Restano sotto il primario, ma si leggono. */
+  --ink-dim: rgba(255, 250, 246, .74);
+  --ink-faint: rgba(255, 250, 246, .54);
+  --ink-ghost: rgba(255, 250, 246, .40);
+  --accent: #FF4F68;
+  /* Il fondo non è più quasi-nero: è una prugna scura e calda, con
+     l'atmosfera fotografica sopra a dargli colore. */
+  --ground: #140b14;
+  --surface: rgba(255, 255, 255, .06);
+  --stroke: rgba(255, 255, 255, .13);
+  --stroke-2: rgba(255, 255, 255, .26);
 
   --op-veil-heavy: .72;
   --sh-lift: 0 24px 60px -24px rgba(0, 0, 0, .6);
@@ -192,6 +212,32 @@
   max-width: none;
   background: var(--ground);
   color: var(--ink);
+  isolation: isolate;
+  overflow-x: clip; /* il bleed a 100vw non deve creare scroll orizzontale */
+}
+
+/* Una fotografia sola, ferma, molto lontana: toglie al fondo il nero piatto
+   senza mettersi a competere con le fotografie delle scene. */
+.account-dash .h5-air {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+  opacity: .4;
+  z-index: -2;
+  pointer-events: none;
+}
+.account-dash .h5-air-veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(85% 55% at 15% 8%, rgba(255, 79, 104, .20), transparent 62%),
+    radial-gradient(75% 50% at 88% 34%, rgba(138, 74, 160, .18), transparent 64%),
+    radial-gradient(70% 45% at 55% 92%, rgba(255, 122, 110, .12), transparent 66%),
+    linear-gradient(180deg, rgba(20, 11, 20, .62) 0%, rgba(20, 11, 20, .8) 30%, rgba(20, 11, 20, .82) 100%);
 }
 
 .account-dash .h5 .h5-in,
@@ -202,7 +248,33 @@
   padding-right: var(--pad);
 }
 
-.account-dash .h5 .h5-band { padding-top: var(--sp-scene); }
+.account-dash .h5 .h5-band { position: relative; padding-top: var(--sp-scene); }
+
+/* La fascia illuminata: la fotografia della meta esce dalla colonna e colora
+   tutta la riga. È l'unico punto della pagina dove il desiderio alza la voce
+   — doc 07: il colore è segnale, non decorazione. */
+.account-dash .h5-band-lit { padding-bottom: var(--sp-scene); }
+.account-dash .h5-bleed,
+.account-dash .h5-bleed-veil {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.account-dash .h5-bleed {
+  background-size: cover;
+  background-position: center;
+  opacity: .5;
+}
+.account-dash .h5-bleed-veil {
+  background:
+    linear-gradient(180deg, rgba(20, 11, 20, .92) 0%, rgba(20, 11, 20, .3) 26%, rgba(20, 11, 20, .3) 72%, rgba(20, 11, 20, .92) 100%);
+}
+.account-dash .h5-band-lit > .h5-k,
+.account-dash .h5-band-lit > .h5-card { position: relative; }
 .account-dash .h5 .h5-last-band { padding-bottom: var(--sp-scene); }
 
 /* ── l'etichetta di scena ────────────────────────────────────────────── */
@@ -297,6 +369,9 @@
    comincia il testo e la lascia viva dove non c'è nulla da leggere. */
 .account-dash .h5-who {
   position: relative;
+  /* Nessun fondo pieno: sotto passa l'atmosfera, così non si vede la
+     cucitura dove finisce la fotografia dell'eroe. */
+  background: transparent;
   display: flex;
   align-items: flex-end;
   min-height: clamp(340px, 42vh, 460px);
@@ -312,8 +387,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(13, 7, 13, .95) 0%, rgba(13, 7, 13, var(--op-veil-heavy)) 40%, rgba(13, 7, 13, .08) 78%, rgba(13, 7, 13, 0) 100%),
-    linear-gradient(180deg, rgba(13, 7, 13, .5) 0%, rgba(13, 7, 13, 0) 28%, rgba(13, 7, 13, .3) 80%, var(--ground) 100%);
+    linear-gradient(90deg, rgba(20, 11, 20, .92) 0%, rgba(20, 11, 20, .66) 38%, rgba(20, 11, 20, .04) 74%, rgba(20, 11, 20, 0) 100%),
+    linear-gradient(180deg, rgba(20, 11, 20, .42) 0%, rgba(20, 11, 20, 0) 26%, rgba(20, 11, 20, .2) 76%, rgba(20, 11, 20, .62) 100%);
 }
 .account-dash .h5-who-in {
   position: relative;
@@ -379,10 +454,13 @@
 .account-dash .h5-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  background: var(--surface);
+  /* Vetro scuro, non un buco nero: sotto ci passa l'atmosfera. */
+  background: linear-gradient(180deg, rgba(46, 26, 44, .78), rgba(24, 13, 24, .84));
+  backdrop-filter: blur(12px);
   border: 1px solid var(--stroke);
   border-radius: var(--r-m);
   overflow: hidden;
+  box-shadow: var(--sh-lift);
   transition: border-color var(--d-s) var(--e-enter);
 }
 .account-dash .h5-card:hover { border-color: var(--stroke-2); }
@@ -595,7 +673,7 @@
   /* 01 · il testo sta SOPRA la fotografia: il velo torna verticale. */
   .account-dash .h5-who { min-height: auto; }
   .account-dash .h5-who-veil {
-    background: linear-gradient(180deg, rgba(13, 7, 13, .72) 0%, rgba(13, 7, 13, .58) 40%, rgba(13, 7, 13, .9) 78%, var(--ground) 100%);
+    background: linear-gradient(180deg, rgba(20, 11, 20, .62) 0%, rgba(20, 11, 20, .48) 40%, rgba(20, 11, 20, .86) 78%, var(--ground) 100%);
   }
   .account-dash .h5-who-in { padding-top: 34px; padding-bottom: 34px; }
   .account-dash .h5-claim { max-width: none; }
@@ -667,8 +745,10 @@
    Stessi contatti e stesse rotte del footer della landing. */
 
 .account-dash .h4-site-foot {
-  border-top: 1px solid rgba(255, 255, 255, .08);
-  background: #0a050a;
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid rgba(255, 255, 255, .1);
+  background: #0e070e;
 }
 
 .account-dash .h4-sf-in {

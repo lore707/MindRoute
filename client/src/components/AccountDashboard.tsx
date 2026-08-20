@@ -845,6 +845,11 @@ export function AccountDashboard({ data }: { data: AccountData }) {
 
     return (
     <div className="view h5">
+      {/* Atmosfera: una fotografia sola, molto lontana, che toglie al fondo il
+          nero piatto. Non e' il vecchio crossfade — quello cambiava immagine
+          dietro ogni blocco e faceva rumore. Qui e' ferma, ed e' colore. */}
+      <div className="h5-air" style={{ backgroundImage: bg(photos[0] ?? data.heroImg, 1200, 45) }} />
+      <div className="h5-air-veil" />
 
       {/* ══ 01 · CHI SEI OGGI ══════════════════════════════════════════════
           Eroe: la frase. La fotografia e' atmosfera, non soggetto. */}
@@ -907,7 +912,12 @@ export function AccountDashboard({ data }: { data: AccountData }) {
 
       {/* ══ 03 · DOVE TI PORTEREI ADESSO ══ */}
       {lead && !isEmpty && (
-        <section className="h5-band" id="h2-recs">
+        <section className="h5-band h5-band-lit" id="h2-recs">
+          {/* La fotografia della meta esce dalla colonna e colora la fascia:
+              e' l'unico punto della pagina dove il desiderio deve alzare la
+              voce. */}
+          <div className="h5-bleed" style={{ backgroundImage: bg(lead.imageUrl, 1400, 55) }} />
+          <div className="h5-bleed-veil" />
           <SceneK n="03" k="acd.h5.k3" />
           <article className="h5-card h5-prop">
             <div className="h5-card-ph" style={{ backgroundImage: bg(lead.imageUrl, featW) }}>
