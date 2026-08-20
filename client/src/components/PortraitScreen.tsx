@@ -67,6 +67,13 @@ export function PortraitScreen({
   const [note, setNote] = useState("");
   const [sent, setSent] = useState<"ok" | "err" | "sending" | null>(null);
   const [openStep, setOpenStep] = useState<number | null>(null);
+  // Il prototipo mobile aggiunge un passo che il desktop non ha: quando dici
+  // che una lettura non ti rappresenta, ti chiede COSA non ti rappresenta.
+  // Un motivo strutturato vale piu di un pollice verso: dice al matcher cosa
+  // smettere di pesare.
+  const [reasons, setReasons] = useState<string[]>([]);
+  // Sezione 4 su telefono: fisarmonica, una fascia alla volta.
+  const [openClarity, setOpenClarity] = useState<string | null>("clear");
 
   const tx = (key: string, vars: Record<string, string | number> = {}) => {
     let s = t(key);
@@ -169,7 +176,7 @@ export function PortraitScreen({
   /* ── il rail: apri il ragionamento di una lettura ── */
   const openWhy = useCallback((ins: Insight) => {
     setDrill({ insight: ins, evidence: false, feedback: false });
-    setVerdict(null); setNote(""); setSent(null); setEvTab("all");
+    setVerdict(null); setNote(""); setSent(null); setEvTab("all"); setReasons([]);
     // Su telefono il rail è un foglio: portalo in vista.
     if (typeof window !== "undefined" && window.innerWidth < 1100) {
       window.setTimeout(() => document.getElementById("mrp2-rail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
@@ -192,6 +199,7 @@ export function PortraitScreen({
           insightId: drill.insight.id,
           reading: tx(drill.insight.titleKey, drill.insight.vars),
           verdict,
+          reasons: reasons.length ? reasons : undefined,
           note: note.trim() || undefined,
         }),
       });
@@ -393,22 +401,34 @@ export function PortraitScreen({
             <motion.section className="mrp2-sec" {...rise(.05)}>
               <SecHead n="4" k="pt2.s4.k" sub={t("pt2.s4.sub")} />
               <div className="mrp2-clar">
-                <div className="mrp2-cl">
-                  <div className="mrp2-cl-h">{t("pt2.clear")}</div>
+                <div className={"mrp2-cl" + (openClarity === "clear" ? " open" : "")}>
+                  <button className="mrp2-cl-h" onClick={() => setOpenClarity(v => (v === "clear" ? null : "clear"))} aria-expanded={openClarity === "clear"}>
+                    {t("pt2.clear")}
+                    <span className="mrp2-cl-sum">{clarity.clear.map(a => a.pole || a.axis).join(" · ")}</span>
+                    <span className="mrp2-cl-chev">˅</span>
+                  </button>
                   {clarity.clear.length === 0 && <div className="mrp2-cl-none">{t("pt2.none")}</div>}
                   {clarity.clear.map(a => (
                     <div key={a.axis} className="mrp2-cl-i ok"><Check size={13} /> {a.pole || a.axis}</div>
                   ))}
                 </div>
-                <div className="mrp2-cl">
-                  <div className="mrp2-cl-h">{t("pt2.fair")}</div>
+                <div className={"mrp2-cl" + (openClarity === "fair" ? " open" : "")}>
+                  <button className="mrp2-cl-h" onClick={() => setOpenClarity(v => (v === "fair" ? null : "fair"))} aria-expanded={openClarity === "fair"}>
+                    {t("pt2.fair")}
+                    <span className="mrp2-cl-sum">{clarity.fair.map(a => a.pole || a.axis).join(" · ")}</span>
+                    <span className="mrp2-cl-chev">˅</span>
+                  </button>
                   {clarity.fair.length === 0 && <div className="mrp2-cl-none">{t("pt2.none")}</div>}
                   {clarity.fair.map(a => (
                     <div key={a.axis} className="mrp2-cl-i mid"><Circle size={13} /> {a.pole || a.axis}</div>
                   ))}
                 </div>
-                <div className="mrp2-cl mrp2-cl-ask">
-                  <div className="mrp2-cl-h">{t("pt2.helpH")}</div>
+                <div className={"mrp2-cl mrp2-cl-ask" + (openClarity === "ask" ? " open" : "")}>
+                  <button className="mrp2-cl-h" onClick={() => setOpenClarity(v => (v === "ask" ? null : "ask"))} aria-expanded={openClarity === "ask"}>
+                    {t("pt2.helpH")}
+                    <span className="mrp2-cl-sum">{clarity.unknown.map(a => `${a.poleLeft} ↔ ${a.poleRight}`).join(" · ")}</span>
+                    <span className="mrp2-cl-chev">˅</span>
+                  </button>
                   {clarity.unknown.map(a => (
                     <div key={a.axis} className="mrp2-cl-i q"><HelpCircle size={13} /> {a.poleLeft} ↔ {a.poleRight}</div>
                   ))}
@@ -445,6 +465,10 @@ export function PortraitScreen({
               <p className="mrp-picks-note">{t("pt.picks.week")}</p>
             </motion.section>
           )}
+
+          <button className="mrp2-help" onClick={() => (onCompanion ? onCompanion() : window.dispatchEvent(new Event("mindroute:open-companion")))}>
+            <MessageCircle size={16} /> {t("pt2.helpMe")}
+          </button>
 
           <div className="mrp2-alive">{t("pt2.alive")}</div>
         </div>
@@ -541,6 +565,23 @@ export function PortraitScreen({
                       {t(`pt2.v.${v}`)}
                     </button>
                   ))}
+
+                  {verdict && verdict !== "yes" && (
+                    <>
+                      <div className="mrp2-obs-k">{t("pt2.whatNot")}</div>
+                      <p className="mrp2-fineL">{t("pt2.whatNotP")}</p>
+                      <div className="mrp2-chips">
+                        {(["pace", "changed", "different", "other"] as const).map(r => (
+                          <button key={r}
+                                  className={"mrp2-chip" + (reasons.includes(r) ? " on" : "")}
+                                  aria-pressed={reasons.includes(r)}
+                                  onClick={() => setReasons(v => v.includes(r) ? v.filter(x => x !== r) : [...v, r])}>
+                            {t(`pt2.r.${r}`)}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
 
                   <div className="mrp2-obs-k">{t("pt2.moreQ")}</div>
                   <textarea className="mrp2-note" rows={3} value={note} maxLength={250}

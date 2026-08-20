@@ -1114,3 +1114,211 @@
 @media (prefers-reduced-motion: reduce) {
   .mrp2-p, .mrp2-step, .mrp2-opt, .mrp2-cta, .mrp2-ghost, .mrp2-x { transition: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   RITRATTO · TELEFONO — dal prototipo mobile
+   ────────────────────────────────────────────────────────────────────────
+   Non è il desktop stretto. Cambiano quattro cose, e ognuna perché la mano
+   e lo schermo chiedono qualcosa di diverso:
+
+     · la traiettoria resta a TRE COLONNE anche a 390px — impilata perdeva
+       l'unica cosa che comunicava, cioè che è una linea nel tempo;
+     · i turning point diventano una TIMELINE VERTICALE con la riga a
+       sinistra: in colonna, il tempo scorre verso il basso;
+     · "quello che non sappiamo" diventa una FISARMONICA: tre righe chiuse
+       occupano lo spazio di una card aperta;
+     · gli approfondimenti non sono una colonna stretta ma FOGLI a schermo
+       intero — l'unico modo di leggere un ragionamento sul telefono.
+   ════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1023px) {
+
+  /* ── la traiettoria resta in riga ── */
+  .mrp2-arc {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 18px 16px 30px;
+  }
+  .mrp2-arc-line { display: flex; left: 16px; right: 16px; bottom: 14px; }
+  .mrp2-arc-k { font-size: 8.5px; letter-spacing: .12em; margin-bottom: 6px; }
+  .mrp2-arc-v { font-size: 12px; line-height: 1.4; }
+  .mrp2-arc-c.on .mrp2-arc-v { font-size: 13px; }
+
+  /* ── 1 · i principi: carosello con aggancio, come nel prototipo ── */
+  .mrp2-princ {
+    display: flex;
+    grid-template-columns: none;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    /* il bordo esce dalla colonna e rientra: si capisce che c'è dell'altro */
+    margin: 0 calc(var(--gutter) * -1);
+    padding: 0 var(--gutter) 6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--stroke-2) transparent;
+  }
+  .mrp2-p {
+    flex: 0 0 82%;
+    scroll-snap-align: start;
+  }
+
+  /* ── 3 · la timeline diventa verticale ── */
+  .mrp2-time {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding-left: 22px;
+  }
+  /* la riga del tempo, a sinistra */
+  .mrp2-time::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 12px;
+    bottom: 12px;
+    width: 1px;
+    background: linear-gradient(180deg, var(--acc-line), var(--acc), var(--acc-line));
+  }
+  .mrp2-tp { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0 12px; }
+  /* il nodo sulla riga */
+  .mrp2-tp::before {
+    display: block;
+    content: "";
+    position: absolute;
+    left: -21px;
+    top: 24px;
+    right: auto;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--acc);
+    box-shadow: 0 0 0 3px rgba(10, 6, 12, .95);
+  }
+  .mrp2-tp::after { display: none; }
+  .mrp2-tp-ph { order: -1; width: 74px; height: 58px; margin: 0; flex: 0 0 auto; }
+  .mrp2-tp-when, .mrp2-tp-t, .mrp2-tp-b, .mrp2-tp-f { flex: 1 1 62%; }
+  .mrp2-tp-t { font-size: 16px; }
+  .mrp2-tp-b { font-size: 12px; flex-basis: 100%; }
+  .mrp2-tp-f { flex-basis: 100%; }
+
+  /* ── 4 · fisarmonica ── */
+  .mrp2-clar { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .mrp2-cl { padding: 0; }
+  .mrp2-cl-h {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 58px;
+    padding: 10px 16px;
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 15px;
+    text-align: left;
+    color: var(--ink);
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .mrp2-cl-sum {
+    flex: 1;
+    font-family: var(--sans);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mrp2-cl-chev {
+    flex: 0 0 auto;
+    font-size: 13px;
+    color: var(--ink-faint);
+    transition: transform .2s ease;
+  }
+  .mrp2-cl.open .mrp2-cl-chev { transform: rotate(180deg); }
+  /* chiusa: si vede solo la riga. Aperta: il contenuto. */
+  .mrp2-cl > :not(.mrp2-cl-h) { display: none; }
+  .mrp2-cl.open > :not(.mrp2-cl-h) { display: block; }
+  .mrp2-cl.open > .mrp2-cl-i { display: flex; }
+  .mrp2-cl.open { padding-bottom: 14px; }
+  .mrp2-cl.open .mrp2-cl-i,
+  .mrp2-cl.open .mrp2-cl-p,
+  .mrp2-cl.open .mrp2-cl-none { margin-left: 16px; margin-right: 16px; }
+  /* Il CTA della terza fascia è ridondante col gesto grande di chiusura. */
+  .mrp2-cl-ask .mrp2-cta { display: none; }
+
+  /* ── il gesto di chiusura, a tutta larghezza ── */
+  .mrp2-help {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 54px;
+    margin-top: var(--sp);
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--acc);
+    border: 0;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+  }
+
+  /* ── gli approfondimenti: fogli a schermo intero ──
+     Il rail resta nel DOM dove sta (sotto la lettura interrogata, così lo
+     screen reader lo incontra nell'ordine giusto) ma a schermo diventa un
+     foglio. Nessun pannello aperto = nessun foglio. */
+  .mrp2-rail:has(.mrp2-panel) {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    margin: 0;
+    padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+    gap: 10px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: rgba(10, 6, 12, .93);
+    backdrop-filter: blur(18px);
+  }
+  .mrp2-rail:has(.mrp2-panel) .mrp2-rail-h,
+  .mrp2-rail:has(.mrp2-panel) .mrp2-rail-p { display: none; }
+  .mrp2-rail:has(.mrp2-panel) .mrp2-panel {
+    background: rgba(24, 14, 24, .96);
+  }
+  .mrp2-panel header { position: sticky; top: 0; }
+  .mrp2-x { width: 44px; height: 44px; }
+
+  /* i chip del motivo strutturato */
+  .mrp2-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+}
+
+/* ── i chip valgono su tutte le misure ── */
+.mrp2-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.mrp2-chip {
+  /* Devono LEGGERSI come pastiglie: a .04 su fondo scuro il contorno
+     spariva e sembravano righe di testo. */
+  flex: 0 1 auto;
+  min-height: var(--tap);
+  padding: 0 15px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--ink-dim);
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background .18s ease;
+}
+.mrp2-chip:hover { color: var(--ink); border-color: var(--stroke-2); }
+.mrp2-chip.on { color: var(--ink); background: var(--acc-soft); border-color: var(--acc-line); }
+.mrp2-fineL { margin: 0 0 10px; font-size: 12px; color: var(--ink-faint); }
+
+/* Su desktop il gesto grande di chiusura è di troppo: l'invito vive già
+   dentro la terza colonna della sezione 4. */
+@media (min-width: 1024px) {
+  .mrp2-help { display: none; }
+  .mrp2-cl-sum, .mrp2-cl-chev { display: none; }
+  .mrp2-cl-h { pointer-events: none; }
+}

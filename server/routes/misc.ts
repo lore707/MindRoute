@@ -317,20 +317,24 @@ export function registerMiscRoutes(app: Express) {
       insightId: z.string().min(1).max(60),
       reading: z.string().min(1).max(200),
       verdict: z.enum(["yes", "partly", "no"]),
+      // Motivi strutturati (dal passo mobile "cosa non ti rappresenta"):
+      // valgono piu del verdetto secco, perche dicono COSA smettere di pesare.
+      reasons: z.array(z.enum(["pace", "changed", "different", "other"])).max(4).optional(),
       note: z.string().max(250).optional(),
     }).safeParse(req.body);
     if (!body.success) return res.status(400).json({ message: "Feedback non valido" });
     try {
       const { db } = await import("../db");
       const { compassSignals } = await import("@shared/schema");
-      const { insightId, reading, verdict, note } = body.data;
+      const { insightId, reading, verdict, reasons, note } = body.data;
+      const detail = [reasons?.length ? reasons.join(",") : null, note || null].filter(Boolean).join(" — ");
       await db.insert(compassSignals).values({
         userId: user.id,
         cardId: `portrait:${insightId}`,
         question: reading,
         // La nota libera vale piu del verdetto secco: se c e, e quella a
         // dover arrivare al matcher.
-        answer: note ? `${verdict} — ${note}` : verdict,
+        answer: detail ? `${verdict} — ${detail}` : verdict,
       });
       res.json({ ok: true });
     } catch (err) {
