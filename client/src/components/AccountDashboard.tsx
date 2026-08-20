@@ -219,7 +219,7 @@ function Html({ html, as = "span", className }: { html: string; as?: any; classN
 }
 
 /* ════════════════════════════════════════════════════════════ */
-export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeExtra?: ReactNode }) {
+export function AccountDashboard({ data }: { data: AccountData }) {
   const { t, lang, setLang } = useI18n();
   const [, setLocation] = useLocation();
   // Vista iniziale anche da ?view= (usato dalla preview dev per gli
@@ -298,6 +298,13 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     });
     return n > 0 ? n : null;
   }, [data.portrait, data.trips, data.traitVector, data.traitSnapshots]);
+
+  // I momenti salvati mostrati in home: i piu' recenti, non tutti. La
+  // collezione completa vive dentro "I miei viaggi".
+  const savedShown = useMemo(
+    () => (data.savedMoments ?? []).filter(m => m.momentSnapshot).slice(0, 4),
+    [data.savedMoments],
+  );
 
   // Home v4: la proposta e' UNA. Le altre due esistono, ma solo su richiesta —
   // e' la differenza fra "ti propongo questo" e "ecco un catalogo".
@@ -740,6 +747,52 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
     </section>
   );
 
+  /* ──────────────── IL FONDO DEL SITO ────────────────
+     Stessi contatti e stesse rotte del footer della landing: se un domani
+     cambia un indirizzo, non deve esserci una seconda verita' qui dentro.
+     Solo link che esistono davvero. */
+  const SiteFooter = () => (
+    <footer className="h4-site-foot">
+      <div className="h4-sf-in">
+        <div className="h4-sf-brand">
+          <FlowNavLogo size={26} />
+          <div>
+            <div className="h4-sf-name">MindRoute</div>
+            <div className="h4-sf-tag">{t("footer.tagline")}</div>
+          </div>
+        </div>
+
+        <div className="h4-sf-cols">
+          <div className="h4-sf-col">
+            <div className="h4-sf-h">{t("led.foot.product")}</div>
+            <button className="h4-sf-l" onClick={() => setLocation("/come-funziona")}>{t("led.foot.how")}</button>
+            <button className="h4-sf-l" onClick={data.onNewItinerary}>{t("led.foot.start")}</button>
+          </div>
+          <div className="h4-sf-col">
+            <div className="h4-sf-h">{t("led.foot.company")}</div>
+            <button className="h4-sf-l" onClick={() => setLocation("/privacy")}>{t("led.foot.privacy")}</button>
+            <a className="h4-sf-l" href="mailto:mindroutetravel@gmail.com">{t("led.foot.contact")}</a>
+          </div>
+          <div className="h4-sf-col">
+            <div className="h4-sf-h">{t("led.foot.follow")}</div>
+            <a className="h4-sf-l" href="https://instagram.com/mindroute.travel" target="_blank" rel="noopener noreferrer">Instagram</a>
+            <a className="h4-sf-l" href="https://tiktok.com/@mindroute.travel" target="_blank" rel="noopener noreferrer">TikTok</a>
+          </div>
+          <div className="h4-sf-col">
+            <div className="h4-sf-h">{t("acd.dr.account")}</div>
+            <button className="h4-sf-l" onClick={() => setDrawer(true)}>{t("acd.settings")}</button>
+            <button className="h4-sf-l" onClick={data.onLogout}>{t("acd.dr.logout")}</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="h4-sf-base">
+        <span>{t("footer.copyright")}</span>
+        <span>{t("footer.affiliate")}</span>
+      </div>
+    </footer>
+  );
+
   /* ──────────────── HOME v4 — la radice, non una sezione ────────────────
      Quattro fasce, una idea per fascia (04-layout-principles: "every viewport
      communicates exactly one idea"). La regola che tiene la home distinta
@@ -889,6 +942,46 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
         </section>
       )}
 
+      {/* ══ FASCIA 3bis · i momenti salvati ══
+          Erano una griglia di card grandi con la × sopra la foto, dentro un
+          contenitore di un'altra pagina (.account-cinematic-extra) che sfondava
+          la larghezza: da qui il nero a destra su desktop. Ora sono una fascia
+          della home, nella stessa lingua di tutto il resto. */}
+      {!isEmpty && savedShown.length > 0 && (
+        <section className="h4-band h4-mom">
+          <div className="h4-band-k">{t("acd.h4.momentsK")}</div>
+          <div className="h4-mom-row">
+            {savedShown.map((m) => (
+              <article key={m.id ?? m.momentId} className="h4-mom-c">
+                <button className="h4-mom-hit" onClick={() => setLocation(`/itinerary/${m.itineraryId}`)}>
+                  {m.momentSnapshot?.image_url
+                    ? <span className="h4-mom-ph" style={{ backgroundImage: bg(m.momentSnapshot.image_url, 420) }} />
+                    : <span className="h4-mom-ph none" />}
+                  <span className="h4-mom-b">
+                    <span className="h4-mom-t">{m.momentSnapshot?.title ?? t("acd.h4.momentFallback")}</span>
+                    <span className="h4-mom-m">
+                      {m.momentSnapshot?.destination_name ?? m.momentSnapshot?.location_name ?? ""}
+                    </span>
+                  </span>
+                </button>
+                {data.onRemoveMoment && (
+                  <button
+                    className="h4-mom-x"
+                    aria-label={t("acd.h4.momentRemove")}
+                    title={t("acd.h4.momentRemove")}
+                    onClick={() => data.onRemoveMoment!({ id: m.id, itineraryId: m.itineraryId, momentId: m.momentId })}
+                  >×</button>
+                )}
+              </article>
+            ))}
+          </div>
+          {(data.savedMoments ?? []).length > savedShown.length && (
+            <button className="h4-link" onClick={() => go("trips")}>{t("acd.h2.viewAll")} →</button>
+          )}
+        </section>
+      )}
+
+
       {/* ══ FASCIA 4 · l'indice. Porte, non contenuti ══ */}
       {!isEmpty && (
         <section className="h4-index">
@@ -902,9 +995,9 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
               <span className="h4-idx-n">{t("acd.h4.atlas")}</span>
               <span className="h4-idx-v">{counts.continents} {plural(counts.continents, "acd.unit.continent", "acd.unit.continents")}</span>
             </button>
-            <button className="h4-idx" onClick={() => go("trips")}>
-              <span className="h4-idx-n">{t("acd.h4.moments")}</span>
-              <span className="h4-idx-v">{(data.savedMoments ?? []).length}</span>
+            <button className="h4-idx" onClick={() => go("portrait")}>
+              <span className="h4-idx-n">{t("acd.h4.portrait")}</span>
+              <span className="h4-idx-v">{portraitConfidence != null ? `${portraitConfidence}%` : "—"}</span>
             </button>
           </div>
           <div className="h4-foot">
@@ -926,7 +1019,8 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
         </section>
       )}
 
-      {homeExtra && <div className="home-extra">{homeExtra}</div>}
+      {SiteFooter()}
+
     </div>
     );
   };

@@ -215,6 +215,10 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.h4.atlas":      { en: "Your atlas",              it: "Il tuo atlante" },
   "acd.h4.moments":    { en: "Saved moments",           it: "Momenti salvati" },
   "acd.h4.newTrip":    { en: "A new journey, whenever you want.", it: "Un viaggio nuovo, quando vuoi." },
+  "acd.h4.momentsK":   { en: "Moments you kept",       it: "Momenti che hai tenuto" },
+  "acd.h4.momentFallback": { en: "A moment",            it: "Un momento" },
+  "acd.h4.momentRemove": { en: "Remove",                it: "Togli" },
+  "acd.h4.portrait":   { en: "Your portrait",           it: "Il tuo ritratto" },
   "acd.h4.pill":       { en: "Day {n} of {tot}",        it: "Giorno {n} di {tot}" },
 
   // ── Home v2 (redesign 2026-07 dal mockup) ───────────────────────────────

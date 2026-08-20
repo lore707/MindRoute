@@ -85,6 +85,8 @@ export type AccountData = {
     id?: number;
     createdAt?: string;
     itineraryId: number;
+    /** Serve per rimuoverlo: l'endpoint DELETE e' /itineraryId/momentId. */
+    momentId: string;
     momentSnapshot: { title: string; image_url: string | null; location_name: string | null; destination_name?: string | null } | null;
   }>;
   settings: SettingRow[];      // 3-9 settings rows
@@ -99,6 +101,8 @@ export type AccountData = {
    * bloccata — mai una generazione al volo, perché le date non le sappiamo.
    */
   onPickDestination?: (d: { name: string; country?: string; imageUrl?: string; matchPct?: number | null }) => void;
+  /** Toglie un momento salvato (il cuore si spegne dalla home). */
+  onRemoveMoment?: (m: { id?: number; itineraryId: number; momentId: string }) => void;
   secondaryCtaLabel?: string;  // default: "↓ Continua a esplorare"
   onLogout?: () => void;
   onDelete?: () => void;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 // CSS dell'area account, code-split su questa route lazy (vedi nota in index.css).
 import "leaflet/dist/leaflet.css";
 import "@/styles/account-dashboard.css";
@@ -10,7 +10,6 @@ import "@/styles/account-atlas.css";
 // Dopo account-dashboard.css di proposito: la Home v4 e la barra a due voci
 // sovrascrivono (e spengono) pezzi del layout precedente.
 import "@/styles/home-v4.css";
-import { X, GitCompare } from "lucide-react";
 import { type AccountData } from "@/components/AccountCinematic";
 import { AccountDashboard } from "@/components/AccountDashboard";
 import { GenerationSheet, type PinnedDestination } from "@/components/GenerationSheet";
@@ -22,7 +21,6 @@ import { deriveTraitLabels } from "@/lib/trait-labels";
 import { getTripStatus } from "@shared/trip-status";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 import { fetchMe } from "@/hooks/use-auth";
-import { unsplashSized } from "@/lib/img";
 import type { TraitVector } from "@shared/traits";
 
 // Fallback hero per utenti senza viaggi (o se l'ultimo aperto non ha
@@ -455,6 +453,7 @@ export default function MyAccount() {
     },
     // Ha toccato una proposta: la destinazione è decisa, mancano i paletti.
     onPickDestination: (d) => openSheet(d),
+    onRemoveMoment: (m) => removeSavedMoment(m as SavedMoment),
     onLogout: () => { window.location.href = "/auth/logout"; },
     onDelete: () => {
       if (confirm("Sei sicuro di voler eliminare l'account? L'azione è irreversibile.")) {
@@ -504,63 +503,7 @@ export default function MyAccount() {
       {/* Sezioni custom (Ondata B saved moments + CTA compare) iniettate DENTRO
           la Home della dashboard via prop homeExtra, così restano nello shell
           (offset sidebar) invece di galleggiare a tutta larghezza sotto di esso. */}
-      <AccountDashboard data={accountData} homeExtra={
-        (savedMoments.length > 0 || trips.length >= 2) ? (
-      <div className="account-cinematic-extra">
-        {savedMoments.length > 0 && (
-          <section>
-            <div className="ac-container">
-              <div className="ac-eyebrow"><span className="d" />Bookmark trasversale</div>
-              <h2><em>Momenti</em> che ti hanno chiamato.</h2>
-              <p style={{ color: "rgba(245,240,238,.55)", marginTop: 12, marginBottom: 8 }}>
-                {savedMoments.length} salvat{savedMoments.length === 1 ? "o" : "i"} attraverso i tuoi viaggi.
-              </p>
-              <div className="ac-saved-grid">
-                {savedMoments.map(s => (
-                  <a key={s.id} href={`/itinerary/${s.itineraryId}`} className="ac-saved-card">
-                    {s.momentSnapshot?.image_url
-                      ? <div className="ac-saved-card-img" style={{ backgroundImage: `url(${unsplashSized(s.momentSnapshot.image_url, 480)})` }} />
-                      : <div className="ac-saved-card-img" style={{ background: "linear-gradient(135deg,#1a0814,#2d0a1a)" }} />
-                    }
-                    <button
-                      type="button"
-                      className="ac-saved-card-remove"
-                      title="Rimuovi"
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeSavedMoment(s); }}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                    <div className="ac-saved-card-body">
-                      <div className="ac-saved-card-title">{s.momentSnapshot?.title ?? "Momento"}</div>
-                      <div className="ac-saved-card-meta">
-                        {s.momentSnapshot?.destination_name ?? "—"}
-                        {s.momentSnapshot?.day_number ? ` · giorno ${s.momentSnapshot.day_number}` : ""}
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {trips.length >= 2 && (
-          <section>
-            <div className="ac-container">
-              <div className="ac-compare-cta">
-                <div className="ac-compare-cta-text">
-                  Vuoi vedere <strong>due viaggi</strong> uno accanto all'altro?
-                </div>
-                <Link href="/compare">
-                  <GitCompare className="w-4 h-4" /> Confronta side-by-side
-                </Link>
-              </div>
-            </div>
-          </section>
-        )}
-      </div>
-        ) : null
-      } />
+      <AccountDashboard data={accountData} />
 
       {/* Il pannello dei vincoli. Una schermata sola: raccoglie le date (che
           non possiamo dedurre) e MOSTRA quali righe del Ritratto stanno per
