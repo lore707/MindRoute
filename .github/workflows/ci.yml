@@ -53,6 +53,11 @@ jobs:
       - name: Verify picks cadence
         run: npm run verify:picks
 
+      # Un hook dentro una vista chiamata condizionalmente non rompe la build:
+      # rompe la NAVIGAZIONE, in silenzio, solo al primo cambio di sezione.
+      - name: Verify hook placement
+        run: npm run verify:hooks
+
       - name: Build
         run: npm run build
         env:

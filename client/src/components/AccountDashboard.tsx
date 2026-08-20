@@ -304,6 +304,25 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     return n > 0 ? n : null;
   }, [data.portrait, data.trips, data.traitVector, data.traitSnapshots]);
 
+  /* 05 · le fotografie del tuo mondo: i momenti che hai tenuto, poi i viaggi.
+   *
+   * Sta QUI e non dentro HomeView per un motivo che è costato due bug: le
+   * viste sono funzioni chiamate condizionalmente (`view === "home" &&
+   * HomeView()`), quindi i loro hook sono hook DI QUESTO componente. Un
+   * useMemo dentro una di esse spariva al primo cambio di vista, React
+   * andava in "rendered fewer hooks than expected" e l'albero moriva: la
+   * sezione viaggi non si apriva e nessun link di navigazione rispondeva.
+   * Nessun hook dentro le *View. Lo verifica script/verify-hooks.ts. */
+  const worldPhotos = useMemo(() => {
+    const out: string[] = [];
+    for (const m of data.savedMoments ?? []) {
+      const u = m.momentSnapshot?.image_url;
+      if (u && !out.includes(u)) out.push(u);
+    }
+    for (const tr of data.trips) if (tr.img && !out.includes(tr.img)) out.push(tr.img);
+    return out;
+  }, [data.savedMoments, data.trips]);
+
   // I momenti salvati mostrati in home: i piu' recenti, non tutti. La
   // collezione completa vive dentro "I miei viaggi".
   const savedShown = useMemo(
@@ -318,6 +337,9 @@ export function AccountDashboard({ data }: { data: AccountData }) {
   const [jOpen, setJOpen] = useState<number | null>(null);
   const [jRefl, setJRefl] = useState<Record<number, string | "loading" | "none">>({});
   const [whyOpen, setWhyOpen] = useState(false);
+  // "Perché questa meta?": risponde SUL POSTO. Mandare l'utente in un'altra
+  // sezione, per lui, è indistinguibile da un bottone che non fa nulla.
+  const [propWhy, setPropWhy] = useState(false);
 
   // Interpolatore: t() non supporta placeholder, li sostituiamo qui.
   const tx = (key: string, vars: Record<string, string | number>) => {
@@ -830,16 +852,6 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     // Non e' copy inventato — e' la posizione nella classifica di coerenza.
     const roleKey = (i: number) => (i === 0 ? "acd.h5.roleDeviation" : "acd.h5.roleContrast");
 
-    // 05 · le fotografie del tuo mondo: i momenti che hai tenuto, poi i viaggi.
-    const worldPhotos = useMemo(() => {
-      const out: string[] = [];
-      for (const m of data.savedMoments ?? []) {
-        const u = m.momentSnapshot?.image_url;
-        if (u && !out.includes(u)) out.push(u);
-      }
-      for (const tr of data.trips) if (tr.img && !out.includes(tr.img)) out.push(tr.img);
-      return out;
-    }, [data.savedMoments, data.trips]);
     const strip = worldPhotos.slice(0, 4);
     const more = Math.max(0, worldPhotos.length - strip.length);
 
@@ -932,11 +944,31 @@ export function AccountDashboard({ data }: { data: AccountData }) {
                 <button className="h5-cta sm" onClick={() => data.onPickDestination?.({ name: lead.name, country: lead.country, imageUrl: lead.imageUrl, matchPct: lead.matchPct })}>
                   {t("acd.h5.build")} <span>→</span>
                 </button>
-                {/* Il "perché" vero sta nel Ritratto: è lì che l'analisi vive. */}
-                <button className="h5-link" onClick={() => go("portrait")}>
-                  {tx("acd.h5.whyThis", { name: lead.name.split(",")[0] })} <span>→</span>
+                <button className="h5-link" onClick={() => setPropWhy(v => !v)} aria-expanded={propWhy}>
+                  {tx("acd.h5.whyThis", { name: lead.name.split(",")[0] })} <span>{propWhy ? "×" : "→"}</span>
                 </button>
               </div>
+
+              {/* La risposta. Solo dati veri: il punteggio è la coerenza fra il
+                  tuo vettore a 5 assi e quello della meta — una misura, non
+                  un'opinione, e senza AI di mezzo (server/daily-pick.ts). */}
+              {propWhy && (
+                <div className="h5-why">
+                  <div className="h5-why-cols">
+                    <div>
+                      <div className="h5-why-h">{t("acd.h5.whyYou")}</div>
+                      {data.traits.slice(0, 3).map((tr, i) => <div key={i} className="h5-why-i">{tr.name}</div>)}
+                    </div>
+                    <div className="h5-why-arrow">↔</div>
+                    <div>
+                      <div className="h5-why-h">{t("acd.h5.whyThere")}</div>
+                      {lead.tags.slice(0, 3).map((x, i) => <div key={i} className="h5-why-i">{x}</div>)}
+                    </div>
+                  </div>
+                  <p className="h5-why-note">{tx("acd.h5.whyHow", { pct: lead.matchPct })}</p>
+                  <button className="h5-link" onClick={() => go("portrait")}>{t("acd.h4.readMore")} <span>→</span></button>
+                </div>
+              )}
             </div>
           </article>
         </section>

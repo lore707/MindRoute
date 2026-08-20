@@ -13,6 +13,7 @@
     "verify:portrait": "tsx script/verify-portrait.ts",
     "verify:map": "tsx script/verify-map.ts",
     "verify:picks": "tsx script/verify-picks.ts",
+    "verify:hooks": "tsx script/verify-hooks.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {

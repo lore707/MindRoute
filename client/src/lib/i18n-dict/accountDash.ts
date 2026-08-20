@@ -206,6 +206,9 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.h5.roleDeviation": { en: "The detour",           it: "La deviazione" },
   "acd.h5.roleContrast":  { en: "The contrast",         it: "Il contrasto" },
   "acd.h5.exploreAtlas": { en: "Explore your atlas",    it: "Esplora il tuo atlante" },
+  "acd.h5.whyYou":     { en: "How you travel",           it: "Come viaggi" },
+  "acd.h5.whyThere":   { en: "What it offers",            it: "Cosa offre" },
+  "acd.h5.whyHow":     { en: "{pct}% is the measured overlap between your five-axis profile and this destination's. It is a measurement, not an opinion — no AI decides it.", it: "{pct}% è la sovrapposizione misurata fra il tuo profilo a cinque assi e quello della meta. È una misura, non un'opinione — nessuna AI la decide." },
   "acd.h5.chat":       { en: "Chat",                    it: "Chat" },
 
   // ── Home v4 (2026-08) ────────────────────────────────────────────────────

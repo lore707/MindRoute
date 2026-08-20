@@ -31,4 +31,26 @@
   f.width = p.get("w") || "390";
   f.height = p.get("h") || "2400";
   document.body.appendChild(f);
+
+  // ?click=<selettore>&then=<ms> — la cornice è same-origin, quindi può
+  // premere un bottone DENTRO la pagina prima dello screenshot. Serve a
+  // verificare la navigazione: un click che non risponde è invisibile in
+  // uno screenshot statico (è successo: un hook dentro una vista chiamata
+  // condizionalmente uccideva l'albero al primo cambio di sezione).
+  const sel = p.get("click");
+  if (sel) {
+    const wait = Number(p.get("then") || 2500);
+    f.addEventListener("load", () => {
+      setTimeout(() => {
+        try {
+          const d = f.contentDocument;
+          const els = Array.from(d.querySelectorAll(sel));
+          const idx = Number(p.get("nth") || 0);
+          const el = els[idx];
+          if (el) el.click();
+          else document.title = "NON TROVATO: " + sel;
+        } catch (e) { document.title = "ERRORE: " + e.message; }
+      }, wait);
+    });
+  }
 </script>

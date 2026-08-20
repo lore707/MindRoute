@@ -553,6 +553,45 @@
 .account-dash .h5-prop { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
 .account-dash .h5-prop .h5-card-ph { min-height: 300px; }
 
+/* La risposta a "perché questa meta": si apre sotto l'invito, non altrove. */
+.account-dash .h5-why {
+  margin-top: var(--gap-3);
+  padding-top: var(--gap-3);
+  border-top: 1px solid var(--stroke);
+}
+.account-dash .h5-why-cols {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-3);
+}
+.account-dash .h5-why-cols > div { min-width: 0; }
+.account-dash .h5-why-arrow {
+  align-self: center;
+  font-size: 15px;
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+.account-dash .h5-why-h {
+  font-size: 9.5px;
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--gap-1);
+}
+.account-dash .h5-why-i {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--ink-dim);
+}
+.account-dash .h5-why-note {
+  margin: var(--gap-3) 0 0;
+  max-width: 52ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-faint);
+}
+.account-dash .h5-why .h5-link { margin-top: var(--gap-1); }
+
 /* ══ 04 · le due alternative ═════════════════════════════════════════════ */
 .account-dash .h5-two {
   display: grid;
