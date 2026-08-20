@@ -1,49 +1,70 @@
 /**
- * BrandMark — il logo MindRoute (la farfalla) come SVG inline riusabile.
- * Estratto dall'header per poterlo usare anche nel footer senza duplicare le
- * definizioni. `idPrefix` rende unici gli id di gradient/filtro: due istanze
- * sulla stessa pagina (header "nav", footer "foot") non collidono.
+ * BrandMark — il marchio MindRoute (la libellula).
+ * ───────────────────────────────────────────────────────────────
+ * I tracciati NON sono disegnati a mano: sono la vettorializzazione del file
+ * originale (brand/logo-master.png), estratta con script/qa/trace-logo.mjs.
+ * Se il marchio cambia, si rigenera da lì — non si ritocca a occhio qui.
+ *
+ * Questo file è l'UNICA definizione del marchio. Prima lo stesso tracciato era
+ * incollato in sei posti (nav del flusso, layout, quiz, dashboard, favicon,
+ * card OG): cambiare logo voleva dire trovarli tutti e sei.
+ *
+ * `idPrefix` rende unico l'id del gradiente: due istanze sulla stessa pagina
+ * (header e footer) non devono collidere.
  */
-export function BrandMark({ size = 28, idPrefix = "bm", className }: { size?: number; idPrefix?: string; className?: string }) {
-  const p = idPrefix;
+
+/** Corpo e quattro ali. */
+export const MARK_BODY = "M10.5 28.75C11.52 28.65 12.9 28.68 14.41 28.89C15.93 29.09 17.09 29.23 19.59 30C22.08 30.77 26.83 32.47 29.37 33.5C31.92 34.53 33.01 35.18 34.83 36.16C36.65 37.14 37.21 37.32 40.28 39.37C43.36 41.42 50.89 46.83 53.29 48.46C55.69 50.09 54.13 48.98 54.69 49.16C55.25 49.35 56.13 49.56 56.64 49.58C57.16 49.61 57.41 49.54 57.76 49.3C58.11 49.07 58.44 48.86 58.74 48.18C59.04 47.51 59.37 46.25 59.58 45.25C59.79 44.24 59.86 42.08 60 42.17C60.14 42.26 60.16 44.71 60.42 45.81C60.68 46.9 61.17 48.14 61.54 48.74C61.91 49.35 62.21 49.33 62.66 49.44C63.1 49.56 63.43 49.68 64.2 49.44C64.96 49.21 65.5 49.19 67.27 48.04C69.04 46.9 72.31 44.31 74.82 42.59C77.34 40.86 80.07 39.07 82.37 37.7C84.68 36.32 86.5 35.36 88.67 34.34C90.84 33.31 92.86 32.4 95.38 31.54C97.9 30.68 101.42 29.63 103.77 29.16C106.12 28.7 108.27 28.75 109.5 28.75C110.74 28.75 110.72 28.98 111.18 29.16C111.65 29.35 112 29.51 112.3 29.86C112.6 30.21 112.88 30.84 113 31.26C113.12 31.68 113.09 31.92 113 32.38C112.91 32.85 112.81 33.31 112.44 34.06C112.07 34.81 111.79 35.55 110.76 36.86C109.74 38.16 107.97 40.33 106.29 41.89C104.61 43.45 102.56 45.04 100.69 46.23C98.83 47.41 96.73 48.35 95.1 49.02C93.47 49.7 92.09 50 90.91 50.28C89.72 50.56 89.16 50.63 87.97 50.7C86.78 50.77 85.59 50.82 83.77 50.7C81.96 50.58 79.11 50.14 77.06 50C75.01 49.86 73.05 49.81 71.47 49.86C69.88 49.91 68.53 50.09 67.55 50.28C66.57 50.47 65.55 50.79 65.59 50.98C65.64 51.17 66.04 51.24 67.83 51.4C69.63 51.56 74.24 51.7 76.36 51.96C78.48 52.22 79.11 52.52 80.56 52.94C82 53.36 83.31 53.75 85.03 54.48C86.76 55.2 88.62 55.97 90.91 57.27C93.19 58.58 97.41 61.42 98.74 62.31C100.06 63.19 99.18 62.35 98.88 62.59C98.57 62.82 98.06 63.31 96.92 63.71C95.78 64.1 93.45 64.75 92.02 64.96C90.6 65.17 89.67 65.1 88.39 64.96C87.11 64.82 85.43 64.43 84.33 64.13C83.24 63.82 82.77 63.61 81.82 63.15C80.86 62.68 80.56 62.7 78.6 61.33C76.64 59.95 72 56.29 70.07 54.9C68.13 53.5 67.81 53.38 66.99 52.94C66.18 52.5 65.78 52.38 65.17 52.24C64.57 52.1 63.92 51.94 63.36 52.1C62.8 52.26 62.14 52.82 61.82 53.22C61.49 53.61 61.47 53.96 61.4 54.48C61.33 54.99 61.1 55.22 61.4 56.29C61.7 57.37 62.89 59.65 63.22 60.91C63.54 62.17 63.89 58.37 63.36 63.85C62.82 69.32 61.14 93.84 60 93.77C58.86 93.7 57.06 68.88 56.5 63.43C55.94 57.97 56.36 62 56.64 61.05C56.92 60.09 57.86 58.55 58.18 57.69C58.51 56.83 58.55 56.43 58.6 55.87C58.65 55.32 58.6 54.85 58.46 54.34C58.32 53.82 58.02 53.15 57.76 52.8C57.51 52.45 57.3 52.36 56.92 52.24C56.55 52.12 56.32 51.91 55.53 52.1C54.73 52.29 54.64 51.75 52.17 53.36C49.7 54.97 43.52 59.93 40.7 61.75C37.88 63.57 36.74 63.73 35.25 64.27C33.76 64.8 32.99 64.85 31.75 64.96C30.52 65.08 29.05 65.08 27.84 64.96C26.62 64.85 25.46 64.57 24.48 64.27C23.5 63.96 22.55 63.45 21.96 63.15C21.38 62.84 20.66 62.91 20.98 62.45C21.31 61.98 22.59 61.21 23.92 60.35C25.25 59.49 26.9 58.35 28.96 57.27C31.01 56.2 33.78 54.8 36.23 53.92C38.67 53.03 41.24 52.36 43.64 51.96C46.04 51.56 48.84 51.7 50.63 51.54C52.43 51.38 54.15 51.19 54.41 50.98C54.66 50.77 53.26 50.47 52.17 50.28C51.07 50.09 49.4 49.91 47.83 49.86C46.27 49.81 44.78 49.86 42.8 50C40.82 50.14 37.95 50.61 35.95 50.7C33.94 50.79 32.57 50.82 30.77 50.56C28.98 50.3 26.86 49.74 25.18 49.16C23.5 48.58 22.03 47.79 20.7 47.06C19.38 46.34 18.58 45.88 17.21 44.83C15.83 43.78 13.71 41.98 12.45 40.77C11.2 39.56 10.43 38.56 9.66 37.56C8.89 36.55 8.28 35.57 7.84 34.76C7.4 33.94 7.12 33.36 7 32.66C6.88 31.96 6.93 31.1 7.14 30.56C7.35 30.03 7.7 29.75 8.26 29.44C8.82 29.14 9.47 28.84 10.5 28.75Z";
+/** La scintilla sopra le ali. */
+export const MARK_SPARK = "M60 21.19C60.19 21.26 60.3 23.83 60.56 24.83C60.82 25.83 60.86 26.55 61.54 27.21C62.21 27.86 63.61 28.42 64.61 28.75C65.62 29.07 67.71 28.96 67.55 29.16C67.39 29.37 64.61 29.68 63.64 30C62.66 30.33 62.21 30.42 61.68 31.12C61.14 31.82 60.7 33.17 60.42 34.2C60.14 35.22 60.19 37.39 60 37.28C59.81 37.16 59.58 34.53 59.3 33.5C59.02 32.47 58.88 31.73 58.32 31.12C57.76 30.52 56.92 30.19 55.94 29.86C54.97 29.54 52.47 29.37 52.45 29.16C52.43 28.96 54.8 28.96 55.8 28.61C56.81 28.26 57.86 27.77 58.46 27.07C59.07 26.37 59.18 25.39 59.44 24.41C59.7 23.43 59.81 21.12 60 21.19Z";
+/** Il punto sotto la coda. */
+export const MARK_DOT = "M59.72 95.59C60.07 95.5 60.4 95.54 60.7 95.73C61 95.92 61.45 96.29 61.54 96.71C61.63 97.13 61.45 97.9 61.26 98.25C61.07 98.6 60.77 98.74 60.42 98.81C60.07 98.88 59.49 98.83 59.16 98.67C58.83 98.5 58.55 98.22 58.46 97.83C58.37 97.43 58.39 96.66 58.6 96.29C58.81 95.92 59.37 95.68 59.72 95.59Z";
+export const MARK_PATHS = [MARK_BODY, MARK_SPARK, MARK_DOT];
+
+/** I colori del marchio, in un posto solo. */
+export const MARK_STOPS = [
+  { at: "0%", color: "#FF7C92" },
+  { at: "42%", color: "#F2506B" },
+  { at: "100%", color: "#C2263F" },
+];
+export const MARK_FLAT = "#E94560";
+
+export function BrandMark({
+  size = 28,
+  idPrefix = "bm",
+  className,
+  flat = false,
+}: {
+  size?: number;
+  idPrefix?: string;
+  className?: string;
+  /** Tinta piatta invece del gradiente, per contesti che non lo reggono. */
+  flat?: boolean;
+}) {
+  const g = `${idPrefix}-mg`;
+  const fill = flat ? MARK_FLAT : `url(#${g})`;
   return (
-    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" className={className} style={{ verticalAlign: "middle", flex: "none" }} aria-hidden="true">
-      <defs>
-        <linearGradient id={`${p}-lg1`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#FFADC0" />
-          <stop offset="35%" stopColor="#F06080" />
-          <stop offset="70%" stopColor="#D63055" />
-          <stop offset="100%" stopColor="#7A1020" />
-        </linearGradient>
-        <linearGradient id={`${p}-lg2`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#D03050" stopOpacity="0.85" />
-          <stop offset="100%" stopColor="#3A0510" stopOpacity="0.6" />
-        </linearGradient>
-        <linearGradient id={`${p}-ls`} x1="0.2" y1="0" x2="0.8" y2="1">
-          <stop offset="0%" stopColor="rgba(255,255,255,0.35)" />
-          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-        </linearGradient>
-        <radialGradient id={`${p}-lc`} cx="40%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#fff" />
-          <stop offset="60%" stopColor="#FFE0E8" />
-          <stop offset="100%" stopColor="#FFB0C0" />
-        </radialGradient>
-        <filter id={`${p}-lf`}>
-          <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#000" floodOpacity="0.5" />
-        </filter>
-      </defs>
-      <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill={`url(#${p}-lg1)`} filter={`url(#${p}-lf)`} />
-      <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill={`url(#${p}-ls)`} opacity="0.6" />
-      <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill={`url(#${p}-lg1)`} filter={`url(#${p}-lf)`} />
-      <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill={`url(#${p}-ls)`} opacity="0.55" />
-      <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill={`url(#${p}-lg2)`} opacity="0.82" />
-      <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill={`url(#${p}-lg2)`} opacity="0.82" />
-      <ellipse cx="60" cy="59.5" rx="5.5" ry="6.5" fill={`url(#${p}-lc)`} filter={`url(#${p}-lf)`} />
-      <ellipse cx="58.2" cy="57.2" rx="2" ry="2.5" fill="rgba(255,255,255,0.65)" />
-      <ellipse cx="58.5" cy="57.5" rx="0.7" ry="0.9" fill="rgba(255,255,255,0.95)" />
-      <path d="M58.5 66L60 108L61.5 66" fill={`url(#${p}-lg1)`} opacity="0.82" />
-      <circle cx="60" cy="47" r="3.8" fill={`url(#${p}-lc)`} filter={`url(#${p}-lf)`} />
-      <ellipse cx="58.6" cy="45.8" rx="1.4" ry="1.6" fill="rgba(255,255,255,0.7)" />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 120 120"
+      fill="none"
+      className={className}
+      style={{ verticalAlign: "middle", flex: "none" }}
+      aria-hidden="true"
+    >
+      {!flat && (
+        <defs>
+          <linearGradient id={g} x1="0.18" y1="0.05" x2="0.8" y2="0.95">
+            {MARK_STOPS.map((s) => (
+              <stop key={s.at} offset={s.at} stopColor={s.color} />
+            ))}
+          </linearGradient>
+        </defs>
+      )}
+      {MARK_PATHS.map((d, i) => (
+        <path key={i} d={d} fill={fill} />
+      ))}
     </svg>
   );
 }

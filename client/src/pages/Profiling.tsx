@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef, useMemo } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { motion, AnimatePresence } from "framer-motion";
 // CSS del quiz, code-split su questa route lazy (vedi index.css).
 import "@/styles/quiz-cinematic.css";
@@ -992,15 +993,9 @@ const profilingPayload = {
         </svg>
 
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <svg viewBox="0 0 120 120" fill="none" className={`w-[280px] h-[280px] md:w-[500px] md:h-[500px] ${theme === "dark" ? "opacity-[0.09]" :"opacity-[0.10]" }`}>
-            <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" />
-            <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" />
-            <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" />
-            <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" />
-            <ellipse cx="60" cy="60" rx="5" ry="6" fill="#E94560" />
-            <path d="M58 66L60 108L62 66" fill="#E94560" />
-            <circle cx="60" cy="48" r="3.5" fill="#E94560" />
-          </svg>
+          {/* Il marchio in filigrana dietro l'intro. Stessa definizione di
+              tutto il resto: tinta piatta perche' qui e' una velatura. */}
+          <BrandMark flat size={500} idPrefix="quizintro" className={`w-[280px] h-[280px] md:w-[500px] md:h-[500px] ${theme === "dark" ? "opacity-[0.09]" :"opacity-[0.10]" }`} />
         </div>
 
         <svg className="hidden md:block absolute top-[8%] left-[6%] pointer-events-none opacity-[0.18]" width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="#E94560" strokeWidth="1.2" strokeLinecap="round" style={{ animation: 'introFloat1 7s ease-in-out infinite' }}>

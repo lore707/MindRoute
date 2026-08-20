@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { BrandMark } from "@/components/BrandMark";
 import { ArrowLeft } from "lucide-react";
 import LangDropdown from "@/components/LangDropdown";
 import { useI18n } from "@/lib/i18n";
@@ -7,16 +8,12 @@ import { useI18n } from "@/lib/i18n";
 // né shell dashboard: solo logo (→ indietro/dashboard), switch lingua e un'uscita
 // sempre evidente ("Salva ed esci" desktop, freccia indietro mobile). Unica fonte
 // così quiz e /destinations restano identici e non divergono.
+/**
+ * Il marchio nella nav del flusso. E' un alias di BrandMark: prima era una
+ * copia del tracciato, e cambiare logo significava ricordarsi anche di questa.
+ */
 export const FlowNavLogo = ({ size = 30 }: { size?: number }) => (
-  <svg viewBox="0 0 120 120" fill="none" style={{ width: size, height: size }}>
-    <path d="M60 52C60 52 42 32 28 36C14 40 12 56 24 62C36 68 60 60 60 60" fill="#E94560" opacity="0.85" />
-    <path d="M60 60C60 60 38 72 30 82C22 92 30 100 40 96C50 92 60 72 60 72" fill="#E94560" opacity="0.55" />
-    <path d="M60 52C60 52 78 32 92 36C106 40 108 56 96 62C84 68 60 60 60 60" fill="#E94560" opacity="0.85" />
-    <path d="M60 60C60 60 82 72 90 82C98 92 90 100 80 96C70 92 60 72 60 72" fill="#E94560" opacity="0.55" />
-    <ellipse cx="60" cy="60" rx="5" ry="6" fill="var(--text-primary)" />
-    <path d="M58 66L60 108L62 66" fill="#E94560" opacity="0.7" />
-    <circle cx="60" cy="48" r="3.5" fill="var(--text-primary)" />
-  </svg>
+  <BrandMark size={size} idPrefix="flownav" />
 );
 
 // hideLang: nascondi il toggle lingua quando la vista mostra contenuto generato
