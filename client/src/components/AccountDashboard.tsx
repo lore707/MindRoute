@@ -803,6 +803,17 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
                 {continueCard.progress ? t("acd.h4.onTheRoad") : nudge ? t("acd.h4.waiting") : t("acd.h4.lastOne")}
               </div>
               <h2 className="h4-where-name">{continueCard.title}</h2>
+              {/* Continente e data: dati che abbiamo già e che riempiono la
+                  colonna con qualcosa invece che con vuoto. */}
+              {(continueCard.region || continueCard.date) && (
+                <div className="h4-where-sub">
+                  {continueCard.region && <span>{continueCard.region}</span>}
+                  {continueCard.region && continueCard.date && <span className="sep">·</span>}
+                  {continueCard.date && <span>{continueCard.date}</span>}
+                </div>
+              )}
+              {/* La frase che l'utente ha scritto su quel viaggio, se c'è. */}
+              {continueCard.quote && <p className="h4-where-quote">“{continueCard.quote}”</p>}
               {continueCard.progress && (
                 <>
                   <div className="h4-rule"><span style={{ width: `${Math.round((continueCard.progress.n / continueCard.progress.tot) * 100)}%` }} /></div>
@@ -1333,7 +1344,11 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
 
   /* ──────────────── SHELL ──────────────── */
   return (
-    <div className="account-dash">
+    // `is-home`: la Home v4 porta le proprie fotografie e ha un fondo pieno.
+    // Lo sfondo ambient in crossfade serve alle viste fatte di card traslucide;
+    // sotto la home riaffiorava solo nelle zone non coperte (la coda sopra la
+    // barra del telefono), e lì sembrava una macchia.
+    <div className={"account-dash" + (view === "home" ? " is-home" : "")}>
       <div className="field" />
       <div className="ax-stage">
         {ambient.map((src, i) => (
@@ -1375,7 +1390,15 @@ export function AccountDashboard({ data, homeExtra }: { data: AccountData; homeE
           </div>
           <LangDropdown variant="dark" />
           <button className="tb-cta" onClick={data.onNewItinerary}>{t("acd.tb.newItin")}</button>
-          <button className="tb-av-m" onClick={() => setDrawer(true)} title={data.userName}>{data.avatarInitial ?? data.userName[0]}</button>
+          {/* Impostazioni e account. Stavano nel piede della sidebar; tolta
+              quella, su desktop non c'era PIÙ NESSUN modo di aprire il drawer
+              — quindi niente lingua, niente logout, niente cancella account. */}
+          <button className="h4-gear" onClick={() => setDrawer(true)} title={t("acd.settings")} aria-label={t("acd.settings")}>
+            <Icon name="gear" />
+          </button>
+          <button className="h4-av" onClick={() => setDrawer(true)} title={data.userName} aria-label={data.userName}>
+            {data.avatarInitial ?? data.userName[0]}
+          </button>
         </div>
 
         {view === "home" && HomeView()}

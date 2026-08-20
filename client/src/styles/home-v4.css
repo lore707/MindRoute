@@ -17,6 +17,13 @@
    dopo account-dashboard.css, senza riscrivere quel file. */
 .account-dash .main { margin-left: 0; }
 
+/* Sotto la home lo sfondo ambient non serve: le fotografie le porta la pagina.
+   Restava visibile solo dove il contenuto non copriva (la coda sopra la barra
+   del telefono), e lì leggeva come una macchia di colore diverso. */
+.account-dash.is-home .ax-stage,
+.account-dash.is-home .field { display: none; }
+.account-dash.is-home .main { background: #0d070d; }
+
 /* ═══ La barra ═══════════════════════════════════════════════════════════ */
 
 /* Il marchio era nascosto su desktop perché il logo stava nella sidebar.
@@ -39,6 +46,44 @@
   padding: 0 clamp(20px, 4vw, 48px);
   min-height: 68px;
 }
+
+/* Impostazioni + account: stavano nel piede della sidebar. Tolta quella, su
+   desktop non restava nessun modo di aprire il drawer — quindi nessun accesso
+   a lingua, logout e cancellazione dell'account. */
+.account-dash .h4-gear,
+.account-dash .h4-av {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, background .18s ease;
+}
+.account-dash .h4-gear {
+  background: none;
+  border: 0;
+  color: rgba(251, 245, 240, .5);
+}
+.account-dash .h4-gear:hover { color: #fbf5f0; background: rgba(255, 255, 255, .06); }
+.account-dash .h4-gear svg {
+  width: 19px; height: 19px;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+}
+.account-dash .h4-av {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(251, 245, 240, .8);
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid rgba(255, 255, 255, .16);
+}
+.account-dash .h4-av:hover { color: #fff; border-color: rgba(233, 69, 96, .6); }
+
+/* Il vecchio avatar mobile-only ora è ridondante: ce n'è uno vero sempre. */
+.account-dash .topbar.h4-bar .tb-av-m { display: none; }
 
 .account-dash .h4-nav { display: flex; align-items: center; gap: 6px; }
 
@@ -116,7 +161,7 @@
   letter-spacing: .24em;
   text-transform: uppercase;
   color: #E94560;
-  margin-bottom: 26px;
+  margin-bottom: 18px;
 }
 
 .account-dash .h4 .h4-band-k {
@@ -124,7 +169,7 @@
   letter-spacing: .22em;
   text-transform: uppercase;
   color: rgba(251, 245, 240, .3);
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 
 /* ── 1 · chi sei adesso ───────────────────────────────────────────────── */
@@ -133,7 +178,7 @@
   position: relative;
   display: flex;
   align-items: flex-end;
-  min-height: clamp(460px, 62vh, 620px);
+  min-height: clamp(320px, 38vh, 420px);
   overflow: hidden;
 }
 
@@ -142,24 +187,29 @@
   inset: 0;
   background-size: cover;
   background-position: center;
-  opacity: .5;
+  /* Era .5 e sotto due veli quasi opachi: la fotografia c'era ma non si
+     vedeva. Il velo ora scherma SOLO la colonna del testo — a destra
+     l'immagine resta immagine. */
+  opacity: 1;
 }
 .account-dash .h4-photo-veil {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(13, 7, 13, .96) 0%, rgba(13, 7, 13, .78) 46%, rgba(13, 7, 13, .3) 100%),
-    linear-gradient(180deg, rgba(13, 7, 13, .55) 0%, rgba(13, 7, 13, 0) 30%, rgba(13, 7, 13, .96) 100%);
+    linear-gradient(90deg, rgba(13, 7, 13, .94) 0%, rgba(13, 7, 13, .74) 38%, rgba(13, 7, 13, .1) 76%, rgba(13, 7, 13, 0) 100%),
+    linear-gradient(180deg, rgba(13, 7, 13, .5) 0%, rgba(13, 7, 13, 0) 26%, rgba(13, 7, 13, .35) 82%, #0d070d 100%);
 }
-.account-dash .h4-who .h4-in { position: relative; width: 100%; padding-top: 90px; padding-bottom: 76px; }
+.account-dash .h4-who .h4-in { position: relative; width: 100%; padding-top: 48px; padding-bottom: 44px; }
 
 .account-dash .h4-claim {
   margin: 0;
-  max-width: 19ch;
+  max-width: 18ch;
   font-family: "Playfair Display", Georgia, serif;
   font-weight: 400;
-  font-size: clamp(34px, 6.4vw, 62px);
-  line-height: 1.08;
+  /* Era fino a 62px con il corpo a 15.5: due scale diverse nella stessa
+     schermata. Ora il salto è più corto e il testo sotto più leggibile. */
+  font-size: clamp(30px, 4.4vw, 50px);
+  line-height: 1.1;
   letter-spacing: -.028em;
   color: #fbf5f0;
   text-wrap: balance;
@@ -169,28 +219,28 @@
 .account-dash .h4-lede {
   margin: 20px 0 0;
   max-width: 46ch;
-  font-size: 15.5px;
-  line-height: 1.72;
-  color: rgba(251, 245, 240, .56);
+  font-size: 16px;
+  line-height: 1.68;
+  color: rgba(251, 245, 240, .62);
 }
 
 .account-dash .h4-facts {
   display: flex;
   flex-wrap: wrap;
   gap: clamp(26px, 5vw, 52px);
-  margin-top: 40px;
-  padding-top: 28px;
+  margin-top: 28px;
+  padding-top: 22px;
   border-top: 1px solid rgba(255, 255, 255, .1);
   max-width: 520px;
 }
 .account-dash .h4-facts .n {
   display: block;
   font-family: "Playfair Display", Georgia, serif;
-  font-size: 32px;
+  font-size: 27px;
   line-height: 1;
   color: #fbf5f0;
 }
-.account-dash .h4-facts .n em { font-style: normal; font-size: 17px; color: rgba(251, 245, 240, .4); }
+.account-dash .h4-facts .n em { font-style: normal; font-size: 15px; color: rgba(251, 245, 240, .45); }
 .account-dash .h4-facts .l {
   display: block;
   margin-top: 8px;
@@ -206,8 +256,8 @@
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  min-height: 50px;
-  margin-top: 34px;
+  min-height: 48px;
+  margin-top: 26px;
   padding: 0 30px;
   font-size: 14.5px;
   font-weight: 600;
@@ -219,7 +269,7 @@
   cursor: pointer;
   transition: filter .18s ease;
 }
-.account-dash .h4 .h4-cta.sm { min-height: 46px; padding: 0 24px; font-size: 13.5px; margin-top: 22px; }
+.account-dash .h4 .h4-cta.sm { min-height: 46px; padding: 0 24px; font-size: 13.5px; margin-top: 18px; }
 .account-dash .h4 .h4-cta:hover { filter: brightness(1.08); }
 
 .account-dash .h4 .h4-link {
@@ -227,7 +277,7 @@
   align-items: center;
   gap: 9px;
   min-height: 44px;
-  margin-top: 28px;
+  margin-top: 18px;
   padding: 0;
   font-size: 13.5px;
   font-family: inherit;
@@ -241,18 +291,18 @@
 
 /* ── 2 · dove sei ─────────────────────────────────────────────────────── */
 
-.account-dash .h4-band { padding-top: clamp(70px, 9vw, 110px); }
+.account-dash .h4-band { padding-top: clamp(44px, 5vw, 68px); }
 
 .account-dash .h4-where {
   display: grid;
-  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
-  gap: clamp(28px, 4vw, 56px);
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  gap: clamp(24px, 3vw, 40px);
   align-items: center;
 }
 
 .account-dash .h4-where-img {
-  aspect-ratio: 4 / 3;
-  border-radius: 22px;
+  aspect-ratio: 16 / 10;
+  border-radius: 18px;
   background-size: cover;
   background-position: center;
 }
@@ -269,10 +319,31 @@
   margin: 0;
   font-family: "Playfair Display", Georgia, serif;
   font-weight: 400;
-  font-size: clamp(30px, 4.4vw, 44px);
-  line-height: 1.08;
-  letter-spacing: -.022em;
+  font-size: clamp(26px, 3.2vw, 36px);
+  line-height: 1.1;
+  letter-spacing: -.02em;
   color: #fbf5f0;
+}
+
+.account-dash .h4-where-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: rgba(251, 245, 240, .44);
+}
+.account-dash .h4-where-sub .sep { color: rgba(251, 245, 240, .22); }
+
+.account-dash .h4-where-quote {
+  margin: 16px 0 0;
+  max-width: 40ch;
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.5;
+  color: rgba(251, 245, 240, .58);
 }
 
 .account-dash .h4-rule {
@@ -294,12 +365,12 @@
 
 /* ── 2bis · l'osservazione. Una riga, non chiede niente ──────────────── */
 
-.account-dash .h4-note { padding-top: clamp(60px, 8vw, 96px); }
+.account-dash .h4-note { padding-top: clamp(38px, 4.4vw, 58px); }
 
 .account-dash .h4-note-in {
   display: block;
   width: 100%;
-  padding: 26px 0;
+  padding: 20px 0;
   text-align: left;
   background: none;
   border: 0;
@@ -314,14 +385,14 @@
   letter-spacing: .22em;
   text-transform: uppercase;
   color: rgba(251, 245, 240, .3);
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 .account-dash .h4-note-t {
   display: block;
   max-width: 32ch;
   font-family: "Playfair Display", Georgia, serif;
-  font-size: clamp(21px, 3vw, 30px);
-  line-height: 1.28;
+  font-size: clamp(20px, 2.4vw, 27px);
+  line-height: 1.3;
   color: #fbf5f0;
 }
 .account-dash .h4-note-s {
@@ -338,35 +409,35 @@
 
 .account-dash .h4-prop {
   position: relative;
-  margin-top: clamp(70px, 9vw, 110px);
-  min-height: clamp(420px, 56vh, 560px);
+  margin-top: clamp(44px, 5vw, 68px);
+  min-height: clamp(300px, 36vh, 400px);
   display: flex;
   align-items: center;
   overflow: hidden;
 }
-.account-dash .h4-prop-img { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .62; }
+.account-dash .h4-prop-img { position: absolute; inset: 0; background-size: cover; background-position: center; }
 .account-dash .h4-prop-veil {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(13, 7, 13, .96) 0%, rgba(13, 7, 13, .66) 54%, rgba(13, 7, 13, .18) 100%),
-    linear-gradient(180deg, #0d070d 0%, rgba(13, 7, 13, .2) 26%, rgba(13, 7, 13, .92) 100%);
+    linear-gradient(90deg, rgba(13, 7, 13, .95) 0%, rgba(13, 7, 13, .7) 40%, rgba(13, 7, 13, .08) 78%, rgba(13, 7, 13, 0) 100%),
+    linear-gradient(180deg, #0d070d 0%, rgba(13, 7, 13, .12) 18%, rgba(13, 7, 13, .12) 82%, #0d070d 100%);
 }
 .account-dash .h4-prop-in {
   position: relative;
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
-  padding: 64px clamp(20px, 4vw, 48px);
+  padding: 40px clamp(20px, 4vw, 48px);
 }
 
 .account-dash .h4-prop-name {
   margin: 0;
   font-family: "Playfair Display", Georgia, serif;
   font-weight: 400;
-  font-size: clamp(40px, 7vw, 68px);
-  line-height: 1.02;
-  letter-spacing: -.03em;
+  font-size: clamp(32px, 4.6vw, 52px);
+  line-height: 1.04;
+  letter-spacing: -.028em;
   color: #fbf5f0;
 }
 
@@ -442,8 +513,8 @@
 /* ── 4 · l'indice ─────────────────────────────────────────────────────── */
 
 .account-dash .h4-index {
-  padding-top: clamp(70px, 9vw, 110px);
-  padding-bottom: clamp(70px, 9vw, 110px);
+  padding-top: clamp(44px, 5vw, 68px);
+  padding-bottom: clamp(48px, 5vw, 72px);
 }
 
 .account-dash .h4-idx-rows { display: flex; flex-direction: column; }
@@ -454,8 +525,8 @@
   justify-content: space-between;
   gap: 20px;
   width: 100%;
-  min-height: 62px;
-  padding: 18px 0;
+  min-height: 56px;
+  padding: 14px 0;
   text-align: left;
   background: none;
   border: 0;
@@ -468,7 +539,7 @@
 .account-dash .h4-idx:hover { padding-left: 10px; }
 .account-dash .h4-idx-n {
   font-family: "Playfair Display", Georgia, serif;
-  font-size: clamp(20px, 2.6vw, 26px);
+  font-size: clamp(19px, 2.1vw, 23px);
   color: #fbf5f0;
 }
 .account-dash .h4-idx-v { font-size: 13px; color: rgba(251, 245, 240, .4); }
@@ -478,8 +549,8 @@
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
-  margin-top: 46px;
+  gap: 22px;
+  margin-top: 32px;
 }
 .account-dash .h4-foot-l { display: flex; flex-direction: column; }
 .account-dash .h4-foot-t {
@@ -496,6 +567,14 @@
   gap: 8px;
   font-size: 12.5px;
   color: rgba(251, 245, 240, .3);
+}
+
+/* Con impostazioni e account tornati nella barra, sotto i ~1080px il campo di
+   ricerca si schiacciava fino a diventare un cerchio con una lente dentro.
+   Meglio non mostrarlo che mostrarlo rotto: la ricerca vive dentro "I miei
+   viaggi", che è l'unico posto dove serve davvero. */
+@media (max-width: 1080px) {
+  .account-dash .topbar.h4-bar .tb-search { display: none; }
 }
 
 /* ═══ Tablet ═════════════════════════════════════════════════════════════ */
@@ -515,17 +594,23 @@
   .account-dash .h4-pill-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .account-dash .h4-pill-p { display: none; }
 
-  .account-dash .h4-who { min-height: clamp(400px, 76vh, 560px); }
-  .account-dash .h4-who .h4-in { padding-top: 56px; padding-bottom: 52px; }
+  /* Su telefono non c'è una "colonna del testo": il testo sta sopra la
+     fotografia, quindi il velo torna verticale — altrimenti, con l'immagine
+     ora piena, il titolo diventa illeggibile. */
+  .account-dash .h4-photo-veil {
+    background: linear-gradient(180deg, rgba(13, 7, 13, .74) 0%, rgba(13, 7, 13, .6) 42%, rgba(13, 7, 13, .88) 78%, #0d070d 100%);
+  }
+  .account-dash .h4-who { min-height: auto; }
+  .account-dash .h4-who .h4-in { padding-top: 40px; padding-bottom: 40px; }
   .account-dash .h4-claim { max-width: none; }
   .account-dash .h4-facts { gap: 24px 32px; }
   .account-dash .h4-facts .n { font-size: 27px; }
 
   .account-dash .h4-prop { min-height: auto; }
-  .account-dash .h4-prop-in { padding-top: 52px; padding-bottom: 52px; }
+  .account-dash .h4-prop-in { padding-top: 40px; padding-bottom: 40px; }
   .account-dash .h4-prop-veil {
     background:
-      linear-gradient(180deg, #0d070d 0%, rgba(13, 7, 13, .34) 22%, rgba(13, 7, 13, .95) 78%, #0d070d 100%);
+      linear-gradient(180deg, #0d070d 0%, rgba(13, 7, 13, .62) 20%, rgba(13, 7, 13, .5) 46%, rgba(13, 7, 13, .95) 80%, #0d070d 100%);
   }
   .account-dash .h4-more { grid-template-columns: minmax(0, 1fr); }
 
