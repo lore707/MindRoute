@@ -25,6 +25,7 @@
 .led h1 { font-size: clamp(42px, 5.7vw, 86px); line-height: 0.99; letter-spacing: -0.045em; }
 .led h2 { font-size: clamp(36px, 4.15vw, 60px); line-height: 1.04; letter-spacing: -0.035em; }
 .led h1 em, .led h2 em { color: var(--led-accent-bright); font-style: italic; }
+.led-impact-line { display: block; margin-top: 10px; color: var(--led-ink); }
 
 .led-eyebrow,
 .led-chapter,
@@ -66,10 +67,9 @@
 .led-hero { min-height: 92svh; position: relative; isolation: isolate; display: grid; align-items: center; overflow: hidden; padding: 120px 0 96px; }
 .led-hero-photo, .led-scene-photo, .led-end-photo { position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center; }
 .led-hero-photo { transform: scale(1.025); animation: led-photo-breathe 18s ease-in-out infinite alternate; }
-.led-hero-veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(8, 9, 13, 0.93) 0%, rgba(8, 9, 13, 0.74) 47%, rgba(8, 9, 13, 0.24) 100%), linear-gradient(180deg, rgba(8, 9, 13, 0.12), var(--led-bg) 100%); }
+.led-hero-veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(8, 9, 13, 0.78) 0%, rgba(8, 9, 13, 0.52) 47%, rgba(8, 9, 13, 0.1) 100%), linear-gradient(180deg, rgba(8, 9, 13, 0.04), rgba(11, 12, 17, 0.76) 100%); }
 .led-hero-inner { max-width: 760px; }
 .led-hero h1 { max-width: 13ch; margin: 22px 0 28px; }
-.led-hero h1 em { display: block; margin-top: 10px; }
 .led-hero .led-narr { max-width: 520px; margin-bottom: 36px; }
 .led-hero-row { display: flex; align-items: center; flex-wrap: wrap; gap: 22px; }
 .led-hero-note { margin: 0; max-width: 250px; color: var(--led-ink-dim); font-size: 13.5px; line-height: 1.5; }
@@ -79,9 +79,9 @@
 /* Shared scene structure */
 .led-feature { min-height: 840px; position: relative; isolation: isolate; overflow: hidden; display: grid; align-items: center; padding: 128px 0; }
 .led-feature::before { content: ""; position: absolute; z-index: 1; top: 0; bottom: 0; left: max(18px, calc((100vw - 1240px) / 2 - 34px)); width: 1px; background: linear-gradient(transparent, rgba(233, 69, 96, 0.38) 15%, rgba(233, 69, 96, 0.2) 85%, transparent); }
-.led-scene-photo { opacity: 0.52; transform: scale(1.025); }
-.led-scene-veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.78) 15%, rgba(11, 12, 17, 0.82) 84%, var(--led-bg) 100%), linear-gradient(90deg, rgba(11, 12, 17, 0.72), rgba(11, 12, 17, 0.36)); }
-.led-feature:nth-of-type(odd) .led-scene-veil { background: linear-gradient(180deg, var(--led-bg) 0%, rgba(14, 16, 23, 0.75) 15%, rgba(14, 16, 23, 0.82) 84%, var(--led-bg) 100%), linear-gradient(270deg, rgba(11, 12, 17, 0.7), rgba(11, 12, 17, 0.35)); }
+.led-scene-photo { opacity: 0.82; transform: scale(1.025); }
+.led-scene-veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.46) 16%, rgba(11, 12, 17, 0.5) 84%, var(--led-bg) 100%), linear-gradient(90deg, rgba(11, 12, 17, 0.7), rgba(11, 12, 17, 0.1)); }
+.led-feature:nth-of-type(odd) .led-scene-veil { background: linear-gradient(180deg, var(--led-bg) 0%, rgba(14, 16, 23, 0.44) 16%, rgba(14, 16, 23, 0.5) 84%, var(--led-bg) 100%), linear-gradient(270deg, rgba(11, 12, 17, 0.68), rgba(11, 12, 17, 0.1)); }
 .led-feature-grid { display: grid; grid-template-columns: minmax(340px, 0.82fr) minmax(560px, 1.18fr); gap: clamp(54px, 6vw, 96px); align-items: center; }
 .led-feature-reverse .led-feature-copy { grid-column: 2; grid-row: 1; }
 .led-feature-reverse .led-product { grid-column: 1; grid-row: 1; }
@@ -221,11 +221,10 @@
 
 /* Final CTA and footer */
 .led-end { min-height: 78svh; position: relative; isolation: isolate; overflow: hidden; display: grid; align-items: center; padding: 150px 0; }
-.led-end-veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.46) 35%, rgba(11, 12, 17, 0.86) 100%), linear-gradient(90deg, rgba(11, 12, 17, 0.85), rgba(11, 12, 17, 0.2)); }
+.led-end-veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.3) 35%, rgba(11, 12, 17, 0.68) 100%), linear-gradient(90deg, rgba(11, 12, 17, 0.5), rgba(11, 12, 17, 0.16)); }
 .led-end-inner { text-align: center; }
 .led-end .led-eyebrow { justify-content: center; }
 .led-end h1 { max-width: 16ch; margin: 24px auto 38px; }
-.led-end h1 em { display: block; margin-top: 10px; }
 .led-end-note { max-width: 580px; margin: 22px auto 0; color: var(--led-ink-dim); font-size: 13px; font-style: italic; line-height: 1.6; }
 .led-footer { padding: 80px 0 28px; background: var(--led-bg-2); border-top: 1px solid var(--led-line); }
 .led-footer-grid { display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 40px; }
@@ -267,7 +266,7 @@
   .led h2, .led-feature-copy h2 { font-size: clamp(34px, 9.8vw, 46px); line-height: 1.06; }
   .led-narr { font-size: 16px; line-height: 1.65; }
   .led-hero { min-height: 88svh; padding: 116px 0 92px; align-items: end; }
-  .led-hero-veil { background: linear-gradient(180deg, rgba(8, 9, 13, 0.2) 0%, rgba(8, 9, 13, 0.78) 47%, rgba(8, 9, 13, 0.98) 100%); }
+  .led-hero-veil { background: linear-gradient(180deg, rgba(8, 9, 13, 0.08) 0%, rgba(8, 9, 13, 0.58) 47%, rgba(8, 9, 13, 0.9) 100%); }
   .led-hero h1 { margin: 18px 0 24px; max-width: 12ch; }
   .led-hero .led-narr { margin-bottom: 28px; }
   .led-hero-row { align-items: flex-start; gap: 15px; }
@@ -275,8 +274,8 @@
   .led-scroll { display: none; }
 
   .led-feature { padding: 84px 0; }
-  .led-scene-photo { opacity: 0.4; }
-  .led-scene-veil, .led-feature:nth-of-type(odd) .led-scene-veil { background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.82) 14%, rgba(11, 12, 17, 0.9) 86%, var(--led-bg) 100%); }
+  .led-scene-photo { opacity: 0.72; }
+  .led-scene-veil, .led-feature:nth-of-type(odd) .led-scene-veil { background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.58) 14%, rgba(11, 12, 17, 0.64) 86%, var(--led-bg) 100%); }
   .led-feature-grid { gap: 36px; }
   .led-chapter { margin-bottom: 18px; }
   .led-feature-copy h2 { margin-bottom: 22px; }

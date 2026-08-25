@@ -75,7 +75,10 @@ export function LandingEditorial({ onStart }: { onStart: () => void }) {
           <div className="led-container"><div className="led-hero-inner">
             <Stagger mount stagger={0.09} delayChildren={0.06}>
               <StaggerItem as="div" className="led-eyebrow"><span className="d" />{t("led.hero.eyebrow")}</StaggerItem>
-              <StaggerItem as="h1">{t("led.hero.t1")} <em>{t("led.hero.t2")}</em></StaggerItem>
+              <StaggerItem as="h1">
+                {t("led.hero.t1")}
+                <span className="led-impact-line">{t("led.hero.t2Lead")} <em>{t("led.hero.t2Accent")}</em></span>
+              </StaggerItem>
               <StaggerItem as="p" className="led-narr">{t("led.hero.sub")}</StaggerItem>
               <StaggerItem as="div" className="led-hero-row">
                 <button className="led-btn" onClick={onStart} data-testid="led-hero-cta">{t("led.hero.cta")} <span className="ar">→</span></button>
@@ -208,7 +211,7 @@ export function LandingEditorial({ onStart }: { onStart: () => void }) {
 
         <section className="led-end" id="s-end">
           <div className="led-end-photo" style={{ backgroundImage: `url(${sized(PHOTO.mountains)})` }} aria-hidden="true" /><div className="led-end-veil" aria-hidden="true" />
-          <div className="led-container led-end-inner"><Stagger stagger={0.11} amount={0.25}><StaggerItem as="div" className="led-eyebrow"><span className="d" />{t("led.end.eyebrow")}</StaggerItem><StaggerItem as="h1">{t("led.end.t1")} <em>{t("led.end.t2")}</em></StaggerItem><StaggerItem as="div"><button className="led-btn" onClick={onStart} data-testid="led-end-cta">{t("led.end.cta")} <span className="ar">→</span></button></StaggerItem><StaggerItem as="p" className="led-end-note">{t("led.end.note")}</StaggerItem></Stagger></div>
+          <div className="led-container led-end-inner"><Stagger stagger={0.11} amount={0.25}><StaggerItem as="div" className="led-eyebrow"><span className="d" />{t("led.end.eyebrow")}</StaggerItem><StaggerItem as="h1">{t("led.end.t1")}<span className="led-impact-line">{t("led.end.t2Lead")} <em>{t("led.end.t2Accent")}</em></span></StaggerItem><StaggerItem as="div"><button className="led-btn" onClick={onStart} data-testid="led-end-cta">{t("led.end.cta")} <span className="ar">→</span></button></StaggerItem><StaggerItem as="p" className="led-end-note">{t("led.end.note")}</StaggerItem></Stagger></div>
         </section>
 
         <footer className="led-footer"><div className="led-container"><div className="led-footer-grid">

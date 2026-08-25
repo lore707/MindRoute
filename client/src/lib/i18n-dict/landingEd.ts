@@ -7,7 +7,8 @@ export const landingEdDict = {
 
   "led.hero.eyebrow": { en: "You first. Then the journey.", it: "Prima tu. Poi il viaggio." },
   "led.hero.t1": { en: "You don’t need another place to save.", it: "Non ti serve un altro posto da salvare." },
-  "led.hero.t2": { en: "You need to know where it’s worth going.", it: "Ti serve capire dove vale la pena andare." },
+  "led.hero.t2Lead": { en: "You need to know", it: "Ti serve capire" },
+  "led.hero.t2Accent": { en: "where it’s worth going.", it: "dove vale la pena andare." },
   "led.hero.sub": { en: "MindRoute understands what you’re looking for, builds the journey, stays with you while you’re there, and learns from every experience.", it: "MindRoute capisce cosa cerchi, costruisce il viaggio, ti accompagna mentre sei lì e impara da ogni esperienza." },
   "led.hero.cta": { en: "Create your journey", it: "Crea il tuo viaggio" },
   "led.hero.note": { en: "The right journey starts with you.", it: "Il viaggio giusto parte da te." },
@@ -110,7 +111,8 @@ export const landingEdDict = {
 
   "led.end.eyebrow": { en: "Your first journey starts here", it: "Il tuo primo viaggio comincia qui" },
   "led.end.t1": { en: "The first journey starts from what you tell us.", it: "Il primo viaggio parte da ciò che racconti." },
-  "led.end.t2": { en: "The next will also start from what we have learned.", it: "Il prossimo partirà anche da ciò che abbiamo imparato." },
+  "led.end.t2Lead": { en: "The next will also start from", it: "Il prossimo partirà anche da" },
+  "led.end.t2Accent": { en: "what we have learned.", it: "ciò che abbiamo imparato." },
   "led.end.cta": { en: "Create your first journey", it: "Crea il tuo primo viaggio" },
   "led.end.note": { en: "Everything is personalised. Everything is editable. The choice stays yours.", it: "Tutto è personalizzato. Tutto è modificabile. La scelta resta tua." },
 
