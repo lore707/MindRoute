@@ -9,16 +9,14 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.nav.how":        { en: "How it works", it: "Come funziona" },
   "led.nav.journeys":   { en: "Journeys", it: "Viaggi" },
   "led.nav.memory":     { en: "Memory", it: "Memoria" },
-  "led.nav.cta":        { en: "Start your journey", it: "Inizia il viaggio" },
 
   // ── 01 · La domanda ─────────────────────────────────────────────────────
-  "led.hero.eyebrow": { en: "Travel that starts with you", it: "Il viaggio comincia da te" },
-  "led.hero.t1":      { en: "Not every destination is meant for", it: "Non ogni destinazione è fatta per" },
-  "led.hero.t2":      { en: "everyone.", it: "tutti." },
-  "led.hero.sub":     { en: "MindRoute builds journeys that reflect who you are, not just where you say you want to go.", it: "MindRoute costruisce viaggi che riflettono chi sei, non solo dove dici di voler andare." },
-  "led.hero.cta":     { en: "Start your journey", it: "Inizia il viaggio" },
-  "led.hero.noteT":   { en: "Seven questions.", it: "Sette domande." },
-  "led.hero.noteS":   { en: "Less than two minutes.", it: "Meno di due minuti." },
+  "led.hero.eyebrow": { en: "You first. Then the journey.", it: "Prima tu. Poi il viaggio." },
+  "led.hero.t1":      { en: "You don’t need another place to save.", it: "Non ti serve un altro posto da salvare." },
+  "led.hero.t2":      { en: "You need to know where it’s worth going.", it: "Ti serve capire dove vale la pena andare." },
+  "led.hero.sub":     { en: "MindRoute understands what you’re looking for, builds the journey, stays with you while you’re there, and learns from every experience.", it: "MindRoute capisce cosa cerchi, costruisce il viaggio, ti accompagna mentre sei lì e impara da ogni esperienza." },
+  "led.hero.cta":     { en: "Create your journey", it: "Crea il tuo viaggio" },
+  "led.hero.note":    { en: "The right journey starts with you.", it: "Il viaggio giusto parte da te." },
   "led.hero.scroll":  { en: "Scroll to explore", it: "Scorri per scoprire" },
 
   // ── 02 · La verità ──────────────────────────────────────────────────────
@@ -85,7 +83,7 @@ export const landingEdDict: Record<string, { en: string; it: string }> = {
   "led.end.eyebrow": { en: "Your journey starts here", it: "Il tuo viaggio comincia qui" },
   "led.end.t1":      { en: "The world is waiting. Let's find", it: "Il mondo aspetta. Troviamo" },
   "led.end.t2":      { en: "your place in it.", it: "il tuo posto." },
-  "led.end.cta":     { en: "Start your journey", it: "Inizia il viaggio" },
+  "led.end.cta":     { en: "Create your journey", it: "Crea il tuo viaggio" },
 
   // ── Numeri reali (/api/stats) ───────────────────────────────────────────
   "led.stats.itineraries":  { en: "itineraries created", it: "itinerari creati" },

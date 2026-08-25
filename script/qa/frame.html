@@ -27,7 +27,10 @@
   // Solo percorsi di questo sito: mai un URL assoluto, mai "//altrove".
   const raw = p.get("src") || "/__preview/dashboard";
   const f = document.createElement("iframe");
-  f.src = /^\/[^/]/.test(raw) ? raw : "/__preview/dashboard";
+  // Anche la radice "/" da sola: la regex di prima pretendeva un carattere
+  // DOPO la barra, quindi "/" ripiegava sulla preview e la landing non si
+  // poteva fotografare. Resta il divieto di "//altrove" e degli URL assoluti.
+  f.src = raw === "/" || /^\/[^/\\]/.test(raw) ? raw : "/__preview/dashboard";
   f.width = p.get("w") || "390";
   f.height = p.get("h") || "2400";
   document.body.appendChild(f);

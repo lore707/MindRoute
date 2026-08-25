@@ -264,9 +264,7 @@ export function LandingEditorial({ onStart, stats }: { onStart: () => void; stat
                 <button className="led-btn" onClick={onStart} data-testid="led-hero-cta">
                   {t("led.hero.cta")} <span className="ar">→</span>
                 </button>
-                <p className="led-hero-note">
-                  <strong>{t("led.hero.noteT")}</strong>{t("led.hero.noteS")}
-                </p>
+                <p className="led-hero-note">{t("led.hero.note")}</p>
               </StaggerItem>
             </Stagger>
           </div></div>

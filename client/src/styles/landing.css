@@ -145,11 +145,18 @@
     linear-gradient(180deg, rgba(11, 12, 17, 0.58) 0%, transparent 34%, rgba(11, 12, 17, 0.84) 100%);
 }
 .led-hero-inner { max-width: 640px; }
-.led-hero h1 { margin: var(--gap-3) 0 var(--gap-3); }
+/* Due pensieri, una sola idea: il secondo emerge come conseguenza del primo. */
+.led-hero h1 {
+  margin: var(--gap-3) 0 var(--gap-3);
+  font-size: var(--t-manifesto-s);
+  line-height: 1.04;
+  max-width: 18ch;
+  text-wrap: pretty;
+}
+.led-hero h1 em { display: block; margin-top: var(--gap-1); }
 .led-hero .led-narr { margin-bottom: var(--gap-4); max-width: 440px; }
 .led-hero-row { display: flex; align-items: center; gap: var(--gap-3); flex-wrap: wrap; }
-.led-hero-note { font-size: 14.5px; color: var(--led-ink-dim); line-height: 1.5; }
-.led-hero-note strong { color: var(--led-ink); font-weight: 600; display: block; font-size: 15.5px; }
+.led-hero-note { font-size: var(--t-interface); color: var(--led-ink-dim); line-height: 1.45; }
 .led-scroll {
   position: absolute; left: 50%; bottom: var(--gap-3); transform: translateX(-50%);
   display: grid; justify-items: center; gap: 6px;

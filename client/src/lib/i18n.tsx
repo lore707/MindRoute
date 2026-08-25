@@ -15,7 +15,8 @@ import { portraitDict } from "./i18n-dict/portrait";
 type Lang = "en" | "it";
 
 const translations: Record<string, Record<Lang, string>> = {
-  "nav.start": { en: "Start your journey", it: "Inizia il viaggio" },
+  // Stesso gesto nell'hero e nella chiusura: una sola azione, una sola voce.
+  "nav.start": { en: "Create your journey", it: "Crea il tuo viaggio" },
   "nav.howItWorks": { en: "How it works", it: "Come funziona" },
 
   // Travel companion (Fase 1)
@@ -676,7 +677,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useI18n() {
   return useContext(I18nContext);
 }
-
 
 
 
