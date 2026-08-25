@@ -1,545 +1,349 @@
-/* ───────────────────────────────────────────────────────────────
-   landing.css — landing a 7 scene (riscrittura 2026-07-31 sul mockup).
-   Sostituisce landing-editorial.css.
-
-   Costruito INTERAMENTE sui token di docs/operating-system/15-design-tokens.md.
-   Regole non negoziabili applicate qui (non reintrodurre valori liberi):
-    · tipografia = 3 livelli (--t-*), mai font-size arbitrari
-    · spazio = --sp-1..5 alternati, mai valori intermedi
-    · blur ∈ {12,24,48}px          (doc 14)
-    · bianco = --led-ink, MAI #fff (doc 07)
-    · area toccabile ≥ 44px sempre, anche quando il visibile è più piccolo
-   ─────────────────────────────────────────────────────────────── */
-
 .led {
-  /* colore */
   --led-bg: #0b0c11;
-  --led-bg2: #0e1017;
+  --led-bg-2: #0e1017;
   --led-ink: #f5f4f2;
   --led-ink-dim: rgba(245, 244, 242, 0.76);
   --led-ink-faint: rgba(245, 244, 242, 0.56);
-  --led-accent: #f0435a;
-  --led-accent-2: #ff4f5c;
-  --led-line: rgba(245, 244, 242, 0.10);
-
-  /* tipografia — 3 livelli */
-  --t-manifesto: clamp(38px, 5.8vw, 96px);
-  --t-manifesto-s: clamp(28px, 4.2vw, 60px);
-  --t-narrative: 18px;
-  --t-interface: 13.5px;
-  --t-eyebrow: 11.5px;
-
-  /* spazio */
-  --sp-1: 72px; --sp-2: 96px; --sp-3: 120px; --sp-4: 180px; --sp-5: 220px;
-  --gap-1: 8px; --gap-2: 16px; --gap-3: 24px; --gap-4: 40px;
-
-  /* forma e materia */
-  --r-s: 12px; --r-m: 20px; --r-pill: 999px;
-  --sh-ambient: 0 40px 120px -40px rgba(0, 0, 0, 0.75);
-  --sh-lift: 0 24px 60px -24px rgba(0, 0, 0, 0.6);
-  --bl-1: 12px; --bl-2: 24px; --bl-3: 48px;
-  --op-veil-light: 0.34; --op-veil-heavy: 0.56;
-  --touch-floor: 44px;
-
-  /* tempo */
-  --d-xs: 0.16s; --d-s: 0.3s; --d-m: 0.6s;
-  --e-enter: cubic-bezier(0.22, 1, 0.36, 1);
-  --e-calm: cubic-bezier(0.65, 0, 0.35, 1);
-
-  --serif: "Playfair Display", Georgia, serif;
-  --sans: "DM Sans", system-ui, sans-serif;
-
+  --led-accent: #e94560;
+  --led-accent-bright: #ff4f5c;
+  --led-gold: #d4a853;
+  --led-line: rgba(245, 244, 242, 0.11);
+  --led-line-strong: rgba(245, 244, 242, 0.2);
+  --led-serif: "Playfair Display", Georgia, serif;
+  --led-sans: "DM Sans", system-ui, sans-serif;
+  --led-shadow: 0 42px 120px -44px rgba(0, 0, 0, 0.82);
   background: var(--led-bg);
   color: var(--led-ink);
-  font-family: var(--sans);
+  font-family: var(--led-sans);
   overflow-x: clip;
 }
 
-/* ── primitive ─────────────────────────────────────────────── */
-.led-container { width: min(1240px, 100% - var(--gap-4)); margin-inline: auto; }
+.led *, .led *::before, .led *::after { box-sizing: border-box; }
+.led p, .led h1, .led h2, .led h3 { margin-top: 0; }
+.led-container { width: min(1240px, calc(100% - 64px)); margin-inline: auto; position: relative; z-index: 2; }
+.led h1, .led h2, .led h3 { font-family: var(--led-serif); font-weight: 400; }
+.led h1 { font-size: clamp(42px, 5.7vw, 86px); line-height: 0.99; letter-spacing: -0.045em; }
+.led h2 { font-size: clamp(36px, 4.15vw, 60px); line-height: 1.04; letter-spacing: -0.035em; }
+.led h1 em, .led h2 em { color: var(--led-accent-bright); font-style: italic; }
 
-.led h1, .led h2 {
-  font-family: var(--serif); font-weight: 400; letter-spacing: -0.02em;
-  line-height: 1.04; text-wrap: balance; margin: 0;
+.led-eyebrow,
+.led-chapter,
+.led-product-topline,
+.led-snapshot-kicker,
+.led-portrait-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
 }
-.led h1 { font-size: var(--t-manifesto); }
-.led h2 { font-size: var(--t-manifesto-s); }
-.led h1 em, .led h2 em { font-style: italic; color: var(--led-accent-2); }
-.led p { margin: 0; }
 
-.led-narr { font-size: var(--t-narrative); line-height: 1.65; color: var(--led-ink-dim); max-width: 620px; }
-.led-eyebrow {
-  font-size: var(--t-eyebrow); text-transform: uppercase; letter-spacing: 0.16em;
-  font-weight: 600; color: var(--led-accent); display: inline-flex; align-items: center; gap: var(--gap-1);
-}
-.led-eyebrow .d { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.led-eyebrow { display: inline-flex; align-items: center; gap: 9px; color: var(--led-accent-bright); }
+.led-eyebrow .d { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; }
+.led-narr { max-width: 590px; color: var(--led-ink-dim); font-size: 18px; line-height: 1.65; }
 
-/* Il CTA pieno è l'ECCEZIONE dichiarata al doc 07 (clarity first, doc 00 #13). */
 .led-btn {
-  position: relative; display: inline-flex; align-items: center; gap: var(--gap-2);
-  min-height: 56px; padding: 0 30px; border: 0; border-radius: var(--r-pill);
-  background: var(--led-accent); color: #fff; font-family: var(--sans);
-  font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none;
-  transition: filter var(--d-xs) var(--e-calm), transform var(--d-xs) var(--e-calm);
+  min-height: 52px;
+  padding: 0 27px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 17px;
+  background: var(--led-accent);
+  color: #fff;
+  font: 700 14px/1 var(--led-sans);
+  cursor: pointer;
+  box-shadow: 0 14px 34px -14px rgba(233, 69, 96, 0.72);
+  transition: filter 180ms ease, transform 180ms ease;
 }
-.led-btn:hover { filter: brightness(1.08); }
-.led-btn:active { transform: scale(0.98); }          /* A08 */
-.led-btn .ar {
-  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22); font-size: 13px; line-height: 1;
-}
-.led-btn.ghost { background: transparent; color: var(--led-ink); box-shadow: inset 0 0 0 1px var(--led-line); }
-.led-btn.ghost:hover { box-shadow: inset 0 0 0 1px rgba(245, 244, 242, 0.28); filter: none; }
+.led-btn:hover { filter: brightness(1.09); transform: translateY(-1px); }
+.led-btn:active { transform: scale(0.98); }
+.led-btn:focus-visible, .led-footer a:focus-visible { outline: 2px solid var(--led-accent-bright); outline-offset: 4px; }
+.led-btn .ar { font-size: 18px; font-weight: 400; }
 
-/* CTA testuale (doc 08: evitare superfici, usare luce) */
-.led-tcta {
-  display: inline-flex; align-items: center; gap: var(--gap-2); position: relative;
-  background: none; border: 0; padding: 0; cursor: pointer;
-  font-family: var(--sans); font-size: 15px; font-weight: 600; color: var(--led-accent);
-  transition: gap var(--d-xs) var(--e-calm);
-}
-.led-tcta:hover { gap: 22px; }
-/* area toccabile 44px senza alterare la composizione */
-.led-tcta::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
-  height: var(--touch-floor); min-width: var(--touch-floor);
-}
+/* Hero */
+.led-hero { min-height: 92svh; position: relative; isolation: isolate; display: grid; align-items: center; overflow: hidden; padding: 120px 0 96px; }
+.led-hero-photo, .led-scene-photo, .led-end-photo { position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center; }
+.led-hero-photo { transform: scale(1.025); animation: led-photo-breathe 18s ease-in-out infinite alternate; }
+.led-hero-veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(8, 9, 13, 0.93) 0%, rgba(8, 9, 13, 0.74) 47%, rgba(8, 9, 13, 0.24) 100%), linear-gradient(180deg, rgba(8, 9, 13, 0.12), var(--led-bg) 100%); }
+.led-hero-inner { max-width: 760px; }
+.led-hero h1 { max-width: 13ch; margin: 22px 0 28px; }
+.led-hero h1 em { display: block; margin-top: 10px; }
+.led-hero .led-narr { max-width: 520px; margin-bottom: 36px; }
+.led-hero-row { display: flex; align-items: center; flex-wrap: wrap; gap: 22px; }
+.led-hero-note { margin: 0; max-width: 250px; color: var(--led-ink-dim); font-size: 13.5px; line-height: 1.5; }
+.led-scroll { position: absolute; z-index: 2; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; color: var(--led-ink-faint); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; }
+.led-scroll .ch { font-size: 18px; animation: led-bob 2.8s ease-in-out infinite; }
 
-.led a:focus-visible, .led button:focus-visible {
-  outline: 2px solid var(--led-accent-2); outline-offset: 3px; border-radius: var(--r-s);
-}
+/* Shared scene structure */
+.led-feature { min-height: 840px; position: relative; isolation: isolate; overflow: hidden; display: grid; align-items: center; padding: 128px 0; }
+.led-feature::before { content: ""; position: absolute; z-index: 1; top: 0; bottom: 0; left: max(18px, calc((100vw - 1240px) / 2 - 34px)); width: 1px; background: linear-gradient(transparent, rgba(233, 69, 96, 0.38) 15%, rgba(233, 69, 96, 0.2) 85%, transparent); }
+.led-scene-photo { opacity: 0.52; transform: scale(1.025); }
+.led-scene-veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.78) 15%, rgba(11, 12, 17, 0.82) 84%, var(--led-bg) 100%), linear-gradient(90deg, rgba(11, 12, 17, 0.72), rgba(11, 12, 17, 0.36)); }
+.led-feature:nth-of-type(odd) .led-scene-veil { background: linear-gradient(180deg, var(--led-bg) 0%, rgba(14, 16, 23, 0.75) 15%, rgba(14, 16, 23, 0.82) 84%, var(--led-bg) 100%), linear-gradient(270deg, rgba(11, 12, 17, 0.7), rgba(11, 12, 17, 0.35)); }
+.led-feature-grid { display: grid; grid-template-columns: minmax(340px, 0.82fr) minmax(560px, 1.18fr); gap: clamp(54px, 6vw, 96px); align-items: center; }
+.led-feature-reverse .led-feature-copy { grid-column: 2; grid-row: 1; }
+.led-feature-reverse .led-product { grid-column: 1; grid-row: 1; }
+.led-feature-copy { max-width: 510px; }
+.led-chapter { display: flex; align-items: center; gap: 13px; color: var(--led-accent-bright); margin-bottom: 22px; }
+.led-chapter span { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: var(--led-ink); background: rgba(233, 69, 96, 0.13); box-shadow: inset 0 0 0 1px rgba(233, 69, 96, 0.33); letter-spacing: 0; }
+.led-feature-copy h2 { margin-bottom: 27px; }
+.led-feature-body { margin-bottom: 17px; color: var(--led-ink-dim); font-size: 17px; line-height: 1.7; }
+.led-feature-aside { margin-bottom: 24px; color: var(--led-ink-faint); font-size: 14px; line-height: 1.65; }
+.led-feature-thesis { position: relative; margin: 29px 0 0; padding: 18px 0 18px 21px; color: var(--led-ink); font-family: var(--led-serif); font-size: 19px; font-weight: 600; line-height: 1.5; }
+.led-feature-thesis::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; border-radius: 2px; background: linear-gradient(var(--led-accent), var(--led-gold)); box-shadow: 0 0 18px rgba(233, 69, 96, 0.42); }
+.led-feature-control { display: flex; align-items: center; gap: 9px; margin: 19px 0 0; color: var(--led-ink-dim); font-size: 13px; }
+.led-feature-control span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: var(--led-accent-bright); background: rgba(233, 69, 96, 0.1); }
+.led-feature-control svg { width: 14px; height: 14px; }
 
-/* ── scena: struttura comune ────────────────────────────────── */
-.led-scene { position: relative; isolation: isolate; padding: var(--sp-3) 0; overflow: clip; }
-.led-scene-photo {
-  position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center;
-  animation: led-breathe var(--d-xl, 18s) ease-in-out infinite;   /* A04 */
-}
-/* sfasate: due scene vicine non respirano all'unisono */
-.led-who .led-scene-photo { animation-duration: 21s; animation-delay: -7s; }
-.led-mem .led-scene-photo { animation-duration: 24s; animation-delay: -13s; }
-.led-app .led-scene-photo { animation-duration: 19s; animation-delay: -4s; }
-@keyframes led-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.014); } }
-/* Il velo: la foto diventa texture (doc 02). Sfuma ai bordi → nessun taglio netto
-   fra una scena e l'altra: le scene si sovrappongono invece di succedersi. */
-.led-scene-veil {
-  position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, var(--op-veil-heavy)) 24%,
-    rgba(11, 12, 17, var(--op-veil-heavy)) 76%, var(--led-bg) 100%);
-}
-.led-scene-veil.light {
-  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, var(--op-veil-light)) 32%,
-    rgba(11, 12, 17, 0.62) 100%);
-}
+/* Shared authentic product frame */
+.led-product { min-width: 0; position: relative; padding: 20px; border-radius: 24px; background: linear-gradient(145deg, rgba(22, 23, 31, 0.94), rgba(10, 11, 16, 0.92)); border: 1px solid var(--led-line-strong); box-shadow: var(--led-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06); backdrop-filter: blur(24px); pointer-events: none; }
+.led-product::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(circle at 85% 5%, rgba(233, 69, 96, 0.1), transparent 30%); pointer-events: none; }
+.led-product-topline { position: relative; z-index: 2; min-height: 28px; padding-bottom: 14px; border-bottom: 1px solid var(--led-line); display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--led-ink-faint); }
+.led-product-live { display: inline-flex; align-items: center; gap: 7px; color: var(--led-ink-dim); letter-spacing: 0.06em; text-transform: none; }
+.led-product-live i, .led-chat-tool i { width: 6px; height: 6px; border-radius: 50%; background: var(--led-accent); box-shadow: 0 0 10px rgba(233, 69, 96, 0.8); }
+.led-product-caption { position: relative; z-index: 2; margin: 14px 0 0; color: var(--led-ink-faint); font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; text-align: right; }
 
-/* ── 01 · HERO ──────────────────────────────────────────────── */
-.led-hero { position: relative; isolation: isolate; overflow: clip; min-height: 92svh; display: grid; align-items: center; padding: var(--sp-2) 0; }
-.led-hero-photo {
-  position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center 38%;
-  animation: led-breathe 22s ease-in-out infinite;                /* A04 */
-}
-.led-hero-veil {
-  position: absolute; inset: 0; z-index: -1;
-  background:
-    linear-gradient(90deg, rgba(11, 12, 17, 0.88) 0%, rgba(11, 12, 17, 0.6) 42%, rgba(11, 12, 17, 0.05) 76%, rgba(11, 12, 17, 0.3) 100%),
-    linear-gradient(180deg, rgba(11, 12, 17, 0.58) 0%, transparent 34%, rgba(11, 12, 17, 0.84) 100%);
-}
-.led-hero-inner { max-width: 640px; }
-/* Due pensieri, una sola idea: il secondo emerge come conseguenza del primo. */
-.led-hero h1 {
-  margin: var(--gap-3) 0 var(--gap-3);
-  font-size: var(--t-manifesto-s);
-  line-height: 1.04;
-  max-width: 18ch;
-  text-wrap: pretty;
-}
-.led-hero h1 em { display: block; margin-top: var(--gap-1); }
-.led-hero .led-narr { margin-bottom: var(--gap-4); max-width: 440px; }
-.led-hero-row { display: flex; align-items: center; gap: var(--gap-3); flex-wrap: wrap; }
-.led-hero-note { font-size: var(--t-interface); color: var(--led-ink-dim); line-height: 1.45; }
-.led-scroll {
-  position: absolute; left: 50%; bottom: var(--gap-3); transform: translateX(-50%);
-  display: grid; justify-items: center; gap: 6px;
-  font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--led-ink-faint);
-}
-.led-scroll .ch { animation: led-bob 2.8s var(--e-calm) infinite; }
-@keyframes led-bob { 0%, 100% { transform: translateY(0); opacity: 0.55; } 50% { transform: translateY(5px); opacity: 1; } }
+/* 01 Understands */
+.led-understand-product { min-height: 440px; }
+.led-understand-flow { position: relative; z-index: 2; min-height: 350px; display: grid; grid-template-columns: 0.82fr 42px 1.3fr; align-items: center; padding: 28px 0 10px; }
+.led-profile-snapshot { padding: 18px; border-radius: 17px; background: rgba(255, 255, 255, 0.035); border: 1px solid var(--led-line); }
+.led-profile-person { display: flex; align-items: center; gap: 12px; margin-bottom: 17px; }
+.led-profile-person > span:last-child { display: grid; gap: 3px; }
+.led-profile-person b { color: var(--led-ink); font-family: var(--led-serif); font-size: 16px; font-weight: 600; }
+.led-profile-person small { color: var(--led-ink-faint); font-size: 10px; }
+.led-avatar { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border-radius: 50%; color: var(--led-accent-bright); background: rgba(233, 69, 96, 0.12); box-shadow: inset 0 0 0 1px rgba(233, 69, 96, 0.25); }
+.led-avatar svg { width: 21px; height: 21px; }
+.led-profile-signals { display: flex; flex-wrap: wrap; gap: 7px; }
+.led-profile-signals > span { padding: 7px 9px; border-radius: 999px; color: var(--led-ink-dim); background: rgba(255, 255, 255, 0.045); border: 1px solid var(--led-line); font-size: 10px; line-height: 1; }
+.led-profile-signals > span.on { color: var(--led-accent-bright); background: rgba(233, 69, 96, 0.09); border-color: rgba(233, 69, 96, 0.3); }
+.led-flow-bridge { position: relative; display: flex; align-items: center; color: var(--led-accent-bright); }
+.led-flow-bridge i { width: 100%; height: 1px; background: linear-gradient(90deg, var(--led-line), var(--led-accent)); }
+.led-flow-bridge span { margin-left: -3px; font-size: 17px; }
+.led-snapshot-kicker { color: var(--led-gold); margin-bottom: 12px; }
+.led-match-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.led-match-card { position: relative; min-width: 0; padding: 7px 7px 10px; border-radius: 13px; display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.045); border: 1px solid var(--led-line); overflow: hidden; }
+.led-match-card:first-child { border-color: rgba(212, 168, 83, 0.4); box-shadow: 0 14px 34px -25px rgba(212, 168, 83, 0.85); }
+.led-match-photo { height: 94px; position: relative; margin-bottom: 9px; border-radius: 9px; background-size: cover; background-position: center; overflow: hidden; }
+.led-match-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 35%, rgba(5, 6, 9, 0.72)); }
+.led-match-photo b { position: absolute; z-index: 1; right: 7px; bottom: 6px; color: #fff; font-size: 10px; }
+.led-match-name { color: var(--led-ink); font-family: var(--led-serif); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.led-match-country { color: var(--led-ink-faint); font-size: 9px; margin-top: 2px; }
+.led-match-why { color: var(--led-gold); font-size: 8.5px; font-weight: 700; margin-top: 8px; white-space: nowrap; }
 
-/* ── 02 · LA VERITÀ — i feed convergono ─────────────────────── */
+/* 02 Builds */
+.led-itinerary-product { min-height: 525px; }
+.led-itinerary-head { position: relative; z-index: 2; padding: 23px 3px 17px; border-bottom: 1px solid var(--led-line); }
+.led-itinerary-head > span { color: var(--led-accent-bright); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; }
+.led-itinerary-head h3 { margin: 5px 0 16px; color: var(--led-ink); font-size: 25px; }
+.led-day-tabs { display: flex; gap: 7px; }
+.led-day-tabs span { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; color: var(--led-ink-faint); border: 1px solid var(--led-line); font-size: 11px; }
+.led-day-tabs span.on { color: #fff; background: var(--led-accent); border-color: var(--led-accent); box-shadow: 0 6px 18px -8px rgba(233, 69, 96, 0.8); }
+.led-itinerary-layout { position: relative; z-index: 2; display: grid; grid-template-columns: 1.12fr 0.88fr; gap: 20px; padding-top: 20px; }
+.led-itinerary-timeline { display: grid; }
+.led-itinerary-stop { min-height: 72px; display: grid; grid-template-columns: 20px 1fr; }
+.led-stop-rail { position: relative; display: flex; justify-content: center; }
+.led-stop-rail::after { content: ""; position: absolute; top: 14px; bottom: -3px; width: 1px; background: var(--led-line); }
+.led-itinerary-stop:last-child .led-stop-rail::after { display: none; }
+.led-stop-rail i { position: relative; z-index: 1; width: 8px; height: 8px; margin-top: 4px; border-radius: 50%; background: var(--pc); box-shadow: 0 0 10px var(--pc); }
+.led-stop-copy { min-width: 0; display: flex; flex-direction: column; padding: 0 0 14px 6px; }
+.led-stop-copy small { color: var(--pc); font-size: 9px; font-weight: 700; letter-spacing: 0.1em; }
+.led-stop-copy b { margin-top: 4px; color: var(--led-ink); font-family: var(--led-serif); font-size: 14px; font-weight: 600; line-height: 1.25; }
+.led-stop-copy em { margin-top: 4px; color: var(--led-ink-faint); font-size: 9.5px; font-style: normal; }
+.led-reason-card { align-self: start; padding: 18px; border-radius: 16px; background: linear-gradient(145deg, rgba(212, 168, 83, 0.1), rgba(255, 255, 255, 0.025)); border: 1px solid rgba(212, 168, 83, 0.28); box-shadow: 0 20px 48px -34px rgba(212, 168, 83, 0.8); }
+.led-reason-card > span { color: var(--led-gold); font-size: 9px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+.led-reason-card p { margin: 11px 0; color: var(--led-ink); font-family: var(--led-serif); font-size: 13px; font-style: italic; line-height: 1.55; }
+.led-reason-card small { color: var(--led-ink-faint); font-size: 8.5px; line-height: 1.4; }
 
-.led-truth-grid { display: grid; grid-template-columns: 0.85fr 1.15fr; gap: var(--sp-1); align-items: center; }
-.led-truth h2 { max-width: 12ch; }
-.led-truth-note { font-size: 16.5px; line-height: 1.7; color: var(--led-ink-dim); max-width: 42ch; }
+/* 03 Companion */
+.led-prompt-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 24px; }
+.led-prompt-list span { padding: 10px 12px; border-radius: 11px; color: var(--led-ink-dim); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--led-line); font-size: 12px; line-height: 1.35; }
+.led-companion-product { min-height: 535px; padding-bottom: 35px; }
+.led-companion-day { position: absolute; z-index: 1; left: 20px; top: 82px; width: 58%; min-height: 370px; padding: 22px 110px 22px 20px; border-radius: 18px; background: rgba(255, 255, 255, 0.035); border: 1px solid var(--led-line); }
+.led-mini-day-head { display: grid; gap: 5px; margin-bottom: 24px; }
+.led-mini-day-head span { color: var(--led-accent-bright); font-size: 9px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; }
+.led-mini-day-head b { color: var(--led-ink); font-family: var(--led-serif); font-size: 19px; font-weight: 500; }
+.led-mini-stop { display: grid; grid-template-columns: 9px 1fr; gap: 10px; margin: 15px 0; color: var(--led-ink-dim); font-family: var(--led-serif); font-size: 12px; }
+.led-mini-stop > i { width: 7px; height: 7px; margin-top: 4px; border-radius: 50%; }
+.led-mini-stop span { display: grid; gap: 3px; }
+.led-mini-stop small { color: var(--led-ink-faint); font: 700 8.5px/1.2 var(--led-sans); letter-spacing: 0.08em; text-transform: uppercase; }
+.led-mini-stop.muted { opacity: 0.34; text-decoration: line-through; }
+.led-mini-stop.changed { color: var(--led-ink); padding: 10px; margin-left: -10px; border-radius: 10px; background: rgba(233, 69, 96, 0.08); box-shadow: inset 2px 0 0 var(--led-accent); }
+.led-mini-stop.changed small { color: var(--led-accent-bright); }
+.led-companion-panel { position: relative; z-index: 3; width: 55%; min-height: 430px; margin: 34px 0 0 auto; border-radius: 19px; overflow: hidden; background: rgba(10, 10, 15, 0.97); border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 30px 80px -34px rgba(0, 0, 0, 0.95); }
+.led-companion-head { min-height: 66px; padding: 13px 15px; display: flex; align-items: center; gap: 11px; border-bottom: 1px solid var(--led-line); }
+.led-companion-head > span:last-child { display: grid; gap: 3px; }
+.led-companion-head b { color: var(--led-ink); font-family: var(--led-serif); font-size: 14px; font-style: italic; }
+.led-companion-head small { color: var(--led-ink-faint); font-size: 8.5px; }
+.led-companion-mark { width: 34px; height: 34px; position: relative; display: grid; place-items: center; border-radius: 50%; color: var(--led-accent-bright); background: rgba(233, 69, 96, 0.11); }
+.led-companion-mark svg { width: 16px; height: 16px; }
+.led-companion-mark i { position: absolute; right: 0; top: 1px; width: 6px; height: 6px; border-radius: 50%; background: var(--led-accent); box-shadow: 0 0 8px var(--led-accent); }
+.led-chat-thread { min-height: 282px; padding: 18px 14px; display: flex; flex-direction: column; gap: 12px; }
+.led-chat-message { max-width: 88%; padding: 10px 12px; border-radius: 15px; color: var(--led-ink); font-size: 11px; line-height: 1.5; }
+.led-chat-message.me { align-self: flex-end; background: linear-gradient(135deg, var(--led-accent), #c4324c); border-bottom-right-radius: 5px; }
+.led-chat-message.ai { align-self: flex-start; background: rgba(255, 255, 255, 0.055); border: 1px solid rgba(255, 255, 255, 0.08); border-bottom-left-radius: 5px; }
+.led-chat-tool { display: flex; align-items: center; gap: 7px; color: rgba(212, 168, 83, 0.85); font-size: 8.5px; }
+.led-chat-tool i { background: var(--led-gold); box-shadow: 0 0 8px rgba(212, 168, 83, 0.8); }
+.led-chat-input { min-height: 48px; margin: 0 11px 11px; padding: 6px 7px 6px 12px; border-radius: 14px; display: flex; align-items: center; justify-content: space-between; color: var(--led-ink-faint); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--led-line); font-size: 9px; }
+.led-chat-input i { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--led-accent); font-style: normal; font-size: 14px; }
 
-/* L'IMBUTO — la figura DEVE dire quello che dice la frase accanto: tante
-   persone diverse, incanalate, verso le stesse cinque mete. Niente fotografia:
-   qui una foto sarebbe decorazione (doc 05, "nothing decorative survives"). */
-.led-conv-wrap { position: relative; min-height: 440px; }
-/* le persone: tutte diverse per posizione, tutte identiche per destino */
-.led-person {
-  position: absolute; width: 7px; height: 7px; border-radius: 50%;
-  background: var(--led-ink-faint); transform: translate(-50%, -50%);
-  box-shadow: 0 0 var(--bl-1) rgba(245, 244, 242, 0.25);
-}
-/* il collo dell'imbuto: il punto in cui tutti diventano uguali */
-.led-funnel-cap {
-  position: absolute; left: 44%; top: 50%; transform: translate(-50%, 22px);
-  font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--led-accent-2); white-space: nowrap;
-}
-.led-funnel {
-  position: absolute; left: 44%; top: 50%; width: 13px; height: 13px;
-  border-radius: 50%; transform: translate(-50%, -50%); background: var(--led-accent-2);
-  box-shadow: 0 0 var(--bl-2) var(--led-accent-2), 0 0 var(--bl-3) rgba(255, 79, 92, 0.5);
-}
-.led-conv { position: absolute; inset: 0; width: 100%; height: 100%; }
-.led-conv path { fill: none; vector-effect: non-scaling-stroke; }
- /* il tracciato: sempre disegnato, cosi' l'imbuto si legge anche da fermo */
-.led-conv .in { stroke: var(--led-ink); stroke-width: 0.6; opacity: 0.22; }
-/* A05 — i segnali che risalgono verso il feed: lenti, lineari, mai ritmici
-   (ogni linea ha durata e ritardo suoi). Sono in piu', mai portanti. */
-.led-conv .sig {
-  stroke: var(--led-accent-2); stroke-width: 1.1; opacity: 0.62;
-  stroke-dasharray: 2 30; animation: led-drift 10s linear infinite;
-}
-.led-conv .sig:nth-child(3n)   { animation-duration: 14s; animation-delay: -4s; }
-.led-conv .sig:nth-child(4n+1) { animation-duration: 12s; animation-delay: -7s; }
-.led-conv .sig:nth-child(5n)   { animation-duration: 17s; animation-delay: -11s; }
-@keyframes led-drift { to { stroke-dashoffset: -320; } }
-.led-conv .out { stroke: var(--led-accent); stroke-width: 1.1; opacity: 0.75; }
-.led-conv-cap {
-  position: absolute; bottom: -4px; font-size: 11.5px; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--led-ink-faint); white-space: nowrap;
-}
-.led-conv-cap.left { left: 0; }
-.led-conv-cap.right { right: 0; color: var(--led-accent-2); }
-.led-dests {
-  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
-  display: grid; gap: var(--gap-2); justify-items: start; width: 30%;
-}
-.led-dest {
-  display: inline-flex; align-items: center; gap: var(--gap-2);
-  padding: 13px 22px; border-radius: var(--r-pill); font-size: 15px; color: var(--led-ink);
-  min-width: 160px;
-  background: rgba(245, 244, 242, 0.05); box-shadow: inset 0 0 0 1px var(--led-line);
-  -webkit-backdrop-filter: blur(var(--bl-1)); backdrop-filter: blur(var(--bl-1));
-}
-.led-dest .pin { color: var(--led-accent); display: grid; place-items: center; }
-/* il nome entra in dissolvenza quando il chip ruota (A01, senza spostamento) */
-.led-dest .nm { animation: led-swap var(--d-m) var(--e-enter); }
-@keyframes led-swap { from { opacity: 0; } to { opacity: 1; } }
+/* 04 Learns */
+.led-insight-list { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 16px; margin: 20px 0; }
+.led-insight-list span { display: flex; align-items: flex-start; gap: 7px; color: var(--led-ink-dim); font-size: 12px; line-height: 1.4; }
+.led-insight-list i { width: 17px; height: 17px; flex: 0 0 17px; display: grid; place-items: center; border-radius: 50%; color: var(--led-gold); background: rgba(212, 168, 83, 0.1); }
+.led-insight-list svg { width: 10px; height: 10px; }
+.led-portrait-product { min-height: 560px; }
+.led-portrait-history { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 24px 3px 35px; }
+.led-history-trip { min-width: 0; display: grid; gap: 4px; }
+.led-history-photo { height: 91px; border-radius: 11px; background-size: cover; background-position: center; filter: saturate(0.78) brightness(0.82); }
+.led-history-trip small { color: var(--led-ink-faint); font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
+.led-history-trip b { color: var(--led-ink); font-family: var(--led-serif); font-size: 12px; font-weight: 500; }
+.led-history-line { position: absolute; left: 5%; right: 1%; bottom: 17px; display: grid; grid-template-columns: repeat(3, 1fr) 14px; align-items: center; }
+.led-history-line::before { content: ""; position: absolute; left: 6px; right: 11px; height: 1px; background: linear-gradient(90deg, var(--led-accent), var(--led-gold)); }
+.led-history-line i { position: relative; z-index: 1; width: 7px; height: 7px; border-radius: 50%; background: var(--led-accent); box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.12); }
+.led-history-line b { position: relative; z-index: 1; color: var(--led-gold); font-size: 14px; }
+.led-portrait-panel { position: relative; z-index: 2; margin: 4px 3px 0; padding: 22px; border-radius: 17px; background: rgba(255, 255, 255, 0.035); border: 1px solid var(--led-line); }
+.led-portrait-kicker { color: var(--led-gold); }
+.led-portrait-panel h3 { margin: 8px 0; color: var(--led-ink); font-size: 25px; }
+.led-portrait-panel > p { max-width: 45ch; margin-bottom: 17px; color: var(--led-ink-dim); font-size: 11px; line-height: 1.55; }
+.led-confidence { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; color: var(--led-ink-faint); font-size: 9px; }
+.led-confidence > i { height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.09); overflow: hidden; }
+.led-confidence > i b { display: block; width: 87%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--led-accent), var(--led-gold)); }
+.led-confidence strong { color: var(--led-ink); font-size: 10px; }
+.led-portrait-panel > button { min-height: 36px; margin-top: 15px; padding: 0 12px; border-radius: 9px; color: var(--led-ink-dim); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--led-line); font: 600 9px/1 var(--led-sans); }
+.led-portrait-panel > button span { margin-left: 7px; padding: 2px 6px; border-radius: 999px; color: var(--led-gold); background: rgba(212, 168, 83, 0.1); }
+.led-recognise { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--led-line); display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.led-recognise small { color: var(--led-ink-faint); font-size: 9px; }
+.led-recognise > div { display: flex; gap: 5px; }
+.led-recognise span { padding: 6px 9px; border-radius: 999px; color: var(--led-ink-faint); background: rgba(255, 255, 255, 0.035); border: 1px solid var(--led-line); font-size: 8px; }
+.led-recognise span.on { color: var(--led-ink); background: rgba(233, 69, 96, 0.12); border-color: rgba(233, 69, 96, 0.33); }
 
-/* ── 03 · RIFLESSIONE + la trasformazione ───────────────────── */
-.led-refl-grid { display: grid; grid-template-columns: 0.92fr 1.08fr; gap: var(--sp-1); align-items: center; }
-.led-chain { display: flex; align-items: flex-start; gap: var(--gap-1); }
-.led-chain-step { display: grid; justify-items: center; gap: var(--gap-2); flex: 1 1 0; min-width: 0; }
-.led-chain-ring {
-  width: 62px; height: 62px; border-radius: 50%; display: grid; place-items: center;
-  color: var(--led-accent-2);
-  background: radial-gradient(circle at 50% 40%, rgba(255, 79, 92, 0.22), transparent 68%);
-  box-shadow: inset 0 0 0 1px rgba(255, 79, 92, 0.3), 0 0 var(--bl-2) -8px var(--led-accent-2);
-}
-.led-chain-label { font-size: 13px; color: var(--led-ink-dim); text-align: center; line-height: 1.35; }
-.led-chain-step { position: relative; }
-.led-chain-step::after {
-  content: "→"; position: absolute; top: 24px; right: -13px;
-  color: var(--led-ink-faint); font-size: 11px;
-}
-.led-chain-step:last-child::after { content: none; }
-.led .led-refl-note { margin-top: var(--sp-1); font-size: 16px; line-height: 1.7; color: var(--led-ink-dim); }
-.led-refl-note em { font-style: normal; color: var(--led-ink); }
-
-/* ── 04 · PROOF — stessa città, due viaggi ──────────────────── */
-/* La Verita' e' l'unica scena in cui la FIGURA e' il contenuto: la
-   fotografia va molto piu' indietro, altrimenti compete col diagramma. */
-.led-truth .led-scene-veil {
-  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.85) 20%,
-    rgba(11, 12, 17, 0.88) 80%, var(--led-bg) 100%);
-}
-.led-proof .led-scene-veil, .led-mem .led-scene-veil, .led-who .led-scene-veil,
-.led-app .led-scene-veil {
-  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.66) 18%,
-    rgba(11, 12, 17, 0.72) 82%, var(--led-bg) 100%);
-}
-.led-proof-head { max-width: 520px; margin-bottom: var(--sp-1); }
-.led-proof-head h2 { margin-bottom: var(--gap-3); }
-.led-proof-pair { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-3); }
-.led-tripcard {
-  position: relative; border-radius: var(--r-m); min-height: 0;
-  display: flex; flex-direction: column; padding: var(--gap-4);
-  background: rgba(11, 12, 17, 0.5);
-  -webkit-backdrop-filter: blur(var(--bl-2)); backdrop-filter: blur(var(--bl-2));
-  box-shadow: inset 0 0 0 1px var(--led-line), var(--sh-ambient);
-}
-.led-tripcard h3 { font-family: var(--serif); font-size: 27px; font-weight: 400; margin: 0; color: var(--led-ink); }
-.led-tripcard .who { font-size: var(--t-interface); color: var(--led-accent-2); margin: 6px 0 var(--gap-3); }
-/* Le fasce, prese 1:1 dal prodotto (itinerary-agenda.css): testata colorata
-   con nodo e orario, poi il momento sulla linea del tempo. --pc = colore
-   della fascia, passato inline dal componente. */
-.led-band { margin-bottom: var(--gap-2); }
-.led-band-head {
-  display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px;
-  background: color-mix(in srgb, var(--pc) 12%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pc) 26%, transparent);
-}
-.led-band-dot {
-  width: 11px; height: 11px; border-radius: 50%; background: var(--pc); flex: none;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc) 22%, transparent);
-}
-.led-band-l { font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--pc); font-weight: 600; }
-.led-band-t { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--led-ink); font-variant-numeric: tabular-nums; }
-.led-moment {
-  display: block; margin: 6px 0 0 5px; padding: 11px 14px;
-  border-left: 3px solid color-mix(in srgb, var(--pc) 60%, transparent);
-  border-radius: 0 12px 12px 0;
-  background: color-mix(in srgb, var(--pc) 7%, rgba(245, 244, 242, 0.05));
-}
-.led-moment-t { display: block; font-family: var(--serif); font-size: 17px; line-height: 1.2; color: var(--led-ink); }
-.led-moment-d { display: block; font-size: 13px; color: var(--led-ink-dim); margin-top: 3px; }
-.led-swap {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3;
-  width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
-  color: var(--led-ink); background: rgba(11, 12, 17, 0.7); font-size: 17px;
-  -webkit-backdrop-filter: blur(var(--bl-2)); backdrop-filter: blur(var(--bl-2));
-  box-shadow: inset 0 0 0 1px var(--led-line), var(--sh-lift);
-}
-
-/* ── 05 · MEMORIA — la rotta nel tempo ──────────────────────── */
-.led-mem-grid { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: var(--sp-1); align-items: center; }
-/* Il campo di punti resta dietro la fascia dei viaggi: e' la firma, non una
-   finta interfaccia. Nessuna cornice: un rettangolo nero con una linea non e'
-   un atlante, e nel prodotto l'Atlante e' una mappa vera con marker. */
-.led-mem-field { position: absolute; inset: -10% -4% 20%; z-index: 0; pointer-events: none; }
-.led-mem-map { position: relative; }
-
-/* il filo dei viaggi: nodo su ogni tappa, tratto pieno fra quelle fatte,
-   tratteggiato verso quella proposta (che infatti non e' ancora un viaggio) */
-.led-track {
-  position: relative; z-index: 1; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
-  gap: var(--gap-2); margin-top: var(--gap-4);
-}
-.led-track::before, .led-track::after { content: ""; position: absolute; top: 5px; height: 1px; }
-.led-track::before { left: 10%; width: 60%; background: var(--led-accent); opacity: 0.6; }
-.led-track::after {
-  left: 70%; width: 20%;
-  background: repeating-linear-gradient(90deg, var(--led-accent-2) 0 4px, transparent 4px 9px);
-}
-.led-stop-node {
-  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 11px; height: 11px; border-radius: 50%; background: var(--led-accent);
-  box-shadow: 0 0 0 4px rgba(240, 67, 90, 0.16);
-}
-.led-stop.next .led-stop-node {
-  background: var(--led-accent-2);
-  box-shadow: 0 0 0 4px rgba(255, 79, 92, 0.18), 0 0 var(--bl-2) var(--led-accent-2);
-}
-.led-stop { position: relative; display: grid; gap: var(--gap-2); align-content: start; padding-top: 26px; }
-.led-stop-y { font-size: 12px; letter-spacing: 0.12em; color: var(--led-ink-faint); }
-.led-stop-n { font-size: 15px; color: var(--led-ink); }
-.led-stop-img { height: 108px; border-radius: var(--r-s); background-size: cover; background-position: center; filter: saturate(0.8); }
-.led-stop.next .led-stop-y, .led-stop.next .led-stop-n { color: var(--led-accent-2); }
-.led-stop.next .led-stop-img { box-shadow: inset 0 0 0 1px rgba(255, 79, 92, 0.45), 0 0 var(--bl-3) -14px var(--led-accent-2); }
-
-/* la verita' che apre una scena: piccola, sopra il titolo, mai un titolo */
-.led-truth-line {
-  font-size: 15px; line-height: 1.6; color: var(--led-ink-faint);
-  max-width: 46ch; margin-bottom: var(--gap-3);
-}
-
-/* ── 06 · IL PRODOTTO ───────────────────────────────────────── */
-/* la dispersione, resa visibile: sei etichette storte, spente, mai allineate.
-   Nomi generici e non marchi: niente visibilita' regalata, niente rischi. */
-.led-tools { display: flex; flex-wrap: wrap; gap: var(--gap-3); max-width: 34ch; }
-.led-tool {
-  padding: 8px 14px; border-radius: var(--r-s); font-size: 13px;
-  color: var(--led-ink-faint); background: rgba(245, 244, 242, 0.03);
-  box-shadow: inset 0 0 0 1px var(--led-line);
-}
-
-/* il compagno: due battute, non una finta chat completa */
-.led-chat { display: grid; gap: var(--gap-1); justify-items: start; }
-.led-msg {
-  max-width: 86%; padding: 10px 14px; border-radius: var(--r-m); font-size: 13px;
-  line-height: 1.45; color: var(--led-ink); background: rgba(245, 244, 242, 0.06);
-}
-.led-msg.me {
-  justify-self: end; color: #fff;
-  background: linear-gradient(180deg, rgba(240, 67, 90, 0.9), rgba(240, 67, 90, 0.72));
-}
-
-.led-app-grid { display: grid; grid-template-columns: 0.7fr 1.3fr; gap: var(--sp-1); align-items: center; }
-.led-shell {
-  border-radius: var(--r-m); overflow: hidden; box-shadow: var(--sh-ambient);
-  background: linear-gradient(180deg, #171a24, #0f1119);
-  display: grid; grid-template-columns: 196px 1fr; min-height: 520px;
-}
-.led-shell-side { padding: var(--gap-3); display: grid; align-content: start; gap: 2px; background: rgba(0, 0, 0, 0.25); }
-.led-shell-brand { display: flex; align-items: center; gap: var(--gap-1); font-size: 13px; color: var(--led-ink); margin-bottom: var(--gap-3); }
-.led-shell-nav { display: flex; align-items: center; gap: var(--gap-2); padding: 11px 12px; border-radius: var(--r-s); font-size: 14px; color: var(--led-ink-dim); }
-.led-shell-nav.on { color: var(--led-ink); background: rgba(245, 244, 242, 0.06); }
-.led-shell-nav .ic { color: var(--led-accent); display: grid; place-items: center; }
-.led-shell-main { padding: var(--gap-3); display: grid; gap: var(--gap-3); align-content: start; }
-.led-shell-h { font-size: var(--t-interface); color: var(--led-ink-dim); }
-/* La daily pick, dal prodotto (account-dashboard.css .pick): foto a tutta
-   card, tag oro, nome serif e il riquadro "perche'" col filetto oro. */
-.led-pick {
-  position: relative; isolation: isolate; border-radius: var(--r-m); overflow: hidden;
-  min-height: 300px; display: flex; flex-direction: column; justify-content: flex-end;
-  background-size: cover; background-position: center; box-shadow: var(--sh-lift);
-}
-.led-pick::after {
-  content: ""; position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(180deg, rgba(13, 7, 13, 0.25) 0%, rgba(13, 7, 13, 0.2) 38%,
-    rgba(13, 7, 13, 0.82) 72%, rgba(13, 7, 13, 0.97) 100%);
-}
-.led-pick-tag {
-  position: absolute; top: 16px; left: 16px; z-index: 2;
-  display: inline-flex; align-items: center; gap: 8px; padding: 8px 15px; border-radius: var(--r-pill);
-  background: rgba(20, 10, 16, 0.62); box-shadow: inset 0 0 0 1px rgba(212, 168, 83, 0.5);
-  -webkit-backdrop-filter: blur(var(--bl-1)); backdrop-filter: blur(var(--bl-1));
-  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #E7C87F; font-weight: 600;
-}
-.led-pick-body { position: relative; z-index: 2; padding: var(--gap-3); display: block; }
-.led-pick-meta { display: block; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255, 255, 255, 0.72); font-weight: 600; margin-bottom: 8px; }
-.led-pick-nm { display: block; font-family: var(--serif); font-size: clamp(26px, 2.6vw, 36px); line-height: 1; color: var(--led-ink); margin-bottom: 13px; }
-.led-pick-why {
-  position: relative; display: block; padding: 13px 16px 13px 19px; border-radius: 12px;
-  background: rgba(13, 7, 13, 0.5); box-shadow: inset 0 0 0 1px rgba(212, 168, 83, 0.28);
-  -webkit-backdrop-filter: blur(var(--bl-1)); backdrop-filter: blur(var(--bl-1)); max-width: 560px;
-}
-.led-pick-why::before {
-  content: ""; position: absolute; left: 0; top: 11px; bottom: 11px; width: 3px; border-radius: 3px;
-  background: #D4A853; box-shadow: 0 0 10px rgba(212, 168, 83, 0.6);
-}
-.led-pick-why .k { display: block; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: #D4A853; font-weight: 700; margin-bottom: 5px; }
-.led-pick-why .w { display: block; font-family: var(--serif); font-style: italic; font-size: 14.5px; line-height: 1.45; color: rgba(255, 255, 255, 0.9); }
-
-.led-preview-label {
-  display: inline-flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--led-ink-dim); margin-bottom: var(--gap-2);
-}
-.led-journal { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--gap-2); }
-.led-journal-i { height: 58px; border-radius: var(--r-s); background-size: cover; background-position: center; filter: saturate(0.75) brightness(0.85); }
-
-/* ── 07 · CHIUSURA ──────────────────────────────────────────── */
-.led-end { position: relative; isolation: isolate; overflow: clip; min-height: 76svh; display: grid; align-items: center; padding: var(--sp-4) 0; }
-.led-end-photo {
-  position: absolute; inset: 0; z-index: -2; background-size: cover; background-position: center;
-  animation: led-breathe 26s ease-in-out infinite; animation-delay: -9s;
-}
-.led-end-veil {
-  position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.34) 42%, rgba(11, 12, 17, 0.82) 100%);
-}
-.led-end h1 { max-width: 17ch; margin: var(--gap-3) 0 var(--gap-4); }
-.led-end-stats { display: flex; gap: var(--gap-4); flex-wrap: wrap; margin-top: var(--gap-4); font-size: var(--t-interface); color: var(--led-ink-dim); }
-.led-end-stats strong { color: var(--led-ink); font-weight: 600; }
-
-/* ── footer ─────────────────────────────────────────────────── */
-.led-footer { position: relative; isolation: isolate; padding: var(--sp-2) 0 var(--sp-1); background: var(--led-bg2); box-shadow: inset 0 1px 0 var(--led-line); }
-.led-footer-grid { display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: var(--gap-4); }
-.led-footer-mark { display: flex; align-items: center; gap: var(--gap-1); font-size: 15px; color: var(--led-ink); margin-bottom: var(--gap-2); }
-.led-footer-tag { font-size: var(--t-interface); color: var(--led-ink-dim); line-height: 1.6; max-width: 30ch; }
-.led-footer-head { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--led-ink-dim); margin-bottom: var(--gap-2); }
-.led-footer-link {
-  position: relative; display: block; font-size: 14px; color: var(--led-ink-dim);
-  text-decoration: none; padding: 9px 0; transition: color var(--d-xs) var(--e-calm);
-}
+/* Final CTA and footer */
+.led-end { min-height: 78svh; position: relative; isolation: isolate; overflow: hidden; display: grid; align-items: center; padding: 150px 0; }
+.led-end-veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.46) 35%, rgba(11, 12, 17, 0.86) 100%), linear-gradient(90deg, rgba(11, 12, 17, 0.85), rgba(11, 12, 17, 0.2)); }
+.led-end-inner { text-align: center; }
+.led-end .led-eyebrow { justify-content: center; }
+.led-end h1 { max-width: 16ch; margin: 24px auto 38px; }
+.led-end h1 em { display: block; margin-top: 10px; }
+.led-end-note { max-width: 580px; margin: 22px auto 0; color: var(--led-ink-dim); font-size: 13px; font-style: italic; line-height: 1.6; }
+.led-footer { padding: 80px 0 28px; background: var(--led-bg-2); border-top: 1px solid var(--led-line); }
+.led-footer-grid { display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 40px; }
+.led-footer-mark { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; color: var(--led-ink); font-family: var(--led-serif); font-size: 16px; }
+.led-footer-tag { max-width: 32ch; color: var(--led-ink-dim); font-size: 13px; line-height: 1.6; }
+.led-footer-head { margin-bottom: 13px; color: var(--led-ink-faint); font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.led-footer-link { min-height: 34px; display: flex; align-items: center; color: var(--led-ink-dim); font-size: 13px; text-decoration: none; transition: color 160ms ease; }
 .led-footer-link:hover { color: var(--led-ink); }
-.led-footer-socials { display: flex; gap: var(--gap-2); margin-top: var(--gap-2); }
-.led-footer-social {
-  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
-  color: var(--led-ink-dim); box-shadow: inset 0 0 0 1px var(--led-line);
-  transition: color var(--d-xs) var(--e-calm);
-}
-.led-footer-social:hover { color: var(--led-ink); }
-.led-footer-base {
-  display: flex; justify-content: space-between; gap: var(--gap-3); flex-wrap: wrap;
-  margin-top: var(--sp-1); padding-top: var(--gap-3); box-shadow: inset 0 1px 0 var(--led-line);
-  font-size: 11.5px; color: var(--led-ink-faint);
+.led-footer-socials { display: flex; gap: 8px; }
+.led-footer-social { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--led-ink-dim); border: 1px solid var(--led-line); }
+.led-footer-social svg { width: 17px; height: 17px; }
+.led-footer-base { margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--led-line); display: flex; justify-content: space-between; gap: 20px; color: var(--led-ink-faint); font-size: 10.5px; }
+
+@keyframes led-photo-breathe { from { transform: scale(1.025); } to { transform: scale(1.065); } }
+@keyframes led-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+
+@media (max-width: 1120px) {
+  .led-feature-grid { grid-template-columns: minmax(300px, 0.82fr) minmax(500px, 1.18fr); gap: 44px; }
+  .led-feature-copy h2 { font-size: clamp(34px, 4vw, 48px); }
+  .led-understand-flow { grid-template-columns: 0.78fr 30px 1.3fr; }
+  .led-match-photo { height: 82px; }
 }
 
-/* ── RESPONSIVE — ricomposizione, non impilamento (doc 14) ──── */
-@media (max-width: 1199px) {
-  .led-truth-grid { grid-template-columns: 1fr; gap: var(--gap-4); }
-  .led-truth h2, .led-truth-note { max-width: 60ch; }
-  .led-refl-grid, .led-mem-grid, .led-app-grid { grid-template-columns: 1fr; gap: var(--gap-4); }
-  .led-shell { grid-template-columns: 1fr; min-height: 0; }
-  .led-shell-side { display: none; }
+@media (max-width: 960px) {
+  .led-container { width: min(760px, calc(100% - 48px)); }
+  .led-feature { min-height: auto; padding: 108px 0; }
+  .led-feature::before { display: none; }
+  .led-feature-grid { grid-template-columns: 1fr; gap: 48px; }
+  .led-feature-reverse .led-feature-copy, .led-feature-reverse .led-product { grid-column: 1; grid-row: auto; }
+  .led-feature-copy { max-width: 650px; }
+  .led-feature-copy h2 { max-width: 15ch; font-size: clamp(38px, 6vw, 54px); }
+  .led-product { width: 100%; max-width: 720px; }
+  .led-footer-grid { grid-template-columns: 1.4fr repeat(3, 1fr); gap: 26px; }
 }
 
-@media (max-width: 767px) {
-  .led {
-    --sp-1: 40px; --sp-2: 54px; --sp-3: 68px; --sp-4: 100px; --sp-5: 120px;
-    --t-narrative: 15.5px;
-  }
-  .led-container { width: min(100% - var(--gap-3), 640px); }
-  /* mobile = camera più vicina: la fotografia occupa più schermo (doc 09) */
-  .led-hero { min-height: 96svh; align-items: end; padding-bottom: var(--sp-2); }
-  .led-hero-veil {
-    background: linear-gradient(180deg, rgba(11, 12, 17, 0.5) 0%, rgba(11, 12, 17, 0.15) 30%, rgba(11, 12, 17, 0.96) 76%);
-  }
-  .led-hero-photo { background-position: center 28%; }
-  /* mobile: l'imbuto resta INTERO — folla, collo, mete accanto. Le mete
-     sotto rompevano la lettura: la figura dice "incanalati VERSO", e un
-     "verso" che va a capo non e' piu' un imbuto. Si stringono, non si
-     spostano. */
-  .led-conv-wrap { min-height: 300px; }
-  .led-dests { width: 32%; gap: 6px; }
-  .led-dest {
-    min-width: 0; max-width: 100%; padding: 7px 10px; font-size: 11px; gap: 5px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex;
-  }
-  .led-dest .pin { flex: none; }
-  .led-dest .pin svg { width: 10px; height: 10px; }
-  .led-conv-cap { font-size: 9.5px; letter-spacing: 0.1em; }
-  .led-funnel { width: 10px; height: 10px; }
-  .led-person { width: 5px; height: 5px; }
-  .led-proof-pair { grid-template-columns: 1fr; gap: var(--gap-2); }
-  .led-tripcard { min-height: 0; padding: var(--gap-3); }
-  .led-swap { position: static; transform: none; margin: 0 auto; }
-  .led-track { grid-auto-flow: row; grid-auto-columns: auto; gap: var(--gap-3); padding-top: 0; }
-  .led-track::before, .led-track::after { display: none; }
-  /* il filo diventa verticale, lungo la colonna delle miniature */
-  /* il filo scende nello spazio FRA miniatura e testo (88px + gap 24 → 100px):
-     dentro la miniatura sembrava un bollino appiccicato sulla foto */
-  .led-stop { padding-top: 0; }
-  .led-stop::before {
-    content: ""; position: absolute; left: 100px; top: 50%; bottom: -26px; width: 1px;
-    background: var(--led-accent); opacity: 0.45;
-  }
-  .led-stop:last-child::before { display: none; }
-  .led-stop.next { --dash: 1; }
-  .led-stop:nth-last-child(2)::before {
-    background: repeating-linear-gradient(180deg, var(--led-accent-2) 0 4px, transparent 4px 9px);
-    opacity: 1;
-  }
-  .led-stop-node { top: 50%; left: 100px; transform: translate(-50%, -50%); z-index: 2; width: 9px; height: 9px; }
-  .led-stop { grid-template-columns: 88px 1fr; align-items: center; gap: var(--gap-3); }
-  .led-stop-img { grid-row: span 2; width: 88px; height: 60px; }
-  .led-tools { max-width: none; }
-  .led-msg { max-width: 92%; }
-  .led-pick { min-height: 360px; }
-  .led-pick-why .w { font-size: 13.5px; }
-  .led-journal { grid-auto-flow: column; }
-  .led-footer-grid { grid-template-columns: 1fr 1fr; }
-  .led-footer-grid > :first-child { grid-column: 1 / -1; }
-  .led-chain { flex-wrap: wrap; justify-content: center; gap: var(--gap-3); }
-  .led-chain-step { flex: 0 0 27%; }
-  .led-chain-link { display: none; }
-  .led-hero-row .led-btn { width: 100%; justify-content: center; }
-  .led-end { min-height: 68svh; padding: var(--sp-3) 0; }
-  .led-end-veil {
-    background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.62) 34%, rgba(11, 12, 17, 0.9) 100%);
-  }
-  .led-chain-step::after { content: none; }
+@media (max-width: 700px) {
+  .led-container { width: min(100% - 32px, 600px); }
+  .led h1 { font-size: clamp(38px, 11vw, 54px); line-height: 1.01; }
+  .led h2, .led-feature-copy h2 { font-size: clamp(34px, 9.8vw, 46px); line-height: 1.06; }
+  .led-narr { font-size: 16px; line-height: 1.65; }
+  .led-hero { min-height: 88svh; padding: 116px 0 92px; align-items: end; }
+  .led-hero-veil { background: linear-gradient(180deg, rgba(8, 9, 13, 0.2) 0%, rgba(8, 9, 13, 0.78) 47%, rgba(8, 9, 13, 0.98) 100%); }
+  .led-hero h1 { margin: 18px 0 24px; max-width: 12ch; }
+  .led-hero .led-narr { margin-bottom: 28px; }
+  .led-hero-row { align-items: flex-start; gap: 15px; }
+  .led-hero-note { max-width: 200px; }
   .led-scroll { display: none; }
+
+  .led-feature { padding: 84px 0; }
+  .led-scene-photo { opacity: 0.4; }
+  .led-scene-veil, .led-feature:nth-of-type(odd) .led-scene-veil { background: linear-gradient(180deg, var(--led-bg) 0%, rgba(11, 12, 17, 0.82) 14%, rgba(11, 12, 17, 0.9) 86%, var(--led-bg) 100%); }
+  .led-feature-grid { gap: 36px; }
+  .led-chapter { margin-bottom: 18px; }
+  .led-feature-copy h2 { margin-bottom: 22px; }
+  .led-feature-body { font-size: 15.5px; line-height: 1.68; }
+  .led-feature-thesis { margin-top: 22px; padding: 15px 0 15px 17px; font-size: 17px; }
+  .led-product { padding: 14px; border-radius: 20px; backdrop-filter: blur(12px); }
+  .led-product-caption { margin-top: 11px; font-size: 8.5px; }
+
+  .led-understand-product { min-height: 0; }
+  .led-understand-flow { min-height: 0; display: block; padding: 20px 0 4px; }
+  .led-profile-snapshot { padding: 15px; }
+  .led-flow-bridge { width: 1px; height: 32px; margin: 0 auto; flex-direction: column; }
+  .led-flow-bridge i { width: 1px; height: 100%; background: linear-gradient(var(--led-line), var(--led-accent)); }
+  .led-flow-bridge span { margin: -7px 0 0; transform: rotate(90deg); }
+  .led-snapshot-kicker { margin-bottom: 10px; }
+  .led-match-photo { height: 95px; }
+
+  .led-itinerary-product { min-height: 0; }
+  .led-itinerary-head { padding-top: 18px; }
+  .led-itinerary-head h3 { font-size: 22px; }
+  .led-itinerary-layout { grid-template-columns: 1fr; gap: 14px; }
+  .led-itinerary-stop { min-height: 64px; }
+  .led-reason-card { margin-left: 20px; }
+
+  .led-prompt-list { gap: 6px; }
+  .led-prompt-list span { padding: 9px 10px; font-size: 10.5px; }
+  .led-companion-product { min-height: 650px; padding-bottom: 14px; }
+  .led-companion-day { position: relative; left: auto; top: auto; width: 100%; min-height: 300px; padding: 20px 20px 72px; margin-top: 18px; }
+  .led-companion-panel { width: calc(100% - 28px); min-height: 410px; margin: -60px 0 0 auto; }
+  .led-chat-thread { min-height: 262px; }
+
+  .led-insight-list { gap: 8px 12px; }
+  .led-portrait-product { min-height: 0; }
+  .led-portrait-history { padding-top: 20px; }
+  .led-history-photo { height: 78px; }
+  .led-portrait-panel { padding: 18px; }
+  .led-portrait-panel h3 { font-size: 22px; }
+  .led-recognise { align-items: flex-start; flex-direction: column; }
+
+  .led-end { min-height: 76svh; padding: 110px 0; }
+  .led-end h1 { font-size: clamp(37px, 10.5vw, 52px); }
+  .led-footer { padding-top: 60px; }
+  .led-footer-grid { grid-template-columns: 1.35fr 1fr; gap: 34px 24px; }
+  .led-footer-base { align-items: flex-start; flex-direction: column; }
 }
 
-/* ── riduci movimento: il mondo si semplifica, non sparisce ── */
+@media (max-width: 430px) {
+  .led-container { width: calc(100% - 28px); }
+  .led-hero { padding-top: 104px; }
+  .led-hero-row { display: grid; }
+  .led-hero-row .led-btn { width: 100%; }
+  .led-hero-note { max-width: none; text-align: center; }
+  .led-product-topline { font-size: 8.5px; letter-spacing: 0.11em; }
+  .led-match-grid { gap: 5px; }
+  .led-match-card { padding: 5px 5px 8px; }
+  .led-match-photo { height: 78px; }
+  .led-match-name { font-size: 12px; }
+  .led-match-why { font-size: 7px; }
+  .led-prompt-list { grid-template-columns: 1fr; }
+  .led-companion-panel { width: calc(100% - 12px); }
+  .led-insight-list { grid-template-columns: 1fr; }
+  .led-history-photo { height: 66px; }
+  .led-history-trip b { font-size: 10.5px; }
+  .led-footer-grid { grid-template-columns: 1fr; gap: 28px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .led-scroll .ch, .led-conv .sig, .led-dest .nm,
-  .led-scene-photo, .led-hero-photo, .led-end-photo, .led-route .rt { animation: none !important; }
-  .led-conv .sig { display: none; }
-  .led *, .led *::before, .led *::after { transition-duration: 0.01ms !important; }
+  .led-hero-photo, .led-scroll .ch { animation: none !important; }
+  .led *, .led *::before, .led *::after { scroll-behavior: auto !important; }
 }
