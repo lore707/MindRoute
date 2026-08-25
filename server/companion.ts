@@ -97,22 +97,29 @@ export function tripPhaseInfo(itin: Itinerary): {
 }
 
 // ── L1/L2 signal block ──────────────────────────────────────────────────────
-// What the user literally told us in the two onboarding levels, so the companion
-// is the natural continuation of the funnel — not a generic chatbot.
-//   L1 = the quick quiz (sensation/mode/duration/total budget).
-//   L2 = progressive refinement (pace/companions/lodging/food/movement/avoid…).
-// We also surface which L2 dimensions are STILL OPEN so the bot can close them
-// conversationally and re-tune the plan.
+// What the user literally told us in the fast quiz and later refinement, so the
+// companion continues the funnel instead of behaving like a generic chatbot.
 function profilingSignalBlock(itin: Itinerary, lang: "en" | "it"): string {
   const p = (itin as any).profilingInput as any;
   if (!p || typeof p !== "object") return "";
   const l1 = p._l1 ?? {};
+  const fast = p.fastProfile?.schema === "fast-v2" ? p.fastProfile : null;
   const parts: string[] = [];
-  if (l1.sensation) parts.push(`feeling they're after: ${l1.sensation}`);
-  if (l1.mode) parts.push(`entry: ${l1.mode === "meta" ? "had a destination in mind" : "asked to be surprised"}`);
-  if (l1.city) parts.push(`stated place: ${l1.city}`);
+  if (fast) {
+    parts.push(`trip intent (WHY): ${fast.intentions.join(", ")}`);
+    parts.push(`experience interests (HOW): ${fast.interests.join(", ")}`);
+    parts.push(`direction: ${fast.direction.mode}${fast.direction.place ? ` — ${fast.direction.place} (${fast.direction.flexibility})` : ""}${fast.direction.region ? ` — ${fast.direction.region}` : ""}`);
+    parts.push(`travel shape: ${fast.companions}, ${fast.pace} pace, ${fast.duration.minDays}-${fast.duration.maxDays} days`);
+    parts.push(`timing: ${fast.dates.mode === "exact" ? fast.dates.date : `flexible — ${fast.dates.period}`}; departing from ${fast.departure}`);
+    if (fast.avoid.length) parts.push(`HARD boundaries: ${fast.avoid.join(", ")}`);
+    if (fast.note) parts.push(`traveler's own note (literal constraints are hard): ${fast.note}`);
+  } else {
+    if (l1.sensation) parts.push(`feeling they're after: ${l1.sensation}`);
+    if (l1.mode) parts.push(`entry: ${l1.mode === "meta" ? "had a destination in mind" : "asked to be surprised"}`);
+    if (l1.city) parts.push(`stated place: ${l1.city}`);
+  }
   if (typeof p.budgetTotalPerPerson === "number" && p.budgetTotalPerPerson > 0) {
-    parts.push(`TOTAL budget target: €${Math.round(p.budgetTotalPerPerson)} per person, all-in excl. flights — they care about hitting it; check the plan against it when money comes up`);
+    parts.push(`TOTAL budget target: EUR ${Math.round(p.budgetTotalPerPerson)} per person, ${p.budgetIncludesFlights ? "including" : "excluding"} flights; verify the plan against it when money comes up`);
   }
   if (p.days) parts.push(`duration: ${p.days} days`);
 
@@ -121,7 +128,7 @@ function profilingSignalBlock(itin: Itinerary, lang: "en" | "it"): string {
     const cov = computeCoverage(p);
     if (cov.open.length > 0) {
       const labels = cov.open.map((d) => (lang === "it" ? d.label_it : d.label_en)).join(", ");
-      openLine = `\nStill UNANSWERED about them (L2 gaps — ${cov.pct}% complete): ${labels}. When it helps the trip, gently ask ONE of these and, once answered, actually re-tune the plan (you can edit it).`;
+      openLine = `\nOptional details not yet known: ${labels}. Do NOT run a questionnaire. Ask at most ONE only when it would materially improve the requested change, summarize what you understood, then apply targeted edits instead of regenerating the whole trip.`;
     } else {
       openLine = `\nTheir profile is fully filled (100%).`;
     }
@@ -129,9 +136,10 @@ function profilingSignalBlock(itin: Itinerary, lang: "en" | "it"): string {
 
   if (parts.length === 0 && !openLine) return "";
   return `\n═══════════════════════════════════════
-WHAT THEY TOLD US (their onboarding — L1 quick quiz + L2 refinement)
+WHAT THEY TOLD US (authoritative Fast Quiz + optional conversational refinement)
 ═══════════════════════════════════════
-${parts.length ? "- " + parts.join("\n- ") : "(no quick-quiz detail on file)"}${openLine}`;
+${parts.length ? "- " + parts.join("\n- ") : "(no quick-quiz detail on file)"}${openLine}
+REFINEMENT PROTOCOL: acknowledge the existing profile; ask only for information that changes a concrete decision; persist explicit new preferences with remember_trip_preferences; state the proposed change before using edit tools; preserve every unrelated day and every hard boundary.`;
 }
 
 // ── Itinerary digest ───────────────────────────────────────────────────────
@@ -293,9 +301,8 @@ ${digest}`;
 }
 
 // ── Fase 2: agentic tools ──────────────────────────────────────────────────
-// Two safe, high-value tools. save_moment is reversible (delete from account)
-// and internal; find_nearby is read-only. Heavier/destructive actions (day
-// rebuilds) stay out until v2 has a proper regen path.
+// Tools keep conversational refinement targeted: preferences are persisted
+// separately from itinerary edits, so learning never forces a full rebuild.
 const COMPANION_TOOLS = [
   {
     name: "save_moment",
@@ -385,6 +392,22 @@ const COMPANION_TOOLS = [
     },
   },
   {
+    name: "remember_trip_preferences",
+    description:
+      "Persist NEW preferences the traveller explicitly reveals for THIS trip. Use after you have understood a concrete preference, especially during refinement. Save only fields they actually stated; never infer missing values. After saving, use targeted edit tools if the current plan needs to change.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        pace: { type: "string", enum: ["slow", "balanced", "intense"], description: "Desired trip pace, only when explicit." },
+        accommodation: { type: "string", description: "Accommodation preference in the traveller's own words." },
+        food: { type: "string", description: "Food or dining preference in the traveller's own words." },
+        movement: { type: "string", description: "Preferred local transport or movement style." },
+        avoid: { type: "array", items: { type: "string" }, maxItems: 2, description: "Up to two explicit hard boundaries to avoid." },
+        note: { type: "string", description: "One additional explicit trip preference not covered above." },
+      },
+    },
+  },
+  {
     name: "set_trip_status",
     description:
       "Record whether the traveller ACTUALLY went on this trip, once its dates have passed. Call it after they tell you they made it ('confirmed') or that they didn't go ('skipped'). This is what turns their profile from intention into real, revealed preference — call it as soon as their answer is clear, then continue the conversation naturally.",
@@ -436,6 +459,8 @@ export interface CompanionToolContext {
   saveDays?: (days: any[]) => Promise<void>;
   // Persiste giorni + tripMeta (per ri-allineare i pin mappa dopo un edit).
   saveTrip?: (days: any[], tripMeta: any) => Promise<void>;
+  // Salva preferenze emerse in chat senza rigenerare l'itinerario.
+  saveProfile?: (profilingInput: any) => Promise<void>;
   // Registra se il viaggio è stato fatto (confirmed) o no (skipped).
   setTripStatus?: (status: "confirmed" | "skipped") => Promise<void>;
 }
@@ -598,6 +623,49 @@ async function executeTool(
       console.error("[companion] set_trip_status error:", e);
       return { result: "Couldn't record it; continue without.", label: it ? "Non registrato" : "Not recorded" };
     }
+  }
+
+  if (name === "remember_trip_preferences") {
+    if (!ctx.saveProfile) return { result: "Saving preferences is unavailable here.", label: it ? "Preferenze non salvate" : "Preferences not saved" };
+    const previous = { ...(((ctx.itinerary as any).profilingInput ?? {}) as Record<string, any>) };
+    const fast = previous.fastProfile?.schema === "fast-v2" ? { ...previous.fastProfile } : null;
+    const saved: string[] = [];
+
+    if (["slow", "balanced", "intense"].includes(String(input?.pace))) {
+      previous.pace = input.pace;
+      if (fast) fast.pace = input.pace;
+      saved.push("pace");
+    }
+    for (const field of ["accommodation", "food", "movement"] as const) {
+      const value = String(input?.[field] ?? "").trim().slice(0, 240);
+      if (value) {
+        previous[field] = value;
+        saved.push(field);
+      }
+    }
+    const avoid = Array.isArray(input?.avoid)
+      ? input.avoid.map((value: unknown) => String(value).trim()).filter(Boolean).slice(0, 2)
+      : [];
+    if (avoid.length) {
+      previous.avoid = avoid;
+      if (fast) fast.avoid = avoid;
+      saved.push("avoid");
+    }
+    const note = String(input?.note ?? "").trim().slice(0, 500);
+    if (note) {
+      previous.refinementNote = note;
+      if (fast) fast.note = note;
+      saved.push("note");
+    }
+    if (!saved.length) return { result: "No explicit preference was provided, so nothing was saved.", label: it ? "Nessuna nuova preferenza" : "No new preference" };
+
+    if (fast) previous.fastProfile = fast;
+    (ctx.itinerary as any).profilingInput = previous;
+    await ctx.saveProfile(previous);
+    return {
+      result: `Saved explicit trip preferences: ${saved.join(", ")}. Keep all unrelated choices unchanged; use a targeted itinerary edit only if needed.`,
+      label: it ? "Preferenze del viaggio aggiornate" : "Trip preferences updated",
+    };
   }
 
   if (name === "remove_moment" || name === "replace_moment" || name === "add_moment" || name === "regenerate_day") {

@@ -14,6 +14,7 @@ export interface IStorage {
   setItineraryPublicToken(id: number, token: string): Promise<void>;
  updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void>;
   updateItineraryTrip(id: number, updatedDays: any[], tripMeta: any): Promise<void>;
+  updateItineraryProfile(id: number, profilingInput: any): Promise<void>;
   // Aggiorna SOLO il tripMeta (jsonb) — usato per consolidare le date reali del
   // viaggio senza toccare i giorni. Il chiamante passa il meta già fuso.
   updateItineraryTripMeta(id: number, tripMeta: any): Promise<void>;
@@ -116,6 +117,13 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     const idx = this.itineraries.findIndex(i => i.id === id);
     if (idx >= 0) {
       this.itineraries[idx] = { ...this.itineraries[idx], days: updatedDays, tripMeta };
+    }
+  }
+
+  async updateItineraryProfile(id: number, profilingInput: any): Promise<void> {
+    const idx = this.itineraries.findIndex(i => i.id === id);
+    if (idx >= 0) {
+      this.itineraries[idx] = { ...this.itineraries[idx], profilingInput } as Itinerary;
     }
   }
 

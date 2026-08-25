@@ -87,6 +87,8 @@ export function registerProfilingRoutes(app: Express) {
               budget: input.budget ?? null,
               travelStyle: input.travelStyle ?? null,
               constraints: input.constraints ?? null,
+              quizVersion: input.quizVersion ?? null,
+              fastProfile: input.fastProfile ?? null,
             },
           });
         } catch (e) {

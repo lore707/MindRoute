@@ -63,6 +63,8 @@ export async function recordPickSnapshot(args: {
         budget: profilingInput.budget ?? null,
         travelStyle: profilingInput.travelStyle ?? null,
         constraints: profilingInput.constraints ?? null,
+        quizVersion: profilingInput.quizVersion ?? null,
+        fastProfile: profilingInput.fastProfile ?? null,
       },
     });
     // Log di successo (prima la scrittura era muta: impossibile distinguere

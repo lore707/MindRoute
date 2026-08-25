@@ -51,6 +51,10 @@ export class DatabaseStorage implements IStorage {
     await db.update(itineraries).set({ days: updatedDays, tripMeta }).where(eq(itineraries.id, id));
   }
 
+  async updateItineraryProfile(id: number, profilingInput: any): Promise<void> {
+    await db.update(itineraries).set({ profilingInput }).where(eq(itineraries.id, id));
+  }
+
   async updateItineraryTripMeta(id: number, tripMeta: any): Promise<void> {
     await db.update(itineraries).set({ tripMeta }).where(eq(itineraries.id, id));
   }

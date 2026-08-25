@@ -358,6 +358,8 @@ export const traitSnapshots = pgTable("trait_snapshots", {
     budget: string | null;
     travelStyle: string | null;
     constraints: string | null;
+    quizVersion?: string | null;
+    fastProfile?: FastProfile | null;
   } | null>(),
 });
 export type TraitSnapshot = typeof traitSnapshots.$inferSelect;
@@ -430,6 +432,40 @@ export const chatMessages = pgTable("chat_messages", {
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = typeof chatMessages.$inferInsert;
 
+export const fastProfileSchema = z.object({
+  schema: z.literal("fast-v2"),
+  direction: z.object({
+    mode: z.enum(["fixed", "region", "open"]),
+    place: z.string().max(120).optional(),
+    region: z.string().max(60).optional(),
+    flexibility: z.enum(["required", "inspiration"]),
+  }),
+  intentions: z.array(z.string().max(40)).min(1).max(2),
+  interests: z.array(z.string().max(40)).min(1).max(2),
+  companions: z.enum(["solo", "couple", "friends", "family"]),
+  pace: z.enum(["slow", "balanced", "intense"]),
+  duration: z.object({
+    id: z.string().max(30),
+    minDays: z.number().int().min(2).max(14),
+    maxDays: z.number().int().min(2).max(14),
+    days: z.number().int().min(2).max(14),
+  }),
+  dates: z.object({
+    mode: z.enum(["exact", "flexible"]),
+    date: z.string().max(20).optional(),
+    period: z.string().max(40).optional(),
+  }),
+  budget: z.object({
+    tier: z.enum(["low", "medium", "high", "unlimited"]),
+    totalPerPerson: z.number().positive().max(100000).optional(),
+    includesFlights: z.boolean(),
+  }),
+  departure: z.string().min(2).max(120),
+  avoid: z.array(z.string().max(40)).max(2),
+  note: z.string().max(500).optional(),
+});
+export type FastProfile = z.infer<typeof fastProfileSchema>;
+
 export const profilingRequestSchema = z.object({
   answers: z.array(z.string()),
   days: z.number(),
@@ -442,6 +478,11 @@ export const profilingRequestSchema = z.object({
   lang: z.string().optional(),
   // Budget totale a persona dichiarato in L1 (€, tutto incluso, voli esclusi).
   budgetTotalPerPerson: z.number().positive().optional(),
+  budgetIncludesFlights: z.boolean().optional(),
+  pace: z.string().optional(),
+  avoid: z.array(z.string()).max(20).optional(),
+  quizVersion: z.string().max(30).optional(),
+  fastProfile: fastProfileSchema.optional(),
 });
 export type ProfilingRequest = z.infer<typeof profilingRequestSchema>;
 // Daily Compass — risposte alle card "reflection" della home (micro

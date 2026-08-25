@@ -330,7 +330,7 @@ function v2OutputSection(input: ProfilingInput): string {
   const budgetTargetBlock = budgetTarget ? `
 7b. TARGET BUDGET (traveler-stated — TREAT AS THE BUDGET SPINE)
    - The traveler set a TOTAL budget of €${budgetTarget} per person for the WHOLE trip,
-     everything included EXCEPT international flights.
+     everything included ${input.budgetIncludesFlights ? "INCLUDING" : "EXCEPT"} international flights.
    - DECOMPOSE it logically: split €${budgetTarget} across lodging, food, activities/
      experiences and local transport in proportions that fit ${days} days AND this
      destination's REAL price level — a cheap country and an expensive one must never

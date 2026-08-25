@@ -29,7 +29,6 @@ import { setLastOpenedItinerary } from "@/lib/last-opened";
 import { ItineraryCinematic, type ItineraryData, type Highlight as CinHighlight, type Day as CinDay, type Moment as CinMoment } from "@/components/ItineraryCinematic";
 import { trackAffiliate, affiliateProvider } from "@/lib/analytics";
 import { ItineraryFlow } from "@/components/ItineraryFlow";
-import { RefinePanel } from "@/components/RefinePanel";
 
 // ── URL BUILDER ───────────────────────────────────────────────────────────────
 export function buildAffiliateUrls(destinationName: string, profilingInput: any, region: string, topLinks: Record<string, string>): Record<string, string> {
@@ -1240,14 +1239,6 @@ export default function Itinerary() {
             }}
           />
         </div>
-        {/* L2 — raffinamento progressivo con rigenerazione (solo itinerari v2). */}
-        <RefinePanel
-          itineraryId={itinerary.id}
-          profilingInput={profilingInput}
-          schemaVersion={(itinerary as any).schemaVersion ?? 1}
-          lang={lang as "it" | "en"}
-          onRefined={refetch}
-        />
       </>
     );
   }

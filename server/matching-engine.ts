@@ -4,6 +4,7 @@ import { AFFILIATES, rewriteDayAffiliateLinks } from "./affiliate-config";
 import { getExperienceBank, formatExperienceBankBlock, resolveGroundingBlock } from "./experience-bank";
 import { buildTransportBlock } from "./transport-planner";
 import { graphGenEnabled } from "./graph-build";
+import type { FastProfile } from "@shared/schema";
 
 export const BUDGET_MAP: Record<string, string> = {
   "low":                        "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
@@ -36,6 +37,34 @@ export interface ProfilingInput {
   // Budget totale a persona dichiarato in L1 (€, tutto incluso, voli esclusi).
   // Opzionale: se presente il generatore lo scompone e ne verifica la fattibilità.
   budgetTotalPerPerson?: number;
+  budgetIncludesFlights?: boolean;
+  pace?: string;
+  avoid?: string[];
+  quizVersion?: string;
+  fastProfile?: FastProfile;
+}
+
+function fastProfileRules(input: ProfilingInput): string {
+  const p = input.fastProfile;
+  if (!p || p.schema !== "fast-v2") return "";
+  const direction = p.direction.mode === "fixed"
+    ? p.direction.flexibility === "required"
+      ? `FIXED PLACE: ${p.direction.place}. This is a HARD geographic constraint. If it is a city, return three genuinely different ways to experience that exact city: keep the same geocodable name and put each angle in the tagline. If it is a country, region or island, return three distinct bases inside it. Never leave the named boundary.`
+      : `INSPIRATION DESTINATION: ${p.direction.place}. Use it as a strong clue, not a constraint. At least one option must answer this instinct; alternatives must explain why they preserve the same appeal.`
+    : p.direction.mode === "region"
+      ? `REGION BOUNDARY: ${p.direction.region}. All three destinations must be inside this region.`
+      : "OPEN WORLD: no geographic preference. Let fit, feasibility and freshness decide.";
+  return `
+FAST PROFILE v2 — DECISION POLICY
+${direction}
+1. HARD FILTERS (pass/fail before ranking): departure and realistic reachability for ${p.duration.minDays}-${p.duration.maxDays} days; exact date or stated flexible period; declared total budget; every item in avoid; and the free note when it describes accessibility, health, children, diet or a must-have.
+2. PRIMARY FIT: intentions (${p.intentions.join(", ")}) describe WHY this trip must exist. They drive destination character and the emotional arc.
+3. EXPERIENCE FIT: interests (${p.interests.join(", ")}) describe HOW the intent should be lived. They drive the concrete experience mix, not generic sightseeing.
+4. TRIP SHAPE: companions=${p.companions}; pace=${p.pace}. These control transfers, base count, daily density, opening hours and recovery time.
+5. BUDGET: tier=${p.budget.tier}${p.budget.totalPerPerson ? `; total €${p.budget.totalPerPerson}/person ${p.budget.includesFlights ? "INCLUDING" : "EXCLUDING"} international flights` : ""}. Never call an option compatible without doing a rough feasibility check.
+6. CONFLICT RULE: hard filters always win. Preserve two distinct intentions as an intentional sequence or alternation; never average them into a generic middle.
+7. EXPLANATION RULE: each result must say which intent, interest and practical constraint made it fit, plus one honest compromise. Never infer unsupported personality traits.
+`;
 }
 
 const affiliateLinksSchema = z.record(z.string(), z.string()).optional();
@@ -252,18 +281,19 @@ export function buildPrompt(input: ProfilingInput, priorBlock = "", groundingBlo
   const curatedFallback = destOverride ? getExperienceBank(destOverride) : null;
   const bankBlock = groundingBlock || (curatedFallback ? formatExperienceBankBlock(curatedFallback, input.lang || "en") : "");
 
+  const fastRules = fastProfileRules(input);
   return `You are the engine of MindRoute, a psychological travel profiling platform. Your goal is not to generate a generic itinerary — it is to create the most personally resonant travel experience possible for this specific human being.
 
 ═══════════════════════════════════════
 USER PROFILE — READ EVERY LINE CAREFULLY
 ═══════════════════════════════════════
 Path: ${path}
-Budget: ${budgetText} — ABSOLUTE CONSTRAINT. Never violate this under any circumstance.${typeof input.budgetTotalPerPerson === "number" && input.budgetTotalPerPerson > 0 ? `\nStated total budget: €${input.budgetTotalPerPerson} per person, all-in EXCLUDING international flights — never propose a destination structurally incompatible with this figure for the given days; verify the math.` : ""}
+Budget: ${budgetText} — ABSOLUTE CONSTRAINT. Never violate this under any circumstance.${typeof input.budgetTotalPerPerson === "number" && input.budgetTotalPerPerson > 0 ? `\nStated total budget: €${input.budgetTotalPerPerson} per person, all-in ${input.budgetIncludesFlights ? "INCLUDING" : "EXCLUDING"} international flights — never propose a destination structurally incompatible with this figure for the given days; verify the math.` : ""}
 Departing from: ${input.departure} | Days: ${days} | Period: ${period}
 Travel companions: ${input.companions || "not specified"}
 Travel style preference: ${travelStyle}
 Constraints & preferences: ${input.constraints || "none"}
-${structuredProfileBlock ? `${useGraph ? "FACTS — logistics (authoritative, hard constraints)" : "Structured profile (JSON)"}:\n${structuredProfileBlock}\n\n` : ""}${useGraph ? "" : `Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}`}
+${structuredProfileBlock ? `${useGraph ? "STRUCTURED PROFILE — explicit facts and preferences" : "Structured profile (JSON)"}:\n${structuredProfileBlock}\n\n` : ""}${fastRules}${useGraph ? "" : `Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}`}
 ${(input as any)._destinationOverride ? `\nDESTINATION ALREADY CHOSEN: ${(input as any)._destinationOverride} — generate the itinerary ONLY for this specific destination. Do not suggest alternatives.` : ''}
 ${bankBlock}${useGraph ? graphBlock : priorBlock}${transportBlock ? `\n${transportBlock}` : ""}
 TASK: Generate exactly 1 perfectly personalized destination with a ${days}-day itinerary.
@@ -946,6 +976,7 @@ export async function generateDestinationsOnly(input: ProfilingInput, priorBlock
     : "Path A (open to surprises)";
 
   const budgetText = BUDGET_MAP[input.budget] || `budget: ${input.budget}`;
+  const fastRules = fastProfileRules(input);
 
   // FRESHNESS — vary results across users/sessions without sacrificing fit.
   //  · userSeenNames = ciò che il matcher ha GIÀ MOSTRATO a QUESTO utente →
@@ -979,7 +1010,7 @@ Path: ${path}
 Budget: ${budgetText}
 Departing from: ${input.departure} | Period: ${input.leaveDate} | Days: ${input.days}
 Travel companions: ${input.companions || "not specified"}
-${structuredProfileBlock ? `Structured profile (AUTHORITATIVE — mirrors exactly what the user confirmed on screen, question by question. Read EVERY top-level field AND every field inside the nested "logistics" object: budget, when, duration, companions+group, departure, movement, accommodation, food, physical_effort, diet, notes. Treat each as a hard constraint; never drop or override one with a typical-traveler assumption):\n${structuredProfileBlock}\n\n` : ""}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
+${structuredProfileBlock ? `Structured profile (AUTHORITATIVE record of what the user confirmed. Explicit constraints are hard; intentions and interests are ranking signals. Never replace either with typical-traveler assumptions):\n${structuredProfileBlock}\n\n` : ""}${fastRules}Quiz answers: ${profileAnswers.map((a, i) => `Q${i + 1}: ${a}`).join(" | ")}
 ${priorBlock}
 ${freshnessBlock}
 ${pinned && pinned.trim().length > 0 ? `
@@ -1236,6 +1267,7 @@ DIVERSITY REQUIREMENT:
 - 3 different countries if possible (or 3 clearly distinct regions)
 - 3 different emotional tones or geographic contexts
 - Never repeat the same destination type across all 3 slots
+- Exception: when FAST PROFILE v2 fixes a city, geographic repetition is required; diversity must come from three coherent trip angles. When it fixes a country/region/island, diversify only inside that boundary.
 
 ANTI-REPETITION CHECK — before finalizing:
 - Are any of the 3 destinations Georgia/Tbilisi, Morocco/Marrakech, Albania, Montenegro? If yes: is this genuinely the BEST fit for this specific profile, better than all alternatives? If not → replace.

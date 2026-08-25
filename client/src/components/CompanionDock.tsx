@@ -8,7 +8,7 @@ import { fetchMe } from "@/hooks/use-auth";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 
 // Tool che modificano il piano: dopo questi, l'itinerario aperto va ricaricato.
-const PLAN_EDIT_TOOLS = new Set(["remove_moment", "replace_moment", "add_moment", "regenerate_day"]);
+const PLAN_EDIT_TOOLS = new Set(["remove_moment", "replace_moment", "add_moment", "regenerate_day", "remember_trip_preferences"]);
 
 type Msg = { role: "user" | "assistant" | "tool"; content: string };
 
@@ -21,9 +21,6 @@ type CompanionContext = {
   totalDays?: number;
   daysToDeparture?: number;
   destination: string | null;
-  budgetTotalPerPerson: number | null;
-  l2OpenCount: number;
-  l2NextLabel: { it: string; en: string } | null;
 };
 
 // Posizione del launcher trascinabile, persistita fra sessioni.
@@ -77,7 +74,7 @@ export function CompanionDock() {
     fetchMe().then(u => setLoggedIn(!!u));
   }, []);
 
-  // Handoff da L2 (RefinePanel) → apri il companion come passo successivo del funnel.
+  // Entry point condiviso: dashboard, ritratto e itinerario aprono lo stesso companion.
   useEffect(() => {
     const onOpen = () => setOpen(true);
     window.addEventListener("mindroute:open-companion", onOpen);
@@ -314,8 +311,8 @@ export function CompanionDock() {
         ? `Bentornato. Salviamo i momenti che hai amato di ${dest ?? "questo viaggio"} e pensiamo al prossimo.`
         : `Welcome back. Let's save the moments you loved from ${dest ?? "this trip"} and think about the next one.`)
     : (itLang
-        ? `Il piano per ${dest ?? "il tuo viaggio"} c'è. Rifiniamolo insieme prima di partire — posso modificarlo davvero e cercare alternative sul web in tempo reale.`
-        : `Your plan for ${dest ?? "your trip"} is ready. Let's perfect it before you go — I can actually edit it and research real alternatives on the live web.`);
+        ? `Il primo piano per ${dest ?? "il tuo viaggio"} è già costruito sui tuoi bisogni, interessi e confini. Se vuoi, lo rendiamo ancora più tuo con poche domande mirate — senza ricominciare da zero.`
+        : `Your first plan for ${dest ?? "your trip"} already reflects your needs, interests and boundaries. If you want, we can make it even more yours with a few targeted questions — without starting over.`);
 
   // Chip d'ingresso seminati da fase + L1/L2: portano l'utente verso le azioni
   // giuste (rifinire/verificare prima, consulenza sul posto durante).
@@ -331,15 +328,12 @@ export function CompanionDock() {
       itLang ? "Salva i momenti che ho amato" : "Save the moments I loved",
       itLang ? "Dammi un'idea per il prossimo viaggio" : "An idea for my next trip",
     ];
-    // before / unknown → perfeziona
-    const c: string[] = [];
-    c.push(ctx.budgetTotalPerPerson
-      ? (itLang ? `Il budget di €${Math.round(ctx.budgetTotalPerPerson)} regge davvero?` : `Does my €${Math.round(ctx.budgetTotalPerPerson)} budget really hold?`)
-      : (itLang ? "Quanto spenderò davvero?" : "What will I really spend?"));
-    if (ctx.l2OpenCount > 0) c.push(itLang ? "Cosa manca per renderlo davvero mio?" : "What's missing to make it truly mine?");
-    c.push(itLang ? "Alleggerisci il giorno più pieno" : "Lighten the busiest day");
-    c.push(itLang ? "Cerca un'alternativa sul web" : "Find an alternative on the web");
-    return c;
+    return [
+      itLang ? "Rendilo ancora più mio" : "Make it feel even more mine",
+      itLang ? "Cambia una giornata" : "Change one day",
+      itLang ? "Aggiungi qualcosa che manca" : "Add something that's missing",
+      itLang ? "Alleggerisci il giorno più pieno" : "Lighten the busiest day",
+    ];
   })();
 
   return (

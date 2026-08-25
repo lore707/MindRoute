@@ -152,6 +152,18 @@ const CHIP_TRAITS: Record<string, Contrib> = {
 // trait engine from i18n drift and keeps weights stable across languages.
 
 const LABEL_TO_KEY: Record<string, string> = {
+  // Canonical tokens emitted by QuizFast v2. Keeping these self-mapped means
+  // the trait engine reads the structured payload without depending on UI copy.
+  "disconnect": "disconnect", "recharge": "recharge", "alive": "alive",
+  "slowdown": "slowdown", "surprise": "surprise",
+  "findself": "findself", "change": "change",
+  "nature": "nature", "culture": "culture", "food": "food", "beach": "beach",
+  "city": "city", "offgrid": "offgrid",
+  "crowded": "crowded", "schedules": "schedules", "transits": "transits",
+  "mornings": "mornings", "nightlife": "nightlife", "resort": "resort",
+  "guided": "guided", "toomuchwalking": "toomuchwalking",
+  "tooexpensive": "tooexpensive", "museums": "museums",
+
   // a.q1 style (14)
   "selvaggio": "wild", "wild": "wild",
   "silenzioso": "quiet", "quiet": "quiet",

@@ -10,26 +10,14 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { requireAuth } from "../auth";
 import { buildCompanionSystem, runCompanionAgent, itineraryCoords, tripPhaseInfo, type ChatTurn, type CompanionToolContext } from "../companion";
-import { computeCoverage } from "@shared/profile-coverage";
 
 // Contesto leggero per i chip d'ingresso fase-aware del CompanionDock: la fase
-// del viaggio (perfeziona-prima vs consulente-durante) + i segnali L1/L2 che
-// rendono i suggerimenti su misura.
+// del viaggio determina se il bot rifinisce il piano o assiste sul posto.
 function companionContext(itin: any) {
-  const p = itin?.profilingInput ?? {};
   const { phase, dayNo, totalDays, daysToDeparture } = tripPhaseInfo(itin);
-  let l2OpenCount = 0;
-  let l2NextLabel: { it: string; en: string } | null = null;
-  try {
-    const cov = computeCoverage(p);
-    l2OpenCount = cov.open.length;
-    if (cov.open[0]) l2NextLabel = { it: cov.open[0].label_it, en: cov.open[0].label_en };
-  } catch { /* best-effort */ }
   return {
     phase, dayNo, totalDays, daysToDeparture,
     destination: itin?.destinationName ?? null,
-    budgetTotalPerPerson: typeof p?.budgetTotalPerPerson === "number" ? p.budgetTotalPerPerson : null,
-    l2OpenCount, l2NextLabel,
   };
 }
 
@@ -138,6 +126,7 @@ export function registerCompanionRoutes(app: Express) {
         },
         saveDays: (days) => storage.updateItineraryMapPoints(itinId, days),
         saveTrip: (days, tripMeta) => storage.updateItineraryTrip(itinId, days, tripMeta),
+        saveProfile: (profilingInput) => storage.updateItineraryProfile(itinId, profilingInput),
         setTripStatus: async (status) => {
           const merged = { ...((itin as any).tripMeta ?? {}), trip_status: status, trip_status_at: new Date().toISOString() };
           await storage.updateItineraryTripMeta(itinId, merged);

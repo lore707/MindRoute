@@ -38,7 +38,7 @@ type DimField = "pace" | "companions" | "accommodation" | "food" | "travelStyle"
 
 // Set di opzioni per ogni dimensione L2 → mappate sul campo profilo che il
 // generatore v2 sa leggere (vedi buildConstraintsFromProfile lato server).
-const OPTIONS: Record<Exclude<CoverageDimKey, "destination" | "duration" | "budget">, {
+const OPTIONS: Record<Exclude<CoverageDimKey, "destination" | "intent" | "interests" | "duration" | "budget">, {
   field: DimField;
   multi?: boolean;
   text?: boolean;
