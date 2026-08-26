@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 import type { Express } from "express";
+import { z } from "zod";
 import { storage } from "../storage";
 import { itineraryLimiter } from "../rate-limiter";
 import { generateItineraryV2ForDestination, type ItineraryV2 } from "../matching-engine-v2";
@@ -18,7 +19,7 @@ import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import { buildGraphBlock } from "../graph-build";
-import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory } from "../../shared/schema";
+import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory, DestinationContext } from "../../shared/schema";
 import { requireAuth } from "../auth";
 import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, klookExperienceSearchUrl, civitatisExperienceSearchUrl, musementExperienceSearchUrl, experienceProviderForRegion, type AffiliateContext } from "../affiliate-config";
 
@@ -412,7 +413,7 @@ export async function enrichItineraryV2(
 
 // tripMeta v2 da un itinerario arricchito — usato sia alla creazione che al
 // refine L2 (rigenerazione completa) così i due percorsi restano coerenti.
-export function buildTripMetaV2(v2: ItineraryV2): TripMetaV2 {
+export function buildTripMetaV2(v2: ItineraryV2, destinationContext?: DestinationContext): TripMetaV2 {
   return {
     ambient: (v2 as any).ambient_images ?? undefined,
     em_word: v2.em_word,
@@ -422,6 +423,7 @@ export function buildTripMetaV2(v2: ItineraryV2): TripMetaV2 {
     total_cost_range: v2.total_cost_range,
     map_points: v2.map_points,
     highlights_v2: v2.highlights,
+    destination_context: destinationContext,
   };
 }
 
@@ -438,8 +440,8 @@ function buildLegacyBudgetSummary(v2: ItineraryV2, lang: "it" | "en"): string {
   return JSON.stringify({ items });
 }
 
-function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: number | null, profilingInput: any): any {
-  const tripMeta = buildTripMetaV2(v2);
+function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: number | null, profilingInput: any, destinationContext?: DestinationContext): any {
+  const tripMeta = buildTripMetaV2(v2, destinationContext);
   return {
     destinationId,
     userId,
@@ -478,14 +480,27 @@ function itineraryV2ToInsert(v2: ItineraryV2, destinationId: number, userId: num
 // touch/refresh accidentali dell'utente.
 const inFlightV2 = new Map<number, Promise<{ id: number; itinerary: any }>>();
 
+const destinationContextSchema = z.object({
+  locationLine: z.string().trim().min(1).max(160),
+  placeType: z.string().trim().min(1).max(120),
+  factualSummary: z.string().trim().min(1).max(1200),
+  historyCulture: z.string().trim().min(1).max(1200),
+  distinctiveTraits: z.array(z.string().trim().min(1).max(100)).min(1).max(5),
+  tradeoff: z.string().trim().min(1).max(500),
+});
+
 export function registerItineraryGenV2Routes(app: Express) {
   app.post("/api/itinerary/generate-v2", requireAuth, itineraryLimiter, async (req, res) => {
     try {
-      const { input, destinationName, destinationId, tagline, whyYours, proposed } = req.body;
+      const { input, destinationName, destinationId, tagline, whyYours, proposed, destinationContext } = req.body;
       if (!input || !destinationName || !destinationId) {
         return res.status(400).json({ message: "Missing input, destinationName or destinationId" });
       }
       const destIdNum = Number(destinationId);
+      const parsedDestinationContext = destinationContextSchema.safeParse(destinationContext);
+      const trustedDestinationContext = parsedDestinationContext.success
+        ? parsedDestinationContext.data
+        : undefined;
 
       // 1) Idempotenza: se l'itinerario per questa meta esiste già (es. la prima
       //    richiesta è arrivata in fondo mentre il client si era ricaricato),
@@ -512,13 +527,16 @@ export function registerItineraryGenV2Routes(app: Express) {
         if (typeof tagline === "string" && tagline.trim()) {
           priorBlock += `\n\nTRIP ANGLE (mandatory): The traveler chose the "${tagline.trim()}" way to live ${destinationName}. Shape the ENTIRE itinerary around this character — every day, every moment must clearly express it. ${typeof whyYours === "string" && whyYours.trim() ? `Why it fits them: ${whyYours.trim()}` : ""}`.trim();
         }
+        if (trustedDestinationContext) {
+          priorBlock += `\n\nPLACE CONTEXT (factual orientation, do not contradict): ${JSON.stringify(trustedDestinationContext)}`;
+        }
         gen = (async () => {
           // Hero + pool foto partono ORA, in parallelo alla generazione LLM
           // (~2-3 min): quando l'enrichment ne ha bisogno sono già risolti.
           const prefetch = prefetchDestinationImages(destinationName);
           const rough = await generateItineraryV2ForDestination(input, destinationName, priorBlock, graphBlock);
           const enriched = await enrichItineraryV2(rough, destinationName, input, prefetch);
-          const insertRow = itineraryV2ToInsert(enriched, destIdNum, userId, input);
+          const insertRow = itineraryV2ToInsert(enriched, destIdNum, userId, input, trustedDestinationContext);
           const saved = await storage.createItinerary(insertRow);
           recordRecentDestination(destinationName).catch(() => {});
           // Revealed preference: la tripletta proposta col descrittore neutro

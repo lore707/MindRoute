@@ -1,23 +1,29 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, BookOpen, Compass, MapPin, X } from "lucide-react";
 import { getStoredDestinations } from "@/hooks/use-profiling";
-import { type Destination } from "@shared/schema";
+import { type Destination, type DestinationContext } from "@shared/schema";
 import { useI18n } from "@/lib/i18n";
 import { useTraitRecognition } from "@/hooks/use-trait-recognition";
 import { RecognitionBanner } from "@/components/RecognitionBanner";
 import { unsplashSized } from "@/lib/img";
-import { pressable } from "@/lib/pressable";
 import { getFlow, setPendingGen, getPendingGen, clearPendingGen } from "@/lib/flow-storage";
 import { track } from "@/lib/analytics";
 import { FlowNav } from "@/components/FlowNav";
 import { GenerationRitual } from "@/components/GenerationRitual";
 
+type DestinationMatch = Destination & {
+  neutralDescriptor?: string | null;
+  destinationContext?: DestinationContext | null;
+};
+
 export default function Destinations() {
   const { t, lang } = useI18n();
-  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [destinations, setDestinations] = useState<DestinationMatch[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-const [isGenerating, setIsGenerating] = useState(false);
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [genError, setGenError] = useState("");
   const [genMessage, setGenMessage] = useState("");
   const [genHeroUrl, setGenHeroUrl] = useState("");
@@ -28,6 +34,22 @@ const [isGenerating, setIsGenerating] = useState(false);
   // se v2 fallisce in produzione, eseguiamo comunque un fallback transparent
   // verso /api/itinerary/generate-stream più in basso.
   const forceLegacy = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("legacy") === "1";
+
+  const detailDestination = destinations.find((d) => d.id === detailId) ?? null;
+
+  useEffect(() => {
+    if (!detailDestination) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDetailId(null);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [detailDestination]);
 
   useEffect(() => {
     const stored = getStoredDestinations();
@@ -88,10 +110,12 @@ const [isGenerating, setIsGenerating] = useState(false);
     return () => { alive = false; window.clearTimeout(timer); };
   }, [lang, setLocation]);
 
-  // Click su una card = genera subito l'itinerario per quella meta.
+  // La generazione parte solo dalla conferma nel dettaglio: prima l'utente
+  // capisce il luogo, poi decide. Evita una scelta alla cieca e click accidentali.
   const handleSelect = (destId: number) => {
     if (isGenerating) return;
     setSelectedId(destId);
+    setDetailId(null);
     generateItinerary(destId);
   };
 
@@ -152,6 +176,7 @@ const generateItinerary = async (destId: number) => {
               // Angolo del viaggio (caso "città precisa") → modella l'itinerario.
               tagline: selectedDest.tagline ?? undefined,
               whyYours: selectedDest.whyYours,
+              destinationContext: selectedDest.destinationContext ?? undefined,
               // Tripletta proposta (nome + descrittore neutro): il server la usa
               // per il contrasto revealed-preference (scelta vs scartate). Non è
               // UX: dato che viaggia nel payload, non persistito lato destinations.
@@ -324,7 +349,7 @@ if (destinations.length === 0) return null;
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 md:gap-8 items-stretch">
         {destinations.map((dest, index) => (
-          <motion.div
+          <motion.article
             key={dest.id}
             initial={{ opacity: 0, y: 30 }}
             animate={{
@@ -333,10 +358,8 @@ if (destinations.length === 0) return null;
               scale: selectedId === dest.id ? 1.02 : 1,
             }}
             transition={{ delay: index * 0.1 }}
-            onClick={() => handleSelect(dest.id)}
-            {...pressable}
             data-testid={`card-dest-${dest.id}`}
-            className="group relative flex flex-col h-full rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#E94560] focus-visible:outline-offset-4"
+            className="group relative flex flex-col h-full rounded-2xl overflow-hidden transition-all duration-300"
             style={{
               background: "rgba(255,255,255,0.04)",
               border: `1px solid ${selectedId === dest.id ? "#E94560" : "rgba(255,255,255,0.10)"}`,
@@ -382,6 +405,26 @@ if (destinations.length === 0) return null;
             </div>
 
             <div className="flex-1 p-5 md:p-8 flex flex-col gap-5 md:gap-6">
+              <div>
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[1.8px] text-white/40 mb-2">
+                  <MapPin className="w-3.5 h-3.5 text-[#E94560]" />
+                  {dest.destinationContext?.locationLine || dest.destinationContext?.placeType || t("dest.context.label")}
+                </div>
+                <p className="font-sans text-[13px] md:text-sm leading-[1.65] text-white/[0.65] line-clamp-4">
+                  {dest.destinationContext?.factualSummary || dest.neutralDescriptor || dest.experiencePreview}
+                </p>
+              </div>
+
+              {dest.destinationContext?.distinctiveTraits?.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {dest.destinationContext.distinctiveTraits.map((trait) => (
+                    <span key={trait} className="px-2.5 py-1 rounded-full text-[10px] font-medium text-white/60 border border-white/10 bg-white/[0.035]">
+                      {trait}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
               <div className="space-y-1">
                 <h4 className="text-[10px] font-sans font-bold uppercase tracking-[2px]" style={{ color: "#E94560" }}>
                   {t("dest.why")}
@@ -400,20 +443,125 @@ if (destinations.length === 0) return null;
                 </p>
               </div>
 
-              {/* CTA esplicita: la card era cliccabile ma non lo DICEVA — il
-                  click più importante del funnel restava senza affordance.
-                  Div, non button: l'azione è il click sulla card (evita
-                  interactive annidato). */}
-              <div
+              {/* La scelta resta intenzionale: prima il contesto, poi la conferma. */}
+              <button
+                type="button"
+                onClick={() => setDetailId(dest.id)}
+                data-testid={`button-learn-dest-${dest.id}`}
                 className="mt-4 flex items-center justify-center gap-2 rounded-full py-3 text-[13px] font-semibold transition-all duration-300 group-hover:bg-[#E94560] group-hover:text-white"
                 style={{ border: "1px solid rgba(233,69,96,0.55)", color: "#F2899A" }}
               >
-                {t("dest.cta")} <span aria-hidden>→</span>
-              </div>
+                {t("dest.context.open")} <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
-          </motion.div>
+          </motion.article>
         ))}
       </div>
+
+      <AnimatePresence>
+        {detailDestination && (
+          <motion.div
+            className="fixed inset-0 z-[300] flex items-end md:items-center justify-center bg-black/75 backdrop-blur-md p-0 md:p-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={(event) => { if (event.target === event.currentTarget) setDetailId(null); }}
+          >
+            <motion.section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="destination-detail-title"
+              initial={{ opacity: 0, y: 28, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.98 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="relative w-full max-w-[1080px] max-h-[92vh] overflow-y-auto rounded-t-[28px] md:rounded-[28px] border border-white/10 bg-[#10131b] shadow-[0_30px_100px_rgba(0,0,0,0.65)]"
+            >
+              <button
+                type="button"
+                onClick={() => setDetailId(null)}
+                className="absolute top-4 right-4 z-30 w-10 h-10 rounded-full grid place-items-center bg-black/45 border border-white/15 text-white hover:bg-black/70 transition-colors"
+                aria-label={t("dest.context.close")}
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="grid md:grid-cols-[0.9fr_1.1fr] min-h-0">
+                <div className="relative min-h-[250px] md:min-h-[680px] overflow-hidden">
+                  <img
+                    src={unsplashSized(detailDestination.imageUrl, 1200)}
+                    alt={detailDestination.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#10131b] via-black/10 to-black/15 md:bg-gradient-to-r md:from-transparent md:via-transparent md:to-[#10131b]" />
+                  <div className="absolute left-6 right-6 bottom-6 md:left-8 md:bottom-9">
+                    <div className="text-[10px] font-bold uppercase tracking-[2.4px] text-white/[0.65] mb-2">
+                      {detailDestination.destinationContext?.locationLine || detailDestination.destinationContext?.placeType}
+                    </div>
+                    <h2 id="destination-detail-title" className="font-serif text-[32px] md:text-[46px] leading-[1.02] tracking-tight text-white">
+                      {detailDestination.name}
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="p-6 sm:p-8 md:p-12 flex flex-col">
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[2.5px] text-[#F2899A] mb-5">
+                    <Compass className="w-4 h-4" /> {t("dest.context.label")}
+                  </div>
+
+                  {detailDestination.destinationContext ? (
+                    <>
+                      <div className="mb-7">
+                        <div className="text-[11px] uppercase tracking-[1.8px] text-white/35 mb-2">{detailDestination.destinationContext.placeType}</div>
+                        <p className="font-serif text-[21px] md:text-[25px] leading-[1.45] text-white/90">
+                          {detailDestination.destinationContext.factualSummary}
+                        </p>
+                      </div>
+
+                      <div className="mb-7 pt-6 border-t border-white/[0.08]">
+                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[2px] text-white/40 mb-3">
+                          <BookOpen className="w-4 h-4 text-[#E94560]" /> {t("dest.context.history")}
+                        </div>
+                        <p className="text-[14px] leading-[1.75] text-white/[0.62]">{detailDestination.destinationContext.historyCulture}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mb-7">
+                        {detailDestination.destinationContext.distinctiveTraits.map((trait) => (
+                          <span key={trait} className="px-3 py-1.5 rounded-full text-[11px] font-medium text-white/[0.65] border border-white/10 bg-white/[0.04]">{trait}</span>
+                        ))}
+                      </div>
+
+                      <div className="rounded-2xl p-4 mb-7 bg-amber-400/[0.055] border border-amber-200/10">
+                        <div className="text-[10px] font-bold uppercase tracking-[1.8px] text-amber-100/50 mb-1.5">{t("dest.context.know")}</div>
+                        <p className="text-[13px] leading-relaxed text-white/[0.58]">{detailDestination.destinationContext.tradeoff}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="font-serif text-[21px] leading-[1.5] text-white/85 mb-7">{detailDestination.experiencePreview}</p>
+                  )}
+
+                  <div className="rounded-2xl p-5 bg-[#E94560]/[0.07] border border-[#E94560]/20 mb-7">
+                    <div className="text-[10px] font-bold uppercase tracking-[2px] text-[#F2899A] mb-2">{t("dest.why")}</div>
+                    <p className="text-[14px] leading-[1.7] text-white/[0.72]">{detailDestination.whyYours}</p>
+                  </div>
+
+                  <div className="mt-auto">
+                    <div className="text-[11px] leading-relaxed text-white/[0.38] mb-4">{detailDestination.practicalInfo}</div>
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(detailDestination.id)}
+                      data-testid="button-confirm-destination"
+                      className="w-full flex items-center justify-center gap-2 rounded-full py-4 px-6 text-[14px] font-semibold bg-[#E94560] text-white hover:bg-[#f2566c] transition-colors shadow-[0_10px_35px_rgba(233,69,96,0.25)]"
+                    >
+                      {t("dest.context.choose")} <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.section>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {genError && (
         <motion.p

@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { unsplashSized } from "@/lib/img";
 import { trackAffiliate } from "@/lib/analytics";
+import type { DestinationContext } from "@shared/schema";
 
 export type Highlight = { ic: string; name: string; desc: string };
 export type Day = { n: number; arc: string; title: string; sub: string; img: string; date?: string };
@@ -65,6 +66,7 @@ export type ItineraryData = {
   duration: string;
   heroImg: string;
   manifesto: string;
+  destinationContext?: DestinationContext;
   emWord?: string;
   highlights: Highlight[];
   days: Day[];

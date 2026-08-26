@@ -7,7 +7,7 @@
  * ─────────────────────────────────────────────────────────────── */
 import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, BookOpen, MapPin } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
 import { EASE } from "@/lib/motion";
 import { useFlow } from "./context";
@@ -21,6 +21,7 @@ export function OverviewScreen() {
   const [themeOpen, setThemeOpen] = useState(false);
 
   const { data, days, momentsByDay } = f;
+  const place = data.destinationContext;
   const dayCount = days.length;
   const stopCount = Object.values(momentsByDay).reduce((a, ms) => a + ms.length, 0);
 
@@ -75,9 +76,42 @@ export function OverviewScreen() {
           onAnswered={f.refetch}
         />
 
+        {place && (
+          <motion.section className="mrf-place" {...rise(.1)}>
+            <div className="mrf-place-visual">
+              {data.heroImg && <div className="mrf-place-ph" style={{ backgroundImage: bg(data.heroImg, f.isDesktop ? 1400 : 800) }} />}
+              <div className="mrf-place-veil" />
+              <div className="mrf-place-head">
+                <div className="mrf-place-k"><MapPin size={13} /> {f.t("if.ov.placeKick")}</div>
+                <div className="mrf-place-loc">{place.locationLine}</div>
+                <h2 className="mrf-place-title">{data.destination}</h2>
+                <div className="mrf-place-type">{place.placeType}</div>
+              </div>
+            </div>
+            <div className="mrf-place-copy">
+              <p className="mrf-place-summary">{place.factualSummary}</p>
+              <div className="mrf-place-history">
+                <div className="mrf-place-history-k"><BookOpen size={13} /> {f.t("if.ov.placeHistory")}</div>
+                <p>{place.historyCulture}</p>
+              </div>
+              {place.distinctiveTraits.length > 0 && (
+                <div className="mrf-place-traits">
+                  {place.distinctiveTraits.map((trait) => <span key={trait}>{trait}</span>)}
+                </div>
+              )}
+              {place.tradeoff && (
+                <div className="mrf-place-tradeoff">
+                  <b>{f.t("if.ov.placeTradeoff")}</b>
+                  <span>{place.tradeoff}</span>
+                </div>
+              )}
+            </div>
+          </motion.section>
+        )}
+
         {themeTitle && (
-          <motion.section className="mrf-theme" {...rise(.12)}>
-            {data.heroImg && <div className="mrf-theme-ph" style={{ backgroundImage: bg(data.heroImg, f.isDesktop ? 1400 : 800) }} />}
+          <motion.section className={`mrf-theme${place ? " personal" : ""}`} {...rise(.14)}>
+            {!place && data.heroImg && <div className="mrf-theme-ph" style={{ backgroundImage: bg(data.heroImg, f.isDesktop ? 1400 : 800) }} />}
             <div className="mrf-theme-veil" />
             <div className="mrf-theme-in">
               <div className="mrf-theme-k">{f.t("if.ov.themeKick")}</div>

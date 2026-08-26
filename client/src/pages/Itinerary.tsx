@@ -834,6 +834,7 @@ export function mapItineraryToCinematic(itinerary: any, t: (k: string) => string
     duration,
     heroImg: itinerary?.heroImageUrl || itinerary?.imageUrl || "",
     manifesto: itinerary?.whyYours ?? "",
+    destinationContext: isV2 ? tripMeta?.destination_context : undefined,
     emWord: isV2 ? tripMeta?.em_word : undefined,
     highlights,
     days: cinDays,

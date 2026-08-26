@@ -243,7 +243,7 @@ export function registerItineraryDetailRoutes(app: Express) {
       // 3) Riscrivi la riga in place (stesso id/URL).
       await storage.updateItineraryRefine(id, {
         days: enriched.days,
-        tripMeta: buildTripMetaV2(enriched),
+        tripMeta: buildTripMetaV2(enriched, (itin as any).tripMeta?.destination_context),
         profilingInput: merged,
         whyYours: enriched.manifesto,
         tripSummary: enriched.manifesto.slice(0, 200),

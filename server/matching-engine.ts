@@ -4,7 +4,7 @@ import { AFFILIATES, rewriteDayAffiliateLinks } from "./affiliate-config";
 import { getExperienceBank, formatExperienceBankBlock, resolveGroundingBlock } from "./experience-bank";
 import { buildTransportBlock } from "./transport-planner";
 import { graphGenEnabled } from "./graph-build";
-import type { FastProfile } from "@shared/schema";
+import type { DestinationContext, FastProfile } from "@shared/schema";
 
 export const BUDGET_MAP: Record<string, string> = {
   "low":                        "maximum €500 per person all included — hostels or guesthouses max €25/night, street food and local markets only, free or low-cost activities only",
@@ -90,6 +90,14 @@ const generatedDestinationSchema = z.object({
   whyYours: z.string(),
   experiencePreview: z.string(),
   practicalInfo: z.string(),
+  destinationContext: (z.object({
+    locationLine: z.string(),
+    placeType: z.string(),
+    factualSummary: z.string(),
+    historyCulture: z.string(),
+    distinctiveTraits: z.array(z.string()).min(3).max(3),
+    tradeoff: z.string(),
+  }) satisfies z.ZodType<DestinationContext>).optional(),
   // Descrittore NEUTRO (step 3, Parte 2): tipologia e tratti oggettivi della
   // destinazione in sé, senza riferimenti all'utente né linguaggio di vendita.
   // Alimenta deriveDestinationTraitVector per il contrasto revealed-preference
@@ -822,6 +830,14 @@ REQUIRED JSON:
       "imageUrl": "https://images.unsplash.com/photo-[ID]?w=600&h=400&fit=crop",
       "whyYours": "EXACTLY 2 short sentences (~25 words total). S1: diagnosis ('Non cerchi X, cerchi Y'). S2: this destination + one precise sensory beat.",
       "experiencePreview": "1 short evocative sentence in first person",
+      "destinationContext": {
+        "locationLine": "Region · wider geographic area",
+        "placeType": "Objective place type in 2-6 words",
+        "factualSummary": "What the place is, where it sits and why it is distinctive. 2 factual sentences, 35-50 words.",
+        "historyCulture": "The minimum historical and living cultural context needed to understand it. 2 factual sentences, 35-50 words.",
+        "distinctiveTraits": ["specific factual trait", "specific factual trait", "specific factual trait"],
+        "tradeoff": "One honest compromise or limitation, max 18 words."
+      },
       "practicalInfo": "✈️ [flight duration + cost] · 🏨 [hotel type + price range] · 📅 [best period]"
     }
   ],
@@ -1340,6 +1356,13 @@ RESPONSE LANGUAGE: Write all text fields in ${input.lang === 'it' ? 'Italian' : 
 
 NEUTRAL DESCRIPTOR (field "neutralDescriptor" on every destination): 6-12 words describing the PLACE ITSELF, objectively — its type, geography, scale, and cultural/natural character. This is NOT copy: no reference to the user or their profile, no sales adjectives ("perfect", "unforgettable", "hidden gem"), no second person. It is a neutral fact sheet used internally to compare the chosen destination against the rejected ones. Examples: "Mediterranean port city, historic markets, Byzantine quarters, flat and walkable" · "Remote Atlantic volcanic archipelago, green craters, few visitors, oceanic weather" · "High-altitude Silk Road city, madrasas and tiled domes, arid continental climate".
 
+DESTINATION CONTEXT (field "destinationContext" on every destination): this is the
+decision context the traveler reads BEFORE choosing. It must be factual, concise and
+useful, never promotional and never personalized. Use only broadly established facts;
+when an exact date, population, dynasty or ethnic attribution is uncertain, omit it
+rather than guessing. Keep geography, history and culture distinct from "whyYours".
+All six fields are mandatory and all text must use the response language.
+
 REQUIRED JSON — respond ONLY with this, no text outside:
 {
   "destinations": [
@@ -1351,6 +1374,14 @@ REQUIRED JSON — respond ONLY with this, no text outside:
       "whyYours": "EXACTLY 2 short sentences (~25 words) following the formula above — diagnosis + place/moment",
       "experiencePreview": "1 short evocative sentence in first person — what it FEELS like to be there",
       "neutralDescriptor": "6-12 words, objective type+traits of the place itself — no user, no sales language",
+      "destinationContext": {
+        "locationLine": "Region · wider geographic area (3-8 words)",
+        "placeType": "Objective place type (2-6 words)",
+        "factualSummary": "What this place is, where it sits and why it is distinctive — 2 factual sentences, 35-50 words",
+        "historyCulture": "Minimum history and living cultural context — 2 factual sentences, 35-50 words",
+        "distinctiveTraits": ["specific factual trait", "specific factual trait", "specific factual trait"],
+        "tradeoff": "One honest compromise or limitation, max 18 words"
+      },
       "practicalInfo": "✈️ [duration + cost] · 🏨 [hotel type + price] · 📅 [best period]"
     },
     {
@@ -1360,6 +1391,14 @@ REQUIRED JSON — respond ONLY with this, no text outside:
       "whyYours": "EXACTLY 2 short sentences (~25 words) — diagnosis + this destination/moment that delivers the same emotional experience from a different angle",
       "experiencePreview": "1 short evocative sentence in first person",
       "neutralDescriptor": "6-12 words, objective type+traits of the place itself — no user, no sales language",
+      "destinationContext": {
+        "locationLine": "Region · wider geographic area",
+        "placeType": "Objective place type",
+        "factualSummary": "2 concise factual sentences, 35-50 words",
+        "historyCulture": "2 concise factual sentences, 35-50 words",
+        "distinctiveTraits": ["specific factual trait", "specific factual trait", "specific factual trait"],
+        "tradeoff": "One honest compromise, max 18 words"
+      },
       "practicalInfo": "✈️ [duration + cost] · 🏨 [type + price] · 📅 [best period]"
     },
     {
@@ -1369,6 +1408,14 @@ REQUIRED JSON — respond ONLY with this, no text outside:
       "whyYours": "EXACTLY 2 short sentences (~25 words) — diagnosis + the surprising precise reason this destination is the right answer for this profile",
       "experiencePreview": "1 short evocative sentence in first person",
       "neutralDescriptor": "6-12 words, objective type+traits of the place itself — no user, no sales language",
+      "destinationContext": {
+        "locationLine": "Region · wider geographic area",
+        "placeType": "Objective place type",
+        "factualSummary": "2 concise factual sentences, 35-50 words",
+        "historyCulture": "2 concise factual sentences, 35-50 words",
+        "distinctiveTraits": ["specific factual trait", "specific factual trait", "specific factual trait"],
+        "tradeoff": "One honest compromise, max 18 words"
+      },
       "practicalInfo": "✈️ [duration + cost] · 🏨 [type + price] · 📅 [best period]"
     }
   ]
@@ -1384,7 +1431,7 @@ REQUIRED JSON — respond ONLY with this, no text outside:
       : prompt;
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 4000,
+      max_tokens: 5500,
       messages: [{ role: "user", content: finalPrompt }],
     });
     const responseText = message.content

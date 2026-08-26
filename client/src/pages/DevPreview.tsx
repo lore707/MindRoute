@@ -200,6 +200,14 @@ const MOCK_ITIN: ItineraryData = {
   destination: "Salonicco, Grecia", subtitle: "Esperienza", country: "Grecia", duration: "5 giorni",
   heroImg: M.seafront,
   manifesto: "Arrivare, esplorare, connettersi. Salonicco non si visita: si attraversa lentamente, un quartiere alla volta, finché il mare non diventa il posto dove torni ogni sera.",
+  destinationContext: {
+    locationLine: "Macedonia Centrale · Grecia settentrionale",
+    placeType: "Città portuale mediterranea",
+    factualSummary: "Salonicco si affaccia sul Golfo Termaico ed è il principale centro urbano della Grecia settentrionale. Il suo carattere nasce dall'incontro tra porto, mercati, quartieri collinari e una scena gastronomica vissuta quotidianamente.",
+    historyCulture: "Fondata in età ellenistica, è stata un nodo importante delle rotte romane, bizantine e ottomane. Chiese paleocristiane, hammam, mercati e memorie sefardite raccontano una città costruita da comunità e periodi diversi.",
+    distinctiveTraits: ["Eredità bizantina", "Cultura sefardita", "Cucina di mercato"],
+    tradeoff: "Il centro è vivace e rumoroso; Ano Poli offre un ritmo più quieto ma richiede salite.",
+  },
   highlights: [
     { ic: "◆", name: "Il mercato al mattino", desc: "Quando è ancora dei residenti e non dei turisti." },
     { ic: "✦", name: "Ano Poli al tramonto", desc: "La città vecchia sopra la città, con tutto il golfo sotto." },

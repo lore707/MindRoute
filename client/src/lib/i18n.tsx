@@ -416,6 +416,12 @@ const translations: Record<string, Record<Lang, string>> = {
   "dest.slot.direct":   { en: "Direct match",     it: "Risposta diretta" },
   "dest.slot.lateral":  { en: "Lateral angle",    it: "Angolo laterale" },
   "dest.slot.surprise": { en: "Genuine surprise", it: "Sorpresa autentica" },
+  "dest.context.label": { en: "Know the place", it: "Conosci il luogo" },
+  "dest.context.open": { en: "Understand this place", it: "Scopri questa meta" },
+  "dest.context.history": { en: "History and culture", it: "Storia e cultura" },
+  "dest.context.know": { en: "Worth knowing", it: "Da sapere" },
+  "dest.context.choose": { en: "Choose this destination", it: "Scegli questa destinazione" },
+  "dest.context.close": { en: "Close destination details", it: "Chiudi i dettagli della destinazione" },
 
   "itin.loading": { en: "Crafting your journey...", it: "Creiamo il tuo viaggio..." },
   "itin.notfound": { en: "Itinerary Not Found", it: "Itinerario non trovato" },
@@ -677,7 +683,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 export function useI18n() {
   return useContext(I18nContext);
 }
-
 
 
 

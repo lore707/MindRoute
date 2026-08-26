@@ -218,6 +218,53 @@
 }
 .mrf-daychip.on .badge { background: var(--acc); color: #fff; }
 
+/* Il luogo prima dell'interpretazione: fotografia e fatti condividono una
+   scheda, ma restano semanticamente separati dal manifesto personale. */
+.mrf-place {
+  margin: 22px 0 0; overflow: hidden; border-radius: var(--r-m);
+  border: 1px solid var(--stroke); background: rgba(10, 12, 18, .72);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.mrf-place-visual { position: relative; min-height: 238px; overflow: hidden; }
+.mrf-place-ph { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.mrf-place-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10, 12, 18, .15) 0%, rgba(10, 12, 18, .36) 42%, rgba(10, 12, 18, .94) 100%);
+}
+.mrf-place-head { position: absolute; inset: auto 18px 18px; }
+.mrf-place-k, .mrf-place-history-k {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+}
+.mrf-place-k { color: rgba(255, 255, 255, .72); margin-bottom: 14px; }
+.mrf-place-loc { font-size: 11px; letter-spacing: .08em; color: var(--acc); margin-bottom: 5px; }
+.mrf-place-title {
+  margin: 0; font-family: var(--serif); font-size: 32px; font-weight: 400;
+  line-height: 1.05; letter-spacing: -.025em; text-wrap: balance;
+}
+.mrf-place-type { margin-top: 7px; font-size: 11.5px; color: var(--ink-dim); }
+.mrf-place-copy { padding: 20px 18px 18px; }
+.mrf-place-summary {
+  margin: 0; font-family: var(--serif); font-size: 18px; line-height: 1.55;
+  color: rgba(245, 244, 242, .9); text-wrap: pretty;
+}
+.mrf-place-history { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--stroke); }
+.mrf-place-history-k { color: var(--ink-faint); margin-bottom: 9px; }
+.mrf-place-history-k svg { color: var(--acc); }
+.mrf-place-history p { margin: 0; font-size: 13.5px; line-height: 1.7; color: var(--ink-dim); }
+.mrf-place-traits { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.mrf-place-traits span {
+  padding: 6px 10px; border: 1px solid var(--stroke); border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .035); font-size: 10.5px; color: var(--ink-dim);
+}
+.mrf-place-tradeoff {
+  display: grid; gap: 5px; margin-top: 18px; padding: 13px 14px;
+  border-radius: var(--r-s); border: 1px solid rgba(212, 168, 83, .18);
+  background: rgba(212, 168, 83, .055);
+}
+.mrf-place-tradeoff b { font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: rgba(226, 196, 137, .72); }
+.mrf-place-tradeoff span { font-size: 12.5px; line-height: 1.55; color: var(--ink-dim); }
+
 /* Card tema */
 .mrf-theme {
   position: relative; margin: 12px 0 0; border-radius: var(--r-m); overflow: hidden;
@@ -242,6 +289,13 @@
 .mrf-theme-full {
   font-size: 14px; line-height: 1.68; color: var(--ink-dim); margin: 0 0 14px;
 }
+.mrf-theme.personal {
+  min-height: 0; margin-top: 18px; justify-content: flex-start;
+  background: linear-gradient(135deg, rgba(233, 69, 96, .09), rgba(255, 255, 255, .035));
+  border-color: var(--acc-line);
+}
+.mrf-theme.personal .mrf-theme-veil { display: none; }
+.mrf-theme.personal .mrf-theme-k { color: var(--acc); }
 
 /* Banner "date reali" e "ci sei andato?" — bordo corallo: sono domande, non
    informazioni. Stanno in Overview, dove si decide il viaggio. */
@@ -679,7 +733,13 @@
   .mrf-ov-title { font-size: 76px; }
   .mrf-ov-lede { font-size: 16.5px; max-width: 46ch; }
   .mrf-daychip { width: 132px; min-height: 104px; }
+  .mrf-place-visual { min-height: 300px; }
+  .mrf-place-head { inset: auto 26px 25px; }
+  .mrf-place-title { font-size: 42px; }
+  .mrf-place-copy { padding: 26px; }
+  .mrf-place-summary { font-size: 21px; }
   .mrf-theme { min-height: 260px; }
+  .mrf-theme.personal { min-height: 0; }
   .mrf-theme-t { font-size: 28px; }
   .mrf-d-hero { height: 42vh; max-height: 420px; }
   .mrf-stop { grid-template-columns: 34px 1fr 72px; }
@@ -705,7 +765,13 @@
   /* I capitoli riempiono la riga qualunque sia il numero di giorni: a 3 non
      lasciano un terzo di riga vuoto, a 6 vanno a capo in griglia. */
   .mrf-daychip { flex: 1 1 132px; width: auto; max-width: 240px; }
+  .mrf-place-visual { min-height: 360px; }
+  .mrf-place-title { font-size: 52px; max-width: 16ch; }
+  .mrf-place-copy { display: grid; grid-template-columns: 1.1fr .9fr; column-gap: 34px; }
+  .mrf-place-history { margin-top: 0; padding: 0 0 0 28px; border-top: 0; border-left: 1px solid var(--stroke); }
+  .mrf-place-traits, .mrf-place-tradeoff { grid-column: 1 / -1; }
   .mrf-theme { min-height: 320px; }
+  .mrf-theme.personal { min-height: 0; }
   .mrf-theme-in { padding: 26px; }
   .mrf-theme-t { font-size: 32px; }
   .mrf-hl { grid-template-columns: 1fr 1fr; }

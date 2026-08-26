@@ -50,15 +50,15 @@ export function registerProfilingRoutes(app: Express) {
       const createdDests = [];
       for (let i = 0; i < destinations.length; i++) {
         // neutralDescriptor è emesso dal matcher ma NON è una colonna della
-        // tabella destinations (nessuna migrazione): lo togliamo prima dell'insert
-        // e lo ri-attacchiamo alla response, così il client può rimandarlo al
-        // recorder sul pick (round-trip) per il contrasto revealed-preference.
-        const { neutralDescriptor, ...destForDb } = destinations[i] as any;
+        // I metadati editoriali non vivono nella tabella destinations: li
+        // togliamo prima dell'insert e li riattacchiamo alla response. Il client
+        // usa il contesto per la scelta e rimanda il descrittore al recorder.
+        const { neutralDescriptor, destinationContext, ...destForDb } = destinations[i] as any;
         const created = await storage.createDestination({
           ...destForDb,
           imageUrl: heroImages[i]?.url ?? destinations[i].imageUrl,
         });
-        createdDests.push({ ...created, neutralDescriptor: neutralDescriptor ?? null });
+        createdDests.push({ ...created, neutralDescriptor: neutralDescriptor ?? null, destinationContext: destinationContext ?? null });
       }
       await storage.saveProfilingInput(input);
 
@@ -211,15 +211,15 @@ export function registerProfilingRoutes(app: Express) {
       const createdDests = [];
       for (let i = 0; i < destinations.length; i++) {
         // neutralDescriptor è emesso dal matcher ma NON è una colonna della
-        // tabella destinations (nessuna migrazione): lo togliamo prima dell'insert
-        // e lo ri-attacchiamo alla response, così il client può rimandarlo al
-        // recorder sul pick (round-trip) per il contrasto revealed-preference.
-        const { neutralDescriptor, ...destForDb } = destinations[i] as any;
+        // I metadati editoriali non vivono nella tabella destinations: li
+        // togliamo prima dell'insert e li riattacchiamo alla response. Il client
+        // usa il contesto per la scelta e rimanda il descrittore al recorder.
+        const { neutralDescriptor, destinationContext, ...destForDb } = destinations[i] as any;
         const created = await storage.createDestination({
           ...destForDb,
           imageUrl: heroImages[i]?.url ?? destinations[i].imageUrl,
         });
-        createdDests.push({ ...created, neutralDescriptor: neutralDescriptor ?? null });
+        createdDests.push({ ...created, neutralDescriptor: neutralDescriptor ?? null, destinationContext: destinationContext ?? null });
       }
       await storage.saveProfilingInput(input);
 

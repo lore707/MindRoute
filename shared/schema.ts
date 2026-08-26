@@ -24,6 +24,19 @@ export const destinations = pgTable("destinations", {
 
 export type DestinationSlotRole = "direct" | "lateral" | "surprise";
 
+// Contesto editoriale della destinazione. Nasce insieme alla tripletta e viene
+// riutilizzato nell'itinerario: prima aiuta a scegliere, poi orienta sul luogo.
+// Vive nel payload del matching e in tripMeta, quindi non richiede una colonna
+// dedicata sulla tabella destinations.
+export interface DestinationContext {
+  locationLine: string;
+  placeType: string;
+  factualSummary: string;
+  historyCulture: string;
+  distinctiveTraits: string[];
+  tradeoff: string;
+}
+
 export const profilingInputs = pgTable("profiling_inputs", {
   id: serial("id").primaryKey(),
   input: jsonb("input").notNull(),
@@ -278,6 +291,9 @@ export interface TripMetaV2 {
   // v2 highlights are richer objects; v1 highlights stay as string[] in the
   // legacy column. Reader picks based on schemaVersion.
   highlights_v2?: HighlightV2[];
+  // La stessa scheda fattuale mostrata prima della scelta. Separata dal
+  // manifesto, che resta l'interpretazione personale di MindRoute.
+  destination_context?: DestinationContext;
   // Fotografie D'AMBIENTE del viaggio: paesaggi larghi della destinazione, che
   // vivono DIETRO l'itinerario. Non sono le foto delle tappe (quelle raccontano
   // un posto preciso): queste dicono soltanto "sei lì". Pescate dallo stesso
