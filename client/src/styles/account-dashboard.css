@@ -1257,3 +1257,27 @@
   .account-dash .cp-row::-webkit-scrollbar{display:block;height:4px}
   .account-dash .cp-row::-webkit-scrollbar-thumb{background:var(--stroke-2);border-radius:4px}
 }
+
+/* Compact learned-insight strip below the trip command. */
+.account-dash .coll2-command{grid-template-columns:1fr;gap:10px}
+.account-dash .coll2-command-main,.account-dash .coll2-command-copy{min-height:340px}
+.account-dash .coll2-learning{display:grid;grid-template-columns:minmax(160px,.55fr) minmax(260px,1.2fr) minmax(190px,.7fr) auto;align-items:center;gap:22px;min-height:0;padding:18px 22px;border-radius:20px;color:#fff;background:linear-gradient(120deg,rgba(42,20,29,.98),rgba(18,11,18,.98));border:1px solid rgba(233,69,96,.2);box-shadow:none}
+.account-dash .coll2-learning-top{color:var(--accent)}
+.account-dash .coll2-learning-copy h2{margin:0 0 4px;color:#fff;font-family:var(--serif);font-size:19px;font-weight:500;line-height:1.15}
+.account-dash .coll2-learning-copy p{margin:0;color:rgba(255,255,255,.58);font-size:11.5px;line-height:1.45}
+.account-dash .coll2-learning-effect{margin:0;padding:3px 0 3px 20px;border:0;border-left:1px solid rgba(233,69,96,.28)}
+.account-dash .coll2-learning-effect span{margin-bottom:5px;color:rgba(255,255,255,.42)}
+.account-dash .coll2-learning-effect strong{margin:0;color:#fff;font-size:15px}
+.account-dash .coll2-learning>button{align-self:center;margin:0;padding:11px 14px;border-radius:999px;color:#fff;background:rgba(233,69,96,.12);border:1px solid rgba(233,69,96,.3);white-space:nowrap}
+@media (max-width:900px){
+  .account-dash .coll2-learning{grid-template-columns:1fr auto}
+  .account-dash .coll2-learning-top,.account-dash .coll2-learning-copy{grid-column:1}
+  .account-dash .coll2-learning-effect{grid-column:1}
+  .account-dash .coll2-learning>button{grid-column:2;grid-row:1/4}
+}
+@media (max-width:620px){
+  .account-dash .coll2-command-main,.account-dash .coll2-command-copy{min-height:330px}
+  .account-dash .coll2-learning{display:flex;align-items:flex-start;gap:12px;padding:18px}
+  .account-dash .coll2-learning-effect{width:100%;padding:12px 0 0;border-left:0;border-top:1px solid rgba(233,69,96,.2)}
+  .account-dash .coll2-learning>button{align-self:flex-start}
+}

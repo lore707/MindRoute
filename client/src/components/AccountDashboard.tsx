@@ -1341,21 +1341,24 @@ export function AccountDashboard({ data }: { data: AccountData }) {
           </div>
           {learnedInsights[0] ? (
             <>
-              <h2>{tx(learnedInsights[0].titleKey, learnedInsights[0].vars)}</h2>
-              <p>{tx(learnedInsights[0].bodyKey, learnedInsights[0].vars)}</p>
+              <div className="coll2-learning-copy">
+                <h2>{tx(learnedInsights[0].titleKey, learnedInsights[0].vars)}</h2>
+                <p>{tx(learnedInsights[0].bodyKey, learnedInsights[0].vars)}</p>
+              </div>
               {nextTravelRules[0] && (
                 <div className="coll2-learning-effect">
                   <span>{lang === "it" ? "NEL PROSSIMO VIAGGIO" : "IN YOUR NEXT TRIP"}</span>
                   <strong>{nextTravelRules[0].title[lang]}</strong>
-                  <p>{nextTravelRules[0].body[lang]}</p>
                 </div>
               )}
               <button onClick={() => go("portrait")}>{lang === "it" ? "Apri il Ritratto" : "Open your Portrait"} <span>→</span></button>
             </>
           ) : (
             <>
-              <h2>{lang === "it" ? "Il tuo Ritratto sta prendendo forma." : "Your Portrait is taking shape."}</h2>
-              <p>{lang === "it" ? "Ogni scelta e ogni viaggio confermato renderanno piu preciso il prossimo itinerario." : "Every choice and confirmed trip will make the next itinerary more precise."}</p>
+              <div className="coll2-learning-copy">
+                <h2>{lang === "it" ? "Il tuo Ritratto sta prendendo forma." : "Your Portrait is taking shape."}</h2>
+                <p>{lang === "it" ? "Ogni scelta e ogni viaggio confermato renderanno piu preciso il prossimo itinerario." : "Every choice and confirmed trip will make the next itinerary more precise."}</p>
+              </div>
               <button onClick={() => go("portrait")}>{lang === "it" ? "Scopri cosa sappiamo" : "See what we know"} <span>→</span></button>
             </>
           )}

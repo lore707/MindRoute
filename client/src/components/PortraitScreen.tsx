@@ -41,6 +41,22 @@ import "@/styles/portrait.css";
 const bg = (url: string | undefined, w: number, q = 68) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
 const SHOW_LEGACY_PORTRAIT: boolean = false;
 
+const insightEffect = (id: string, lang: "en" | "it") => {
+  const copy: Record<string, { it: string; en: string }> = {
+    "continent-loyal": { it: "Partiremo da territori familiari, ma con un angolo meno prevedibile.", en: "We will start from familiar regions, but find a less predictable angle." },
+    "continent-gap": { it: "Una delle proposte potra aprire un continente ancora inesplorato.", en: "One proposal may open a continent you have not explored yet." },
+    "season-gap": { it: "Valuteremo anche periodi dell'anno che finora non hai scelto.", en: "We will also consider times of year you have not chosen before." },
+    "duration-long": { it: "Proteggeremo soggiorni piu lunghi, con meno cambi di base.", en: "We will protect longer stays with fewer base changes." },
+    "duration-short": { it: "Concentreremo il valore in pochi giorni, senza riempitivi.", en: "We will concentrate the value into a few days without filler." },
+    dreamer: { it: "Daremo priorita a piani piu semplici da trasformare in partenze reali.", en: "We will prioritize plans that are easier to turn into real departures." },
+    nature: { it: "La natura avra almeno un momento centrale, non una semplice tappa fotografica.", en: "Nature will have at least one central moment, not just a photo stop." },
+    unplanned: { it: "Inseriremo meno orari rigidi e piu tempo realmente aperto.", en: "We will use fewer rigid timings and protect genuinely open time." },
+    "comfort-drift": { it: "Le proposte potranno spingersi oltre l'abitudine, senza ignorare i tuoi limiti.", en: "Proposals may stretch beyond habit without ignoring your limits." },
+    solo: { it: "Eviteremo esperienze che funzionano solo in gruppo.", en: "We will avoid experiences that only work in a group." },
+  };
+  return copy[id]?.[lang] ?? (lang === "it" ? "Questa lettura entrera nelle decisioni concrete del prossimo itinerario." : "This reading will shape concrete decisions in your next itinerary.");
+};
+
 type Props = {
   data: AccountData;
   onGenerate?: () => void;
@@ -186,12 +202,9 @@ export function PortraitScreen({
 
   /* ── il rail: apri il ragionamento di una lettura ── */
   const openWhy = useCallback((ins: Insight) => {
-    setDrill({ insight: ins, evidence: false, feedback: false });
+    setDrill(current => current?.insight.id === ins.id ? null : { insight: ins, evidence: false, feedback: false });
     setVerdict(null); setNote(""); setSent(null); setEvTab("all"); setReasons([]);
     // Su telefono il rail è un foglio: portalo in vista.
-    if (typeof window !== "undefined" && window.innerWidth < 1100) {
-      window.setTimeout(() => document.getElementById("mrp2-rail")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
-    }
   }, []);
 
   const evidence = useMemo(
@@ -326,6 +339,28 @@ export function PortraitScreen({
             </section>
           )}
 
+          {picks?.[0] && (
+            <motion.section className="mrp2-weekly" {...rise(0)}>
+              <div className="mrp2-weekly-ph" style={{ backgroundImage: bg(picks[0].imageUrl, 1200, 72) }} />
+              <div className="mrp2-weekly-veil" />
+              <div className="mrp2-weekly-in">
+                <div className="mrp2-weekly-top">
+                  <span>{lang === "it" ? "LA META DELLA SETTIMANA" : "THIS WEEK'S DESTINATION"}</span>
+                  <i>{picks[0].matchPct}% {lang === "it" ? "coerenza" : "fit"}</i>
+                </div>
+                <div className="mrp2-weekly-copy">
+                  <span className="mrp2-weekly-country">{picks[0].country}</span>
+                  <h2>{picks[0].name.split(",")[0]}</h2>
+                  <p>{picksWhy || (lang === "it" ? "Una proposta scelta a partire dal tuo Ritratto e da come stai viaggiando ora." : "A proposal selected from your Portrait and how you are travelling now.")}</p>
+                  <div className="mrp2-weekly-tags">{picks[0].tags.slice(0, 3).map(tag => <span key={tag}>{tag}</span>)}</div>
+                  <button onClick={() => onPickDestination?.({ name: picks[0].name, country: picks[0].country, imageUrl: picks[0].imageUrl, matchPct: picks[0].matchPct })}>
+                    {lang === "it" ? "Esplora questa meta" : "Explore this destination"} <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </motion.section>
+          )}
+
           {(p?.seek?.length || p?.avoid?.length || p?.ownWords) && (
             <motion.section className="mrp2-sec mrp2-declared" {...rise(0)}>
               <div className="mrp2-sec-head">
@@ -360,11 +395,35 @@ export function PortraitScreen({
             </motion.section>
           )}
 
+          {(p?.axes?.length ?? 0) > 0 && (
+            <motion.section className="mrp2-sec mrp2-operating" {...rise(.02)}>
+              <div className="mrp2-sec-head">
+                <span className="mrp2-sec-n">02</span>
+                <div>
+                  <div className="mrp2-sec-k">{lang === "it" ? "IL TUO ASSETTO DI VIAGGIO" : "YOUR TRAVEL SETTINGS"}</div>
+                  <p>{lang === "it" ? "Cinque inclinazioni che usiamo per decidere ritmo, atmosfera e struttura." : "Five leanings we use to decide pace, atmosphere and structure."}</p>
+                </div>
+              </div>
+              <div className="mrp2-axis-list">
+                {p!.axes.map(axis => (
+                  <article key={axis.axis}>
+                    <div className="mrp2-axis-copy">
+                      <span>{axis.poleLeft}</span>
+                      <strong>{axis.pole || (lang === "it" ? "equilibrio" : "balanced")}</strong>
+                      <span>{axis.poleRight}</span>
+                    </div>
+                    <div className="mrp2-axis-track"><i style={{ left: `${axis.value}%` }} /></div>
+                  </article>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
           {/* ── 1 · IL TUO MODO DI VIAGGIARE ── */}
           {insights.length > 0 && (
             <motion.section className="mrp2-sec" {...rise(0)}>
               <div className="mrp2-sec-head">
-                <span className="mrp2-sec-n">02</span>
+                <span className="mrp2-sec-n">03</span>
                 <div>
                   <div className="mrp2-sec-k">{lang === "it" ? "QUELLO CHE ABBIAMO IMPARATO" : "WHAT WE HAVE LEARNED"}</div>
                   <p>{lang === "it" ? "Letture ricavate dalle tue scelte. Puoi aprire le prove e correggerle." : "Readings inferred from your choices. You can inspect the evidence and correct them."}</p>
@@ -382,9 +441,47 @@ export function PortraitScreen({
                         <span className={"mrp2-conf " + confClass(conf)}>{t(confKey(conf))}</span>
                         <span className="dot">·</span>
                         <button className="mrp2-why" onClick={() => openWhy(ins)}>
-                          {t("pt2.why")} <ArrowRight size={13} />
+                          {on ? (lang === "it" ? "Chiudi" : "Close") : (lang === "it" ? "Mostrami il perche" : "Show me why")} <ArrowRight size={13} />
                         </button>
                       </div>
+                      {on && (
+                        <div className="mrp2-inline-why">
+                          <div className="mrp2-inline-step">
+                            <span>01</span>
+                            <div><strong>{lang === "it" ? "Abbiamo osservato" : "We observed"}</strong><p>{tx(ins.why.key, ins.why.vars)}</p></div>
+                          </div>
+                          <div className="mrp2-inline-step">
+                            <span>02</span>
+                            <div><strong>{lang === "it" ? "La nostra lettura" : "Our reading"}</strong><p>{tx(ins.bodyKey, ins.vars)}</p></div>
+                          </div>
+                          <div className="mrp2-inline-step effect">
+                            <span>03</span>
+                            <div><strong>{lang === "it" ? "Nel prossimo viaggio" : "In your next trip"}</strong><p>{insightEffect(ins.id, lang)}</p></div>
+                          </div>
+                          {evidence.length > 0 && (
+                            <div className="mrp2-inline-evidence">
+                              <span>{lang === "it" ? "EVIDENZE" : "EVIDENCE"}</span>
+                              {evidence.slice(0, 3).map((item, index) => <i key={index}>{item.trip.dest}</i>)}
+                            </div>
+                          )}
+                          <div className="mrp2-inline-feedback">
+                            <strong>{lang === "it" ? "Ti riconosci in questa lettura?" : "Does this reading feel accurate?"}</strong>
+                            <div className="mrp2-inline-verdicts">
+                              {(["yes", "partly", "no"] as const).map(value => (
+                                <button key={value} className={verdict === value ? "on" : ""} onClick={() => setVerdict(value)}>
+                                  {value === "yes" ? (lang === "it" ? "Si" : "Yes") : value === "partly" ? (lang === "it" ? "In parte" : "Partly") : "No"}
+                                </button>
+                              ))}
+                            </div>
+                            {verdict && verdict !== "yes" && (
+                              <textarea value={note} onChange={event => setNote(event.target.value)} maxLength={250} placeholder={lang === "it" ? "Cosa dovremmo correggere?" : "What should we correct?"} />
+                            )}
+                            {verdict && sent !== "ok" && <button className="mrp2-inline-save" onClick={sendFeedback} disabled={sent === "sending"}>{sent === "sending" ? "..." : (lang === "it" ? "Salva la mia risposta" : "Save my answer")}</button>}
+                            {sent === "ok" && <p className="mrp2-inline-ok">{lang === "it" ? "Ricevuto. Questa correzione influenzera il prossimo viaggio." : "Saved. This correction will influence your next trip."}</p>}
+                            {sent === "err" && <p className="mrp2-inline-err">{lang === "it" ? "Non siamo riusciti a salvarlo. Riprova." : "We could not save it. Try again."}</p>}
+                          </div>
+                        </div>
+                      )}
                     </article>
                   );
                 })}
@@ -395,7 +492,7 @@ export function PortraitScreen({
           {nextRules.length > 0 && (
             <motion.section className="mrp2-sec mrp2-next" {...rise(.04)}>
               <div className="mrp2-sec-head">
-                <span className="mrp2-sec-n">03</span>
+                <span className="mrp2-sec-n">04</span>
                 <div>
                   <div className="mrp2-sec-k">{lang === "it" ? "COSA CAMBIERA NEL PROSSIMO VIAGGIO" : "WHAT WILL CHANGE NEXT TIME"}</div>
                   <p>{lang === "it" ? "Non etichette astratte: regole concrete gia applicate alla prossima generazione." : "Not abstract labels: concrete rules already applied to the next generation."}</p>
