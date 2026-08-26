@@ -93,6 +93,7 @@ export function PortraitScreen({
   const [reasons, setReasons] = useState<string[]>([]);
   // Sezione 4 su telefono: fisarmonica, una fascia alla volta.
   const [openClarity, setOpenClarity] = useState<string | null>("clear");
+  const [openDimension, setOpenDimension] = useState<string | null>(null);
 
   const tx = (key: string, vars: Record<string, string | number> = {}) => {
     let s = t(key);
@@ -123,6 +124,82 @@ export function PortraitScreen({
     seek: p?.seek ?? [],
     avoid: p?.avoid ?? [],
   }, 4), [data.traitVector, p]);
+  const travelDimensions = useMemo(() => {
+    const axes = p?.axes ?? [];
+    const source = (p?.snapshotCount ?? 0) > 1
+      ? (lang === "it" ? "Dichiarato + appreso" : "Stated + learned")
+      : (lang === "it" ? "Dichiarato nel quiz" : "Stated in the quiz");
+    const axis = (id: string) => axes.find(item => item.axis === id);
+    const build = (id: string, label: string, low: [string, string, string], mid: [string, string, string], high: [string, string, string]) => {
+      const current = axis(id);
+      if (!current) return null;
+      const copy = current.value <= 40 ? low : current.value >= 60 ? high : mid;
+      return {
+        id,
+        label,
+        title: copy[0],
+        detail: copy[1],
+        effect: copy[2],
+        source,
+        evidence: [
+          current.pole ? `${lang === "it" ? "Orientamento" : "Leaning"}: ${current.pole}` : (lang === "it" ? "Equilibrio tra i due poli" : "Balanced between both poles"),
+          `${current.poleLeft} / ${current.poleRight}`,
+        ],
+      };
+    };
+    return [
+      build("structure", lang === "it" ? "RITMO E STRUTTURA" : "PACE AND STRUCTURE",
+        lang === "it"
+          ? ["Viaggi meglio quando sai cosa succede dopo.", "Una struttura chiara ti permette di rilassarti: orari, spostamenti e prenotazioni essenziali devono essere leggibili prima di partire.", "Costruiremo giornate ordinate, con tempi espliciti e un'alternativa pronta."]
+          : ["You travel better when you know what comes next.", "A clear structure helps you relax: timing, transfers and essential bookings should be visible before departure.", "We will build ordered days with explicit timing and a ready alternative."],
+        lang === "it"
+          ? ["Cerchi una direzione, non una gabbia.", "Vuoi capire il senso della giornata senza dover seguire ogni ora alla lettera. La struttura deve sostenerti, non controllarti.", "Definiremo pochi punti fermi e lasceremo spazio alle decisioni del momento."]
+          : ["You want direction, not a cage.", "You want to understand the shape of the day without following every hour literally. Structure should support, not control you.", "We will define a few anchors and leave room for decisions in the moment."],
+        lang === "it"
+          ? ["Il viaggio deve potersi muovere con te.", "Programmi troppo rigidi riducono il piacere della scoperta. Preferisci avere margine per fermarti, cambiare idea o seguire qualcosa che emerge sul posto.", "Proteggeremo almeno una fascia libera al giorno e limiteremo le prenotazioni rigide."]
+          : ["The trip should be able to move with you.", "Rigid schedules reduce the pleasure of discovery. You prefer room to pause, change your mind or follow what emerges locally.", "We will protect at least one open block per day and limit rigid bookings."]),
+      build("exposure", lang === "it" ? "SCOPERTA" : "DISCOVERY",
+        lang === "it"
+          ? ["La novita funziona quando parte da qualcosa di riconoscibile.", "Non cerchi necessariamente la meta piu remota: vuoi un luogo comprensibile, scelto bene e vissuto con profondita.", "Cercheremo angoli meno ovvi dentro destinazioni accessibili e leggibili."]
+          : ["Novelty works when it starts from something recognizable.", "You do not necessarily need the most remote destination: you want a place that is understandable, well chosen and experienced deeply.", "We will find less obvious angles inside accessible, legible destinations."],
+        lang === "it"
+          ? ["Vuoi essere sorpreso, senza perdere il controllo.", "Ti interessa uscire dall'ovvio, ma la sorpresa deve avere un motivo e restare coerente con il momento che stai vivendo.", "Bilanceremo una base affidabile con esperienze che non avresti scelto da solo."]
+          : ["You want surprise without losing control.", "You want to move beyond the obvious, but surprise needs a reason and must fit your current moment.", "We will balance a reliable base with experiences you may not choose alone."],
+        lang === "it"
+          ? ["Ti muove cio che non conosci ancora.", "Luoghi e rituali poco familiari aumentano il valore del viaggio. La scoperta, per te, non e decorazione: e parte della motivazione.", "Almeno una proposta uscira dai circuiti piu prevedibili, senza ignorare i vincoli pratici."]
+          : ["You are moved by what you do not know yet.", "Unfamiliar places and rituals increase the value of a trip. Discovery is not decoration for you; it is part of the motivation.", "At least one proposal will move beyond predictable circuits without ignoring practical constraints."]),
+      build("comfort", lang === "it" ? "COMFORT E LOGISTICA" : "COMFORT AND LOGISTICS",
+        lang === "it"
+          ? ["La comodita e parte della qualita del viaggio.", "Non vuoi spendere energia in attriti evitabili. Posizione, trasferimenti e recupero contano quanto le attivita.", "Privilegeremo basi comode, spostamenti semplici e tempi realistici."]
+          : ["Comfort is part of the quality of the trip.", "You do not want to spend energy on avoidable friction. Location, transfers and recovery matter as much as activities.", "We will prioritize convenient bases, simple transfers and realistic timing."],
+        lang === "it"
+          ? ["Accetti qualche scomodita quando ne vale la pena.", "Il comfort non deve dominare la scelta, ma ogni sforzo deve restituire un'esperienza concreta e non semplice fatica logistica.", "Inseriremo esperienze piu impegnative solo quando il beneficio e chiaro."]
+          : ["You accept some discomfort when it is worth it.", "Comfort should not dominate the choice, but every effort must return a real experience rather than logistical fatigue.", "We will add demanding experiences only when the payoff is clear."],
+        lang === "it"
+          ? ["Se l'esperienza lo merita, puoi rinunciare a qualche comodita.", "Non cerchi difficolta gratuite, ma sei disponibile a strade meno semplici quando portano a qualcosa di autentico o raro.", "Valuteremo strutture e tragitti meno convenzionali, spiegando sempre il compromesso."]
+          : ["If the experience deserves it, you can give up some comfort.", "You do not seek difficulty for its own sake, but you accept less convenient routes when they lead to something authentic or rare.", "We will consider less conventional stays and routes while always explaining the tradeoff."]),
+      build("social", lang === "it" ? "SPAZIO PERSONALE" : "PERSONAL SPACE",
+        lang === "it"
+          ? ["Hai bisogno di spazio per vivere il viaggio a modo tuo.", "Le esperienze funzionano meglio quando non dipendono da gruppi, animazione o interazioni forzate. Gli incontri devono poter accadere naturalmente.", "Limiteremo tour di gruppo e costruiremo serate valide anche in autonomia."]
+          : ["You need space to experience the trip in your own way.", "Experiences work better when they do not depend on groups, entertainment or forced interaction. Encounters should happen naturally.", "We will limit group tours and build evenings that also work independently."],
+        lang === "it"
+          ? ["Alterni intimita e contatto con il luogo.", "Non cerchi isolamento, ma nemmeno socialita continua. Il contesto giusto ti permette di scegliere quanto entrare nella vita locale.", "Mescoleremo momenti autonomi e occasioni sociali non obbligatorie."]
+          : ["You alternate intimacy and connection with the place.", "You seek neither isolation nor constant social activity. The right context lets you choose how deeply to enter local life.", "We will mix independent moments with optional social opportunities."],
+        lang === "it"
+          ? ["Le persone sono parte del motivo per cui parti.", "Mercati, tavole condivise e luoghi vissuti aumentano il senso del viaggio. La socialita deve essere autentica, non organizzata artificialmente.", "Daremo piu spazio a quartieri vivi, esperienze condivise e contatto locale."]
+          : ["People are part of the reason you leave.", "Markets, shared tables and lived-in places increase the meaning of travel. Social contact should feel authentic, not staged.", "We will give more space to lively neighbourhoods, shared experiences and local contact."]),
+      build("matter", lang === "it" ? "CULTURA E NATURA" : "CULTURE AND NATURE",
+        lang === "it"
+          ? ["Capisci un luogo attraverso quello che le persone hanno costruito.", "Storia, architettura, quartieri e rituali quotidiani ti danno il contesto necessario per sentirti davvero dentro una destinazione.", "Ogni itinerario avra un filo culturale leggibile, non una sequenza di attrazioni."]
+          : ["You understand a place through what people have built.", "History, architecture, neighbourhoods and daily rituals give you the context needed to feel inside a destination.", "Every itinerary will have a clear cultural thread rather than a sequence of attractions."],
+        lang === "it"
+          ? ["Il viaggio funziona quando paesaggio e cultura si spiegano a vicenda.", "Non vuoi scegliere tra citta e natura: cerchi un equilibrio in cui il contesto umano renda piu significativo il paesaggio, e viceversa.", "Costruiremo un'alternanza coerente tra luoghi vissuti e momenti all'aperto."]
+          : ["Travel works when landscape and culture explain each other.", "You do not want to choose between city and nature: you seek a balance where human context enriches landscape and vice versa.", "We will build a coherent alternation between lived-in places and outdoor moments."],
+        lang === "it"
+          ? ["Hai bisogno che il paesaggio cambi il ritmo del viaggio.", "La natura non e uno sfondo: e il momento in cui rallenti, recuperi energia e percepisci davvero la distanza dalla routine.", "Inseriremo almeno un'esperienza naturale centrale, con tempo sufficiente per viverla."]
+          : ["You need landscape to change the rhythm of the trip.", "Nature is not a backdrop: it is where you slow down, recover energy and feel the distance from routine.", "We will include at least one central nature experience with enough time to inhabit it."]),
+    ].filter((item): item is NonNullable<typeof item> => Boolean(item));
+  }, [p, lang]);
   const confirmedTrips = useMemo(() => trips.filter(trip => trip.taken).length, [trips]);
   const evolution = useMemo(
     () => buildEvolution(
@@ -361,7 +438,75 @@ export function PortraitScreen({
             </motion.section>
           )}
 
-          {(p?.seek?.length || p?.avoid?.length || p?.ownWords) && (
+          {(travelDimensions.length > 0 || p?.ownWords || p?.seek?.length || p?.avoid?.length) && (
+            <motion.section className="mrp2-sec mrp2-preferences" {...rise(0)}>
+              <div className="mrp2-sec-head">
+                <span className="mrp2-sec-n">01</span>
+                <div>
+                  <div className="mrp2-sec-k">{lang === "it" ? "COME TI PIACE VIAGGIARE, OGGI" : "HOW YOU LIKE TO TRAVEL, TODAY"}</div>
+                  <p>{lang === "it" ? "Non un punteggio astratto: una lettura pratica di cio che ti fa stare bene e di come lo tradurremo nel viaggio." : "Not an abstract score: a practical reading of what works for you and how we will translate it into your trip."}</p>
+                </div>
+              </div>
+
+              {(p?.ownWords || p?.seek?.length || p?.avoid?.length) && (
+                <div className="mrp2-preference-source">
+                  {p?.ownWords && (
+                    <blockquote>
+                      <span>{lang === "it" ? "IL PUNTO DI PARTENZA, CON LE TUE PAROLE" : "THE STARTING POINT, IN YOUR WORDS"}</span>
+                      &ldquo;{p.ownWords}&rdquo;
+                    </blockquote>
+                  )}
+                  {((p?.seek?.length ?? 0) > 0 || (p?.avoid?.length ?? 0) > 0) && (
+                    <div className="mrp2-preference-signals">
+                      {(p?.seek?.length ?? 0) > 0 && (
+                        <div><span>{lang === "it" ? "CERCHI" : "YOU SEEK"}</span><p>{p!.seek.slice(0, 4).join(" · ")}</p></div>
+                      )}
+                      {(p?.avoid?.length ?? 0) > 0 && (
+                        <div><span>{lang === "it" ? "VUOI EVITARE" : "YOU AVOID"}</span><p>{p!.avoid.slice(0, 4).join(" · ")}</p></div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mrp2-dimensions">
+                {travelDimensions.map(dimension => {
+                  const open = openDimension === dimension.id;
+                  return (
+                    <article key={dimension.id} className={`mrp2-dimension${open ? " open" : ""}`}>
+                      <div className="mrp2-dimension-meta"><span>{dimension.label}</span><i>{dimension.source}</i></div>
+                      <h3>{dimension.title}</h3>
+                      <div className="mrp2-dimension-effect">
+                        <span>{lang === "it" ? "NEL TUO ITINERARIO" : "IN YOUR ITINERARY"}</span>
+                        <p>{dimension.effect}</p>
+                      </div>
+                      <button className="mrp2-dimension-toggle" onClick={() => setOpenDimension(open ? null : dimension.id)} aria-expanded={open}>
+                        {open ? (lang === "it" ? "Riduci" : "Show less") : (lang === "it" ? "Approfondisci" : "Explore this reading")}
+                        <ArrowRight size={13} />
+                      </button>
+                      {open && (
+                        <motion.div className="mrp2-dimension-detail" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                          <div>
+                            <span>{lang === "it" ? "COSA SIGNIFICA" : "WHAT IT MEANS"}</span>
+                            <p>{dimension.detail}</p>
+                          </div>
+                          <div>
+                            <span>{lang === "it" ? "SEGNALI USATI" : "SIGNALS USED"}</span>
+                            <div className="mrp2-dimension-evidence">{dimension.evidence.map(item => <i key={item}>{item}</i>)}</div>
+                          </div>
+                          <button onClick={() => (onCompanion ? onCompanion() : window.dispatchEvent(new Event("mindroute:open-companion")))}>
+                            {lang === "it" ? "Correggi questa lettura" : "Correct this reading"} <ArrowRight size={13} />
+                          </button>
+                        </motion.div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </motion.section>
+          )}
+
+          {SHOW_LEGACY_PORTRAIT && (p?.seek?.length || p?.avoid?.length || p?.ownWords) && (
             <motion.section className="mrp2-sec mrp2-declared" {...rise(0)}>
               <div className="mrp2-sec-head">
                 <span className="mrp2-sec-n">01</span>
@@ -395,7 +540,7 @@ export function PortraitScreen({
             </motion.section>
           )}
 
-          {(p?.axes?.length ?? 0) > 0 && (
+          {SHOW_LEGACY_PORTRAIT && (p?.axes?.length ?? 0) > 0 && (
             <motion.section className="mrp2-sec mrp2-operating" {...rise(.02)}>
               <div className="mrp2-sec-head">
                 <span className="mrp2-sec-n">02</span>
@@ -423,7 +568,7 @@ export function PortraitScreen({
           {insights.length > 0 && (
             <motion.section className="mrp2-sec" {...rise(0)}>
               <div className="mrp2-sec-head">
-                <span className="mrp2-sec-n">03</span>
+                <span className="mrp2-sec-n">02</span>
                 <div>
                   <div className="mrp2-sec-k">{lang === "it" ? "QUELLO CHE ABBIAMO IMPARATO" : "WHAT WE HAVE LEARNED"}</div>
                   <p>{lang === "it" ? "Letture ricavate dalle tue scelte. Puoi aprire le prove e correggerle." : "Readings inferred from your choices. You can inspect the evidence and correct them."}</p>
@@ -492,7 +637,7 @@ export function PortraitScreen({
           {nextRules.length > 0 && (
             <motion.section className="mrp2-sec mrp2-next" {...rise(.04)}>
               <div className="mrp2-sec-head">
-                <span className="mrp2-sec-n">04</span>
+                <span className="mrp2-sec-n">03</span>
                 <div>
                   <div className="mrp2-sec-k">{lang === "it" ? "COSA CAMBIERA NEL PROSSIMO VIAGGIO" : "WHAT WILL CHANGE NEXT TIME"}</div>
                   <p>{lang === "it" ? "Non etichette astratte: regole concrete gia applicate alla prossima generazione." : "Not abstract labels: concrete rules already applied to the next generation."}</p>
