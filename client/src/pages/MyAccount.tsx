@@ -312,6 +312,7 @@ export default function MyAccount() {
     img: t.heroImageUrl ?? FALLBACK_HERO_IMG,
     href: `/itinerary/${t.id}`,
     taken: getTripStatus(t) === "confirmed",
+    status: getTripStatus(t),
     emotion: t.tripMeta?.emotion,
     budget: typeof t.tripMeta?.total_cost_bookable === "number" ? t.tripMeta.total_cost_bookable : null,
     stops: Array.isArray(t.tripMeta?.map_points)

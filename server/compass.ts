@@ -36,7 +36,7 @@ type Lang = "en" | "it";
 // prompt del matching e nei fatti del ritratto. È il pezzo che trasforma
 // "AI genera itinerario" in "AI osserva → impara → evolve il profilo".
 
-export interface RecentSignal { question: string; answer: string; at: Date }
+export interface RecentSignal { cardId: string; question: string; answer: string; at: Date }
 
 export async function getRecentCompassSignals(
   userId: number,
@@ -49,11 +49,48 @@ export async function getRecentCompassSignals(
       .where(and(eq(compassSignals.userId, userId), gte(compassSignals.createdAt, since)));
     return rows
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .filter(r => !r.cardId.startsWith("portrait:"))
       .slice(0, max)
-      .map(r => ({ question: r.question, answer: r.answer, at: new Date(r.createdAt) }));
+      .map(r => ({ cardId: r.cardId, question: r.question, answer: r.answer, at: new Date(r.createdAt) }));
   } catch {
     return []; // tabella non ancora pushata → nessun segnale, nessun errore
   }
+}
+
+export async function getPortraitFeedbackSignals(userId: number, max = 40): Promise<RecentSignal[]> {
+  try {
+    const rows = await db.select().from(compassSignals)
+      .where(eq(compassSignals.userId, userId));
+    const latest = new Map<string, RecentSignal>();
+    rows
+      .filter(row => row.cardId.startsWith("portrait:"))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .forEach(row => {
+        if (!latest.has(row.cardId)) latest.set(row.cardId, {
+          cardId: row.cardId,
+          question: row.question,
+          answer: row.answer,
+          at: new Date(row.createdAt),
+        });
+      });
+    return Array.from(latest.values()).slice(0, max);
+  } catch {
+    return [];
+  }
+}
+
+export function formatPortraitFeedbackBlock(signals: RecentSignal[]): string {
+  if (signals.length === 0) return "";
+  const lines = signals.map(signal => {
+    const verdict = signal.answer.trim().split(/\s|—/)[0].toLowerCase();
+    const instruction = verdict === "no"
+      ? "REJECTED: do not use this inference"
+      : verdict === "partly"
+        ? "PARTIAL: use only with the user's qualification"
+        : "CONFIRMED: this can influence the result";
+    return `- ${instruction}: "${signal.question}". Feedback: "${signal.answer}"`;
+  });
+  return `\nPORTRAIT FEEDBACK (persistent user corrections)\n${lines.join("\n")}\nThese corrections outrank older inferred patterns, but never override current hard trip constraints.\n`;
 }
 
 // Blocco prompt per il MATCHER (inglese, come il resto del prompt).

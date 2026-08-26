@@ -43,6 +43,7 @@ export interface PortraitData {
   revealed: { saidPole: string; chosePole: string; theme: string } | null;
   evolution: { phrase: string; points: Array<{ whenLabel: string; isNow: boolean }> } | null;
   narrative: { portrait: string; paradox: string | null } | null;
+  insightFeedback?: Record<string, "yes" | "partly" | "no">;
 }
 
 export function AccountPortrait({

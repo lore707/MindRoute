@@ -109,9 +109,9 @@ export const accountDashDict: Record<string, { en: string; it: string }> = {
   "acd.portrait.traitsHint": { en: "How much each dimension weighs in your choices.", it: "Quanto pesa ogni dimensione nelle tue scelte." },
 
   // ── Collection view ─────────────────────────────────────────────────────
-  "acd.coll.eyebrow":  { en: "Your atlas", it: "Il tuo atlante" },
+  "acd.coll.eyebrow":  { en: "Your journey space", it: "Il tuo spazio di viaggio" },
   "acd.coll.title":    { en: "My <em class='gold'>trips</em>.", it: "I miei <em class='gold'>viaggi</em>." },
-  "acd.coll.tagline":  { en: "Your collection of experiences around the world.", it: "La tua collezione di esperienze nel mondo." },
+  "acd.coll.tagline":  { en: "Plans in progress, trips lived and the choices MindRoute learns from.", it: "Piani in corso, viaggi vissuti e scelte da cui MindRoute impara." },
   "acd.coll.sub":      { en: "{n} {nu} · {d} dreamed {dw}. Search, filter, reopen.", it: "{n} {nu} · {d} {dw} di sogno. Cerca, filtra, riapri." },
   "acd.coll.search":   { en: "Search your trips, places, memories…", it: "Cerca tra i tuoi viaggi, luoghi, ricordi…" },
   "acd.coll.empty":    { en: "No trips with these filters… yet.", it: "Nessun viaggio con questi filtri… ancora." },

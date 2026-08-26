@@ -35,9 +35,11 @@ import {
   computeConfidence, buildEvolution, visibleInsights, insightEvidence,
   AXIS_POLE_LABELS, type Insight, type PortraitSignals, type EvolutionStep,
 } from "@shared/portrait-insights";
+import { deriveTravelRules } from "@shared/travel-rules";
 import "@/styles/portrait.css";
 
 const bg = (url: string | undefined, w: number, q = 68) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
+const SHOW_LEGACY_PORTRAIT: boolean = false;
 
 type Props = {
   data: AccountData;
@@ -66,6 +68,7 @@ export function PortraitScreen({
   const [verdict, setVerdict] = useState<"yes" | "partly" | "no" | null>(null);
   const [note, setNote] = useState("");
   const [sent, setSent] = useState<"ok" | "err" | "sending" | null>(null);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const [openStep, setOpenStep] = useState<number | null>(null);
   // Il prototipo mobile aggiunge un passo che il desktop non ha: quando dici
   // che una lettura non ti rappresenta, ti chiede COSA non ti rappresenta.
@@ -96,7 +99,15 @@ export function PortraitScreen({
   }), [trips, p, data.traitVector, data.traitSnapshots]);
 
   const confidence = useMemo(() => computeConfidence(signals), [signals]);
-  const insights = useMemo(() => visibleInsights(signals, confidence), [signals, confidence]);
+  const insights = useMemo(() => visibleInsights(signals, confidence).filter(insight =>
+    p?.insightFeedback?.[insight.id] !== "no" && !dismissed.includes(insight.id)
+  ), [signals, confidence, p?.insightFeedback, dismissed]);
+  const nextRules = useMemo(() => deriveTravelRules({
+    vector: data.traitVector ?? null,
+    seek: p?.seek ?? [],
+    avoid: p?.avoid ?? [],
+  }, 4), [data.traitVector, p]);
+  const confirmedTrips = useMemo(() => trips.filter(trip => trip.taken).length, [trips]);
   const evolution = useMemo(
     () => buildEvolution(
       data.traitSnapshots ?? [],
@@ -204,6 +215,10 @@ export function PortraitScreen({
         }),
       });
       setSent(r.ok ? "ok" : "err");
+      if (r.ok && verdict === "no") {
+        setDismissed(current => [...current, drill.insight.id]);
+        setDrill(null);
+      }
     } catch {
       setSent("err");
     }
@@ -242,22 +257,22 @@ export function PortraitScreen({
             <div className="mrp2-hero-in">
               <div className="mrp2-kick">{t("pt2.kick")}</div>
               <h1 className="mrp2-title">
-                {t("pt2.title")} <em>{t("pt2.titleEm")}</em>
+                {lang === "it" ? "Il tuo modo di viaggiare," : "How you travel,"} <em>{lang === "it" ? "spiegato." : "explained."}</em>
               </h1>
               {p?.narrative?.portrait && <p className="mrp2-lede">{p.narrative.portrait}</p>}
 
               <div className="mrp2-stats">
                 <div className="mrp2-stat">
-                  <span className="n">{confidence}%</span>
-                  <span className="l">{t("pt2.confidence")}</span>
+                  <span className="n">{p?.seek?.length ?? 0}</span>
+                  <span className="l">{lang === "it" ? "preferenze dichiarate" : "stated preferences"}</span>
                 </div>
                 <div className="mrp2-stat">
                   <span className="n">{trips.length}</span>
-                  <span className="l">{t("pt2.tripsSeen")}</span>
+                  <span className="l">{lang === "it" ? "piani osservati" : "plans observed"}</span>
                 </div>
                 <div className="mrp2-stat">
-                  <span className="n">{p?.counts?.continents ?? 0}</span>
-                  <span className="l">{t("pt2.continents")}</span>
+                  <span className="n">{confirmedTrips}</span>
+                  <span className="l">{lang === "it" ? "viaggi confermati" : "confirmed trips"}</span>
                 </div>
               </div>
 
@@ -265,7 +280,7 @@ export function PortraitScreen({
                 {lastUpdate && <span>{tx("pt2.lastUpdate", { date: lastUpdate })}</span>}
                 {onGenerate && (
                   <button className="mrp2-ghost" onClick={onGenerate}>
-                    <RefreshCw size={13} /> {t("pt2.refresh")}
+                    <RefreshCw size={13} /> {lang === "it" ? "Crea dal ritratto" : "Create from portrait"}
                   </button>
                 )}
                 {onShare && (
@@ -278,7 +293,7 @@ export function PortraitScreen({
           </section>
 
           {/* ── la traiettoria: ieri · oggi · verso dove ── */}
-          {evolution.length > 0 && (
+          {SHOW_LEGACY_PORTRAIT && evolution.length > 0 && (
             <section className="mrp2-arc">
               {(() => {
                 const changes = evolution.filter(e => e.kind === "change");
@@ -311,10 +326,50 @@ export function PortraitScreen({
             </section>
           )}
 
+          {(p?.seek?.length || p?.avoid?.length || p?.ownWords) && (
+            <motion.section className="mrp2-sec mrp2-declared" {...rise(0)}>
+              <div className="mrp2-sec-head">
+                <span className="mrp2-sec-n">01</span>
+                <div>
+                  <div className="mrp2-sec-k">{lang === "it" ? "QUELLO CHE CI HAI DETTO" : "WHAT YOU TOLD US"}</div>
+                  <p>{lang === "it" ? "Preferenze e limiti espliciti. Sono la base, non un'interpretazione." : "Explicit preferences and limits. They are the foundation, not an interpretation."}</p>
+                </div>
+              </div>
+              <div className="mrp2-declared-grid">
+                <article>
+                  <span>{lang === "it" ? "CERCHI" : "YOU SEEK"}</span>
+                  <div className="mrp2-declared-chips">
+                    {(p?.seek ?? []).map(item => <i key={item}>{item}</i>)}
+                    {(p?.seek?.length ?? 0) === 0 && <small>{lang === "it" ? "Da precisare nel prossimo viaggio" : "To refine on your next trip"}</small>}
+                  </div>
+                </article>
+                <article>
+                  <span>{lang === "it" ? "VUOI EVITARE" : "YOU AVOID"}</span>
+                  <div className="mrp2-declared-chips avoid">
+                    {(p?.avoid ?? []).map(item => <i key={item}>{item}</i>)}
+                    {(p?.avoid?.length ?? 0) === 0 && <small>{lang === "it" ? "Nessun limite dichiarato" : "No stated limits"}</small>}
+                  </div>
+                </article>
+                {p?.ownWords && (
+                  <article className="mrp2-declared-words">
+                    <span>{lang === "it" ? "CON LE TUE PAROLE" : "IN YOUR OWN WORDS"}</span>
+                    <blockquote>“{p.ownWords}”</blockquote>
+                  </article>
+                )}
+              </div>
+            </motion.section>
+          )}
+
           {/* ── 1 · IL TUO MODO DI VIAGGIARE ── */}
           {insights.length > 0 && (
             <motion.section className="mrp2-sec" {...rise(0)}>
-              <SecHead n="1" k="pt2.s1.k" sub={t("pt2.s1.sub")} />
+              <div className="mrp2-sec-head">
+                <span className="mrp2-sec-n">02</span>
+                <div>
+                  <div className="mrp2-sec-k">{lang === "it" ? "QUELLO CHE ABBIAMO IMPARATO" : "WHAT WE HAVE LEARNED"}</div>
+                  <p>{lang === "it" ? "Letture ricavate dalle tue scelte. Puoi aprire le prove e correggerle." : "Readings inferred from your choices. You can inspect the evidence and correct them."}</p>
+                </div>
+              </div>
               <div className="mrp2-princ">
                 {insights.map((ins) => {
                   const on = drill?.insight.id === ins.id;
@@ -337,8 +392,35 @@ export function PortraitScreen({
             </motion.section>
           )}
 
+          {nextRules.length > 0 && (
+            <motion.section className="mrp2-sec mrp2-next" {...rise(.04)}>
+              <div className="mrp2-sec-head">
+                <span className="mrp2-sec-n">03</span>
+                <div>
+                  <div className="mrp2-sec-k">{lang === "it" ? "COSA CAMBIERA NEL PROSSIMO VIAGGIO" : "WHAT WILL CHANGE NEXT TIME"}</div>
+                  <p>{lang === "it" ? "Non etichette astratte: regole concrete gia applicate alla prossima generazione." : "Not abstract labels: concrete rules already applied to the next generation."}</p>
+                </div>
+              </div>
+              <div className="mrp2-next-grid">
+                {nextRules.map((rule, index) => (
+                  <article key={rule.id}>
+                    <span className="mrp2-next-index">{String(index + 1).padStart(2, "0")}</span>
+                    <div>
+                      <h3>{lang === "it" ? rule.title.it : rule.title.en}</h3>
+                      <p>{lang === "it" ? rule.body.it : rule.body.en}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="mrp2-next-cta">
+                <p>{lang === "it" ? "Il nuovo viaggio usera queste regole insieme a budget, date e vincoli che inserirai." : "Your new trip will combine these rules with the budget, dates and constraints you provide."}</p>
+                {onGenerate && <button className="mrp2-cta" onClick={onGenerate}>{lang === "it" ? "Genera un viaggio da questi insight" : "Generate a trip from these insights"} <ArrowRight size={14} /></button>}
+              </div>
+            </motion.section>
+          )}
+
           {/* ── 2 · LE TENSIONI CHE TI MUOVONO ── */}
-          {tensions.length > 0 && (
+          {SHOW_LEGACY_PORTRAIT && tensions.length > 0 && (
             <motion.section className="mrp2-sec" {...rise(.05)}>
               <SecHead n="2" k="pt2.s2.k" sub={t("pt2.s2.sub")} />
               <div className="mrp2-tens">
@@ -358,7 +440,7 @@ export function PortraitScreen({
           )}
 
           {/* ── 3 · COME CI SEI ARRIVATO ── */}
-          {evolution.filter(e => e.kind === "change").length > 0 && (
+          {SHOW_LEGACY_PORTRAIT && evolution.filter(e => e.kind === "change").length > 0 && (
             <motion.section className="mrp2-sec" {...rise(.05)}>
               <SecHead n="3" k="pt2.s3.k" sub={t("pt2.s3.sub")} />
               <div className="mrp2-time">
@@ -397,7 +479,7 @@ export function PortraitScreen({
           )}
 
           {/* ── 4 · QUELLO CHE NON SAPPIAMO ANCORA ── */}
-          {(p?.axes?.length ?? 0) > 0 && (
+          {SHOW_LEGACY_PORTRAIT && (p?.axes?.length ?? 0) > 0 && (
             <motion.section className="mrp2-sec" {...rise(.05)}>
               <SecHead n="4" k="pt2.s4.k" sub={t("pt2.s4.sub")} />
               <div className="mrp2-clar">
@@ -442,7 +524,7 @@ export function PortraitScreen({
           )}
 
           {/* ── le tre proposte: la conclusione, invariata ── */}
-          {picks && picks.length > 0 && (
+          {SHOW_LEGACY_PORTRAIT && picks && picks.length > 0 && (
             <motion.section className="mrp2-sec" {...rise(.05)}>
               <div className="mrp-kick">{t("pt.picks.k")}</div>
               <h2 className="mrp-picks-t">{t("pt.picks.t")}</h2>

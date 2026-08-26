@@ -9,10 +9,11 @@ import { fetchUnsplashHero } from "../unsplash";
 import { computeTraitVector, emaAggregate, synthesizeAnswersFromVector, MAPPING_VERSION, type TraitVector } from "@shared/traits";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
 import { formatDestinationCoherenceBlock } from "../destination-traits";
-import { getRecentCompassSignals, formatCompassSignalsBlock } from "../compass";
+import { getRecentCompassSignals, formatCompassSignalsBlock, getPortraitFeedbackSignals, formatPortraitFeedbackBlock } from "../compass";
 import { buildPortraitPromptBlock } from "../portrait-signals";
 import { computeProfileDefaults } from "../profile-defaults";
 import { requireAuth } from "../auth";
+import { formatTravelRulesBlock } from "@shared/travel-rules";
 
 export function registerProfilingRoutes(app: Express) {
   // STEP 1 — Genera 3 destinazioni leggere dal profiling.
@@ -36,7 +37,17 @@ export function registerProfilingRoutes(app: Express) {
       const signalsBlock = userIdForPrior
         ? formatCompassSignalsBlock(await getRecentCompassSignals(userIdForPrior))
         : "";
-      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(userVec) + signalsBlock;
+      const feedbackBlock = userIdForPrior
+        ? formatPortraitFeedbackBlock(await getPortraitFeedbackSignals(userIdForPrior))
+        : "";
+      const fast = input.fastProfile;
+      const rulesBlock = formatTravelRulesBlock({
+        vector: userVec,
+        pace: fast?.pace ?? input.pace,
+        avoid: fast?.avoid ?? input.avoid,
+        seek: fast ? [...fast.intentions, ...fast.interests] : input.answers,
+      });
+      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(userVec) + rulesBlock + signalsBlock + feedbackBlock;
       const recentNames = await getRecentDestinationNames();
       const userSeenNames = await getProposedNamesForUser(userIdForPrior);
       const seed = weeklyExplorationSeed(userIdForPrior);
@@ -186,6 +197,7 @@ export function registerProfilingRoutes(app: Express) {
       // + micro-segnali del Daily Compass ("Genera dal profilo" è proprio il
       // flusso dove pesano di più: non c'è un quiz fresco a raccontare l'oggi).
       const signalsBlock = formatCompassSignalsBlock(await getRecentCompassSignals(user.id));
+      const feedbackBlock = formatPortraitFeedbackBlock(await getPortraitFeedbackSignals(user.id));
       // IL RITRATTO ENTRA NELLA GENERAZIONE.
       // Finora il generatore riceveva i cinque numeri del vettore; l'utente
       // aveva appena letto sul proprio profilo "torni sempre in Europa" e
@@ -195,7 +207,8 @@ export function registerProfilingRoutes(app: Express) {
       // …e l'utente può togliergliene pezzi dal pannello dei vincoli: quello
       // che spegne non arriva qui. Il pannello mostra le stesse righe.
       const portraitBlock = await buildPortraitPromptBlock(user.id, micro.lang === "en" ? "en" : "it", keepInsights ?? null);
-      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(current) + signalsBlock + portraitBlock;
+      const rulesBlock = formatTravelRulesBlock({ vector: current });
+      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(current) + rulesBlock + signalsBlock + feedbackBlock + portraitBlock;
       const recentNames = await getRecentDestinationNames();
       const userSeenNames = await getProposedNamesForUser(user.id);
       const seed = weeklyExplorationSeed(user.id);

@@ -31,6 +31,7 @@ export type Trip = {
   img: string;
   href?: string;
   taken?: boolean;           // viaggio EFFETTIVAMENTE fatto (trip_status="confirmed")
+  status?: "planned" | "confirmed" | "skipped";
   // Atlas narrativo (2026-07): emozione scelta dall'utente (colore) + budget
   // reale v2 (tripMeta.total_cost_bookable). Assenti se non disponibili.
   emotion?: string;

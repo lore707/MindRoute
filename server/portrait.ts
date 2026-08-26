@@ -52,6 +52,7 @@ export interface PortraitResponse {
   revealed: PortraitRevealed | null;
   evolution: PortraitEvolution | null;
   narrative: PortraitNarrative | null;
+  insightFeedback: Record<string, "yes" | "partly" | "no">;
 }
 
 type Lang = "en" | "it";
@@ -289,6 +290,14 @@ export async function buildPortrait(userId: number, lang: Lang = "it"): Promise<
     snapshotCount >= 4 ? "solid" : snapshotCount >= 2 ? "forming" : "nascent";
 
   const available = validVectors.length >= 1 || seek.length > 0 || avoid.length > 0;
+  const { getPortraitFeedbackSignals } = await import("./compass");
+  const feedbackSignals = await getPortraitFeedbackSignals(userId);
+  const insightFeedback: Record<string, "yes" | "partly" | "no"> = {};
+  feedbackSignals.forEach(signal => {
+    const id = signal.cardId.replace(/^portrait:/, "");
+    const verdict = signal.answer.trim().split(/\s|—/)[0];
+    if (verdict === "yes" || verdict === "partly" || verdict === "no") insightFeedback[id] = verdict;
+  });
 
   const response: PortraitResponse = {
     available,
@@ -304,6 +313,7 @@ export async function buildPortrait(userId: number, lang: Lang = "it"): Promise<
     revealed,
     evolution,
     narrative: null,
+    insightFeedback,
   };
 
   if (available) response.narrative = await generateNarrative(userId, response, lang);

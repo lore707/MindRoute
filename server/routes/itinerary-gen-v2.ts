@@ -18,6 +18,8 @@ import { fetchUnsplashHero, fetchDayImageWithFallback, buildDestinationPhotoPool
 import { recordRecentDestination } from "../recent-destinations";
 import { recordPickSnapshot } from "../trait-recorder";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
+import { formatTravelRulesBlock } from "@shared/travel-rules";
+import { getPortraitFeedbackSignals, formatPortraitFeedbackBlock } from "../compass";
 import { buildGraphBlock } from "../graph-build";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory, DestinationContext } from "../../shared/schema";
 import { requireAuth } from "../auth";
@@ -517,6 +519,14 @@ export function registerItineraryGenV2Routes(app: Express) {
         const userId = (req.user as any)?.id ?? null;
         const prior = await getTraitPriorForUser(userId);
         let priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+        const fast = input.fastProfile;
+        priorBlock += formatTravelRulesBlock({
+          vector: prior?.vector ?? null,
+          pace: fast?.pace ?? input.pace,
+          avoid: fast?.avoid ?? input.avoid,
+          seek: fast ? [...fast.intentions, ...fast.interests] : input.answers,
+        });
+        if (userId) priorBlock += formatPortraitFeedbackBlock(await getPortraitFeedbackSignals(userId));
         // Step 3 §12.3: il generatore L5 riceve Facts + Graph (Intento come
         // Principio Zero + Decision Cascade) invece delle risposte grezze.
         // "" quando GRAPH_GEN=0 → torna al prompt precedente (reversibilità).

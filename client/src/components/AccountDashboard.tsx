@@ -24,7 +24,8 @@ import { useI18n } from "@/lib/i18n";
 import { getLastOpenedItinerary } from "@/lib/last-opened";
 import type { AccountData } from "./AccountCinematic";
 import { PortraitScreen } from "@/components/PortraitScreen";
-import { computeConfidence } from "@shared/portrait-insights";
+import { computeConfidence, visibleInsights, type PortraitSignals } from "@shared/portrait-insights";
+import { deriveTravelRules } from "@shared/travel-rules";
 import { mapTileUrl, readMapStyle } from "@/lib/map-style";
 import "@/styles/leaflet-chrome.css";
 import { attachAutoSize, fitToPoints, safePoints } from "@/lib/leaflet-utils";
@@ -86,7 +87,6 @@ const NAV: Array<{ id: ViewId; ic: keyof typeof ICONS; key: string }> = [
 // Su telefono serve un bersaglio esplicito per la radice: il logo in alto e'
 // scomodo col pollice.
 const MNAV: Array<{ id: ViewId; ic: keyof typeof ICONS; key: string }> = [
-  { id: "home", ic: "home", key: "acd.nav.home" },
   ...NAV,
 ];
 // La quarta voce del prototipo mobile. Non e' una vista: apre il compagno di
@@ -233,9 +233,10 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     try {
       const v = new URLSearchParams(window.location.search).get("view");
       if (v === "atlas") return "trips"; // vecchi link Atlas → collezione (View Mode gestita sotto)
-      if (v && ["home", "resume", "portrait", "trips"].includes(v)) return v as ViewId;
+      if (v === "home" || v === "resume") return "trips";
+      if (v && ["portrait", "trips"].includes(v)) return v as ViewId;
     } catch { /* SSR/no window */ }
-    return "home";
+    return "trips";
   });
   // View Mode della collezione "I miei viaggi": griglia di card ↔ mappa Atlas.
   // Non è una route né una sezione: è un cambio di prospettiva sugli STESSI dati.
@@ -268,6 +269,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
   const [drawer, setDrawer] = useState(false);
   const [region, setRegion] = useState<(typeof REGION_TABS)[number]>("all");
   const [q, setQ] = useState("");
+  const [tripStatus, setTripStatus] = useState<"all" | "planned" | "confirmed" | "skipped">("all");
   const [ambientIdx, setAmbientIdx] = useState(0);
   const [heroIdx, setHeroIdx] = useState(0);
   const [sharing, setSharing] = useState(false);
@@ -303,6 +305,28 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     });
     return n > 0 ? n : null;
   }, [data.portrait, data.trips, data.traitVector, data.traitSnapshots]);
+
+  const portraitSignals = useMemo<PortraitSignals>(() => ({
+    trips: data.trips.map(x => ({ dest: x.dest, continent: x.continent, rawDate: x.rawDate, taken: x.taken, duration: x.duration })),
+    seek: data.portrait?.seek ?? [],
+    avoid: data.portrait?.avoid ?? [],
+    vector: data.traitVector ?? null,
+    snapshotCount: data.portrait?.snapshotCount ?? (data.traitSnapshots?.length ?? 0),
+    ownWords: data.portrait?.ownWords ?? null,
+  }), [data.trips, data.portrait, data.traitVector, data.traitSnapshots]);
+
+  const learnedInsights = useMemo(
+    () => visibleInsights(portraitSignals, portraitConfidence ?? 0, 3),
+    [portraitSignals, portraitConfidence],
+  );
+  const nextTravelRules = useMemo(
+    () => deriveTravelRules({
+      vector: data.traitVector ?? null,
+      seek: data.portrait?.seek ?? [],
+      avoid: data.portrait?.avoid ?? [],
+    }, 3),
+    [data.traitVector, data.portrait],
+  );
 
   /* 05 · le fotografie del tuo mondo: i momenti che hai tenuto, poi i viaggi.
    *
@@ -512,6 +536,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
   // E mappa E statistiche. Poi ordinamento.
   const filteredTrips = useMemo(() => {
     const out = data.trips.filter(tr => {
+      if (tripStatus !== "all" && (tr.status ?? (tr.taken ? "confirmed" : "planned")) !== tripStatus) return false;
       if (region !== "all" && tr.continent !== CONTINENT_VALUES[region]) return false;
       if (q && !tr.dest.toLowerCase().includes(q.toLowerCase())) return false;
       if (focusYear != null && tripYear(tr) !== focusYear) return false;
@@ -524,7 +549,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     }[sort];
     return [...out].sort(by);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.trips, region, q, focusYear, sort, heartsByItin]);
+  }, [data.trips, tripStatus, region, q, focusYear, sort, heartsByItin]);
 
   // Statistiche della collezione — riflettono il FILTRO attivo (si aggiornano
   // con timeline/regione/ricerca). Derivate dai dati reali.
@@ -533,8 +558,9 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     const days = filteredTrips.reduce((a, tr) => a + daysOf(tr.duration), 0);
     const destinations = new Set(filteredTrips.map(tr => tr.dest).filter(Boolean)).size;
     const continents = new Set(filteredTrips.map(tr => tr.continent).filter(Boolean)).size;
-    const worldPct = Math.round((continents / 7) * 100);
-    return { itineraries, days, destinations, continents, worldPct };
+    const confirmed = filteredTrips.filter(tr => tr.status === "confirmed" || tr.taken).length;
+    const planned = filteredTrips.filter(tr => (tr.status ?? "planned") === "planned").length;
+    return { itineraries, days, destinations, continents, confirmed, planned };
   }, [filteredTrips]);
 
   // Anni presenti nella collezione (per la timeline), con conteggio per anno
@@ -606,9 +632,15 @@ export function AccountDashboard({ data }: { data: AccountData }) {
   );
 
   const TripCard = ({ tr }: { tr: AccountData["trips"][number] }) => (
-    <a className={"c-card" + (tr.taken ? " taken" : "")} href={tr.href ?? "#"}>
+    <a className={"c-card status-" + (tr.status ?? (tr.taken ? "confirmed" : "planned"))} href={tr.href ?? "#"}>
       <div className="ph" style={{ backgroundImage: bg(tr.img, cardW) }} />
-      {tr.taken && <span className="c-taken">{lang === "it" ? "Fatto" : "Been there"}</span>}
+      <span className="c-taken">
+        {(tr.status ?? (tr.taken ? "confirmed" : "planned")) === "confirmed"
+          ? (lang === "it" ? "Fatto" : "Taken")
+          : (tr.status ?? "planned") === "skipped"
+            ? (lang === "it" ? "Non realizzato" : "Not taken")
+            : (lang === "it" ? "In programma" : "Planned")}
+      </span>
       <div className="c-body">
         <div className="c-top">
           <span className="when">{tr.date}<span className="region">{regionLabel(tr.continent)}</span></span>
@@ -642,7 +674,9 @@ export function AccountDashboard({ data }: { data: AccountData }) {
   const continueCard = useMemo(() => {
     const lastId = getLastOpenedItinerary();
     const byId = (id: number) => data.trips.find(tr => tr.href?.includes(`/itinerary/${id}`));
-    const trip = (lastId ? byId(lastId) : undefined) ?? data.trips[0];
+    const trip = (lastId ? byId(lastId) : undefined)
+      ?? data.trips.find(item => (item.status ?? "planned") === "planned")
+      ?? data.trips[0];
     const fromFeatured = !trip && featured
       ? { title: featured.title, img: featured.img, href: featured.href ?? "#", region: "", date: featured.date ?? "", quote: featured.quote ?? "" }
       : null;
@@ -1244,7 +1278,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     <div className="view">
       <PortraitScreen
         data={data}
-        onGenerate={data.onNewItinerary}
+        onGenerate={data.onSecondaryCta ?? data.onNewItinerary}
         onChallenge={data.onChallenge}
         onShare={sharePortrait}
         sharing={sharing}
@@ -1255,7 +1289,6 @@ export function AccountDashboard({ data }: { data: AccountData }) {
       />
       {/* Le osservazioni della bussola, per intero. Qui un ELENCO è quello che
           si cerca; in home ne compare una sola (regola singolari/elenchi). */}
-      {CompassSection()}
     </div>
   );
 
@@ -1279,6 +1312,55 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     // `is-atlas` serve al CSS: su telefono la mappa deve venire PRIMA delle
     // statistiche, altrimenti per vederla si scorrono 700px di numeri.
     <div className={"view coll2" + (viewMode === "atlas" ? " is-atlas" : "")}>
+      <section className="coll2-command">
+        <div className="coll2-command-main">
+          {continueCard && <div className="coll2-command-photo" style={{ backgroundImage: bg(continueCard.img, 1100, 70) }} />}
+          <div className="coll2-command-veil" />
+          <div className="coll2-command-copy">
+            <div className="coll2-command-k">{lang === "it" ? "IL TUO PROSSIMO PASSO" : "YOUR NEXT STEP"}</div>
+            <h1>{continueCard
+              ? (lang === "it" ? `Riprendi ${continueCard.title}` : `Continue ${continueCard.title}`)
+              : (lang === "it" ? "Il prossimo viaggio parte da qui." : "Your next journey starts here.")}</h1>
+            <p>{continueCard?.quote
+              || (lang === "it"
+                ? "Crea un itinerario nuovo oppure riapri uno dei piani che hai gia costruito."
+                : "Create a new itinerary or reopen one of the plans you have already built.")}</p>
+            <div className="coll2-command-actions">
+              {continueCard && <a className="coll2-command-primary" href={continueCard.href}>{lang === "it" ? "Apri itinerario" : "Open itinerary"} <span>→</span></a>}
+              <button className={continueCard ? "coll2-command-secondary" : "coll2-command-primary"} onClick={data.onNewItinerary}>
+                {lang === "it" ? "Crea un nuovo viaggio" : "Create a new trip"} <span>→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <aside className="coll2-learning">
+          <div className="coll2-learning-top">
+            <span className="coll2-learning-dot" />
+            <span>{lang === "it" ? "COSA MINDROUTE STA IMPARANDO" : "WHAT MINDROUTE IS LEARNING"}</span>
+          </div>
+          {learnedInsights[0] ? (
+            <>
+              <h2>{tx(learnedInsights[0].titleKey, learnedInsights[0].vars)}</h2>
+              <p>{tx(learnedInsights[0].bodyKey, learnedInsights[0].vars)}</p>
+              {nextTravelRules[0] && (
+                <div className="coll2-learning-effect">
+                  <span>{lang === "it" ? "NEL PROSSIMO VIAGGIO" : "IN YOUR NEXT TRIP"}</span>
+                  <strong>{nextTravelRules[0].title[lang]}</strong>
+                  <p>{nextTravelRules[0].body[lang]}</p>
+                </div>
+              )}
+              <button onClick={() => go("portrait")}>{lang === "it" ? "Apri il Ritratto" : "Open your Portrait"} <span>→</span></button>
+            </>
+          ) : (
+            <>
+              <h2>{lang === "it" ? "Il tuo Ritratto sta prendendo forma." : "Your Portrait is taking shape."}</h2>
+              <p>{lang === "it" ? "Ogni scelta e ogni viaggio confermato renderanno piu preciso il prossimo itinerario." : "Every choice and confirmed trip will make the next itinerary more precise."}</p>
+              <button onClick={() => go("portrait")}>{lang === "it" ? "Scopri cosa sappiamo" : "See what we know"} <span>→</span></button>
+            </>
+          )}
+        </aside>
+      </section>
       {/* ── Header: titolo + View Switcher + azione ── */}
       <div className="coll2-top">
         <div className="coll2-head">
@@ -1303,22 +1385,25 @@ export function AccountDashboard({ data }: { data: AccountData }) {
 
       {/* ── Statistiche (riflettono il filtro attivo) ── */}
       <div className="coll2-stats">
-        <div className="cs"><span className="n">{collStats.itineraries}</span><span className="l">{t("acd.coll.stat.itineraries")}</span></div>
-        <div className="cs"><span className="n">{collStats.days}</span><span className="l">{t("acd.coll.stat.days")}</span></div>
+        <div className="cs"><span className="n">{collStats.itineraries}</span><span className="l">{lang === "it" ? "Piani creati" : "Plans created"}</span></div>
+        <div className="cs"><span className="n">{collStats.confirmed}</span><span className="l">{lang === "it" ? "Viaggi fatti" : "Trips taken"}</span></div>
+        <div className="cs"><span className="n">{collStats.days}</span><span className="l">{lang === "it" ? "Giorni pianificati" : "Planned days"}</span></div>
         <div className="cs"><span className="n">{collStats.destinations}</span><span className="l">{t("acd.coll.stat.destinations")}</span></div>
         <div className="cs"><span className="n">{collStats.continents}</span><span className="l">{t("acd.coll.stat.continents")}</span></div>
-        <div className="cs cs-world">
-          <svg viewBox="0 0 40 40" className="cs-ring" aria-hidden="true">
-            <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="4" />
-            <circle cx="20" cy="20" r="16" fill="none" stroke="var(--gold)" strokeWidth="4" strokeLinecap="round"
-              strokeDasharray={`${(collStats.worldPct / 100) * 100.5} 100.5`} transform="rotate(-90 20 20)" />
-          </svg>
-          <span className="cs-world-tx"><span className="n gold">{collStats.worldPct}%</span><span className="l">{t("acd.coll.stat.world")}</span></span>
-        </div>
       </div>
 
       {/* ── Filtri condivisi: ricerca + continenti + ordinamento ── */}
       <div className="coll2-filters">
+        <div className="coll-status" aria-label={lang === "it" ? "Stato del viaggio" : "Trip status"}>
+          {(["all", "planned", "confirmed", "skipped"] as const).map(status => (
+            <button key={status} className={tripStatus === status ? "on" : ""} onClick={() => setTripStatus(status)}>
+              {status === "all" ? (lang === "it" ? "Tutti" : "All")
+                : status === "planned" ? (lang === "it" ? "In programma" : "Planned")
+                  : status === "confirmed" ? (lang === "it" ? "Fatti" : "Taken")
+                    : (lang === "it" ? "Non realizzati" : "Not taken")}
+            </button>
+          ))}
+        </div>
         <div className="coll-search">
           <Icon name="search" />
           <input placeholder={t("acd.coll.search")} value={q} onChange={e => setQ(e.target.value)} />
@@ -1467,7 +1552,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
           viaggio finisce. */}
       <main className="main">
         <div className={"topbar h4-bar" + (stuck ? " stuck" : "")}>
-          <button className="tb-brand" onClick={() => go("home")} title="MindRoute"><FlowNavLogo size={22} /></button>
+          <button className="tb-brand" onClick={() => go("trips")} title="MindRoute"><FlowNavLogo size={22} /></button>
 
           <nav className="h4-nav">
             {NAV.map(n => (
@@ -1477,8 +1562,8 @@ export function AccountDashboard({ data }: { data: AccountData }) {
             ))}
           </nav>
 
-          {continueCard?.progress && view !== "resume" && (
-            <button className="h4-pill" onClick={() => go("resume")}>
+          {continueCard?.progress && (
+            <button className="h4-pill" onClick={() => setLocation(continueCard.href)}>
               <span className="h4-pill-d" />
               <span className="h4-pill-n">{continueCard.title}</span>
               <span className="h4-pill-p">{tx("acd.h4.pill", { n: continueCard.progress.n, tot: continueCard.progress.tot })}</span>
@@ -1503,8 +1588,6 @@ export function AccountDashboard({ data }: { data: AccountData }) {
           </button>
         </div>
 
-        {view === "home" && HomeView()}
-        {view === "resume" && ResumeView()}
         {view === "portrait" && PortraitView()}
         {view === "trips" && CollectionView()}
       </main>

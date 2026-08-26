@@ -54,14 +54,15 @@ export async function computeProfileDefaults(userId: number): Promise<ProfileDef
   let budget = "medio";
   let departure = "";
   try {
-    const last = await storage.getProfilingInput();
-    if (last && typeof last === "object") {
-      if (typeof last.companions === "string" && last.companions.length > 0) companions = last.companions;
-      if (typeof last.budget === "string" && last.budget.length > 0) budget = last.budget;
-      if (typeof last.departure === "string" && last.departure.length > 0) departure = last.departure;
+    const last = trips.find((trip: any) => trip?.profilingInput && typeof trip.profilingInput === "object") as any;
+    const profile = last?.profilingInput;
+    if (profile) {
+      if (typeof profile.companions === "string" && profile.companions.length > 0) companions = profile.companions;
+      if (typeof profile.budget === "string" && profile.budget.length > 0) budget = profile.budget;
+      if (typeof profile.departure === "string" && profile.departure.length > 0) departure = profile.departure;
     }
   } catch {
-    // singleton mancante, restiamo sui default neutri
+    // Nessun profilo utente disponibile: restiamo sui default neutri.
   }
 
   return { days, leaveDate, departure, companions, budget };

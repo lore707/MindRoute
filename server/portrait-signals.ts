@@ -14,7 +14,7 @@
  * ─────────────────────────────────────────────────────────────── */
 import { storage } from "./storage";
 import { continentOf, continentLabel } from "./account-insights";
-import { MAPPING_VERSION } from "@shared/traits";
+import { MAPPING_VERSION, categorizeSignal, type RawSignal } from "@shared/traits";
 import {
   buildEvolution, formatPortraitBlock, computeConfidence, AXIS_POLE_LABELS,
   type PortraitSignals, type PortraitTrip, type EvolutionTrip, type EvolutionStep,
@@ -26,10 +26,15 @@ function seekAvoidFrom(snaps: any[]): { seek: string[]; avoid: string[]; ownWord
   for (let i = snaps.length - 1; i >= 0; i--) {
     const s = snaps[i];
     if (s?.source !== "quiz" || !s?.rawSignal) continue;
-    const raw = s.rawSignal as any;
-    const seek = Array.isArray(raw?.seek) ? raw.seek.filter((x: unknown) => typeof x === "string") : [];
-    const avoid = Array.isArray(raw?.avoid) ? raw.avoid.filter((x: unknown) => typeof x === "string") : [];
-    const ownWords = typeof raw?.ownWords === "string" ? raw.ownWords : null;
+    const raw = s.rawSignal as RawSignal & { fastProfile?: { note?: string } | null };
+    const categorized = categorizeSignal(raw);
+    const seek = categorized.seek;
+    const avoid = categorized.avoid;
+    const ownWords = typeof raw.constraints === "string" && raw.constraints.trim().length >= 8
+      ? raw.constraints.trim()
+      : typeof raw.fastProfile?.note === "string" && raw.fastProfile.note.trim().length >= 8
+        ? raw.fastProfile.note.trim()
+        : null;
     if (seek.length || avoid.length || ownWords) return { seek, avoid, ownWords };
   }
   return { seek: [], avoid: [], ownWords: null };
