@@ -1,7 +1,7 @@
 /**
  * Landing editoriale MindRoute.
- * Le quattro scene usano snapshot read-only delle UI reali del prodotto:
- * profilazione, itinerary flow, Companion e Travel Portrait.
+ * I visual usano snapshot read-only delle UI reali del prodotto: scelta della
+ * meta, profilazione, itinerary flow, Companion e Travel Portrait.
  */
 
 import { useEffect } from "react";
@@ -72,8 +72,8 @@ export function LandingEditorial({ onStart }: { onStart: () => void }) {
         <section className="led-hero" id="s-hero">
           <div className="led-hero-photo" style={{ backgroundImage: `url(${heroImg})` }} aria-hidden="true" />
           <div className="led-hero-veil" aria-hidden="true" />
-          <div className="led-container"><div className="led-hero-inner">
-            <Stagger mount stagger={0.09} delayChildren={0.06}>
+          <div className="led-container"><div className="led-hero-layout">
+            <Stagger mount stagger={0.09} delayChildren={0.06} className="led-hero-inner">
               <StaggerItem as="div" className="led-eyebrow"><span className="d" />{t("led.hero.eyebrow")}</StaggerItem>
               <StaggerItem as="h1">
                 {t("led.hero.t1")}
@@ -82,11 +82,46 @@ export function LandingEditorial({ onStart }: { onStart: () => void }) {
               <StaggerItem as="p" className="led-narr">{t("led.hero.sub")}</StaggerItem>
               <StaggerItem as="div" className="led-hero-row">
                 <button className="led-btn" onClick={onStart} data-testid="led-hero-cta">{t("led.hero.cta")} <span className="ar">→</span></button>
-                <p className="led-hero-note">{t("led.hero.note")}</p>
+                <a className="led-hero-example" href="#s-build">{t("led.hero.example")} <span>↓</span></a>
+              </StaggerItem>
+              <StaggerItem as="div" className="led-hero-proof">
+                {[1, 2, 3].map((n) => <span key={n}><i />{t(`led.hero.proof${n}`)}</span>)}
               </StaggerItem>
             </Stagger>
+
+            <Reveal as="div" className="led-hero-result">
+              <div className="led-result-topline"><span>{t("led.hero.result")}</span><b><i />{t("led.hero.ready")}</b></div>
+              <div className="led-result-photo" style={{ backgroundImage: `url(${sized(PHOTO.procida, 760, 66)})` }}>
+                <div><small>{t("led.hero.location")}</small><h3>Procida</h3><span>{t("led.hero.placeType")}</span></div>
+              </div>
+              <div className="led-result-copy">
+                <p>{t("led.hero.placeSummary")}</p>
+                <div className="led-result-traits">{[1, 2, 3].map((n) => <span key={n}>{t(`led.hero.trait${n}`)}</span>)}</div>
+                <div className="led-result-why"><small>{t("led.hero.why")}</small><p>{t("led.hero.whyText")}</p></div>
+              </div>
+              <div className="led-result-caption">{t("led.demo")}</div>
+            </Reveal>
           </div></div>
           <div className="led-scroll" aria-hidden="true">{t("led.hero.scroll")}<span className="ch">⌄</span></div>
+        </section>
+
+        <section className="led-outcome" id="s-outcome">
+          <div className="led-container">
+            <Reveal as="header" className="led-outcome-head">
+              <div className="led-eyebrow"><span className="d" />{t("led.outcome.label")}</div>
+              <h2>{t("led.outcome.title")}</h2>
+              <p>{t("led.outcome.body")}</p>
+            </Reveal>
+            <Stagger className="led-outcome-grid" stagger={0.07}>
+              {[1, 2, 3, 4].map((n) => (
+                <StaggerItem as="article" className="led-outcome-card" key={n}>
+                  <span>0{n}</span>
+                  <h3>{t(`led.outcome.${n}.title`)}</h3>
+                  <p>{t(`led.outcome.${n}.body`)}</p>
+                </StaggerItem>
+              ))}
+            </Stagger>
+          </div>
         </section>
 
         <section className="led-feature led-understand" id="how-it-works">
@@ -114,13 +149,14 @@ export function LandingEditorial({ onStart }: { onStart: () => void }) {
                   <div className="led-snapshot-kicker">{t("led.understand.matches")}</div>
                   <div className="led-match-grid">
                     {[
-                      { name: "Procida", country: t("led.country.italy"), img: PHOTO.procida, pct: 94 },
-                      { name: t("led.place.azores"), country: t("led.country.portugal"), img: PHOTO.azores, pct: 91 },
-                      { name: "Alentejo", country: t("led.country.portugal"), img: PHOTO.alentejo, pct: 88 },
+                      { name: "Procida", country: t("led.country.italy"), img: PHOTO.procida, role: t("led.understand.direct"), roleClass: "direct" },
+                      { name: t("led.place.azores"), country: t("led.country.portugal"), img: PHOTO.azores, role: t("led.understand.lateral"), roleClass: "lateral" },
+                      { name: "Alentejo", country: t("led.country.portugal"), img: PHOTO.alentejo, role: t("led.understand.surprise"), roleClass: "surprise" },
                     ].map((place, index) => (
                       <div className="led-match-card" key={place.name}>
-                        <span className="led-match-photo" style={{ backgroundImage: `url(${sized(place.img, 380, 58)})` }}><b>{place.pct}%</b></span>
+                        <span className="led-match-photo" style={{ backgroundImage: `url(${sized(place.img, 380, 58)})` }} />
                         <span className="led-match-name">{place.name}</span><span className="led-match-country">{place.country}</span>
+                        <span className={`led-match-role ${place.roleClass}`}>{place.role}</span>
                         {index === 0 && <span className="led-match-why">{t("led.understand.why")}</span>}
                       </div>
                     ))}
@@ -206,6 +242,31 @@ export function LandingEditorial({ onStart }: { onStart: () => void }) {
               </div>
               <p className="led-product-caption">{t("led.demo")}</p>
             </Reveal>
+          </div>
+        </section>
+
+        <section className="led-trust" id="s-trust">
+          <div className="led-container">
+            <div className="led-trust-grid">
+              <Reveal as="div" className="led-trust-copy">
+                <div className="led-eyebrow"><span className="d" />{t("led.trust.label")}</div>
+                <h2>{t("led.trust.title")}</h2>
+                <p>{t("led.trust.body")}</p>
+                <div className="led-trust-principles">
+                  {[1, 2, 3].map((n) => <article key={n}><span>{I.check}</span><div><h3>{t(`led.trust.${n}.title`)}</h3><p>{t(`led.trust.${n}.body`)}</p></div></article>)}
+                </div>
+              </Reveal>
+              <Reveal as="div" className="led-faq">
+                <div className="led-faq-title">{t("led.faq.title")}</div>
+                {[1, 2, 3, 4].map((n) => (
+                  <details key={n} open={n === 1}>
+                    <summary>{t(`led.faq.${n}.q`)}<span>+</span></summary>
+                    <p>{t(`led.faq.${n}.a`)}</p>
+                  </details>
+                ))}
+                <Link href="/privacy" className="led-privacy-link">{t("led.foot.privacy")} <span>→</span></Link>
+              </Reveal>
+            </div>
           </div>
         </section>
 
