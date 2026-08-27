@@ -81,6 +81,25 @@ export function CompanionDock() {
     return () => window.removeEventListener("mindroute:open-companion", onOpen);
   }, []);
 
+  // Lo Studio AI apre lo STESSO Companion su un viaggio scelto esplicitamente.
+  // Non nasce una seconda chat: cambiano solo il contesto e l'eventuale comando
+  // precompilato, mentre thread, tool e memoria restano quelli esistenti.
+  useEffect(() => {
+    const onOpenForTrip = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { itineraryId?: number; seed?: string };
+      if (!Number.isFinite(detail?.itineraryId)) return;
+      const nextId = Number(detail.itineraryId);
+      setItineraryId(nextId);
+      setHydrated(null);
+      setMessages([]);
+      setCtx(null);
+      setInput(typeof detail.seed === "string" ? detail.seed : "");
+      setOpen(true);
+    };
+    window.addEventListener("mindroute:open-companion-for-itinerary", onOpenForTrip);
+    return () => window.removeEventListener("mindroute:open-companion-for-itinerary", onOpenForTrip);
+  }, []);
+
   // Nudge proattivo dal dashboard: il bot non aspetta l'apertura della chat — mostra
   // una riga contestuale sopra il FAB. Una volta al giorno per viaggio, a chat chiusa.
   useEffect(() => {
@@ -222,6 +241,7 @@ export function CompanionDock() {
                 // Il bot ha modificato il piano → ricarica l'itinerario aperto.
                 if (data.tool && PLAN_EDIT_TOOLS.has(data.tool) && itineraryId != null) {
                   queryClient.invalidateQueries({ queryKey: [api.itinerary.get.path, itineraryId] });
+                  window.dispatchEvent(new CustomEvent("mindroute:itinerary-updated", { detail: { itineraryId } }));
                 }
               }
             } catch {}

@@ -26,6 +26,7 @@ const ItineraryStream = lazy(() => import("@/pages/ItineraryStream"));
 const Compare = lazy(() => import("@/pages/Compare"));
 const SharedItinerary = lazy(() => import("@/pages/SharedItinerary"));
 const HowItWorks = lazy(() => import("@/pages/HowItWorks"));
+const TravelStudio = lazy(() => import("@/pages/TravelStudio"));
 // SOLO sviluppo: preview della dashboard con dati mock, per gli screenshot
 // responsive senza login/DB. Esclusa dal bundle di produzione.
 const DevPreview = import.meta.env.DEV ? lazy(() => import("@/pages/DevPreview")) : null;
@@ -98,6 +99,9 @@ function Router() {
           <Route path="/i/:token" component={SharedItinerary} />
           <Route path="/privacy" component={Privacy} />
           <Route path="/my-account" component={MyAccount} />
+          <Route path="/studio">
+            <RequireAuth><TravelStudio /></RequireAuth>
+          </Route>
           <Route path="/compare" component={Compare} />
           {DevPreview && <Route path="/__preview/dashboard" component={DevPreview} />}
           <Route component={NotFound} />

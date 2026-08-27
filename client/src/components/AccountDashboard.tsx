@@ -68,6 +68,7 @@ const ICONS: Record<string, string[]> = {
   search: ["M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16", "M21 21l-4.3-4.3"],
   back: ["M15 18l-6-6 6-6"],
   chat: ["M20.5 11.6c0 4-3.8 7.2-8.5 7.2-1 0-2-.15-2.9-.42L4 20l1.5-3.4C4.3 15.3 3.5 13.55 3.5 11.6c0-4 3.8-7.2 8.5-7.2s8.5 3.2 8.5 7.2Z"],
+  studio: ["M4 5.5h16v13H4z", "M8 9h8", "M8 12h5", "M16.5 15.5l2-2", "M17.5 12.5l2 2"],
 };
 function Icon({ name }: { name: keyof typeof ICONS }) {
   return <svg viewBox="0 0 24 24">{ICONS[name].map((d, i) => <path key={i} d={d} />)}</svg>;
@@ -1563,6 +1564,9 @@ export function AccountDashboard({ data }: { data: AccountData }) {
                 {t(n.key)}
               </button>
             ))}
+            <button className="h4-nav-i h4-studio" onClick={() => setLocation("/studio")}>
+              {lang === "it" ? "Studio AI" : "AI Studio"}<span>Beta</span>
+            </button>
           </nav>
 
           {continueCard?.progress && (
@@ -1604,6 +1608,10 @@ export function AccountDashboard({ data }: { data: AccountData }) {
             <span className="lab">{t(n.key)}</span>
           </button>
         ))}
+        <button className="mnav-i" onClick={() => setLocation("/studio")}>
+          <Icon name="studio" />
+          <span className="lab">Studio</span>
+        </button>
         <button className="mnav-i" onClick={() => window.dispatchEvent(new Event("mindroute:open-companion"))}>
           <Icon name={CHAT_TAB.ic} />
           <span className="lab">{t(CHAT_TAB.key)}</span>

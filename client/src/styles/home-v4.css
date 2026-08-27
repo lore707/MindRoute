@@ -126,6 +126,12 @@
 }
 .account-dash .h4-nav-i:hover { color: rgba(251, 245, 240, .82); }
 .account-dash .h4-nav-i.on { color: #fbf5f0; }
+.account-dash .h4-studio { display: inline-flex; align-items: center; gap: 7px; }
+.account-dash .h4-studio span {
+  padding: 2px 6px; border-radius: 999px; color: #E94560;
+  background: rgba(233,69,96,.1); border: 1px solid rgba(233,69,96,.22);
+  font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
 
 /* La pillola contestuale: c'è solo mentre un viaggio è in corso. */
 .account-dash .h4-pill {
