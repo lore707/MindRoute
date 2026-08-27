@@ -39,6 +39,95 @@ function ownsItinerary(itin: any, req: any): boolean {
 }
 
 export function registerItineraryDetailRoutes(app: Express) {
+  const studioCreateSchema = z.object({
+    destinationName: z.string().trim().min(2).max(120),
+    country: z.string().trim().max(80).optional().default(""),
+    dayCount: z.coerce.number().int().min(1).max(30),
+    startDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal("")),
+    lang: z.enum(["it", "en"]).default("en"),
+  });
+
+  // A real blank V2 document for Studio. It uses the same persistence and
+  // ownership model as generated trips, so Companion and every itinerary
+  // reader can work on it immediately without a parallel draft format.
+  app.post("/api/studio/itineraries", requireAuth, async (req, res) => {
+    try {
+      const input = studioCreateSchema.parse(req.body ?? {});
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.status(401).json({ message: "Non autenticato" });
+
+      const destination = await storage.createDestination({
+        name: input.destinationName,
+        whyYours: input.lang === "it" ? "Un viaggio creato da te nello Studio." : "A trip created by you in Studio.",
+        experiencePreview: input.lang === "it" ? "Itinerario in costruzione" : "Itinerary in progress",
+        practicalInfo: input.country || (input.lang === "it" ? "Da definire" : "To be defined"),
+        imageUrl: null,
+        slotRole: null,
+        tagline: null,
+      });
+
+      const start = input.startDate ? new Date(`${input.startDate}T12:00:00Z`) : null;
+      const days = Array.from({ length: input.dayCount }, (_, index) => {
+        const date = start ? new Date(start.getTime() + index * 86_400_000).toISOString().slice(0, 10) : undefined;
+        const isFirst = index === 0;
+        const isLast = index === input.dayCount - 1 && input.dayCount > 1;
+        return {
+          day_number: index + 1,
+          ...(date ? { date } : {}),
+          role: isFirst ? "arrivo" : isLast ? "partenza" : "esplorazione",
+          arc: "",
+          title_evocative: input.lang === "it" ? `Giorno ${index + 1}` : `Day ${index + 1}`,
+          subtitle: input.lang === "it" ? "Da costruire" : "Ready to shape",
+          hero_image_url: "",
+          energy_level: "medium",
+          cost_bookable_total: 0,
+          cost_onsite_estimate: 0,
+          moments: [],
+        };
+      });
+
+      const created = await storage.createItinerary({
+        destinationId: destination.id,
+        userId,
+        createdAt: new Date().toISOString(),
+        days,
+        budgetSummary: "",
+        packingList: "",
+        bestTime: "",
+        gettingThere: "",
+        closingMessage: input.lang === "it" ? "Questo viaggio prende forma, una scelta alla volta." : "This trip takes shape one choice at a time.",
+        destinationName: input.destinationName,
+        tripSummary: input.lang === "it" ? "Itinerario creato nello Studio MindRoute." : "Itinerary created in MindRoute Studio.",
+        highlights: null,
+        whyYours: input.lang === "it" ? "Lo stai costruendo direttamente intorno alle tue priorita." : "You are building it directly around your priorities.",
+        heroImageUrl: null,
+        heroPhotographer: null,
+        heroPhotographerUrl: null,
+        topAffiliateLinks: null,
+        rawNarrative: null,
+        schemaVersion: 2,
+        country: input.country || null,
+        tripMeta: {
+          created_in_studio: true,
+          total_cost_bookable: 0,
+          total_cost_onsite_estimate: 0,
+          total_cost_range: "",
+          map_points: [],
+          highlights_v2: [],
+          ...(input.startDate ? { travel_dates: { start: input.startDate, end: days[days.length - 1]?.date ?? input.startDate } } : {}),
+        } as any,
+        profilingInput: { source: "studio", lang: input.lang },
+        lang: input.lang,
+      } as any);
+
+      res.status(201).json(created);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: "Dati del viaggio non validi", issues: err.issues });
+      console.error("studio itinerary create error:", err);
+      res.status(500).json({ message: "Creazione itinerario non riuscita" });
+    }
+  });
+
   // Aggiorna mapPoints
   app.patch("/api/itinerary/:id/mappoints", requireAuth, async (req, res) => {
     try {
