@@ -247,6 +247,9 @@
 }
 @media (max-width: 900px) {
   .mrs-shell,.mrs-shell.left-closed,.mrs-shell.right-closed,.mrs-shell.left-closed.right-closed { display: grid; grid-template-columns: 1fr; grid-template-rows: auto minmax(620px,1fr) auto; height: auto; overflow: visible; }
+  .mrs-shell.left-closed { grid-template-rows:minmax(620px,1fr) auto; }
+  .mrs-shell.right-closed { grid-template-rows:auto minmax(620px,1fr); }
+  .mrs-shell.left-closed.right-closed { grid-template-rows:minmax(620px,1fr); }
   .mrs-library { border-right: 0; border-bottom: 1px solid var(--mrs-line); }
   .mrs-library-list { display: flex; max-height: none; overflow-x: auto; }
   .mrs-library-trip { min-width: 190px; }
