@@ -182,6 +182,21 @@ export interface PlanBV2 {
   alternative: string;
 }
 
+export interface MomentGuideStepV2 {
+  title: string;
+  detail: string;
+}
+
+/** Structured context that makes a proposed stop understandable on its own. */
+export interface MomentGuideV2 {
+  what_it_is: string;
+  where_it_is: string;
+  why_visit: string;
+  history_culture?: string;
+  experience_steps: MomentGuideStepV2[];
+  practical_tips: string[];
+}
+
 export interface MomentV2 {
   id: string;
   type: MomentType;
@@ -206,6 +221,7 @@ export interface MomentV2 {
   booking?: BookingInfoV2;
   description: string;
   why_this: string;
+  guide?: MomentGuideV2;
   transport_to_next?: TransportToNextV2;
   plan_b?: PlanBV2;
 }

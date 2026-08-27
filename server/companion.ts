@@ -361,8 +361,26 @@ const COMPANION_TOOLS = [
         lat: { type: "number", description: "Optional latitude of the new place (use find_nearby's value when available)." },
         lng: { type: "number", description: "Optional longitude of the new place." },
         note: { type: "string", description: "Optional one-line description of what they'll do there." },
+        what_it_is: { type: "string", description: "Explain plainly what the place or experience is. Do not assume the traveller already knows it." },
+        where_it_is: { type: "string", description: "Explain where it is within the destination and the relevant area or neighbourhood." },
+        why_visit: { type: "string", description: "Explain why it is genuinely worth the traveller's time, with specific reasons." },
+        history_culture: { type: "string", description: "Optional concise historical or cultural context that helps the traveller understand the place." },
+        experience_steps: {
+          type: "array", minItems: 2, maxItems: 3,
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Short action-oriented step title." },
+              detail: { type: "string", description: "Clear instructions for what to do and notice in this step." },
+            },
+            required: ["title", "detail"],
+          },
+          description: "Two or three chronological steps for experiencing the moment well.",
+        },
+        practical_tips: { type: "array", maxItems: 3, items: { type: "string" }, description: "Up to three useful practical checks such as timing, booking, access or etiquette." },
+        why_this: { type: "string", description: "Explain why this specific choice fits the traveller's known profile or request." },
       },
-      required: ["moment_id", "new_title"],
+      required: ["moment_id", "new_title", "what_it_is", "where_it_is", "why_visit", "experience_steps", "why_this"],
     },
   },
   {
@@ -433,8 +451,26 @@ const COMPANION_TOOLS = [
         lat: { type: "number", description: "Optional latitude (use find_nearby's value when available)." },
         lng: { type: "number", description: "Optional longitude." },
         note: { type: "string", description: "Optional one-line description." },
+        what_it_is: { type: "string", description: "Explain plainly what the place or experience is. Do not assume prior knowledge." },
+        where_it_is: { type: "string", description: "Explain where it is within the destination and the relevant area or neighbourhood." },
+        why_visit: { type: "string", description: "Explain why it is genuinely worth the traveller's time, with specific reasons." },
+        history_culture: { type: "string", description: "Optional concise historical or cultural context." },
+        experience_steps: {
+          type: "array", minItems: 2, maxItems: 3,
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Short action-oriented step title." },
+              detail: { type: "string", description: "Clear instructions for what to do and notice in this step." },
+            },
+            required: ["title", "detail"],
+          },
+          description: "Two or three chronological steps for experiencing the moment well.",
+        },
+        practical_tips: { type: "array", maxItems: 3, items: { type: "string" }, description: "Up to three useful practical checks such as timing, booking, access or etiquette." },
+        why_this: { type: "string", description: "Explain why this addition fits the traveller's known profile or request." },
       },
-      required: ["day_number", "title"],
+      required: ["day_number", "title", "what_it_is", "where_it_is", "why_visit", "experience_steps", "why_this"],
     },
   },
 ];
@@ -496,6 +532,38 @@ function mapPointsFromDays(days: any[]): { day: number; lat: number; lng: number
     }
   }
   return out;
+}
+
+function guideFromCompanionInput(input: any, title: string, location: string, destination: string, it: boolean) {
+  const text = (value: unknown) => String(value ?? "").trim();
+  const suppliedSteps = Array.isArray(input?.experience_steps)
+    ? input.experience_steps
+      .map((step: any) => ({ title: text(step?.title), detail: text(step?.detail) }))
+      .filter((step: any) => step.title && step.detail)
+      .slice(0, 3)
+    : [];
+  const experienceSteps = suppliedSteps.length >= 2 ? suppliedSteps : [
+    {
+      title: it ? "Arriva con il contesto giusto" : "Arrive with the right context",
+      detail: text(input?.where_it_is) || (location ? `${location}, ${destination}` : destination),
+    },
+    {
+      title: it ? "Vivi il momento" : "Experience the moment",
+      detail: text(input?.note) || text(input?.what_it_is) || title,
+    },
+  ];
+  const practicalTips = Array.isArray(input?.practical_tips)
+    ? input.practical_tips.map(text).filter(Boolean).slice(0, 3)
+    : [];
+
+  return {
+    what_it_is: text(input?.what_it_is) || text(input?.note) || title,
+    where_it_is: text(input?.where_it_is) || (location ? `${location}, ${destination}` : destination),
+    why_visit: text(input?.why_visit) || text(input?.note) || title,
+    ...(text(input?.history_culture) ? { history_culture: text(input.history_culture) } : {}),
+    experience_steps: experienceSteps,
+    practical_tips: practicalTips,
+  };
 }
 
 // WMO weather code → etichetta breve + emoji, EN/IT.
@@ -722,8 +790,11 @@ async function executeTool(
         title_evocative: title,
         type: "experience",   // "activity" non esiste in MomentType
       };
-      if (typeof input?.note === "string" && input.note.trim()) newMoment.description = input.note.trim();
       if (typeof input?.location_name === "string" && input.location_name.trim()) newMoment.location_name = input.location_name.trim();
+      const destination = String((ctx.itinerary as any).destinationName ?? "").trim();
+      newMoment.description = String(input?.note ?? input?.what_it_is ?? title).trim();
+      newMoment.why_this = String(input?.why_this ?? input?.why_visit ?? "").trim();
+      newMoment.guide = guideFromCompanionInput(input, title, newMoment.location_name ?? "", destination, it);
       if (Number.isFinite(input?.lat) && Number.isFinite(input?.lng)) { newMoment.location_lat = Number(input.lat); newMoment.location_lng = Number(input.lng); }
       try {
         const { fetchUnsplashHero } = await import("./unsplash");
@@ -752,8 +823,11 @@ async function executeTool(
     const oldTitle = m.title_evocative ?? m.title_operational ?? "moment";
     m.title_operational = newTitle;
     m.title_evocative = newTitle;
-    if (typeof input?.note === "string" && input.note.trim()) m.description = input.note.trim();
     if (typeof input?.new_location_name === "string" && input.new_location_name.trim()) m.location_name = input.new_location_name.trim();
+    const destination = String((ctx.itinerary as any).destinationName ?? "").trim();
+    m.description = String(input?.note ?? input?.what_it_is ?? newTitle).trim();
+    m.why_this = String(input?.why_this ?? input?.why_visit ?? "").trim();
+    m.guide = guideFromCompanionInput(input, newTitle, m.location_name ?? "", destination, it);
     if (Number.isFinite(input?.lat) && Number.isFinite(input?.lng)) { m.location_lat = Number(input.lat); m.location_lng = Number(input.lng); }
     // Immagine best-effort per il nuovo posto (non bloccare oltre pochi secondi).
     try {

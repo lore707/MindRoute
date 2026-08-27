@@ -84,6 +84,7 @@ export function DayScreen({ n }: { n: number }) {
                   {m.startTime || f.L(BAND_LABEL[band].it, BAND_LABEL[band].en)}
                 </span>
                 <span className="mrf-stop-title">{m.title}</span>
+                {(m.guide?.whatItIs || m.desc) && <span className="mrf-stop-summary">{m.guide?.whatItIs || m.desc}</span>}
                 <span className="mrf-stop-meta">
                   {m.kindLabel && <span>{m.kindLabel}</span>}
                   {m.kindLabel && m.durationLabel && <span className="sep">·</span>}

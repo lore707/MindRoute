@@ -666,6 +666,22 @@ function buildMomentsV2(day: any, t: (k: string) => string, lang: "en" | "it", o
       // Journey (redesign 2026-07): why_this separato per il dettaglio,
       // coordinate per il deep-link Google Maps, endTime per la finestra oraria.
       why: typeof m.why_this === "string" && m.why_this.trim() ? m.why_this.trim() : undefined,
+      guide: m.guide ? {
+        whatItIs: typeof m.guide.what_it_is === "string" ? m.guide.what_it_is.trim() : undefined,
+        whereItIs: typeof m.guide.where_it_is === "string" ? m.guide.where_it_is.trim() : undefined,
+        whyVisit: typeof m.guide.why_visit === "string" ? m.guide.why_visit.trim() : undefined,
+        historyCulture: typeof m.guide.history_culture === "string" ? m.guide.history_culture.trim() : undefined,
+        steps: Array.isArray(m.guide.experience_steps)
+          ? m.guide.experience_steps.slice(0, 3).map((step: any) => ({
+              title: typeof step?.title === "string" ? step.title.trim() : "",
+              detail: typeof step?.detail === "string" ? step.detail.trim() : "",
+            })).filter((step: any) => step.title || step.detail)
+          : undefined,
+        practicalTips: Array.isArray(m.guide.practical_tips)
+          ? m.guide.practical_tips.filter((tip: unknown): tip is string => typeof tip === "string" && !!tip.trim()).slice(0, 3)
+          : undefined,
+      } : undefined,
+      locationAddress: typeof m.location_address === "string" && m.location_address.trim() ? m.location_address.trim() : undefined,
       lat: typeof m.location_lat === "number" ? m.location_lat : undefined,
       lng: typeof m.location_lng === "number" ? m.location_lng : undefined,
       endTime: typeof m.end_time === "string" && m.end_time.trim() ? m.end_time.trim() : undefined,

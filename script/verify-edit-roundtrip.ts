@@ -33,10 +33,21 @@ const full: Record<string, any> = {
   title: "Passeggiata sul lungomare",
   desc: "La luce qui, a quest'ora, è semplicemente perfetta.",
   why: "La tua giornata compatta merita un respiro lungo: mare, luce, niente da prenotare.",
+  guide: {
+    whatItIs: "Il lungomare contemporaneo della città.",
+    whereItIs: "Sul fronte mare, a sud della Torre Bianca.",
+    whyVisit: "Unisce vita locale, architettura e tramonto.",
+    historyCulture: "Il ridisegno moderno ha restituito il mare alla città.",
+    steps: [
+      { title: "Parti dalla Torre Bianca", detail: "Usala come punto di orientamento." },
+      { title: "Segui il mare", detail: "Fermati nelle installazioni più interessanti." },
+    ],
+    practicalTips: ["Vai nell'ultima ora di luce."],
+  },
   planB: "Se piove → il museo bizantino, a due isolati.",
   startTime: "12:30", endTime: "14:00",
   durationLabel: "1.5h", costLabel: "€0", transport: "A piedi · ~5 min",
-  locationName: "Nea Paralia", lat: 40.6255, lng: 22.9481,
+  locationName: "Nea Paralia", locationAddress: "Leof. Nikis, Thessaloniki", lat: 40.6255, lng: 22.9481,
   imageUrl: "https://images.unsplash.com/photo-abc",
   cta: "Vedi disponibilità", ctaUrl: "https://example.test/x",
   ctaPrice: "€18", ctaStatus: "reserve_recommended", ctaProvider: "viator",
@@ -50,7 +61,10 @@ const persisted = JSON.parse(JSON.stringify(toEditedMoment(full)));
 const back = fromEditedMoment(persisted, "fallback-id");
 
 for (const k of EDITED_MOMENT_FIELDS) {
-  check(`${k} conservato`, back[k] === full[k], { atteso: full[k], letto: back[k] });
+  const same = typeof full[k] === "object"
+    ? JSON.stringify(back[k]) === JSON.stringify(full[k])
+    : back[k] === full[k];
+  check(`${k} conservato`, same, { atteso: full[k], letto: back[k] });
 }
 
 console.log("\n2. l'elenco dei campi è davvero UNO\n");

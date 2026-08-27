@@ -45,6 +45,15 @@ export type Moment = {
   // v2 only — "perché l'ho scelto" (why_this), separato da desc per il dettaglio
   // Journey. Assente nei v1 e quando il modello non l'ha fornito.
   why?: string;
+  guide?: {
+    whatItIs?: string;
+    whereItIs?: string;
+    whyVisit?: string;
+    historyCulture?: string;
+    steps?: Array<{ title: string; detail: string }>;
+    practicalTips?: string[];
+  };
+  locationAddress?: string;
   // v2 only — coordinate della tappa (per il deep-link Google Maps del dettaglio).
   lat?: number;
   lng?: number;

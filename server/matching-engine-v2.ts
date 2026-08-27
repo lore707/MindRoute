@@ -226,6 +226,14 @@ const momentV2Schema: z.ZodType<MomentV2, z.ZodTypeDef, any> = z.preprocess((v: 
   booking: bookingInfoV2Schema.optional(),
   description: z.string(),
   why_this: z.string(),
+  guide: z.object({
+    what_it_is: z.string(),
+    where_it_is: z.string(),
+    why_visit: z.string(),
+    history_culture: optStr,
+    experience_steps: z.array(z.object({ title: z.string(), detail: z.string() })).min(2).max(3),
+    practical_tips: z.array(z.string()).max(3),
+  }).optional(),
   transport_to_next: transportToNextV2Schema.optional(),
   plan_b: planBV2Schema.optional(),
 })) as unknown as z.ZodType<MomentV2, z.ZodTypeDef, any>;
@@ -580,7 +588,31 @@ ${budgetTargetBlock}
    - each moment description ≤ 35 words.
    - why_this ≤ 20 words.
 
+11b. EVERY MOMENT MUST EXPLAIN ITSELF
+   Add a "guide" object to EVERY moment. Never assume the traveller already knows a
+   place, neighbourhood, ritual, dish, transport or experience. The guide must answer:
+   - what_it_is: what this proposal actually is, in plain language (max 45 words).
+   - where_it_is: the district/area and its relation to the previous stop or base (max 30 words).
+   - why_visit: why it deserves the traveller's limited time; concrete value, not hype (max 45 words).
+   - history_culture: for landmarks, neighbourhoods, food traditions and cultural
+     experiences, one accurate piece of context (max 55 words). Omit only for pure
+     transport, rest and generic accommodation criteria. Never invent dates or superlatives.
+   - experience_steps: 2-3 ordered {title, detail} steps showing how to live the moment
+     from arrival to its natural ending (title max 8 words, detail max 24 words).
+   - practical_tips: 1-3 concise things needed to remove uncertainty (entry, clothing,
+     terrain, etiquette, what to order, where to start; max 18 words each).
+   Type-specific focus:
+   - landmark/museum/experience: identity -> context -> what to notice or do.
+   - food/market: what the tradition is -> what to taste -> local etiquette.
+   - walk/neighbourhood/view: start point -> route/focus -> natural ending.
+   - transport: where to board -> the journey -> where it leaves the traveller.
+   - accommodation: explain the AREA and why it works; never invent a property.
+   - rest: explain why the pause protects the day's pace; keep it brief.
+   Do not output source URLs. The application builds safe external references from the
+   real location name; invented links are forbidden.
+
 13. SELF-CHECK before returning (fix silently if any fails):
+   - EVERY moment has a complete guide with 2-3 useful, non-repetitive steps.
    - Skeleton valid: day 1 = arrivo, last = partenza, never two apici in a row.
    - Peak/base counts match the scaling for this length.
    - Every apice has ONE signature experience (or strong prose if no partner) in mattina.

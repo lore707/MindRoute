@@ -29,6 +29,14 @@ export type EditedMoment = {
   title?: string;
   desc?: string;
   why?: string;            // l'insight: senza questo la tappa è una riga d'agenda
+  guide?: {
+    whatItIs?: string;
+    whereItIs?: string;
+    whyVisit?: string;
+    historyCulture?: string;
+    steps?: Array<{ title: string; detail: string }>;
+    practicalTips?: string[];
+  };
   planB?: string;
   // tempo e numeri
   startTime?: string;
@@ -38,6 +46,7 @@ export type EditedMoment = {
   transport?: string;
   // luogo
   locationName?: string;
+  locationAddress?: string;
   lat?: number;
   lng?: number;
   imageUrl?: string;
@@ -52,9 +61,9 @@ export type EditedMoment = {
 /** L'elenco autorevole. Aggiungere un campo qui lo fa sopravvivere ovunque. */
 export const EDITED_MOMENT_FIELDS = [
   "id", "t", "band", "ic", "type", "kindLabel",
-  "title", "desc", "why", "planB",
+  "title", "desc", "why", "guide", "planB",
   "startTime", "endTime", "durationLabel", "costLabel", "transport",
-  "locationName", "lat", "lng", "imageUrl",
+  "locationName", "locationAddress", "lat", "lng", "imageUrl",
   "cta", "ctaUrl", "ctaPrice", "ctaStatus", "ctaProvider",
 ] as const;
 
