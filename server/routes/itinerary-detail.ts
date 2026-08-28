@@ -128,6 +128,44 @@ export function registerItineraryDetailRoutes(app: Express) {
     }
   });
 
+  const studioCanvasSchema = z.object({
+    version: z.number().int().min(1).max(10),
+    nodes: z.array(z.object({
+      id: z.string().min(1).max(120),
+      type: z.string().max(40).optional(),
+      position: z.object({ x: z.number().finite(), y: z.number().finite() }),
+      data: z.record(z.unknown()),
+      width: z.number().finite().positive().max(2000).optional(),
+      height: z.number().finite().positive().max(2000).optional(),
+    }).passthrough()).max(240),
+    edges: z.array(z.object({
+      id: z.string().min(1).max(160),
+      source: z.string().min(1).max(120),
+      target: z.string().min(1).max(120),
+      type: z.string().max(40).optional(),
+      label: z.string().max(160).optional(),
+    }).passthrough()).max(320),
+    updatedAt: z.string().max(40).optional(),
+  });
+
+  // Spatial Studio document. Semantic nodes reference the itinerary instead
+  // of replacing it; free notes, alternatives and layout live in tripMeta.
+  app.patch("/api/studio/itineraries/:id/canvas", requireAuth, async (req, res) => {
+    try {
+      const id = z.coerce.number().parse(req.params.id);
+      const itinerary = await storage.getItineraryById(id);
+      if (!itinerary) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itinerary, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const canvas = studioCanvasSchema.parse(req.body?.canvas);
+      const previous = ((itinerary as any).tripMeta ?? {}) as Record<string, unknown>;
+      await storage.updateItineraryTripMeta(id, { ...previous, studio_canvas: { ...canvas, updatedAt: new Date().toISOString() } });
+      res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: "Canvas non valido", issues: err.issues });
+      res.status(500).json({ message: "Salvataggio canvas non riuscito" });
+    }
+  });
+
   // Aggiorna mapPoints
   app.patch("/api/itinerary/:id/mappoints", requireAuth, async (req, res) => {
     try {

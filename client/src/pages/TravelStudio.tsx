@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import {
-  DndContext, DragOverlay, PointerSensor, closestCorners,
-  useDraggable, useDroppable, useSensor, useSensors,
-  type DragEndEvent, type DragStartEvent,
-} from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
+  ReactFlow, ReactFlowProvider, Background, Handle, MiniMap, Position,
+  SelectionMode, addEdge, useEdgesState, useNodesState,
+  type Connection, type Edge, type Node, type NodeChange, type NodeProps,
+  type ReactFlowInstance,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import {
-  ArrowLeft, Bot, Check, ChevronRight, CircleGauge, Coffee,
-  Copy, Eye, Footprints, GripVertical, Hotel, Layers3, LayoutGrid,
-  ListTree, Lock, MapPin, MessageCircle, PanelLeftClose,
-  PanelRightClose, Plane, Plus, Redo2, Route, Save, Sparkles, Trash2,
-  Unlock, Utensils, X, ZoomIn, ZoomOut,
+  ArrowLeft, BoxSelect, CalendarDays, Check, ChevronDown, ChevronRight,
+  CircleDollarSign, CircleHelp, Compass, FileImage, Hand,
+  Image as ImageIcon, Layers3, Link2, Map as MapIcon, MapPin, Maximize2,
+  MessageCircleQuestion, MousePointer2, MoveRight, PanelRightClose,
+  Plane, Plus, Save, Sparkles, StickyNote, Trash2, Undo2, X,
+  ZoomIn, ZoomOut,
 } from "lucide-react";
 import { FlowNavLogo } from "@/components/FlowNav";
 import LangDropdown from "@/components/LangDropdown";
@@ -23,28 +25,32 @@ type RawTrip = {
   id: number;
   schemaVersion?: number;
   destinationName?: string;
+  country?: string;
   heroImageUrl?: string;
   whyYours?: string;
+  tripSummary?: string;
+  budgetSummary?: string;
+  highlights?: string[];
   days?: any[];
   tripMeta?: Record<string, any>;
 };
 
-type BoardTrip = {
-  key: string;
-  sourceId: number;
-  label: string;
-  variant: boolean;
-  data: RawTrip;
+type Lens = "canvas" | "map" | "timeline" | "budget" | "mood";
+type Tool = "select" | "hand";
+type ObjectKind =
+  | "trip" | "day" | "note" | "question" | "photo" | "booking"
+  | "budget" | "map" | "mood" | "maybe" | "proposal" | "group";
+type ObjectStatus = "idea" | "chosen" | "booked";
+type TravelNodeData = Record<string, any> & {
+  kind: ObjectKind;
+  title: string;
+  text?: string;
+  status?: ObjectStatus;
+  image?: string;
+  dayIndex?: number;
 };
-
-type Selection = { boardKey: string; dayIndex: number; momentIndex: number };
-type ViewMode = "flow" | "board";
-type LibraryTab = "trips" | "tools";
-type MomentTemplate = "transport" | "accommodation" | "food" | "experience" | "walk" | "view" | "rest";
-type DragPayload = Selection & { kind: "moment" };
-type DropPayload =
-  | (Selection & { kind: "moment" })
-  | { boardKey: string; dayIndex: number; kind: "day" };
+type TravelNode = Node<TravelNodeData>;
+type CanvasDoc = { version: number; nodes: TravelNode[]; edges: Edge[]; updatedAt?: string };
 
 const clone = <T,>(value: T): T => {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -53,754 +59,554 @@ const clone = <T,>(value: T): T => {
 
 const dayNumber = (day: any, index: number) => day?.day_number ?? day?.dayNumber ?? index + 1;
 const dayTitle = (day: any, index: number) => day?.title_evocative ?? day?.title ?? `Giorno ${dayNumber(day, index)}`;
-const momentId = (moment: any, index: number) => String(moment?.id ?? `studio-moment-${index}`);
-const momentTitle = (moment: any) => moment?.title_operational ?? moment?.title_evocative ?? moment?.title ?? "Nuova tappa";
-const momentDescription = (moment: any) => moment?.description ?? moment?.desc ?? "";
-const momentTime = (moment: any) => moment?.start_time ?? moment?.startTime ?? "";
-const momentBand = (moment: any) => {
-  const value = String(moment?.time_label ?? moment?.band ?? moment?.t ?? "afternoon").toLowerCase();
-  if (value.includes("matt") || value.includes("morn")) return "morning";
-  if (value.includes("pranz") || value.includes("lunch")) return "lunch";
-  if (value.includes("pomer") || value.includes("after")) return "afternoon";
-  if (value.includes("sera") || value.includes("even")) return "evening";
-  if (value.includes("nott") || value.includes("night")) return "night";
-  return "afternoon";
-};
-const momentLocation = (moment: any) => moment?.location_name ?? moment?.locationName ?? "";
-const momentWhy = (moment: any) => moment?.why_this ?? moment?.why ?? "";
-const momentType = (moment: any): MomentTemplate => moment?.type ?? "experience";
+const momentsOf = (day: any): any[] => Array.isArray(day?.moments) ? day.moments : Array.isArray(day?.editedMoments) ? day.editedMoments : [];
+const momentTitle = (moment: any) => moment?.title_operational ?? moment?.title_evocative ?? moment?.title ?? "Tappa";
+const momentTime = (moment: any) => moment?.start_time ?? moment?.startTime ?? moment?.time_label ?? moment?.band ?? "";
+const momentPlace = (moment: any) => moment?.location_name ?? moment?.locationName ?? "";
+const momentImage = (moment: any) => moment?.image_url ?? moment?.imageUrl ?? "";
+const momentCost = (moment: any) => Number(moment?.cost_max ?? moment?.cost_min ?? moment?.cost ?? 0) || 0;
 
-function momentsOf(day: any): any[] {
-  if (Array.isArray(day?.moments)) return day.moments;
-  if (Array.isArray(day?.editedMoments)) return day.editedMoments;
-  return [];
+function budgetData(trip: RawTrip) {
+  const bookable = Number(trip.tripMeta?.total_cost_bookable ?? 0) || 0;
+  const onsite = Number(trip.tripMeta?.total_cost_onsite_estimate ?? 0) || 0;
+  const moments = (trip.days ?? []).flatMap(momentsOf);
+  const fallback = moments.reduce((sum, moment) => sum + momentCost(moment), 0);
+  const total = Math.round(bookable + onsite || fallback);
+  const categories = [
+    { label: "Prenotabile", value: Math.round(bookable), color: "#E86B52" },
+    { label: "In loco", value: Math.round(onsite), color: "#73A39A" },
+    { label: "Da definire", value: Math.max(0, Math.round(fallback - bookable - onsite)), color: "#D3A65A" },
+  ].filter(item => item.value > 0);
+  return { total, target: Math.ceil(Math.max(total * 1.12, total + 200) / 100) * 100, categories };
 }
 
-function setMoments(day: any, moments: any[], v2: boolean) {
-  if (v2 || Array.isArray(day?.moments)) day.moments = moments;
-  else day.editedMoments = moments;
+function mapPoints(trip: RawTrip) {
+  const metaPoints = Array.isArray(trip.tripMeta?.map_points) ? trip.tripMeta!.map_points : [];
+  const momentPoints = (trip.days ?? []).flatMap((day, dayIndex) => momentsOf(day).flatMap(moment => {
+    const lat = Number(moment?.location_lat ?? moment?.lat);
+    const lng = Number(moment?.location_lng ?? moment?.lng);
+    return Number.isFinite(lat) && Number.isFinite(lng)
+      ? [{ day: dayIndex + 1, lat, lng, label: momentPlace(moment) || momentTitle(moment) }]
+      : [];
+  }));
+  const all = [...metaPoints, ...momentPoints];
+  return all.filter((point, index) => all.findIndex(other => Math.abs(Number(other.lat) - Number(point.lat)) < .0001 && Math.abs(Number(other.lng) - Number(point.lng)) < .0001) === index);
 }
 
-function normalizeTrip(raw: RawTrip): RawTrip {
-  const trip = clone(raw);
-  const v2 = trip.schemaVersion === 2;
-  trip.days = (Array.isArray(trip.days) ? trip.days : []).map((source, dayIndex) => {
-    const day = { ...source };
-    let moments = momentsOf(day).map((moment, momentIndex) => ({
-      ...moment,
-      id: moment?.id ?? `studio-${trip.id}-${dayNumber(day, dayIndex)}-${momentIndex}`,
-    }));
-
-    if (!moments.length && !v2) {
-      const slots = [
-        ["morning", "mattina"], ["lunch", "pranzo"],
-        ["afternoon", "pomeriggio"], ["evening", "sera"],
-      ] as const;
-      moments = slots.flatMap(([slot, band], slotIndex) => {
-        const text = typeof day?.[slot] === "string" ? day[slot].trim() : "";
-        return text ? [{ id: `studio-${trip.id}-${dayIndex}-${slotIndex}`, title: text, desc: "", band }] : [];
-      });
-    }
-    setMoments(day, moments, v2);
-    return day;
-  });
-  return trip;
+function ambientImages(trip: RawTrip) {
+  const images = [
+    ...(Array.isArray(trip.tripMeta?.ambient) ? trip.tripMeta!.ambient : []),
+    trip.heroImageUrl,
+    ...(trip.days ?? []).flatMap(day => [day?.hero_image_url, ...momentsOf(day).map(momentImage)]),
+  ].filter((value): value is string => typeof value === "string" && value.length > 4);
+  return Array.from(new Set(images)).slice(0, 6);
 }
 
-function patchMoment(moment: any, field: string, value: string): any {
-  const next = { ...moment };
-  const v2 = "title_operational" in next || "description" in next || "time_label" in next;
-  if (field === "title") {
-    if (v2) { next.title_operational = value; next.title_evocative = value; }
-    else next.title = value;
-  }
-  if (field === "description") v2 ? next.description = value : next.desc = value;
-  if (field === "time") v2 ? next.start_time = value : next.startTime = value;
-  if (field === "band") v2 ? next.time_label = value : next.band = value;
-  if (field === "location") v2 ? next.location_name = value : next.locationName = value;
-  if (field === "why") v2 ? next.why_this = value : next.why = value;
-  if (field === "type") next.type = value;
-  return next;
-}
-
-function createMoment(trip: RawTrip, day: any, it: boolean, template: MomentTemplate = "experience") {
-  const id = `studio-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-  const titles: Record<MomentTemplate, [string, string]> = {
-    transport: ["Nuovo spostamento", "New transfer"],
-    accommodation: ["Nuovo alloggio", "New stay"],
-    food: ["Nuova sosta gastronomica", "New food stop"],
-    experience: ["Nuova esperienza", "New experience"],
-    walk: ["Nuova esplorazione", "New walk"],
-    view: ["Nuovo punto panoramico", "New viewpoint"],
-    rest: ["Tempo libero", "Free time"],
+function dayNodeData(trip: RawTrip, day: any, index: number): TravelNodeData {
+  const moments = momentsOf(day);
+  return {
+    kind: "day",
+    title: dayTitle(day, index),
+    eyebrow: `Giorno ${dayNumber(day, index)}`,
+    dayIndex: index,
+    subtitle: day?.subtitle ?? day?.energy_note ?? "",
+    image: day?.hero_image_url || moments.map(momentImage).find(Boolean) || trip.heroImageUrl || "",
+    moments: moments.slice(0, 6).map(moment => ({
+      title: momentTitle(moment), time: momentTime(moment), place: momentPlace(moment),
+      image: momentImage(moment), type: moment?.type ?? "experience",
+    })),
+    status: "chosen",
   };
-  const title = titles[template][it ? 0 : 1];
-  if (trip.schemaVersion === 2 || Array.isArray(day?.moments)) {
-    return {
-      id, type: template, time_label: template === "food" ? "lunch" : "afternoon",
-      title_operational: title,
-      title_evocative: title,
-      image_url: "", image_alt: "", description: "", why_this: "",
-    };
-  }
-  return { id, type: template, title, desc: "", band: template === "food" ? "pranzo" : "pomeriggio", t: it ? "Pomeriggio" : "Afternoon", ic: "" };
 }
 
-function tripQuality(trip: RawTrip) {
+function buildDefaultCanvas(trip: RawTrip, it: boolean): CanvasDoc {
   const days = trip.days ?? [];
-  const moments = days.flatMap(momentsOf);
-  if (!moments.length) return { score: 8, gaps: days.length, label: "empty" };
-  const checks = moments.flatMap(moment => [
-    momentTitle(moment).length > 4,
-    momentDescription(moment).length > 20,
-    momentLocation(moment).length > 2,
-    momentWhy(moment).length > 12,
-    Boolean(momentTime(moment)),
-  ]);
-  const populatedDays = days.filter(day => momentsOf(day).length > 0).length;
-  const score = Math.round((checks.filter(Boolean).length / checks.length) * 82 + (populatedDays / Math.max(days.length, 1)) * 18);
-  return { score, gaps: checks.filter(value => !value).length + (days.length - populatedDays), label: score >= 80 ? "strong" : score >= 55 ? "growing" : "draft" };
+  const images = ambientImages(trip);
+  const points = mapPoints(trip);
+  const budget = budgetData(trip);
+  const dayStartX = 440;
+  const nodes: TravelNode[] = [
+    {
+      id: "trip-overview", type: "travel", position: { x: 420, y: 40 },
+      data: {
+        kind: "trip", title: trip.destinationName ?? (it ? "Nuovo viaggio" : "New trip"),
+        text: trip.whyYours ?? trip.tripSummary ?? "", image: trip.heroImageUrl ?? images[0] ?? "",
+        days: days.length, country: trip.country ?? "", status: "chosen",
+      },
+    },
+    {
+      id: "intent-note", type: "travel", position: { x: 80, y: 90 },
+      data: {
+        kind: "note", title: it ? "Quello che conta" : "What matters",
+        text: trip.whyYours || (it ? "Aggiungi qui desideri, confini e priorità." : "Add wishes, boundaries and priorities here."),
+        status: "idea",
+      },
+    },
+    {
+      id: "moodboard", type: "travel", position: { x: 70, y: 310 },
+      data: { kind: "mood", title: "Moodboard", images, status: "idea" },
+    },
+    {
+      id: "trip-map", type: "travel", position: { x: 70, y: 660 },
+      data: { kind: "map", title: it ? "Mappa del viaggio" : "Trip map", points, status: "chosen" },
+    },
+    {
+      id: "trip-budget", type: "travel", position: { x: dayStartX + Math.min(days.length, 4) * 280 + 80, y: 610 },
+      data: { kind: "budget", title: "Budget", ...budget, status: "idea" },
+    },
+    {
+      id: "maybe-zone", type: "travel", position: { x: 440, y: 850 },
+      data: { kind: "maybe", title: "Maybe", text: it ? "Idee e alternative che non entrano ancora nel piano." : "Ideas and alternatives not yet in the plan.", items: [], status: "idea" },
+    },
+  ];
+
+  days.forEach((day, index) => {
+    nodes.push({
+      id: `day-${index}`, type: "travel", position: { x: dayStartX + index * 282, y: 330 },
+      data: dayNodeData(trip, day, index),
+    });
+  });
+
+  const edges: Edge[] = days.slice(1).map((_, index) => ({
+    id: `route-${index}-${index + 1}`, source: `day-${index}`, target: `day-${index + 1}`,
+    type: "smoothstep", animated: false, style: { stroke: "#2B2927", strokeWidth: 1.5 },
+  }));
+  return { version: 1, nodes, edges };
 }
 
-function lockKey(selection: Selection, moment: any) {
-  return `${selection.boardKey}:${momentId(moment, selection.momentIndex)}`;
+function mergeCanvasWithTrip(trip: RawTrip, stored: CanvasDoc | null, it: boolean): CanvasDoc {
+  const fresh = buildDefaultCanvas(trip, it);
+  if (!stored?.nodes?.length) return fresh;
+  const freshById = new Map(fresh.nodes.map(node => [node.id, node]));
+  const persistedIds = new Set(stored.nodes.map(node => node.id));
+  const nodes = stored.nodes.map(node => {
+    const semantic = freshById.get(node.id);
+    return semantic ? { ...semantic, position: node.position, parentId: node.parentId, extent: node.extent, style: node.style } : node;
+  });
+  fresh.nodes.forEach(node => { if (!persistedIds.has(node.id)) nodes.push(node); });
+  return { version: 1, nodes, edges: stored.edges?.length ? stored.edges : fresh.edges };
 }
 
-function MomentIcon({ type, size = 14 }: { type: MomentTemplate; size?: number }) {
-  if (type === "transport") return <Plane size={size} />;
-  if (type === "accommodation") return <Hotel size={size} />;
-  if (type === "food") return <Utensils size={size} />;
-  if (type === "walk") return <Footprints size={size} />;
-  if (type === "view") return <Eye size={size} />;
-  if (type === "rest") return <Coffee size={size} />;
-  return <Sparkles size={size} />;
-}
-
-function CanvasMoment({ boardKey, dayIndex, momentIndex, moment, selected, locked, onSelect }: {
-  boardKey: string;
-  dayIndex: number;
-  momentIndex: number;
-  moment: any;
-  selected: boolean;
-  locked: boolean;
-  onSelect: () => void;
-}) {
-  const payload: DragPayload = { kind: "moment", boardKey, dayIndex, momentIndex };
-  const id = `moment:${boardKey}:${dayIndex}:${momentId(moment, momentIndex)}`;
-  const drag = useDraggable({ id, data: payload, disabled: locked });
-  const drop = useDroppable({ id: `drop:${id}`, data: payload });
-  const setNodeRef = (node: HTMLElement | null) => { drag.setNodeRef(node); drop.setNodeRef(node); };
-
+function NodeShell({ data, selected, children }: { data: TravelNodeData; selected: boolean; children: ReactNode }) {
+  const status = data.status ?? "idea";
   return (
-    <article
-      ref={setNodeRef}
-      className={`mrs-moment type-${momentType(moment)}${selected ? " selected" : ""}${drag.isDragging ? " dragging" : ""}${drop.isOver ? " over" : ""}`}
-      style={{ transform: CSS.Translate.toString(drag.transform) }}
-      onClick={onSelect}
-    >
-      <button className="mrs-grip" aria-label="Trascina tappa" {...drag.listeners} {...drag.attributes} disabled={locked}>
-        {locked ? <Lock size={13} /> : <GripVertical size={14} />}
-      </button>
-      <div className="mrs-moment-copy">
-        <div className="mrs-moment-meta"><span className="mrs-kind"><MomentIcon type={momentType(moment)} size={11} />{momentType(moment)}</span><span>{momentTime(moment) || momentBand(moment)}</span></div>
-        <h4>{momentTitle(moment)}</h4>
-        {momentLocation(moment) && <span className="mrs-place"><MapPin size={10} />{momentLocation(moment)}</span>}
-        {momentDescription(moment) && <p>{momentDescription(moment)}</p>}
-      </div>
-      <ChevronRight size={14} className="mrs-moment-open" />
+    <article className={`mr-cnode kind-${data.kind} status-${status}${selected ? " is-selected" : ""}`}>
+      <Handle type="target" position={Position.Left} className="mr-node-handle" />
+      {children}
+      <Handle type="source" position={Position.Right} className="mr-node-handle" />
     </article>
   );
 }
 
-function DayColumn({ board, day, dayIndex, selection, locks, onSelect, onAdd, onRemove }: {
-  board: BoardTrip;
-  day: any;
-  dayIndex: number;
-  selection: Selection | null;
-  locks: Set<string>;
-  onSelect: (selection: Selection) => void;
-  onAdd: () => void;
-  onRemove: () => void;
-}) {
-  const drop = useDroppable({ id: `day:${board.key}:${dayIndex}`, data: { kind: "day", boardKey: board.key, dayIndex } satisfies DropPayload });
-  const moments = momentsOf(day);
-  return (
-    <section ref={drop.setNodeRef} className={`mrs-day${drop.isOver ? " over" : ""}`}>
-      <header className="mrs-day-head">
-        <span>{String(dayNumber(day, dayIndex)).padStart(2, "0")}</span>
-        <div><h3>{dayTitle(day, dayIndex)}</h3><p>{moments.length} {moments.length === 1 ? "tappa" : "tappe"}</p></div>
-        <button onClick={onRemove} aria-label="Rimuovi giorno"><Trash2 size={12} /></button>
-      </header>
-      <div className="mrs-day-line" />
-      <div className="mrs-day-moments">
-        {moments.map((moment, momentIndex) => {
-          const nextSelection = { boardKey: board.key, dayIndex, momentIndex };
-          return <CanvasMoment
-            key={momentId(moment, momentIndex)}
-            boardKey={board.key}
-            dayIndex={dayIndex}
-            momentIndex={momentIndex}
-            moment={moment}
-            selected={selection?.boardKey === board.key && selection.dayIndex === dayIndex && selection.momentIndex === momentIndex}
-            locked={locks.has(lockKey(nextSelection, moment))}
-            onSelect={() => onSelect(nextSelection)}
-          />;
-        })}
-      </div>
-      <button className="mrs-add-moment" onClick={onAdd}><Plus size={14} /> Aggiungi tappa</button>
-    </section>
-  );
+function TravelCanvasNode({ data, selected }: NodeProps<TravelNode>) {
+  if (data.kind === "group") return <div className={`mr-group-node${selected ? " is-selected" : ""}`}><span>{data.title}</span></div>;
+
+  if (data.kind === "trip") return <NodeShell data={data} selected={selected}>
+    <div className="mr-trip-hero" style={data.image ? { backgroundImage: `url(${data.image})` } : undefined} />
+    <div className="mr-trip-copy"><span>{data.country || "MindRoute canvas"}</span><h1>{data.title}</h1><p>{data.days} giorni · {data.text || "Un viaggio ancora da costruire"}</p></div>
+  </NodeShell>;
+
+  if (data.kind === "day") return <NodeShell data={data} selected={selected}>
+    <header className="mr-day-cover" style={data.image ? { backgroundImage: `url(${data.image})` } : undefined}>
+      <span>{data.eyebrow}</span><h3>{data.title}</h3><p>{data.subtitle}</p>
+    </header>
+    <div className="mr-day-moments">
+      {(data.moments ?? []).map((moment: any, index: number) => <div key={`${moment.title}-${index}`} className="mr-day-moment">
+        {moment.image && <span style={{ backgroundImage: `url(${moment.image})` }} />}
+        <div><small>{moment.time || moment.type}</small><strong>{moment.title}</strong>{moment.place && <em>{moment.place}</em>}</div>
+      </div>)}
+      {!data.moments?.length && <p className="mr-node-empty">Aggiungi le prime tappe</p>}
+    </div>
+  </NodeShell>;
+
+  if (data.kind === "note") return <NodeShell data={data} selected={selected}><span className="mr-paper-pin" /><small>Nota</small><h3>{data.title}</h3><p>{data.text}</p></NodeShell>;
+  if (data.kind === "question") return <NodeShell data={data} selected={selected}><CircleHelp size={20} /><small>Domanda aperta</small><h3>{data.title}</h3><p>{data.text}</p></NodeShell>;
+  if (data.kind === "photo") return <NodeShell data={data} selected={selected}><div className="mr-photo-img" style={data.image ? { backgroundImage: `url(${data.image})` } : undefined}><ImageIcon size={22} /></div><h3>{data.title}</h3><p>{data.text}</p></NodeShell>;
+  if (data.kind === "booking") return <NodeShell data={data} selected={selected}><div className="mr-booking-icon"><Plane size={20} /></div><small>{data.bookingType || "Prenotazione"}</small><h3>{data.title}</h3><p>{data.text}</p><span className="mr-status-chip">{data.status === "booked" ? "Confermato" : data.status === "chosen" ? "Scelto" : "Idea"}</span></NodeShell>;
+
+  if (data.kind === "budget") {
+    const percentage = Math.min(100, Math.round((Number(data.total) / Math.max(Number(data.target), 1)) * 100));
+    return <NodeShell data={data} selected={selected}><small>Budget</small><div className="mr-budget-body"><div className="mr-budget-ring" style={{ background: `conic-gradient(#E86B52 0 ${percentage}%,#E8E2D9 ${percentage}% 100%)` }}><span>€{data.total || 0}</span></div><div><h3>€{data.total || 0} / €{data.target || 0}</h3>{(data.categories ?? []).map((item: any) => <p key={item.label}><i style={{ background: item.color }} />{item.label}<strong>€{item.value}</strong></p>)}</div></div></NodeShell>;
+  }
+
+  if (data.kind === "map") return <NodeShell data={data} selected={selected}><small>Mappa del viaggio</small><div className="mr-mini-map"><svg viewBox="0 0 320 170" preserveAspectRatio="none"><path d="M28 124 C92 42 152 154 286 48" /><circle cx="72" cy="91" r="7" /><circle cx="160" cy="102" r="7" /><circle cx="259" cy="61" r="7" /></svg><span>{data.points?.length || 0} luoghi collegati</span></div></NodeShell>;
+  if (data.kind === "mood") return <NodeShell data={data} selected={selected}><small>Moodboard</small><h3>{data.title}</h3><div className="mr-mood-grid">{(data.images ?? []).slice(0, 6).map((image: string, index: number) => <span key={`${image}-${index}`} style={{ backgroundImage: `url(${image})` }} />)}{!data.images?.length && <p>Aggiungi immagini che raccontano l'atmosfera.</p>}</div></NodeShell>;
+  if (data.kind === "maybe") return <NodeShell data={data} selected={selected}><small>Maybe · idee / alternative</small><h3>{data.title}</h3><p>{data.text}</p><div className="mr-maybe-list">{(data.items ?? []).map((item: string, index: number) => <span key={`${item}-${index}`}>{item}</span>)}<span className="add">+ Aggiungi idea</span></div></NodeShell>;
+  if (data.kind === "proposal") return <NodeShell data={data} selected={selected}><Sparkles size={18} /><small>Proposta AI</small><h3>{data.title}</h3><p>{data.text}</p>{data.actions?.length ? <ul>{data.actions.map((action: string) => <li key={action}>{action}</li>)}</ul> : null}</NodeShell>;
+  return <NodeShell data={data} selected={selected}><small>{data.kind}</small><h3>{data.title}</h3><p>{data.text}</p></NodeShell>;
 }
 
-export default function TravelStudio() {
+const nodeTypes = { travel: TravelCanvasNode };
+
+function parseStreamingEvent(buffer: string, onEvent: (event: string, data: any) => void) {
+  const packets = buffer.split("\n\n");
+  const rest = packets.pop() ?? "";
+  packets.forEach(packet => {
+    let event = "";
+    let data = "";
+    packet.split("\n").forEach(line => {
+      if (line.startsWith("event: ")) event = line.slice(7).trim();
+      if (line.startsWith("data: ")) data += line.slice(6);
+    });
+    if (event && data) { try { onEvent(event, JSON.parse(data)); } catch { /* ignore malformed packet */ } }
+  });
+  return rest;
+}
+
+function TravelStudioInner() {
   const [, setLocation] = useLocation();
   const { lang } = useI18n();
   const { toast } = useToast();
   const it = lang === "it";
   const L = useCallback((italian: string, english: string) => it ? italian : english, [it]);
   const [library, setLibrary] = useState<RawTrip[]>([]);
-  const [boards, setBoards] = useState<BoardTrip[]>([]);
-  const [activeBoardKey, setActiveBoardKey] = useState<string | null>(null);
+  const [trip, setTrip] = useState<RawTrip | null>(null);
+  const [nodes, setNodes, onNodesChangeBase] = useNodesState<TravelNode>([]);
+  const [edges, setEdges, onEdgesChangeBase] = useEdgesState<Edge>([]);
   const [loading, setLoading] = useState(true);
-  const [selection, setSelection] = useState<Selection | null>(null);
-  const [locks, setLocks] = useState<Set<string>>(new Set());
-  const [dirty, setDirty] = useState<Set<string>>(new Set());
+  const [lens, setLens] = useState<Lens>("canvas");
+  const [tool, setTool] = useState<Tool>("select");
   const [zoom, setZoom] = useState(1);
-  const [activeDrag, setActiveDrag] = useState<any>(null);
-  const [command, setCommand] = useState("");
-  const [commandNote, setCommandNote] = useState("");
-  const [saving, setSaving] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>("flow");
-  const [libraryTab, setLibraryTab] = useState<LibraryTab>("trips");
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [history, setHistory] = useState<Array<{ nodes: TravelNode[]; edges: Edge[] }>>([]);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [aiReply, setAiReply] = useState("");
+  const [aiActions, setAiActions] = useState<string[]>([]);
+  const [aiStreaming, setAiStreaming] = useState(false);
   const [newTripOpen, setNewTripOpen] = useState(false);
   const [creatingTrip, setCreatingTrip] = useState(false);
-  const [newTrip, setNewTrip] = useState({ destinationName: "", country: "", dayCount: 5, startDate: "" });
-  const history = useRef<BoardTrip[][]>([]);
-  const commandRef = useRef<HTMLInputElement>(null);
-  const [historySize, setHistorySize] = useState(0);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const [newTrip, setNewTrip] = useState({ destinationName: "", country: "", dayCount: 7, startDate: "" });
+  const flowRef = useRef<ReactFlowInstance<TravelNode, Edge> | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadTrips = useCallback(async () => {
+  const loadLibrary = useCallback(async (preferredId?: number) => {
     const response = await fetch(`/api/my-trips?lang=${lang}`);
     if (!response.ok) throw new Error("trips");
-    const rows = await response.json();
-    const trips = (Array.isArray(rows) ? rows : []).map(normalizeTrip);
-    setLibrary(trips);
-    setBoards(current => {
-      if (!current.length && trips.length) {
-        const first = trips[0];
-        return [{ key: `trip-${first.id}`, sourceId: first.id, label: first.destinationName ?? "Viaggio", variant: false, data: clone(first) }];
-      }
-      return current.map(board => {
-        if (dirty.has(board.key)) return board;
-        const fresh = trips.find((trip: RawTrip) => trip.id === board.sourceId);
-        return fresh ? { ...board, data: clone(fresh) } : board;
-      });
-    });
-  }, [lang, dirty]);
+    const rows = await response.json() as RawTrip[];
+    setLibrary(rows);
+    const next = rows.find(item => item.id === preferredId) ?? rows[0] ?? null;
+    if (next) {
+      const doc = mergeCanvasWithTrip(next, next.tripMeta?.studio_canvas ?? null, it);
+      setTrip(next); setNodes(doc.nodes); setEdges(doc.edges); setDirty(false); setSelectedIds([]);
+      requestAnimationFrame(() => flowRef.current?.fitView({ padding: .13, duration: 450 }));
+    } else {
+      setTrip(null); setNodes([]); setEdges([]);
+    }
+    return rows;
+  }, [it, lang, setEdges, setNodes]);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/my-trips?lang=${lang}`)
-      .then(response => response.ok ? response.json() : [])
-      .then(rows => {
-        if (cancelled) return;
-        const trips = (Array.isArray(rows) ? rows : []).map(normalizeTrip);
-        setLibrary(trips);
-        if (trips.length) {
-          const first = trips[0];
-          setBoards([{ key: `trip-${first.id}`, sourceId: first.id, label: first.destinationName ?? "Viaggio", variant: false, data: clone(first) }]);
-        }
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
+    loadLibrary().catch(() => {}).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [lang]);
+  }, [loadLibrary]);
+
+  const openTrip = (next: RawTrip) => {
+    if (dirty && !window.confirm(L("Aprire un altro viaggio senza salvare le modifiche?", "Open another trip without saving changes?"))) return;
+    const doc = mergeCanvasWithTrip(next, next.tripMeta?.studio_canvas ?? null, it);
+    setTrip(next); setNodes(doc.nodes); setEdges(doc.edges); setDirty(false); setSelectedIds([]);
+    requestAnimationFrame(() => flowRef.current?.fitView({ padding: .13, duration: 450 }));
+  };
+
+  const pushHistory = useCallback(() => setHistory(previous => [...previous.slice(-19), { nodes: clone(nodes), edges: clone(edges) }]), [edges, nodes]);
+  const markChanged = useCallback(() => setDirty(true), []);
+  const onNodesChange = useCallback((changes: NodeChange<TravelNode>[]) => {
+    onNodesChangeBase(changes);
+    if (changes.some(change => change.type !== "select" && change.type !== "dimensions")) markChanged();
+  }, [markChanged, onNodesChangeBase]);
+  const onConnect = useCallback((connection: Connection) => {
+    pushHistory();
+    setEdges(previous => addEdge({ ...connection, type: "smoothstep", style: { stroke: "#2B2927", strokeWidth: 1.5 } }, previous));
+    markChanged();
+  }, [markChanged, pushHistory, setEdges]);
+
+  const canvasPayload = useCallback((): CanvasDoc => ({
+    version: 1,
+    nodes: nodes.map(node => ({
+      id: node.id, type: node.type, position: node.position, data: node.data,
+      ...(node.parentId ? { parentId: node.parentId, extent: node.extent } : {}),
+      ...(node.style ? { style: node.style } : {}),
+    })),
+    edges: edges.map(edge => ({ id: edge.id, source: edge.source, target: edge.target, type: edge.type, label: typeof edge.label === "string" ? edge.label : undefined })),
+  }), [edges, nodes]);
+
+  const saveCanvas = useCallback(async (quiet = false) => {
+    if (!trip || saving) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/studio/itineraries/${trip.id}/canvas`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ canvas: canvasPayload() }),
+      });
+      if (!response.ok) throw new Error("save");
+      setDirty(false);
+      const payload = canvasPayload();
+      setTrip(previous => previous ? { ...previous, tripMeta: { ...(previous.tripMeta ?? {}), studio_canvas: payload } } : previous);
+      setLibrary(previous => previous.map(item => item.id === trip.id ? { ...item, tripMeta: { ...(item.tripMeta ?? {}), studio_canvas: payload } } : item));
+      if (!quiet) toast({ title: L("Scrivania salvata", "Desk saved") });
+    } catch {
+      if (!quiet) toast({ title: L("Salvataggio non riuscito", "Save failed"), variant: "destructive" });
+    } finally { setSaving(false); }
+  }, [L, canvasPayload, saving, toast, trip]);
 
   useEffect(() => {
-    const onUpdated = (event: Event) => {
-      const id = Number((event as CustomEvent).detail?.itineraryId);
-      if (!Number.isFinite(id)) return;
-      const hasDirty = boards.some(board => board.sourceId === id && dirty.has(board.key));
-      if (hasDirty) {
-        setCommandNote(L("Il Companion ha aggiornato il viaggio originale. Salva o annulla la bozza prima di ricaricarlo.", "The Companion updated the original trip. Save or undo your draft before reloading it."));
-        return;
-      }
-      loadTrips().catch(() => {});
-      setCommandNote(L("Modifica AI applicata e canvas aggiornato.", "AI change applied and canvas refreshed."));
+    if (!dirty || !trip) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => saveCanvas(true), 1800);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [dirty, saveCanvas, trip]);
+
+  const undo = () => {
+    const snapshot = history[history.length - 1];
+    if (!snapshot) return;
+    setNodes(snapshot.nodes); setEdges(snapshot.edges); setHistory(previous => previous.slice(0, -1)); setDirty(true);
+  };
+
+  const addObject = (kind: Exclude<ObjectKind, "trip" | "day" | "budget" | "map" | "mood" | "proposal" | "group">) => {
+    pushHistory();
+    const center = flowRef.current?.screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 }) ?? { x: 500, y: 350 };
+    const id = `${kind}-${Date.now().toString(36)}`;
+    const defaults: Record<string, TravelNodeData> = {
+      note: { kind, title: L("Nuova nota", "New note"), text: L("Scrivi qui un desiderio, un limite o un'intuizione.", "Write a wish, boundary or intuition here."), status: "idea" },
+      question: { kind, title: L("Domanda aperta", "Open question"), text: L("Cosa dobbiamo ancora decidere?", "What do we still need to decide?"), status: "idea" },
+      photo: { kind, title: L("Ispirazione", "Inspiration"), text: L("Perché questa immagine ti attrae?", "Why does this image pull you in?"), image: "", status: "idea" },
+      booking: { kind, title: L("Nuova prenotazione", "New booking"), text: L("Aggiungi orario, riferimento e dettagli.", "Add time, reference and details."), bookingType: "Volo / hotel / attività", status: "idea" },
+      maybe: { kind, title: "Maybe", text: L("Un'alternativa da valutare.", "An alternative to consider."), items: [], status: "idea" },
     };
-    window.addEventListener("mindroute:itinerary-updated", onUpdated);
-    return () => window.removeEventListener("mindroute:itinerary-updated", onUpdated);
-  }, [boards, dirty, L, loadTrips]);
-
-  const pushHistory = () => {
-    history.current.push(clone(boards));
-    if (history.current.length > 20) history.current.shift();
-    setHistorySize(history.current.length);
+    setNodes(previous => [...previous, { id, type: "travel", position: { x: center.x - 120, y: center.y - 80 }, data: defaults[kind] }]);
+    setSelectedIds([id]); setInspectorOpen(true); setDirty(true);
   };
 
-  const markDirty = (key: string) => setDirty(previous => new Set(previous).add(key));
-
-  const selected = useMemo(() => {
-    if (!selection) return null;
-    const board = boards.find(item => item.key === selection.boardKey);
-    const day = board?.data.days?.[selection.dayIndex];
-    const moment = day ? momentsOf(day)[selection.momentIndex] : null;
-    return board && day && moment ? { board, day, moment } : null;
-  }, [boards, selection]);
-  const activeBoard = selected?.board ?? boards.find(board => board.key === activeBoardKey) ?? boards[0] ?? null;
-  const activeQuality = activeBoard ? tripQuality(activeBoard.data) : null;
-
-  const mutateBoard = (boardKey: string, change: (board: BoardTrip) => void) => {
-    setBoards(previous => {
-      const next = clone(previous);
-      const board = next.find(item => item.key === boardKey);
-      if (board) change(board);
-      return next;
-    });
-    markDirty(boardKey);
-  };
-
-  const updateSelected = (field: string, value: string) => {
-    if (!selection) return;
-    mutateBoard(selection.boardKey, board => {
-      const day = board.data.days?.[selection.dayIndex];
-      if (!day) return;
-      const moments = [...momentsOf(day)];
-      moments[selection.momentIndex] = patchMoment(moments[selection.momentIndex], field, value);
-      setMoments(day, moments, board.data.schemaVersion === 2);
-    });
-  };
-
-  const addMoment = (boardKey: string, dayIndex: number, template: MomentTemplate = "experience") => {
+  const deleteSelection = () => {
+    const removable = selectedIds.filter(id => !id.startsWith("day-") && id !== "trip-overview");
+    if (!removable.length) return;
     pushHistory();
-    mutateBoard(boardKey, board => {
-      const day = board.data.days?.[dayIndex];
-      if (!day) return;
-      const moments = [...momentsOf(day), createMoment(board.data, day, it, template)];
-      setMoments(day, moments, board.data.schemaVersion === 2);
-      setSelection({ boardKey, dayIndex, momentIndex: moments.length - 1 });
-    });
+    setNodes(previous => previous.filter(node => !removable.includes(node.id)));
+    setEdges(previous => previous.filter(edge => !removable.includes(edge.source) && !removable.includes(edge.target)));
+    setSelectedIds([]); setInspectorOpen(false); setDirty(true);
   };
 
-  const addDay = (boardKey: string) => {
+  const groupSelection = () => {
+    const selected = nodes.filter(node => selectedIds.includes(node.id) && !node.parentId);
+    if (selected.length < 2) return;
     pushHistory();
-    mutateBoard(boardKey, board => {
-      const days = board.data.days ?? [];
-      const nextNumber = days.length + 1;
-      days.push({
-        day_number: nextNumber,
-        role: "esplorazione",
-        arc: "",
-        title_evocative: L(`Giorno ${nextNumber}`, `Day ${nextNumber}`),
-        subtitle: L("Da costruire", "Ready to shape"),
-        hero_image_url: "",
-        energy_level: "medium",
-        cost_bookable_total: 0,
-        cost_onsite_estimate: 0,
-        moments: [],
+    const minX = Math.min(...selected.map(node => node.position.x));
+    const minY = Math.min(...selected.map(node => node.position.y));
+    const maxX = Math.max(...selected.map(node => node.position.x + (node.measured?.width ?? 260)));
+    const maxY = Math.max(...selected.map(node => node.position.y + (node.measured?.height ?? 200)));
+    const groupId = `group-${Date.now().toString(36)}`;
+    const group: TravelNode = {
+      id: groupId, type: "travel", position: { x: minX - 28, y: minY - 45 },
+      data: { kind: "group", title: L("Nuovo gruppo", "New group") },
+      style: { width: maxX - minX + 56, height: maxY - minY + 73 }, zIndex: -1,
+    };
+    setNodes(previous => [group, ...previous.map(node => selectedIds.includes(node.id) ? {
+      ...node, parentId: groupId, extent: "parent" as const,
+      position: { x: node.position.x - minX + 28, y: node.position.y - minY + 45 },
+    } : node)]);
+    setSelectedIds([groupId]); setDirty(true);
+  };
+
+  const updateSelectedData = (patch: Partial<TravelNodeData>) => {
+    setNodes(previous => previous.map(node => selectedIds.includes(node.id) ? { ...node, data: { ...node.data, ...patch } } : node));
+    setDirty(true);
+  };
+
+  const selectedNodes = useMemo(() => nodes.filter(node => selectedIds.includes(node.id)), [nodes, selectedIds]);
+  const selectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
+
+  const createProposalNode = (text: string, actions: string[]) => {
+    const selected = selectedNodes;
+    const x = selected.length ? Math.max(...selected.map(node => node.position.x)) + 310 : 760;
+    const y = selected.length ? Math.min(...selected.map(node => node.position.y)) : 170;
+    const id = `proposal-${Date.now().toString(36)}`;
+    setNodes(previous => [...previous, { id, type: "travel", position: { x, y }, data: { kind: "proposal", title: L("Proposta MindRoute", "MindRoute proposal"), text: text.slice(0, 900), actions, status: "idea" } }]);
+    if (selected[0]) setEdges(previous => addEdge({ id: `proposal-link-${id}`, source: selected[0].id, target: id, type: "smoothstep", animated: true, style: { stroke: "#E86B52" } }, previous));
+    setSelectedIds([id]); setDirty(true);
+  };
+
+  const runCanvasAi = async (message?: string) => {
+    if (!trip || aiStreaming) return;
+    const request = (message ?? aiInput).trim();
+    if (!request) return;
+    const isApplying = message?.startsWith("Confermo") || message?.startsWith("I confirm");
+    if (isApplying && dirty) await saveCanvas();
+    const context = selectedNodes.map(node => `${node.data.kind}: ${node.data.title}${node.data.text ? ` (${node.data.text})` : ""}`).join("; ");
+    const prompt = `${L("Oggetti selezionati sul canvas", "Selected canvas objects")}: ${context || L("intero viaggio", "whole trip")}. ${L("Richiesta", "Request")}: ${request}. ${L("Rispondi in modo breve con una proposta concreta. Non applicare cambiamenti finché non confermo.", "Reply briefly with a concrete proposal. Do not apply changes until I confirm.")}`;
+    setAiInput(""); setAiReply(""); setAiActions([]); setAiStreaming(true); setAiOpen(true);
+    let full = "";
+    const actions: string[] = [];
+    try {
+      const response = await fetch(`/api/itinerary/${trip.id}/chat`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: prompt, lang }),
       });
-      board.data.days = days;
-    });
+      if (!response.ok || !response.body) throw new Error("ai");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        buffer = parseStreamingEvent(buffer, (event, data) => {
+          if (event === "chunk") { full += data.text ?? ""; setAiReply(full); }
+          if (event === "tool" && data.label) { actions.push(data.label); setAiActions([...actions]); }
+        });
+      }
+      if (full && !isApplying) createProposalNode(full, actions);
+      if (actions.length && isApplying) await loadLibrary(trip.id);
+    } catch {
+      setAiReply(L("Non sono riuscito a preparare la proposta. Riprova tra poco.", "I couldn't prepare the proposal. Try again shortly."));
+    } finally { setAiStreaming(false); }
   };
 
-  const removeDay = (boardKey: string, dayIndex: number) => {
-    const board = boards.find(item => item.key === boardKey);
-    if (!board || (board.data.days?.length ?? 0) <= 1) return;
-    if (!window.confirm(L("Rimuovere questo giorno e tutte le sue tappe?", "Remove this day and all its stops?"))) return;
-    pushHistory();
-    mutateBoard(boardKey, draft => {
-      draft.data.days = (draft.data.days ?? []).filter((_, index) => index !== dayIndex).map((day, index) => ({
-        ...day,
-        day_number: index + 1,
-      }));
-    });
-    setSelection(null);
-  };
+  const applyAiProposal = () => runCanvasAi(L("Confermo. Applica ora le modifiche proposte agli oggetti selezionati.", "I confirm. Apply the proposed changes to the selected objects now."));
 
-  const addTemplate = (template: MomentTemplate) => {
-    if (!activeBoard) return;
-    const dayIndex = selection?.boardKey === activeBoard.key ? selection.dayIndex : 0;
-    addMoment(activeBoard.key, dayIndex, template);
-  };
-
-  const useAiRecipe = (italian: string, english: string) => {
-    setCommand(L(italian, english));
-    setCommandNote(L("Richiesta pronta: puoi personalizzarla prima di inviarla.", "Request ready: you can customize it before sending."));
-    requestAnimationFrame(() => commandRef.current?.focus());
-  };
-
-  const createBlankTrip = async (event: React.FormEvent) => {
+  const createBlankTrip = async (event: FormEvent) => {
     event.preventDefault();
     if (newTrip.destinationName.trim().length < 2) return;
     setCreatingTrip(true);
     try {
       const response = await fetch("/api/studio/itineraries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newTrip, lang }),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...newTrip, lang }),
       });
       if (!response.ok) throw new Error("create");
-      const created = normalizeTrip(await response.json());
-      const board = { key: `trip-${created.id}`, sourceId: created.id, label: created.destinationName ?? L("Nuovo viaggio", "New trip"), variant: false, data: clone(created) };
-      setLibrary(previous => [created, ...previous]);
-      setBoards(previous => [board, ...previous]);
-      setActiveBoardKey(board.key);
-      setNewTripOpen(false);
-      setNewTrip({ destinationName: "", country: "", dayCount: 5, startDate: "" });
-      setLibraryTab("tools");
-      toast({ title: L("Nuovo itinerario creato", "New itinerary created"), description: L("Ora puoi costruirlo manualmente o con il Companion.", "You can now build it manually or with Companion.") });
-    } catch {
-      toast({ title: L("Creazione non riuscita", "Creation failed"), variant: "destructive" });
-    } finally {
-      setCreatingTrip(false);
-    }
+      const created = await response.json() as RawTrip;
+      await loadLibrary(created.id);
+      setNewTripOpen(false); setNewTrip({ destinationName: "", country: "", dayCount: 7, startDate: "" });
+      toast({ title: L("Nuova scrivania creata", "New desk created") });
+    } catch { toast({ title: L("Creazione non riuscita", "Creation failed"), variant: "destructive" }); }
+    finally { setCreatingTrip(false); }
   };
 
-  const removeSelected = () => {
-    if (!selection) return;
-    pushHistory();
-    mutateBoard(selection.boardKey, board => {
-      const day = board.data.days?.[selection.dayIndex];
-      if (!day) return;
-      const moments = momentsOf(day).filter((_, index) => index !== selection.momentIndex);
-      setMoments(day, moments, board.data.schemaVersion === 2);
-    });
-    setSelection(null);
-  };
+  const points = trip ? mapPoints(trip) : [];
+  const budget = trip ? budgetData(trip) : { total: 0, target: 0, categories: [] };
+  const images = trip ? ambientImages(trip) : [];
 
-  const duplicateSelected = () => {
-    if (!selection || !selected) return;
-    pushHistory();
-    mutateBoard(selection.boardKey, board => {
-      const day = board.data.days?.[selection.dayIndex];
-      if (!day) return;
-      const moments = [...momentsOf(day)];
-      const duplicate = { ...clone(selected.moment), id: `studio-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}` };
-      moments.splice(selection.momentIndex + 1, 0, duplicate);
-      setMoments(day, moments, board.data.schemaVersion === 2);
-      setSelection({ ...selection, momentIndex: selection.momentIndex + 1 });
-    });
-  };
+  if (loading) return <div className="mr-studio-loading"><span /><p>{L("Apro la tua scrivania di viaggio…", "Opening your travel desk…")}</p></div>;
 
-  const toggleLock = () => {
-    if (!selection || !selected) return;
-    const key = lockKey(selection, selected.moment);
-    setLocks(previous => {
-      const next = new Set(previous);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
-  };
-
-  const onDragStart = (event: DragStartEvent) => {
-    const payload = event.active.data.current as DragPayload | undefined;
-    if (!payload) return;
-    const board = boards.find(item => item.key === payload.boardKey);
-    setActiveDrag(board ? momentsOf(board.data.days?.[payload.dayIndex])[payload.momentIndex] : null);
-  };
-
-  const onDragEnd = (event: DragEndEvent) => {
-    setActiveDrag(null);
-    const from = event.active.data.current as DragPayload | undefined;
-    const over = event.over?.data.current as DropPayload | undefined;
-    if (!from || !over || from.boardKey !== over.boardKey) return;
-    const toDayIndex = over.dayIndex;
-    let toMomentIndex = over.kind === "moment" ? over.momentIndex : Number.MAX_SAFE_INTEGER;
-    if (from.dayIndex === toDayIndex && from.momentIndex === toMomentIndex) return;
-    pushHistory();
-    mutateBoard(from.boardKey, board => {
-      const sourceDay = board.data.days?.[from.dayIndex];
-      const targetDay = board.data.days?.[toDayIndex];
-      if (!sourceDay || !targetDay) return;
-      const source = [...momentsOf(sourceDay)];
-      const target = sourceDay === targetDay ? source : [...momentsOf(targetDay)];
-      const [moved] = source.splice(from.momentIndex, 1);
-      if (!moved) return;
-      if (sourceDay === targetDay) {
-        if (from.momentIndex < toMomentIndex) toMomentIndex -= 1;
-        toMomentIndex = Math.max(0, Math.min(toMomentIndex, source.length));
-        source.splice(toMomentIndex, 0, moved);
-        setMoments(sourceDay, source, board.data.schemaVersion === 2);
-      } else {
-        toMomentIndex = Math.max(0, Math.min(toMomentIndex, target.length));
-        target.splice(toMomentIndex, 0, moved);
-        setMoments(sourceDay, source, board.data.schemaVersion === 2);
-        setMoments(targetDay, target, board.data.schemaVersion === 2);
-      }
-      setSelection({ boardKey: from.boardKey, dayIndex: toDayIndex, momentIndex: toMomentIndex });
-    });
-  };
-
-  const addToBoard = (trip: RawTrip) => {
-    if (boards.some(board => board.sourceId === trip.id && !board.variant)) return;
-    const key = `trip-${trip.id}`;
-    setBoards(previous => [...previous, { key, sourceId: trip.id, label: trip.destinationName ?? "Viaggio", variant: false, data: clone(trip) }]);
-    setActiveBoardKey(key);
-  };
-
-  const duplicateBoard = (board: BoardTrip) => {
-    pushHistory();
-    const next: BoardTrip = {
-      ...clone(board),
-      key: `variant-${board.sourceId}-${Date.now().toString(36)}`,
-      label: `${board.data.destinationName ?? board.label} · ${L("Variante", "Variant")}`,
-      variant: true,
-    };
-    setBoards(previous => [...previous, next]);
-    setActiveBoardKey(next.key);
-    markDirty(next.key);
-  };
-
-  const removeBoard = (key: string) => {
-    setBoards(previous => previous.filter(board => board.key !== key));
-    setDirty(previous => { const next = new Set(previous); next.delete(key); return next; });
-    if (selection?.boardKey === key) setSelection(null);
-    if (activeBoardKey === key) setActiveBoardKey(null);
-  };
-
-  const undo = () => {
-    const previous = history.current.pop();
-    if (!previous) return;
-    setBoards(previous);
-    setHistorySize(history.current.length);
-    setSelection(null);
-  };
-
-  const saveBoard = async (board: BoardTrip) => {
-    if (board.variant && !window.confirm(L("Questa variante sostituirà l'itinerario originale. Continuare?", "This variant will replace the original itinerary. Continue?"))) return;
-    setSaving(board.key);
-    try {
-      const response = await fetch(`/api/itinerary/${board.sourceId}/edit`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ days: board.data.days ?? [] }),
-      });
-      if (!response.ok) throw new Error("save");
-      setDirty(previous => { const next = new Set(previous); next.delete(board.key); return next; });
-      setLibrary(previous => previous.map(trip => trip.id === board.sourceId ? clone(board.data) : trip));
-      toast({ title: L("Viaggio aggiornato", "Trip updated"), description: board.variant ? L("La variante è ora la versione principale.", "The variant is now the main version.") : L("Le modifiche del canvas sono state salvate.", "Canvas changes have been saved.") });
-    } catch {
-      toast({ title: L("Salvataggio non riuscito", "Save failed"), variant: "destructive" });
-    } finally {
-      setSaving(null);
-    }
-  };
-
-  const openCompanion = (event: React.FormEvent) => {
-    event.preventDefault();
-    const board = selected?.board ?? boards[0];
-    if (!board || !command.trim()) return;
-    if (dirty.has(board.key)) {
-      setCommandNote(L("Salva prima la bozza: così il Companion lavora sulla stessa versione che vedi.", "Save the draft first, so the Companion works on the same version you see."));
-      return;
-    }
-    const context = selected
-      ? L(`Sto lavorando sulla tappa “${momentTitle(selected.moment)}” del giorno ${dayNumber(selected.day, selection?.dayIndex ?? 0)}.`, `I am working on “${momentTitle(selected.moment)}” on day ${dayNumber(selected.day, selection?.dayIndex ?? 0)}.`)
-      : L(`Sto lavorando sull'intero viaggio a ${board.data.destinationName ?? board.label}.`, `I am working on the whole trip to ${board.data.destinationName ?? board.label}.`);
-    const lockedMoments = (board.data.days ?? []).flatMap((day, dayIndex) =>
-      momentsOf(day).flatMap((moment, momentIndex) =>
-        locks.has(lockKey({ boardKey: board.key, dayIndex, momentIndex }, moment)) ? [momentTitle(moment)] : []
-      )
-    );
-    const lockInstruction = lockedMoments.length
-      ? L(`Non modificare queste tappe bloccate: ${lockedMoments.join(", ")}.`, `Do not change these locked stops: ${lockedMoments.join(", ")}.`)
-      : "";
-    const seed = `${context} ${lockInstruction} ${L("Richiesta", "Request")}: ${command.trim()} ${L("Proponi prima la modifica e applicala solo dopo la mia conferma.", "Propose the change first and apply it only after my confirmation.")}`;
-    window.dispatchEvent(new CustomEvent("mindroute:open-companion-for-itinerary", { detail: { itineraryId: board.sourceId, seed } }));
-    setCommandNote(L("Il Companion ha ricevuto viaggio, selezione e richiesta.", "The Companion received the trip, selection and request."));
-    setCommand("");
-  };
-
-  if (loading) return <div className="mrs-loading"><span /><p>{L("Preparo il tuo spazio di lavoro…", "Preparing your workspace…")}</p></div>;
-
-  return (
-    <div className="mrs-page">
-      <header className="mrs-topbar">
-        <div className="mrs-brand">
-          <button onClick={() => setLocation("/my-account")} aria-label={L("Torna ai viaggi", "Back to trips")}><ArrowLeft size={17} /></button>
-          <FlowNavLogo size={26} />
-          <div><strong>MindRoute Studio</strong><span>Travel Canvas · Beta</span></div>
-        </div>
-        <div className="mrs-top-actions">
-          <button className="mrs-new-top" onClick={() => setNewTripOpen(true)}><Plus size={15} />{L("Nuovo itinerario", "New itinerary")}</button>
-          <button onClick={undo} disabled={!historySize}><Redo2 size={15} />{L("Annulla", "Undo")}</button>
-          <div className="mrs-zoom">
-            <button onClick={() => setZoom(value => Math.max(.7, +(value - .1).toFixed(1)))} aria-label="Zoom out"><ZoomOut size={15} /></button>
-            <span>{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom(value => Math.min(1.2, +(value + .1).toFixed(1)))} aria-label="Zoom in"><ZoomIn size={15} /></button>
-          </div>
-          <LangDropdown variant="dark" />
-        </div>
-      </header>
-
-      <div className={`mrs-shell${leftOpen ? "" : " left-closed"}${rightOpen ? "" : " right-closed"}`}>
-        {leftOpen && <aside className="mrs-library">
-          <button className="mrs-new-project" onClick={() => setNewTripOpen(true)}><Plus size={16} /><span><strong>{L("Crea da zero", "Create from scratch")}</strong><small>{L("Un documento vuoto, già pronto", "A blank, ready document")}</small></span></button>
-          <div className="mrs-side-tabs">
-            <button className={libraryTab === "trips" ? "on" : ""} onClick={() => setLibraryTab("trips")}><Layers3 size={13} />{L("Viaggi", "Trips")}</button>
-            <button className={libraryTab === "tools" ? "on" : ""} onClick={() => setLibraryTab("tools")}><Sparkles size={13} />{L("Strumenti", "Tools")}</button>
-          </div>
-
-          {libraryTab === "trips" ? <>
-            <div className="mrs-panel-title"><Layers3 size={16} /><div><strong>{L("I tuoi viaggi", "Your trips")}</strong><span>{L("Aggiungi al canvas", "Add to canvas")}</span></div></div>
-            <div className="mrs-library-list">
-              {library.map(trip => {
-                const added = boards.some(board => board.sourceId === trip.id && !board.variant);
-                return (
-                  <button key={trip.id} className={`mrs-library-trip${added ? " added" : ""}`} onClick={() => addToBoard(trip)} disabled={added}>
-                    <span className="mrs-library-img" style={{ backgroundImage: trip.heroImageUrl ? `url(${trip.heroImageUrl})` : undefined }} />
-                    <span><strong>{trip.destinationName ?? "Viaggio"}</strong><small>{trip.days?.length ?? 0} {L("giorni", "days")}</small></span>
-                    {added ? <Check size={14} /> : <Plus size={14} />}
-                  </button>
-                );
-              })}
-              {!library.length && <p className="mrs-library-empty">{L("Non hai ancora viaggi. Creane uno da zero.", "You have no trips yet. Create one from scratch.")}</p>}
-            </div>
-            <div className="mrs-library-tip"><Sparkles size={15} /><p>{L("Metti due viaggi sul canvas per confrontarli o duplica un frame per creare una variante.", "Place two trips on the canvas to compare them, or duplicate a frame to create a variant.")}</p></div>
-          </> : <div className="mrs-tools-panel">
-            <section>
-              <span className="mrs-tool-label">{L("Struttura", "Structure")}</span>
-              <button className="mrs-tool-wide" disabled={!activeBoard} onClick={() => activeBoard && addDay(activeBoard.key)}><Plus size={14} /><span><strong>{L("Aggiungi giorno", "Add day")}</strong><small>{L("Estendi il ritmo del viaggio", "Extend the trip rhythm")}</small></span></button>
-            </section>
-            <section>
-              <span className="mrs-tool-label">{L("Aggiungi una tappa", "Add a stop")}</span>
-              <div className="mrs-template-grid">
-                {([
-                  ["transport", L("Spostamento", "Transfer")], ["accommodation", L("Alloggio", "Stay")],
-                  ["food", L("Cibo", "Food")], ["experience", L("Esperienza", "Experience")],
-                  ["walk", L("Esplora", "Explore")], ["view", L("Panorama", "View")],
-                  ["rest", L("Pausa", "Rest")],
-                ] as [MomentTemplate, string][]).map(([type, label]) => (
-                  <button key={type} disabled={!activeBoard} onClick={() => addTemplate(type)}><MomentIcon type={type} /><span>{label}</span></button>
-                ))}
-              </div>
-              <p className="mrs-tool-help">{L("La tappa entra nel giorno selezionato, oppure nel primo giorno.", "The stop is added to the selected day, or to day one.")}</p>
-            </section>
-            <section>
-              <span className="mrs-tool-label">{L("Regia AI", "AI direction")}</span>
-              <div className="mrs-ai-recipes">
-                <button onClick={() => useAiRecipe("Bilancia il ritmo tra giorni intensi e momenti di recupero", "Balance intense days with recovery time")}>{L("Bilancia il ritmo", "Balance rhythm")}</button>
-                <button onClick={() => useAiRecipe("Riduci gli spostamenti e raggruppa le tappe per zona", "Reduce transfers and group stops by area")}>{L("Riduci spostamenti", "Reduce transfers")}</button>
-                <button onClick={() => useAiRecipe("Rendi ogni tappa più chiara: cosa è, dove si trova e perché vale la pena", "Make every stop clearer: what it is, where it is and why it matters")}>{L("Completa il contesto", "Complete context")}</button>
-              </div>
-            </section>
-            {activeQuality && <section className="mrs-quality-mini">
-              <div><CircleGauge size={17} /><span><strong>{activeQuality.score}%</strong><small>{L("completezza", "completeness")}</small></span></div>
-              <div className="mrs-quality-track"><span style={{ width: `${activeQuality.score}%` }} /></div>
-              <p>{activeQuality.gaps ? L(`${activeQuality.gaps} dettagli ancora da completare.`, `${activeQuality.gaps} details still need work.`) : L("Il piano è completo e leggibile.", "The plan is complete and readable.")}</p>
-            </section>}
-          </div>}
-        </aside>}
-
-        <main className="mrs-canvas-main">
-          <div className="mrs-canvas-toolbar">
-            <div className="mrs-toolbar-title"><span>{L("Workspace", "Workspace")}</span><strong>{L("Il mio spazio viaggi", "My travel space")}</strong></div>
-            <div className="mrs-view-switch">
-              <button className={viewMode === "flow" ? "on" : ""} onClick={() => setViewMode("flow")}><ListTree size={14} />{L("Flow", "Flow")}</button>
-              <button className={viewMode === "board" ? "on" : ""} onClick={() => setViewMode("board")}><LayoutGrid size={14} />{L("Board", "Board")}</button>
-            </div>
-            <div className="mrs-panel-switches">
-              <button className={leftOpen ? "on" : ""} onClick={() => setLeftOpen(value => !value)} aria-label={L("Mostra strumenti", "Show tools")}><PanelLeftClose size={15} /></button>
-              <button className={rightOpen ? "on" : ""} onClick={() => setRightOpen(value => !value)} aria-label={L("Mostra inspector", "Show inspector")}><PanelRightClose size={15} /></button>
-            </div>
-          </div>
-
-          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-            <div className="mrs-canvas-scroll">
-              <div className="mrs-canvas-stage" style={{ transform: `scale(${zoom})`, width: `${100 / zoom}%` }}>
-                {boards.map(board => (
-                  <section className={`mrs-trip-frame ${viewMode}${activeBoard?.key === board.key ? " active" : ""}`} key={board.key} onMouseDown={() => setActiveBoardKey(board.key)}>
-                    <header className="mrs-frame-head">
-                      <div className="mrs-frame-title">
-                        <span className={board.variant ? "variant" : ""}>{board.variant ? L("Variante", "Variant") : L("Itinerario", "Itinerary")}</span>
-                        <h2>{board.label}</h2>
-                        <p>{board.data.whyYours || L("Un viaggio da costruire intorno a te.", "A trip to shape around you.")}</p>
-                      </div>
-                      <div className="mrs-frame-actions">
-                        <span className={`mrs-quality-badge ${tripQuality(board.data).label}`}><CircleGauge size={12} />{tripQuality(board.data).score}%</span>
-                        {dirty.has(board.key) && <span className="mrs-unsaved">{L("Bozza modificata", "Draft changed")}</span>}
-                        <button onClick={() => addDay(board.key)}><Plus size={14} />{L("Giorno", "Day")}</button>
-                        <button onClick={() => duplicateBoard(board)}><Copy size={14} />{L("Duplica", "Duplicate")}</button>
-                        <button className="save" onClick={() => saveBoard(board)} disabled={!dirty.has(board.key) || saving === board.key}><Save size={14} />{saving === board.key ? L("Salvo…", "Saving…") : board.variant ? L("Applica variante", "Apply variant") : L("Salva", "Save")}</button>
-                        <button className="icon" onClick={() => removeBoard(board.key)} aria-label={L("Rimuovi dal canvas", "Remove from canvas")}><X size={15} /></button>
-                      </div>
-                    </header>
-                    <div className={`mrs-days ${viewMode}`} style={{ minWidth: Math.max(viewMode === "flow" ? 680 : 760, (board.data.days?.length ?? 0) * (viewMode === "flow" ? 320 : 248)) }}>
-                      {(board.data.days ?? []).map((day, dayIndex) => (
-                        <DayColumn
-                          key={`${board.key}-${dayNumber(day, dayIndex)}`}
-                          board={board}
-                          day={day}
-                          dayIndex={dayIndex}
-                          selection={selection}
-                          locks={locks}
-                          onSelect={next => { setSelection(next); setActiveBoardKey(board.key); }}
-                          onAdd={() => addMoment(board.key, dayIndex)}
-                          onRemove={() => removeDay(board.key, dayIndex)}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-                {!boards.length && <div className="mrs-canvas-empty"><Route size={28} /><span>{L("Nuovo workspace", "New workspace")}</span><h2>{L("Inizia da una destinazione, non da un template.", "Start with a destination, not a template.")}</h2><p>{L("Crea un itinerario vuoto oppure apri un viaggio esistente. Poi usa giorni, tappe e Companion per dargli forma.", "Create a blank itinerary or open an existing trip. Then shape it with days, stops and Companion.")}</p><button onClick={() => setNewTripOpen(true)}><Plus size={15} />{L("Crea itinerario", "Create itinerary")}</button></div>}
-              </div>
-            </div>
-            <DragOverlay>{activeDrag ? <div className="mrs-drag-overlay"><GripVertical size={14} /><strong>{momentTitle(activeDrag)}</strong></div> : null}</DragOverlay>
-          </DndContext>
-
-          <form className="mrs-command" onSubmit={openCompanion}>
-            <Bot size={18} />
-            <div><label htmlFor="studio-command">{selected ? L(`Chiedi all'AI su “${momentTitle(selected.moment)}”`, `Ask AI about “${momentTitle(selected.moment)}”`) : L("Chiedi all'AI sul viaggio", "Ask AI about the trip")}</label><input ref={commandRef} id="studio-command" value={command} onChange={event => setCommand(event.target.value)} placeholder={L("Es. Rendilo più lento, conserva la cena e riduci gli spostamenti…", "E.g. Make it slower, keep dinner and reduce transfers…")} /></div>
-            <button type="submit" disabled={!command.trim()}><MessageCircle size={16} />{L("Apri Companion", "Open Companion")}</button>
-            {commandNote && <p>{commandNote}</p>}
-          </form>
-        </main>
-
-        {rightOpen && <aside className="mrs-inspector">
-          <div className="mrs-panel-title"><MapPin size={16} /><div><strong>{L("Inspector", "Inspector")}</strong><span>{selected ? L("Tappa selezionata", "Selected stop") : L("Nessuna selezione", "No selection")}</span></div></div>
-          {selected && selection ? (
-            <div className="mrs-inspector-body">
-              <div className="mrs-selection-path"><span>{selected.board.label}</span><ChevronRight size={12} /><span>{L("Giorno", "Day")} {dayNumber(selected.day, selection.dayIndex)}</span></div>
-              <label>{L("Tipo di tappa", "Stop type")}<select value={momentType(selected.moment)} onChange={event => updateSelected("type", event.target.value)}><option value="transport">{L("Spostamento", "Transfer")}</option><option value="accommodation">{L("Alloggio", "Stay")}</option><option value="food">{L("Cibo", "Food")}</option><option value="experience">{L("Esperienza", "Experience")}</option><option value="walk">{L("Esplorazione", "Explore")}</option><option value="view">{L("Panorama", "View")}</option><option value="rest">{L("Pausa", "Rest")}</option></select></label>
-              <label>{L("Titolo", "Title")}<input value={momentTitle(selected.moment)} onChange={event => updateSelected("title", event.target.value)} /></label>
-              <label>{L("Descrizione", "Description")}<textarea value={momentDescription(selected.moment)} onChange={event => updateSelected("description", event.target.value)} /></label>
-              <div className="mrs-fields-row">
-                <label>{L("Orario", "Time")}<input value={momentTime(selected.moment)} placeholder="09:30" onChange={event => updateSelected("time", event.target.value)} /></label>
-                <label>{L("Fascia", "Period")}<select value={momentBand(selected.moment)} onChange={event => updateSelected("band", event.target.value)}><option value="morning">{L("Mattina", "Morning")}</option><option value="lunch">{L("Pranzo", "Lunch")}</option><option value="afternoon">{L("Pomeriggio", "Afternoon")}</option><option value="evening">{L("Sera", "Evening")}</option><option value="night">{L("Notte", "Night")}</option></select></label>
-              </div>
-              <label>{L("Luogo", "Place")}<input value={momentLocation(selected.moment)} onChange={event => updateSelected("location", event.target.value)} /></label>
-              <label>{L("Perché è nel viaggio", "Why it is in the trip")}<textarea value={momentWhy(selected.moment)} onChange={event => updateSelected("why", event.target.value)} /></label>
-              <div className="mrs-inspector-actions">
-                <button onClick={toggleLock}>{locks.has(lockKey(selection, selected.moment)) ? <><Unlock size={14} />{L("Sblocca", "Unlock")}</> : <><Lock size={14} />{L("Blocca", "Lock")}</>}</button>
-                <button onClick={duplicateSelected}><Copy size={14} />{L("Duplica", "Duplicate")}</button>
-                <button className="danger" onClick={removeSelected}><Trash2 size={14} />{L("Elimina", "Delete")}</button>
-              </div>
-              <button className="mrs-open-trip" onClick={() => setLocation(`/itinerary/${selected.board.sourceId}`)}>{L("Apri itinerario completo", "Open full itinerary")}<ChevronRight size={15} /></button>
-            </div>
-          ) : (
-            <div className="mrs-inspector-empty"><CircleGauge size={25} /><h3>{activeBoard ? L("Regia del viaggio", "Trip direction") : L("Nessuna selezione", "No selection")}</h3>{activeBoard && activeQuality ? <><div className="mrs-quality-large"><strong>{activeQuality.score}</strong><span>%</span></div><p>{L("Completezza del piano: valuta chiarezza, luogo, orario e motivazione di ogni tappa.", "Plan completeness: it checks clarity, place, time and rationale for every stop.")}</p><div className="mrs-quality-track"><span style={{ width: `${activeQuality.score}%` }} /></div><button onClick={() => setLibraryTab("tools")}>{L("Apri strumenti", "Open tools")}<ChevronRight size={14} /></button></> : <p>{L("Apri o crea un viaggio per iniziare a costruirlo.", "Open or create a trip to start shaping it.")}</p>}</div>
-          )}
-        </aside>}
+  return <div className="mr-studio">
+    <header className="mr-studio-topbar">
+      <div className="mr-studio-brand">
+        <button onClick={() => setLocation("/my-account")} aria-label={L("Torna ai viaggi", "Back to trips")}><ArrowLeft size={17} /></button>
+        <FlowNavLogo size={25} />
+        <span>mindroute</span>
       </div>
+      <div className="mr-trip-switcher">
+        <span>{L("I miei viaggi", "My trips")}</span><i>/</i>
+        <select value={trip?.id ?? ""} onChange={event => { const next = library.find(item => item.id === Number(event.target.value)); if (next) openTrip(next); }}>
+          {library.map(item => <option key={item.id} value={item.id}>{item.destinationName ?? L("Viaggio", "Trip")}</option>)}
+        </select><ChevronDown size={14} />
+      </div>
+      <div className="mr-top-actions">
+        <button className="share"><Link2 size={14} />{L("Condividi", "Share")}</button>
+        <button onClick={undo} disabled={!history.length} aria-label={L("Annulla", "Undo")}><Undo2 size={16} /></button>
+        <button className="mr-save-state" onClick={() => saveCanvas()} disabled={!trip || saving}><Save size={15} /><span>{saving ? L("Salvo", "Saving") : dirty ? L("Salva", "Save") : L("Salvato", "Saved")}</span></button>
+        <LangDropdown variant="dark" />
+      </div>
+    </header>
 
-      {newTripOpen && <div className="mrs-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setNewTripOpen(false); }}>
-        <form className="mrs-new-modal" onSubmit={createBlankTrip}>
-          <button type="button" className="mrs-modal-close" onClick={() => setNewTripOpen(false)} aria-label={L("Chiudi", "Close")}><X size={17} /></button>
-          <span className="mrs-modal-kicker">{L("Nuovo documento", "New document")}</span>
-          <h2>{L("Da dove vuoi iniziare?", "Where do you want to begin?")}</h2>
-          <p>{L("Creiamo solo la struttura. Destinazione, giorni e date restano completamente modificabili attraverso lo Studio e il Companion.", "We only create the structure. Destination, days and dates remain fully editable through Studio and Companion.")}</p>
-          <label>{L("Destinazione", "Destination")}<input autoFocus value={newTrip.destinationName} onChange={event => setNewTrip(previous => ({ ...previous, destinationName: event.target.value }))} placeholder={L("Es. Kyoto, Giappone", "E.g. Kyoto, Japan")} required minLength={2} /></label>
-          <div className="mrs-modal-row">
-            <label>{L("Paese o area", "Country or area")}<input value={newTrip.country} onChange={event => setNewTrip(previous => ({ ...previous, country: event.target.value }))} placeholder={L("Opzionale", "Optional")} /></label>
-            <label>{L("Numero di giorni", "Number of days")}<input type="number" min={1} max={30} value={newTrip.dayCount} onChange={event => setNewTrip(previous => ({ ...previous, dayCount: Math.max(1, Math.min(30, Number(event.target.value) || 1)) }))} /></label>
-          </div>
-          <label>{L("Data di partenza", "Start date")}<input type="date" value={newTrip.startDate} onChange={event => setNewTrip(previous => ({ ...previous, startDate: event.target.value }))} /></label>
-          <div className="mrs-modal-note"><Sparkles size={15} /><span>{L("Nessun costo AI: il documento nasce vuoto. Sarai tu a decidere quando coinvolgere il Companion.", "No AI cost: the document starts blank. You decide when to involve Companion.")}</span></div>
-          <button className="mrs-modal-submit" type="submit" disabled={creatingTrip || newTrip.destinationName.trim().length < 2}>{creatingTrip ? L("Creo il workspace…", "Creating workspace…") : L("Crea e apri nel canvas", "Create and open in canvas")}<ChevronRight size={16} /></button>
-        </form>
+    <main className="mr-studio-main">
+      <nav className="mr-object-toolbar" aria-label={L("Strumenti canvas", "Canvas tools")}>
+        <button className="new" onClick={() => setNewTripOpen(true)}><Plus size={19} /><span>{L("Nuovo", "New")}</span></button>
+        <div className="sep" />
+        <button className={tool === "select" ? "on" : ""} onClick={() => setTool("select")} title={L("Seleziona", "Select")}><MousePointer2 size={18} /></button>
+        <button className={tool === "hand" ? "on" : ""} onClick={() => setTool("hand")} title={L("Sposta canvas", "Pan canvas")}><Hand size={18} /></button>
+        <div className="sep" />
+        <button onClick={() => addObject("note")} title={L("Nota", "Note")}><StickyNote size={18} /></button>
+        <button onClick={() => addObject("question")} title={L("Domanda", "Question")}><MessageCircleQuestion size={18} /></button>
+        <button onClick={() => addObject("photo")} title={L("Immagine", "Image")}><FileImage size={18} /></button>
+        <button onClick={() => addObject("booking")} title={L("Prenotazione", "Booking")}><Plane size={18} /></button>
+        <button onClick={() => addObject("maybe")} title="Maybe"><Layers3 size={18} /></button>
+        <div className="sep" />
+        <button onClick={groupSelection} disabled={selectedIds.length < 2} title={L("Raggruppa", "Group")}><BoxSelect size={18} /></button>
+        <button onClick={deleteSelection} disabled={!selectedIds.length} title={L("Elimina", "Delete")}><Trash2 size={18} /></button>
+      </nav>
+
+      {lens === "canvas" && <div className="mr-flow-wrap">
+        {trip ? <ReactFlow<TravelNode, Edge>
+          nodes={nodes} edges={edges} nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange} onEdgesChange={changes => { onEdgesChangeBase(changes); if (changes.some(change => change.type !== "select")) setDirty(true); }} onConnect={onConnect}
+          onInit={instance => { flowRef.current = instance; setTimeout(() => instance.fitView({ padding: .13 }), 80); }}
+          onMove={(_, viewport) => setZoom(viewport.zoom)}
+          onSelectionChange={({ nodes: selected }) => { const ids = selected.map(node => node.id); setSelectedIds(ids); if (ids.length === 1) setInspectorOpen(true); }}
+          onNodeDoubleClick={(_, node) => { setSelectedIds([node.id]); setInspectorOpen(true); }}
+          onPaneClick={() => { setSelectedIds([]); setInspectorOpen(false); }}
+          panOnDrag={tool === "hand" ? true : [1, 2]}
+          nodesDraggable={tool === "select"} selectionOnDrag={tool === "select"}
+          selectionMode={SelectionMode.Partial} multiSelectionKeyCode={["Shift", "Meta", "Control"]}
+          deleteKeyCode={null} minZoom={.18} maxZoom={2.2} fitView
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={24} size={1} color="rgba(30,28,25,.10)" />
+          <MiniMap pannable zoomable className="mr-minimap" nodeColor={node => node.data.kind === "day" ? "#E86B52" : node.data.kind === "map" ? "#7FA6B3" : "#C7B9A8"} />
+        </ReactFlow> : <div className="mr-empty-desk"><Compass size={34} /><span>Travel canvas</span><h1>{L("La tua scrivania è vuota.", "Your desk is empty.")}</h1><p>{L("Inizia da una destinazione o da un desiderio. Il resto può arrivare dopo.", "Start from a destination or a desire. The rest can come later.")}</p><button onClick={() => setNewTripOpen(true)}><Plus size={15} />{L("Crea il primo viaggio", "Create first trip")}</button></div>}
       </div>}
-    </div>
-  );
+
+      {lens === "map" && trip && <section className="mr-lens-view mr-map-lens">
+        <div className="mr-lens-intro"><span>Spatial lens</span><h1>{trip.destinationName}</h1><p>{L("Gli stessi luoghi del canvas, ricomposti nello spazio.", "The same canvas places, rearranged in space.")}</p></div>
+        <div className="mr-map-stage"><svg viewBox="0 0 1000 600" preserveAspectRatio="none"><path d="M90 430 C250 120 510 520 890 160" />{points.slice(0, 8).map((point, index) => <g key={`${point.lat}-${point.lng}-${index}`}><circle cx={110 + index * (760 / Math.max(points.length - 1, 1))} cy={index % 2 ? 345 : 230} r="13" /><text x={110 + index * (760 / Math.max(points.length - 1, 1))} y={(index % 2 ? 345 : 230) - 24}>{point.label}</text></g>)}</svg>{!points.length && <div className="mr-lens-empty"><MapPin size={25} /><p>{L("Aggiungi luoghi alle tappe: appariranno qui automaticamente.", "Add places to stops and they will appear here automatically.")}</p></div>}</div>
+      </section>}
+
+      {lens === "timeline" && trip && <section className="mr-lens-view mr-timeline-lens">
+        <div className="mr-lens-intro"><span>Rhythm lens</span><h1>{L("Il ritmo del viaggio", "The trip rhythm")}</h1><p>{L("Giorni, intensità e pause senza perdere il quadro generale.", "Days, intensity and pauses without losing the big picture.")}</p></div>
+        <div className="mr-timeline-grid">{(trip.days ?? []).map((day, dayIndex) => <article key={dayIndex}><header><span>{String(dayNumber(day, dayIndex)).padStart(2, "0")}</span><div><h3>{dayTitle(day, dayIndex)}</h3><p>{momentsOf(day).length} tappe</p></div></header><div>{momentsOf(day).map((moment, index) => <div key={index}><time>{momentTime(moment)}</time><strong>{momentTitle(moment)}</strong><small>{momentPlace(moment)}</small></div>)}</div></article>)}</div>
+      </section>}
+
+      {lens === "budget" && trip && <section className="mr-lens-view mr-budget-lens">
+        <div className="mr-lens-intro"><span>Money lens</span><h1>{L("Dove va il budget", "Where the budget goes")}</h1><p>{L("Ogni costo appartiene allo stesso viaggio, non a un foglio separato.", "Every cost belongs to the same trip, not a separate spreadsheet.")}</p></div>
+        <div className="mr-budget-dashboard"><div className="mr-big-ring" style={{ background: `conic-gradient(#E86B52 0 42%,#7FA6B3 42% 70%,#D3A65A 70% 88%,#B8A7C9 88% 100%)` }}><span><strong>€{budget.total}</strong><small>di €{budget.target}</small></span></div><div className="mr-budget-bars">{budget.categories.map(item => <div key={item.label}><p><span>{item.label}</span><strong>€{item.value}</strong></p><i><b style={{ width: `${Math.max(8, item.value / Math.max(budget.total, 1) * 100)}%`, background: item.color }} /></i></div>)}</div></div>
+      </section>}
+
+      {lens === "mood" && trip && <section className="mr-lens-view mr-mood-lens">
+        <div className="mr-lens-intro"><span>Experience lens</span><h1>{L("Che viaggio stai costruendo?", "What kind of trip are you building?")}</h1><p>{trip.whyYours || L("Atmosfere, immagini e intenzioni che danno carattere al piano.", "Atmospheres, images and intentions that give the plan its character.")}</p></div>
+        <div className="mr-mood-wall">{images.map((image, index) => <figure key={`${image}-${index}`}><img src={image} alt="" /><figcaption>{index === 0 ? trip.destinationName : ["ritmo", "luce", "quartieri", "sapori", "spazio"][index % 5]}</figcaption></figure>)}{!images.length && <div className="mr-lens-empty"><ImageIcon size={26} /><p>{L("Aggiungi fotografie dal Canvas per definire l'atmosfera.", "Add photos from Canvas to shape the atmosphere.")}</p></div>}</div>
+      </section>}
+
+      <nav className="mr-lens-dock">
+        {([
+          ["canvas", <BoxSelect size={15} />, "Canvas"], ["map", <MapIcon size={15} />, L("Mappa", "Map")],
+          ["timeline", <CalendarDays size={15} />, "Timeline"], ["budget", <CircleDollarSign size={15} />, "Budget"],
+          ["mood", <Sparkles size={15} />, "Mood"],
+        ] as [Lens, ReactNode, string][]).map(([id, icon, label]) => <button key={id} className={lens === id ? "on" : ""} onClick={() => setLens(id)}>{icon}<span>{label}</span></button>)}
+      </nav>
+
+      {lens === "canvas" && <div className="mr-zoom-tools"><button onClick={() => flowRef.current?.zoomOut()}><ZoomOut size={14} /></button><span>{Math.round(zoom * 100)}%</span><button onClick={() => flowRef.current?.zoomIn()}><ZoomIn size={14} /></button><button onClick={() => flowRef.current?.fitView({ padding: .13, duration: 350 })}><Maximize2 size={14} /></button></div>}
+
+      {selectedIds.length > 0 && lens === "canvas" && <div className="mr-selection-bar"><span>{selectedIds.length} {selectedIds.length === 1 ? L("oggetto", "object") : L("oggetti", "objects")}</span><button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Chiedi all'AI", "Ask AI")}</button>{selectedIds.length > 1 && <button onClick={groupSelection}><BoxSelect size={14} />{L("Raggruppa", "Group")}</button>}<button onClick={deleteSelection}><Trash2 size={14} /></button></div>}
+
+      {inspectorOpen && selectedNode && !aiOpen && <aside className="mr-inspector-float">
+        <header><div><span>{selectedNode.data.kind}</span><strong>{L("Inspector", "Inspector")}</strong></div><button onClick={() => setInspectorOpen(false)}><PanelRightClose size={16} /></button></header>
+        <label>{L("Titolo", "Title")}<input value={selectedNode.data.title ?? ""} onChange={event => updateSelectedData({ title: event.target.value })} /></label>
+        {!["day", "trip", "budget", "map", "mood"].includes(selectedNode.data.kind) && <label>{L("Contenuto", "Content")}<textarea value={selectedNode.data.text ?? ""} onChange={event => updateSelectedData({ text: event.target.value })} /></label>}
+        {selectedNode.data.kind === "photo" && <label>URL immagine<input value={selectedNode.data.image ?? ""} onChange={event => updateSelectedData({ image: event.target.value })} placeholder="https://…" /></label>}
+        {selectedNode.data.kind === "maybe" && <label>{L("Idee, una per riga", "Ideas, one per line")}<textarea value={(selectedNode.data.items ?? []).join("\n")} onChange={event => updateSelectedData({ items: event.target.value.split("\n").filter(Boolean) })} /></label>}
+        {!['trip','day','map','budget','mood','group'].includes(selectedNode.data.kind) && <div className="mr-status-control"><span>{L("Stato", "Status")}</span>{(["idea", "chosen", "booked"] as ObjectStatus[]).map(status => <button key={status} className={selectedNode.data.status === status ? "on" : ""} onClick={() => updateSelectedData({ status })}>{status === "idea" ? "Idea" : status === "chosen" ? L("Scelto", "Chosen") : L("Prenotato", "Booked")}</button>)}</div>}
+        {selectedNode.data.kind === "day" && <button className="mr-open-itinerary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Apri il giorno nell'itinerario", "Open day in itinerary")}<ChevronRight size={14} /></button>}
+        <button className="mr-inspector-ai" onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Lavora su questo con MindRoute", "Work on this with MindRoute")}</button>
+      </aside>}
+
+      {aiOpen && <section className="mr-canvas-ai">
+        <header><div><Sparkles size={15} /><span><strong>MindRoute AI</strong><small>{selectedIds.length ? `${selectedIds.length} oggetti nel contesto` : L("Intero viaggio", "Whole trip")}</small></span></div><button onClick={() => setAiOpen(false)}><X size={16} /></button></header>
+        {aiReply && <div className="mr-ai-reply"><p>{aiReply}</p>{aiActions.map(action => <span key={action}><Check size={12} />{action}</span>)}{!aiStreaming && <button onClick={applyAiProposal}>{L("Applica modifiche", "Apply changes")}</button>}</div>}
+        <form onSubmit={event => { event.preventDefault(); runCanvasAi(); }}><textarea autoFocus value={aiInput} onChange={event => setAiInput(event.target.value)} placeholder={L("Es. Rendimi questa parte più rilassata…", "E.g. Make this part more relaxed…")} /><button disabled={!aiInput.trim() || aiStreaming}>{aiStreaming ? <span className="mr-ai-pulse" /> : <MoveRight size={16} />}</button></form>
+        {!aiReply && <div className="mr-ai-quick"><button onClick={() => setAiInput(L("Rendi questa parte più rilassata", "Make this part more relaxed"))}>{L("Più rilassato", "More relaxed")}</button><button onClick={() => setAiInput(L("Mostrami due scenari alternativi", "Show me two alternative scenarios"))}>{L("Due scenari", "Two scenarios")}</button><button onClick={() => setAiInput(L("Ha veramente senso? Valuta tempo, costi e ritmo", "Does this really make sense? Assess time, cost and pace"))}>{L("Ha senso?", "Does it make sense?")}</button></div>}
+      </section>}
+
+      {newTripOpen && <div className="mr-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setNewTripOpen(false); }}><form className="mr-new-trip-modal" onSubmit={createBlankTrip}>
+        <button type="button" className="close" onClick={() => setNewTripOpen(false)}><X size={17} /></button><span>New travel desk</span><h2>{L("Da dove vuoi iniziare?", "Where do you want to begin?")}</h2><p>{L("Bastano una destinazione o un desiderio. La struttura può emergere dopo, insieme.", "A destination or a desire is enough. The structure can emerge later, together.")}</p>
+        <label>{L("Destinazione o desiderio", "Destination or desire")}<input autoFocus required minLength={2} value={newTrip.destinationName} onChange={event => setNewTrip(previous => ({ ...previous, destinationName: event.target.value }))} placeholder={L("Tokyo, oppure: voglio sentirmi lontano", "Tokyo, or: I want to feel far away")} /></label>
+        <div><label>{L("Paese o area", "Country or area")}<input value={newTrip.country} onChange={event => setNewTrip(previous => ({ ...previous, country: event.target.value }))} placeholder={L("Opzionale", "Optional")} /></label><label>{L("Giorni", "Days")}<input type="number" min={1} max={30} value={newTrip.dayCount} onChange={event => setNewTrip(previous => ({ ...previous, dayCount: Math.max(1, Math.min(30, Number(event.target.value) || 1)) }))} /></label></div>
+        <label>{L("Partenza", "Start date")}<input type="date" value={newTrip.startDate} onChange={event => setNewTrip(previous => ({ ...previous, startDate: event.target.value }))} /></label>
+        <button type="submit" disabled={creatingTrip}>{creatingTrip ? L("Creo la scrivania…", "Creating desk…") : L("Apri la scrivania", "Open desk")}<ChevronRight size={15} /></button>
+      </form></div>}
+    </main>
+  </div>;
+}
+
+export default function TravelStudio() {
+  return <ReactFlowProvider><TravelStudioInner /></ReactFlowProvider>;
 }
