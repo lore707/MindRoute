@@ -51,6 +51,8 @@ type TravelNodeData = Record<string, any> & {
 };
 type TravelNode = Node<TravelNodeData>;
 type CanvasDoc = { version: number; nodes: TravelNode[]; edges: Edge[]; updatedAt?: string };
+const STUDIO_GUIDE_KEY = "mindroute-studio-guide-seen-v1";
+const SEMANTIC_KINDS: ObjectKind[] = ["trip", "day", "budget", "map", "mood"];
 
 const clone = <T,>(value: T): T => {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -278,6 +280,7 @@ function TravelStudioInner() {
   const [aiActions, setAiActions] = useState<string[]>([]);
   const [aiStreaming, setAiStreaming] = useState(false);
   const [newTripOpen, setNewTripOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(() => typeof window !== "undefined" && localStorage.getItem(STUDIO_GUIDE_KEY) !== "1");
   const [creatingTrip, setCreatingTrip] = useState(false);
   const [newTrip, setNewTrip] = useState({ destinationName: "", country: "", dayCount: 7, startDate: "" });
   const flowRef = useRef<ReactFlowInstance<TravelNode, Edge> | null>(null);
@@ -417,6 +420,13 @@ function TravelStudioInner() {
 
   const selectedNodes = useMemo(() => nodes.filter(node => selectedIds.includes(node.id)), [nodes, selectedIds]);
   const selectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
+  const selectedNodeIsSemantic = selectedNode ? SEMANTIC_KINDS.includes(selectedNode.data.kind) : false;
+
+  const closeGuide = () => {
+    localStorage.setItem(STUDIO_GUIDE_KEY, "1");
+    setGuideOpen(false);
+    requestAnimationFrame(() => flowRef.current?.fitView({ padding: .13, duration: 350 }));
+  };
 
   const createProposalNode = (text: string, actions: string[]) => {
     const selected = selectedNodes;
@@ -502,6 +512,7 @@ function TravelStudioInner() {
         </select><ChevronDown size={14} />
       </div>
       <div className="mr-top-actions">
+        {trip && <button className="mr-classic-mode" onClick={() => setLocation(`/itinerary/${trip.id}`)}><Compass size={14} /><span>{L("Itinerario", "Itinerary")}</span></button>}
         <button className="share"><Link2 size={14} />{L("Condividi", "Share")}</button>
         <button onClick={undo} disabled={!history.length} aria-label={L("Annulla", "Undo")}><Undo2 size={16} /></button>
         <button className="mr-save-state" onClick={() => saveCanvas()} disabled={!trip || saving}><Save size={15} /><span>{saving ? L("Salvo", "Saving") : dirty ? L("Salva", "Save") : L("Salvato", "Saved")}</span></button>
@@ -513,17 +524,18 @@ function TravelStudioInner() {
       <nav className="mr-object-toolbar" aria-label={L("Strumenti canvas", "Canvas tools")}>
         <button className="new" onClick={() => setNewTripOpen(true)}><Plus size={19} /><span>{L("Nuovo", "New")}</span></button>
         <div className="sep" />
-        <button className={tool === "select" ? "on" : ""} onClick={() => setTool("select")} title={L("Seleziona", "Select")}><MousePointer2 size={18} /></button>
-        <button className={tool === "hand" ? "on" : ""} onClick={() => setTool("hand")} title={L("Sposta canvas", "Pan canvas")}><Hand size={18} /></button>
+        <button data-label={L("Seleziona", "Select")} className={tool === "select" ? "on" : ""} onClick={() => setTool("select")} title={L("Seleziona", "Select")}><MousePointer2 size={18} /></button>
+        <button data-label={L("Sposta", "Pan")} className={tool === "hand" ? "on" : ""} onClick={() => setTool("hand")} title={L("Sposta canvas", "Pan canvas")}><Hand size={18} /></button>
         <div className="sep" />
-        <button onClick={() => addObject("note")} title={L("Nota", "Note")}><StickyNote size={18} /></button>
-        <button onClick={() => addObject("question")} title={L("Domanda", "Question")}><MessageCircleQuestion size={18} /></button>
-        <button onClick={() => addObject("photo")} title={L("Immagine", "Image")}><FileImage size={18} /></button>
-        <button onClick={() => addObject("booking")} title={L("Prenotazione", "Booking")}><Plane size={18} /></button>
-        <button onClick={() => addObject("maybe")} title="Maybe"><Layers3 size={18} /></button>
+        <button data-label={L("Nota", "Note")} onClick={() => addObject("note")} title={L("Nota", "Note")}><StickyNote size={18} /></button>
+        <button data-label={L("Domanda", "Question")} onClick={() => addObject("question")} title={L("Domanda", "Question")}><MessageCircleQuestion size={18} /></button>
+        <button data-label={L("Immagine", "Image")} onClick={() => addObject("photo")} title={L("Immagine", "Image")}><FileImage size={18} /></button>
+        <button data-label={L("Prenotazione", "Booking")} onClick={() => addObject("booking")} title={L("Prenotazione", "Booking")}><Plane size={18} /></button>
+        <button data-label="Maybe" onClick={() => addObject("maybe")} title="Maybe"><Layers3 size={18} /></button>
         <div className="sep" />
-        <button onClick={groupSelection} disabled={selectedIds.length < 2} title={L("Raggruppa", "Group")}><BoxSelect size={18} /></button>
-        <button onClick={deleteSelection} disabled={!selectedIds.length} title={L("Elimina", "Delete")}><Trash2 size={18} /></button>
+        <button data-label={L("Raggruppa", "Group")} onClick={groupSelection} disabled={selectedIds.length < 2} title={L("Raggruppa", "Group")}><BoxSelect size={18} /></button>
+        <button data-label={L("Elimina", "Delete")} onClick={deleteSelection} disabled={!selectedIds.length} title={L("Elimina", "Delete")}><Trash2 size={18} /></button>
+        <button data-label={L("Come funziona", "How it works")} onClick={() => setGuideOpen(true)} title={L("Come funziona", "How it works")}><CircleHelp size={18} /></button>
       </nav>
 
       {lens === "canvas" && <div className="mr-flow-wrap">
@@ -545,6 +557,10 @@ function TravelStudioInner() {
           <MiniMap pannable zoomable className="mr-minimap" nodeColor={node => node.data.kind === "day" ? "#E86B52" : node.data.kind === "map" ? "#7FA6B3" : "#C7B9A8"} />
         </ReactFlow> : <div className="mr-empty-desk"><Compass size={34} /><span>Travel canvas</span><h1>{L("La tua scrivania è vuota.", "Your desk is empty.")}</h1><p>{L("Inizia da una destinazione o da un desiderio. Il resto può arrivare dopo.", "Start from a destination or a desire. The rest can come later.")}</p><button onClick={() => setNewTripOpen(true)}><Plus size={15} />{L("Crea il primo viaggio", "Create first trip")}</button></div>}
       </div>}
+
+      {lens === "canvas" && trip && !selectedIds.length && !aiOpen && !guideOpen && <div className="mr-canvas-hint"><MousePointer2 size={14} /><span>{L("Trascina per organizzare. Seleziona una card per modificarla o lavorarci con l'AI.", "Drag to organise. Select a card to edit it or work on it with AI.")}</span></div>}
+
+      {lens === "canvas" && trip && !selectedIds.length && !aiOpen && !inspectorOpen && !guideOpen && <button className="mr-ai-launcher" onClick={() => setAiOpen(true)}><Sparkles size={17} /><span><strong>{L("Chiedi a MindRoute", "Ask MindRoute")}</strong><small>{L("Lavora su tutto il viaggio", "Work on the whole trip")}</small></span><ChevronRight size={15} /></button>}
 
       {lens === "map" && trip && <section className="mr-lens-view mr-map-lens">
         <div className="mr-lens-intro"><span>Spatial lens</span><h1>{trip.destinationName}</h1><p>{L("Gli stessi luoghi del canvas, ricomposti nello spazio.", "The same canvas places, rearranged in space.")}</p></div>
@@ -579,15 +595,28 @@ function TravelStudioInner() {
       {selectedIds.length > 0 && lens === "canvas" && <div className="mr-selection-bar"><span>{selectedIds.length} {selectedIds.length === 1 ? L("oggetto", "object") : L("oggetti", "objects")}</span><button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Chiedi all'AI", "Ask AI")}</button>{selectedIds.length > 1 && <button onClick={groupSelection}><BoxSelect size={14} />{L("Raggruppa", "Group")}</button>}<button onClick={deleteSelection}><Trash2 size={14} /></button></div>}
 
       {inspectorOpen && selectedNode && !aiOpen && <aside className="mr-inspector-float">
-        <header><div><span>{selectedNode.data.kind}</span><strong>{L("Inspector", "Inspector")}</strong></div><button onClick={() => setInspectorOpen(false)}><PanelRightClose size={16} /></button></header>
-        <label>{L("Titolo", "Title")}<input value={selectedNode.data.title ?? ""} onChange={event => updateSelectedData({ title: event.target.value })} /></label>
-        {!["day", "trip", "budget", "map", "mood"].includes(selectedNode.data.kind) && <label>{L("Contenuto", "Content")}<textarea value={selectedNode.data.text ?? ""} onChange={event => updateSelectedData({ text: event.target.value })} /></label>}
+        <header><div><span>{selectedNode.data.kind}</span><strong>{selectedNodeIsSemantic ? L("Dal tuo itinerario", "From your itinerary") : L("Modifica elemento", "Edit object")}</strong></div><button onClick={() => setInspectorOpen(false)}><PanelRightClose size={16} /></button></header>
+        {selectedNodeIsSemantic ? <div className="mr-semantic-notice"><strong>{selectedNode.data.title}</strong><p>{L("Questa card riflette il viaggio completo. Puoi spostarla liberamente; per cambiarne il contenuto usa MindRoute AI oppure apri l'itinerario.", "This card reflects the full trip. Move it freely; to change its content use MindRoute AI or open the itinerary.")}</p></div> : <label>{L("Titolo", "Title")}<input value={selectedNode.data.title ?? ""} onChange={event => updateSelectedData({ title: event.target.value })} /></label>}
+        {!selectedNodeIsSemantic && <label>{L("Contenuto", "Content")}<textarea value={selectedNode.data.text ?? ""} onChange={event => updateSelectedData({ text: event.target.value })} /></label>}
         {selectedNode.data.kind === "photo" && <label>URL immagine<input value={selectedNode.data.image ?? ""} onChange={event => updateSelectedData({ image: event.target.value })} placeholder="https://…" /></label>}
         {selectedNode.data.kind === "maybe" && <label>{L("Idee, una per riga", "Ideas, one per line")}<textarea value={(selectedNode.data.items ?? []).join("\n")} onChange={event => updateSelectedData({ items: event.target.value.split("\n").filter(Boolean) })} /></label>}
         {!['trip','day','map','budget','mood','group'].includes(selectedNode.data.kind) && <div className="mr-status-control"><span>{L("Stato", "Status")}</span>{(["idea", "chosen", "booked"] as ObjectStatus[]).map(status => <button key={status} className={selectedNode.data.status === status ? "on" : ""} onClick={() => updateSelectedData({ status })}>{status === "idea" ? "Idea" : status === "chosen" ? L("Scelto", "Chosen") : L("Prenotato", "Booked")}</button>)}</div>}
-        {selectedNode.data.kind === "day" && <button className="mr-open-itinerary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Apri il giorno nell'itinerario", "Open day in itinerary")}<ChevronRight size={14} /></button>}
+        {selectedNodeIsSemantic && <button className="mr-open-itinerary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Apri l'itinerario completo", "Open full itinerary")}<ChevronRight size={14} /></button>}
         <button className="mr-inspector-ai" onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Lavora su questo con MindRoute", "Work on this with MindRoute")}</button>
       </aside>}
+
+      {guideOpen && trip && <div className="mr-guide-backdrop"><section className="mr-studio-guide">
+        <button className="close" onClick={closeGuide}><X size={17} /></button>
+        <span>{L("Studio visuale", "Visual Studio")}</span>
+        <h2>{L("Lo stesso viaggio, un modo più libero di pensarlo.", "The same trip, a freer way to think about it.")}</h2>
+        <p>{L("L'itinerario resta il documento completo. Qui organizzi idee, alternative e decisioni nello spazio, poi chiedi all'AI di intervenire sugli elementi che selezioni.", "The itinerary remains the complete document. Here you organise ideas, alternatives and decisions spatially, then ask AI to act on what you select.")}</p>
+        <div className="mr-guide-steps">
+          <article><b>01</b><MousePointer2 size={18} /><strong>{L("Organizza", "Organise")}</strong><small>{L("Trascina le card e collegale per dare forma al viaggio.", "Drag and connect cards to shape the trip.")}</small></article>
+          <article><b>02</b><BoxSelect size={18} /><strong>{L("Seleziona", "Select")}</strong><small>{L("Una o più card diventano il contesto preciso della richiesta.", "One or more cards become the exact context for your request.")}</small></article>
+          <article><b>03</b><Sparkles size={18} /><strong>{L("Chiedi all'AI", "Ask AI")}</strong><small>{L("Confronta scenari o applica modifiche al vero itinerario.", "Compare scenarios or apply changes to the real itinerary.")}</small></article>
+        </div>
+        <footer><button className="secondary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Vai all'itinerario classico", "Open classic itinerary")}</button><button className="primary" onClick={closeGuide}>{L("Inizia a esplorare", "Start exploring")}<ChevronRight size={15} /></button></footer>
+      </section></div>}
 
       {aiOpen && <section className="mr-canvas-ai">
         <header><div><Sparkles size={15} /><span><strong>MindRoute AI</strong><small>{selectedIds.length ? `${selectedIds.length} oggetti nel contesto` : L("Intero viaggio", "Whole trip")}</small></span></div><button onClick={() => setAiOpen(false)}><X size={16} /></button></header>
