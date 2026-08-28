@@ -59,6 +59,13 @@ export class DatabaseStorage implements IStorage {
     await db.update(itineraries).set({ tripMeta }).where(eq(itineraries.id, id));
   }
 
+  async updateItineraryStudioContent(id: number, patch: {
+    destinationName?: string; country?: string | null; heroImageUrl?: string | null;
+    whyYours?: string; tripSummary?: string; days?: any[]; tripMeta?: any;
+  }): Promise<void> {
+    await db.update(itineraries).set(patch as any).where(eq(itineraries.id, id));
+  }
+
   async updateItineraryRefine(id: number, patch: {
     days: any[]; tripMeta: any; profilingInput: any;
     whyYours?: string; tripSummary?: string; closingMessage?: string; heroImageUrl?: string;

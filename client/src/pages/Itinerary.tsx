@@ -12,7 +12,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, ChevronDown, Share2, Printer,
   ExternalLink, Plane, Hotel, Ticket, Utensils, Star, MapPin,
-  Flame, Calendar, Wind, Pencil, GripVertical, RotateCcw, Save, X
+  Flame, Calendar, Wind, Pencil, GripVertical, RotateCcw, Save, Sparkles, X
 } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
@@ -1351,11 +1351,11 @@ export default function Itinerary() {
               </div>
               <div className="flex items-center gap-2">
                 {!editMode ? (
-                  <button onClick={enterEditMode}
+                  <button onClick={() => setLocation(`/studio/${id}`)}
                     style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.12)", cursor: "pointer", transition: "all 0.2s" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.10)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}>
-                    <Pencil style={{ width: 13, height: 13 }} /> Modifica
+                    <Sparkles style={{ width: 13, height: 13 }} /> Lavora in Studio AI
                   </button>
                 ) : (
                   <>

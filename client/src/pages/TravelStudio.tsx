@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { useLocation } from "wouter";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useLocation, useRoute } from "wouter";
 import {
-  ReactFlow, ReactFlowProvider, Background, Handle, MiniMap, Position,
+  ReactFlow, ReactFlowProvider, Background, MiniMap,
   SelectionMode, addEdge, useEdgesState, useNodesState,
-  type Connection, type Edge, type Node, type NodeChange, type NodeProps,
+  type Edge, type Node, type NodeChange, type NodeProps,
   type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  ArrowLeft, BoxSelect, CalendarDays, Check, ChevronDown, ChevronRight,
+  ArrowLeft, BoxSelect, Check, ChevronDown, ChevronRight,
   CircleDollarSign, CircleHelp, Compass, FileImage, Hand,
-  Image as ImageIcon, Layers3, Link2, Map as MapIcon, MapPin, Maximize2,
+  Image as ImageIcon, Instagram, Layers3, Link2, Map as MapIcon, MapPin, Maximize2,
   MessageCircleQuestion, MousePointer2, MoveRight, PanelRightClose,
   Plane, Plus, Save, Sparkles, StickyNote, Trash2, Undo2, X,
   ZoomIn, ZoomOut,
@@ -35,11 +35,11 @@ type RawTrip = {
   tripMeta?: Record<string, any>;
 };
 
-type Lens = "canvas" | "map" | "timeline" | "budget" | "mood";
+type Lens = "canvas" | "map" | "budget";
 type Tool = "select" | "hand";
 type ObjectKind =
   | "trip" | "day" | "note" | "question" | "photo" | "booking"
-  | "budget" | "map" | "mood" | "maybe" | "proposal" | "group";
+  | "budget" | "map" | "mood" | "maybe" | "social" | "proposal" | "group";
 type ObjectStatus = "idea" | "chosen" | "booked";
 type TravelNodeData = Record<string, any> & {
   kind: ObjectKind;
@@ -52,7 +52,6 @@ type TravelNodeData = Record<string, any> & {
 type TravelNode = Node<TravelNodeData>;
 type CanvasDoc = { version: number; nodes: TravelNode[]; edges: Edge[]; updatedAt?: string };
 const STUDIO_GUIDE_KEY = "mindroute-studio-guide-seen-v1";
-const SEMANTIC_KINDS: ObjectKind[] = ["trip", "day", "budget", "map", "mood"];
 
 const clone = <T,>(value: T): T => {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -66,6 +65,7 @@ const momentTitle = (moment: any) => moment?.title_operational ?? moment?.title_
 const momentTime = (moment: any) => moment?.start_time ?? moment?.startTime ?? moment?.time_label ?? moment?.band ?? "";
 const momentPlace = (moment: any) => moment?.location_name ?? moment?.locationName ?? "";
 const momentImage = (moment: any) => moment?.image_url ?? moment?.imageUrl ?? "";
+const momentDescription = (moment: any) => moment?.description_short ?? moment?.description ?? moment?.desc ?? "";
 const momentCost = (moment: any) => Number(moment?.cost_max ?? moment?.cost_min ?? moment?.cost ?? 0) || 0;
 
 function budgetData(trip: RawTrip) {
@@ -79,7 +79,8 @@ function budgetData(trip: RawTrip) {
     { label: "In loco", value: Math.round(onsite), color: "#73A39A" },
     { label: "Da definire", value: Math.max(0, Math.round(fallback - bookable - onsite)), color: "#D3A65A" },
   ].filter(item => item.value > 0);
-  return { total, target: Math.ceil(Math.max(total * 1.12, total + 200) / 100) * 100, categories };
+  const suggestedTarget = Math.ceil(Math.max(total * 1.12, total + 200) / 100) * 100;
+  return { total, target: Number(trip.tripMeta?.studio_budget_target ?? suggestedTarget) || suggestedTarget, categories };
 }
 
 function mapPoints(trip: RawTrip) {
@@ -104,6 +105,27 @@ function ambientImages(trip: RawTrip) {
   return Array.from(new Set(images)).slice(0, 6);
 }
 
+function inspirationMeta(url: string) {
+  const clean = url.trim();
+  const instagram = clean.match(/instagram\.com\/(p|reel|tv)\/([^/?#]+)/i);
+  if (instagram) return { provider: "Instagram", embedUrl: `https://www.instagram.com/${instagram[1]}/${instagram[2]}/embed/captioned/` };
+  const tiktok = clean.match(/tiktok\.com\/.*\/video\/(\d+)/i);
+  if (tiktok) return { provider: "TikTok", embedUrl: `https://www.tiktok.com/player/v1/${tiktok[1]}?description=1` };
+  try { return { provider: new URL(clean).hostname.replace(/^www\./, ""), embedUrl: "" }; }
+  catch { return { provider: "Web", embedUrl: "" }; }
+}
+
+function updateMomentFields(moment: any, patch: Record<string, any>) {
+  return {
+    ...moment,
+    ...(patch.title !== undefined ? { title: patch.title, title_operational: patch.title } : {}),
+    ...(patch.time !== undefined ? { start_time: patch.time, t: patch.time } : {}),
+    ...(patch.place !== undefined ? { location_name: patch.place } : {}),
+    ...(patch.image !== undefined ? { image_url: patch.image } : {}),
+    ...(patch.description !== undefined ? { description_short: patch.description, desc: patch.description } : {}),
+  };
+}
+
 function dayNodeData(trip: RawTrip, day: any, index: number): TravelNodeData {
   const moments = momentsOf(day);
   return {
@@ -113,9 +135,10 @@ function dayNodeData(trip: RawTrip, day: any, index: number): TravelNodeData {
     dayIndex: index,
     subtitle: day?.subtitle ?? day?.energy_note ?? "",
     image: day?.hero_image_url || moments.map(momentImage).find(Boolean) || trip.heroImageUrl || "",
-    moments: moments.slice(0, 6).map(moment => ({
+    moments: moments.map(moment => ({
+      ...moment,
       title: momentTitle(moment), time: momentTime(moment), place: momentPlace(moment),
-      image: momentImage(moment), type: moment?.type ?? "experience",
+      image: momentImage(moment), description: momentDescription(moment), type: moment?.type ?? "experience",
     })),
     status: "chosen",
   };
@@ -132,7 +155,7 @@ function buildDefaultCanvas(trip: RawTrip, it: boolean): CanvasDoc {
       id: "trip-overview", type: "travel", position: { x: 420, y: 40 },
       data: {
         kind: "trip", title: trip.destinationName ?? (it ? "Nuovo viaggio" : "New trip"),
-        text: trip.whyYours ?? trip.tripSummary ?? "", image: trip.heroImageUrl ?? images[0] ?? "",
+        text: trip.whyYours ?? "", summary: trip.tripSummary ?? "", image: trip.heroImageUrl ?? images[0] ?? "",
         days: days.length, country: trip.country ?? "", status: "chosen",
       },
     },
@@ -193,9 +216,7 @@ function NodeShell({ data, selected, children }: { data: TravelNodeData; selecte
   const status = data.status ?? "idea";
   return (
     <article className={`mr-cnode kind-${data.kind} status-${status}${selected ? " is-selected" : ""}`}>
-      <Handle type="target" position={Position.Left} className="mr-node-handle" />
       {children}
-      <Handle type="source" position={Position.Right} className="mr-node-handle" />
     </article>
   );
 }
@@ -213,7 +234,7 @@ function TravelCanvasNode({ data, selected }: NodeProps<TravelNode>) {
       <span>{data.eyebrow}</span><h3>{data.title}</h3><p>{data.subtitle}</p>
     </header>
     <div className="mr-day-moments">
-      {(data.moments ?? []).map((moment: any, index: number) => <div key={`${moment.title}-${index}`} className="mr-day-moment">
+      {(data.moments ?? []).slice(0, 8).map((moment: any, index: number) => <div key={`${moment.title}-${index}`} className="mr-day-moment">
         {moment.image && <span style={{ backgroundImage: `url(${moment.image})` }} />}
         <div><small>{moment.time || moment.type}</small><strong>{moment.title}</strong>{moment.place && <em>{moment.place}</em>}</div>
       </div>)}
@@ -234,6 +255,11 @@ function TravelCanvasNode({ data, selected }: NodeProps<TravelNode>) {
   if (data.kind === "map") return <NodeShell data={data} selected={selected}><small>Mappa del viaggio</small><div className="mr-mini-map"><svg viewBox="0 0 320 170" preserveAspectRatio="none"><path d="M28 124 C92 42 152 154 286 48" /><circle cx="72" cy="91" r="7" /><circle cx="160" cy="102" r="7" /><circle cx="259" cy="61" r="7" /></svg><span>{data.points?.length || 0} luoghi collegati</span></div></NodeShell>;
   if (data.kind === "mood") return <NodeShell data={data} selected={selected}><small>Moodboard</small><h3>{data.title}</h3><div className="mr-mood-grid">{(data.images ?? []).slice(0, 6).map((image: string, index: number) => <span key={`${image}-${index}`} style={{ backgroundImage: `url(${image})` }} />)}{!data.images?.length && <p>Aggiungi immagini che raccontano l'atmosfera.</p>}</div></NodeShell>;
   if (data.kind === "maybe") return <NodeShell data={data} selected={selected}><small>Maybe · idee / alternative</small><h3>{data.title}</h3><p>{data.text}</p><div className="mr-maybe-list">{(data.items ?? []).map((item: string, index: number) => <span key={`${item}-${index}`}>{item}</span>)}<span className="add">+ Aggiungi idea</span></div></NodeShell>;
+  if (data.kind === "social") return <NodeShell data={data} selected={selected}>
+    <div className="mr-social-source"><Instagram size={15} /><span>{data.provider || "Web"}</span><i>{data.assignedDay != null ? `Giorno ${Number(data.assignedDay) + 1}` : "Inbox"}</i></div>
+    {data.embedUrl ? <iframe src={data.embedUrl} title={data.title} loading="lazy" allow="encrypted-media; picture-in-picture" /> : <div className="mr-social-placeholder"><Link2 size={20} /><span>Incolla il link nell'editor</span></div>}
+    <h3>{data.title}</h3><p>{data.text}</p>
+  </NodeShell>;
   if (data.kind === "proposal") return <NodeShell data={data} selected={selected}><Sparkles size={18} /><small>Proposta AI</small><h3>{data.title}</h3><p>{data.text}</p>{data.actions?.length ? <ul>{data.actions.map((action: string) => <li key={action}>{action}</li>)}</ul> : null}</NodeShell>;
   return <NodeShell data={data} selected={selected}><small>{data.kind}</small><h3>{data.title}</h3><p>{data.text}</p></NodeShell>;
 }
@@ -257,6 +283,8 @@ function parseStreamingEvent(buffer: string, onEvent: (event: string, data: any)
 
 function TravelStudioInner() {
   const [, setLocation] = useLocation();
+  const [, routeParams] = useRoute("/studio/:id");
+  const preferredTripId = routeParams?.id ? Number(routeParams.id) : undefined;
   const { lang } = useI18n();
   const { toast } = useToast();
   const it = lang === "it";
@@ -279,10 +307,7 @@ function TravelStudioInner() {
   const [aiReply, setAiReply] = useState("");
   const [aiActions, setAiActions] = useState<string[]>([]);
   const [aiStreaming, setAiStreaming] = useState(false);
-  const [newTripOpen, setNewTripOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(() => typeof window !== "undefined" && localStorage.getItem(STUDIO_GUIDE_KEY) !== "1");
-  const [creatingTrip, setCreatingTrip] = useState(false);
-  const [newTrip, setNewTrip] = useState({ destinationName: "", country: "", dayCount: 7, startDate: "" });
   const flowRef = useRef<ReactFlowInstance<TravelNode, Edge> | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -304,14 +329,15 @@ function TravelStudioInner() {
 
   useEffect(() => {
     let cancelled = false;
-    loadLibrary().catch(() => {}).finally(() => { if (!cancelled) setLoading(false); });
+    loadLibrary(preferredTripId).catch(() => {}).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [loadLibrary]);
+  }, [loadLibrary, preferredTripId]);
 
   const openTrip = (next: RawTrip) => {
     if (dirty && !window.confirm(L("Aprire un altro viaggio senza salvare le modifiche?", "Open another trip without saving changes?"))) return;
     const doc = mergeCanvasWithTrip(next, next.tripMeta?.studio_canvas ?? null, it);
     setTrip(next); setNodes(doc.nodes); setEdges(doc.edges); setDirty(false); setSelectedIds([]);
+    setLocation(`/studio/${next.id}`);
     requestAnimationFrame(() => flowRef.current?.fitView({ padding: .13, duration: 450 }));
   };
 
@@ -321,12 +347,6 @@ function TravelStudioInner() {
     onNodesChangeBase(changes);
     if (changes.some(change => change.type !== "select" && change.type !== "dimensions")) markChanged();
   }, [markChanged, onNodesChangeBase]);
-  const onConnect = useCallback((connection: Connection) => {
-    pushHistory();
-    setEdges(previous => addEdge({ ...connection, type: "smoothstep", style: { stroke: "#2B2927", strokeWidth: 1.5 } }, previous));
-    markChanged();
-  }, [markChanged, pushHistory, setEdges]);
-
   const canvasPayload = useCallback((): CanvasDoc => ({
     version: 1,
     nodes: nodes.map(node => ({
@@ -341,12 +361,23 @@ function TravelStudioInner() {
     if (!trip || saving) return;
     setSaving(true);
     try {
-      const response = await fetch(`/api/studio/itineraries/${trip.id}/canvas`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ canvas: canvasPayload() }),
+      const payload = canvasPayload();
+      const response = await fetch(`/api/studio/itineraries/${trip.id}/content`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destinationName: trip.destinationName, country: trip.country ?? null,
+          heroImageUrl: trip.heroImageUrl ?? null, whyYours: trip.whyYours ?? "",
+          tripSummary: trip.tripSummary ?? "", days: trip.days ?? [],
+          tripMetaPatch: {
+            total_cost_bookable: trip.tripMeta?.total_cost_bookable ?? 0,
+            total_cost_onsite_estimate: trip.tripMeta?.total_cost_onsite_estimate ?? 0,
+            studio_budget_target: trip.tripMeta?.studio_budget_target,
+            studio_canvas: { ...payload, updatedAt: new Date().toISOString() },
+          },
+        }),
       });
       if (!response.ok) throw new Error("save");
       setDirty(false);
-      const payload = canvasPayload();
       setTrip(previous => previous ? { ...previous, tripMeta: { ...(previous.tripMeta ?? {}), studio_canvas: payload } } : previous);
       setLibrary(previous => previous.map(item => item.id === trip.id ? { ...item, tripMeta: { ...(item.tripMeta ?? {}), studio_canvas: payload } } : item));
       if (!quiet) toast({ title: L("Scrivania salvata", "Desk saved") });
@@ -378,6 +409,7 @@ function TravelStudioInner() {
       photo: { kind, title: L("Ispirazione", "Inspiration"), text: L("Perché questa immagine ti attrae?", "Why does this image pull you in?"), image: "", status: "idea" },
       booking: { kind, title: L("Nuova prenotazione", "New booking"), text: L("Aggiungi orario, riferimento e dettagli.", "Add time, reference and details."), bookingType: "Volo / hotel / attività", status: "idea" },
       maybe: { kind, title: "Maybe", text: L("Un'alternativa da valutare.", "An alternative to consider."), items: [], status: "idea" },
+      social: { kind, title: L("Nuova ispirazione", "New inspiration"), text: L("Annota perché vale la pena ricordarla.", "Note why it is worth remembering."), url: "", provider: "Web", embedUrl: "", assignedDay: null, status: "idea" },
     };
     setNodes(previous => [...previous, { id, type: "travel", position: { x: center.x - 120, y: center.y - 80 }, data: defaults[kind] }]);
     setSelectedIds([id]); setInspectorOpen(true); setDirty(true);
@@ -415,12 +447,73 @@ function TravelStudioInner() {
 
   const updateSelectedData = (patch: Partial<TravelNodeData>) => {
     setNodes(previous => previous.map(node => selectedIds.includes(node.id) ? { ...node, data: { ...node.data, ...patch } } : node));
+    if (selectedNode?.data.kind === "trip") {
+      setTrip(previous => previous ? {
+        ...previous,
+        ...(patch.title !== undefined ? { destinationName: patch.title } : {}),
+        ...(patch.country !== undefined ? { country: patch.country } : {}),
+        ...(patch.image !== undefined ? { heroImageUrl: patch.image } : {}),
+        ...(patch.text !== undefined ? { whyYours: patch.text } : {}),
+        ...(patch.summary !== undefined ? { tripSummary: patch.summary } : {}),
+      } : previous);
+    }
+    if (selectedNode?.data.kind === "day" && selectedNode.data.dayIndex != null) {
+      const index = Number(selectedNode.data.dayIndex);
+      const nextData = { ...selectedNode.data, ...patch };
+      setTrip(previous => previous ? { ...previous, days: (previous.days ?? []).map((day, dayIndex) => dayIndex === index ? {
+        ...day,
+        title: nextData.title,
+        title_evocative: nextData.title,
+        subtitle: nextData.subtitle ?? "",
+        hero_image_url: nextData.image ?? "",
+        ...(Array.isArray(day?.moments) ? { moments: nextData.moments ?? [] } : { editedMoments: nextData.moments ?? [] }),
+      } : day) } : previous);
+    }
+    if (selectedNode?.data.kind === "budget") {
+      setTrip(previous => previous ? { ...previous, tripMeta: {
+        ...(previous.tripMeta ?? {}),
+        ...(patch.bookable !== undefined ? { total_cost_bookable: Number(patch.bookable) || 0 } : {}),
+        ...(patch.onsite !== undefined ? { total_cost_onsite_estimate: Number(patch.onsite) || 0 } : {}),
+        ...(patch.target !== undefined ? { studio_budget_target: Number(patch.target) || 0 } : {}),
+      } } : previous);
+    }
+    if (selectedNode?.data.kind === "mood" && patch.images !== undefined) {
+      setTrip(previous => previous ? { ...previous, tripMeta: { ...(previous.tripMeta ?? {}), ambient: patch.images } } : previous);
+    }
     setDirty(true);
   };
 
   const selectedNodes = useMemo(() => nodes.filter(node => selectedIds.includes(node.id)), [nodes, selectedIds]);
   const selectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
-  const selectedNodeIsSemantic = selectedNode ? SEMANTIC_KINDS.includes(selectedNode.data.kind) : false;
+  const updateDayMoment = (momentIndex: number, patch: Record<string, any>) => {
+    if (!selectedNode || selectedNode.data.kind !== "day") return;
+    const moments = (selectedNode.data.moments ?? []).map((moment: any, index: number) => index === momentIndex ? updateMomentFields(moment, patch) : moment);
+    updateSelectedData({ moments });
+  };
+
+  const addDayMoment = () => {
+    if (!selectedNode || selectedNode.data.kind !== "day") return;
+    const moments = [...(selectedNode.data.moments ?? []), updateMomentFields({ id: `manual-${Date.now()}`, type: "experience" }, { title: L("Nuova tappa", "New stop"), time: "", place: "" })];
+    updateSelectedData({ moments });
+  };
+
+  const insertInspirationIntoDay = () => {
+    if (!selectedNode || selectedNode.data.kind !== "social" || selectedNode.data.assignedDay == null || !trip) return;
+    const dayIndex = Number(selectedNode.data.assignedDay);
+    const day = trip.days?.[dayIndex];
+    if (!day) return;
+    const moment = updateMomentFields({
+      id: `inspiration-${Date.now()}`, type: "experience", description_short: selectedNode.data.text ?? "",
+      cta_url: selectedNode.data.url ?? "",
+    }, { title: selectedNode.data.title, time: "Pomeriggio", place: "" });
+    const updatedMoments = [...momentsOf(day), moment];
+    setTrip(previous => previous ? { ...previous, days: (previous.days ?? []).map((item, index) => index === dayIndex ? {
+      ...item, ...(Array.isArray(item?.moments) ? { moments: updatedMoments } : { editedMoments: updatedMoments }),
+    } : item) } : previous);
+    setNodes(previous => previous.map(node => node.id === `day-${dayIndex}` ? { ...node, data: { ...node.data, moments: updatedMoments, status: "chosen" } } : node));
+    updateSelectedData({ status: "chosen" });
+    toast({ title: L(`Ispirazione inserita nel giorno ${dayIndex + 1}`, `Inspiration added to day ${dayIndex + 1}`) });
+  };
 
   const closeGuide = () => {
     localStorage.setItem(STUDIO_GUIDE_KEY, "1");
@@ -444,7 +537,11 @@ function TravelStudioInner() {
     if (!request) return;
     const isApplying = message?.startsWith("Confermo") || message?.startsWith("I confirm");
     if (isApplying && dirty) await saveCanvas();
-    const context = selectedNodes.map(node => `${node.data.kind}: ${node.data.title}${node.data.text ? ` (${node.data.text})` : ""}`).join("; ");
+    const context = selectedNodes.map(node => JSON.stringify({
+      kind: node.data.kind, title: node.data.title, note: node.data.text,
+      url: node.data.url, assignedDay: node.data.assignedDay,
+      dayIndex: node.data.dayIndex, moments: node.data.kind === "day" ? node.data.moments : undefined,
+    })).join("; ");
     const prompt = `${L("Oggetti selezionati sul canvas", "Selected canvas objects")}: ${context || L("intero viaggio", "whole trip")}. ${L("Richiesta", "Request")}: ${request}. ${L("Rispondi in modo breve con una proposta concreta. Non applicare cambiamenti finché non confermo.", "Reply briefly with a concrete proposal. Do not apply changes until I confirm.")}`;
     setAiInput(""); setAiReply(""); setAiActions([]); setAiStreaming(true); setAiOpen(true);
     let full = "";
@@ -475,26 +572,8 @@ function TravelStudioInner() {
 
   const applyAiProposal = () => runCanvasAi(L("Confermo. Applica ora le modifiche proposte agli oggetti selezionati.", "I confirm. Apply the proposed changes to the selected objects now."));
 
-  const createBlankTrip = async (event: FormEvent) => {
-    event.preventDefault();
-    if (newTrip.destinationName.trim().length < 2) return;
-    setCreatingTrip(true);
-    try {
-      const response = await fetch("/api/studio/itineraries", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...newTrip, lang }),
-      });
-      if (!response.ok) throw new Error("create");
-      const created = await response.json() as RawTrip;
-      await loadLibrary(created.id);
-      setNewTripOpen(false); setNewTrip({ destinationName: "", country: "", dayCount: 7, startDate: "" });
-      toast({ title: L("Nuova scrivania creata", "New desk created") });
-    } catch { toast({ title: L("Creazione non riuscita", "Creation failed"), variant: "destructive" }); }
-    finally { setCreatingTrip(false); }
-  };
-
   const points = trip ? mapPoints(trip) : [];
   const budget = trip ? budgetData(trip) : { total: 0, target: 0, categories: [] };
-  const images = trip ? ambientImages(trip) : [];
 
   if (loading) return <div className="mr-studio-loading"><span /><p>{L("Apro la tua scrivania di viaggio…", "Opening your travel desk…")}</p></div>;
 
@@ -522,7 +601,7 @@ function TravelStudioInner() {
 
     <main className="mr-studio-main">
       <nav className="mr-object-toolbar" aria-label={L("Strumenti canvas", "Canvas tools")}>
-        <button className="new" onClick={() => setNewTripOpen(true)}><Plus size={19} /><span>{L("Nuovo", "New")}</span></button>
+        <button className="new" onClick={() => setLocation("/start")}><Plus size={19} /><span>{L("Nuovo", "New")}</span></button>
         <div className="sep" />
         <button data-label={L("Seleziona", "Select")} className={tool === "select" ? "on" : ""} onClick={() => setTool("select")} title={L("Seleziona", "Select")}><MousePointer2 size={18} /></button>
         <button data-label={L("Sposta", "Pan")} className={tool === "hand" ? "on" : ""} onClick={() => setTool("hand")} title={L("Sposta canvas", "Pan canvas")}><Hand size={18} /></button>
@@ -531,6 +610,7 @@ function TravelStudioInner() {
         <button data-label={L("Domanda", "Question")} onClick={() => addObject("question")} title={L("Domanda", "Question")}><MessageCircleQuestion size={18} /></button>
         <button data-label={L("Immagine", "Image")} onClick={() => addObject("photo")} title={L("Immagine", "Image")}><FileImage size={18} /></button>
         <button data-label={L("Prenotazione", "Booking")} onClick={() => addObject("booking")} title={L("Prenotazione", "Booking")}><Plane size={18} /></button>
+        <button data-label={L("Ispirazione", "Inspiration")} onClick={() => addObject("social")} title={L("Salva link Instagram, TikTok o web", "Save an Instagram, TikTok or web link")}><Instagram size={18} /></button>
         <button data-label="Maybe" onClick={() => addObject("maybe")} title="Maybe"><Layers3 size={18} /></button>
         <div className="sep" />
         <button data-label={L("Raggruppa", "Group")} onClick={groupSelection} disabled={selectedIds.length < 2} title={L("Raggruppa", "Group")}><BoxSelect size={18} /></button>
@@ -541,7 +621,7 @@ function TravelStudioInner() {
       {lens === "canvas" && <div className="mr-flow-wrap">
         {trip ? <ReactFlow<TravelNode, Edge>
           nodes={nodes} edges={edges} nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange} onEdgesChange={changes => { onEdgesChangeBase(changes); if (changes.some(change => change.type !== "select")) setDirty(true); }} onConnect={onConnect}
+          onNodesChange={onNodesChange} onEdgesChange={changes => { onEdgesChangeBase(changes); if (changes.some(change => change.type !== "select")) setDirty(true); }}
           onInit={instance => { flowRef.current = instance; setTimeout(() => instance.fitView({ padding: .13 }), 80); }}
           onMove={(_, viewport) => setZoom(viewport.zoom)}
           onSelectionChange={({ nodes: selected }) => { const ids = selected.map(node => node.id); setSelectedIds(ids); if (ids.length === 1) setInspectorOpen(true); }}
@@ -555,7 +635,7 @@ function TravelStudioInner() {
         >
           <Background gap={24} size={1} color="rgba(30,28,25,.10)" />
           <MiniMap pannable zoomable className="mr-minimap" nodeColor={node => node.data.kind === "day" ? "#E86B52" : node.data.kind === "map" ? "#7FA6B3" : "#C7B9A8"} />
-        </ReactFlow> : <div className="mr-empty-desk"><Compass size={34} /><span>Travel canvas</span><h1>{L("La tua scrivania è vuota.", "Your desk is empty.")}</h1><p>{L("Inizia da una destinazione o da un desiderio. Il resto può arrivare dopo.", "Start from a destination or a desire. The rest can come later.")}</p><button onClick={() => setNewTripOpen(true)}><Plus size={15} />{L("Crea il primo viaggio", "Create first trip")}</button></div>}
+        </ReactFlow> : <div className="mr-empty-desk"><Compass size={34} /><span>MindRoute Studio</span><h1>{L("Prima crea il tuo viaggio.", "Create your trip first.")}</h1><p>{L("Il quiz genera un solo itinerario completo. Da qui potrai poi lavorarci manualmente o con l'AI.", "The quiz generates one complete itinerary. You can then work on it here manually or with AI.")}</p><button onClick={() => setLocation("/start")}><Plus size={15} />{L("Crea il primo viaggio", "Create first trip")}</button></div>}
       </div>}
 
       {lens === "canvas" && trip && !selectedIds.length && !aiOpen && !guideOpen && <div className="mr-canvas-hint"><MousePointer2 size={14} /><span>{L("Trascina per organizzare. Seleziona una card per modificarla o lavorarci con l'AI.", "Drag to organise. Select a card to edit it or work on it with AI.")}</span></div>}
@@ -567,26 +647,15 @@ function TravelStudioInner() {
         <div className="mr-map-stage"><svg viewBox="0 0 1000 600" preserveAspectRatio="none"><path d="M90 430 C250 120 510 520 890 160" />{points.slice(0, 8).map((point, index) => <g key={`${point.lat}-${point.lng}-${index}`}><circle cx={110 + index * (760 / Math.max(points.length - 1, 1))} cy={index % 2 ? 345 : 230} r="13" /><text x={110 + index * (760 / Math.max(points.length - 1, 1))} y={(index % 2 ? 345 : 230) - 24}>{point.label}</text></g>)}</svg>{!points.length && <div className="mr-lens-empty"><MapPin size={25} /><p>{L("Aggiungi luoghi alle tappe: appariranno qui automaticamente.", "Add places to stops and they will appear here automatically.")}</p></div>}</div>
       </section>}
 
-      {lens === "timeline" && trip && <section className="mr-lens-view mr-timeline-lens">
-        <div className="mr-lens-intro"><span>Rhythm lens</span><h1>{L("Il ritmo del viaggio", "The trip rhythm")}</h1><p>{L("Giorni, intensità e pause senza perdere il quadro generale.", "Days, intensity and pauses without losing the big picture.")}</p></div>
-        <div className="mr-timeline-grid">{(trip.days ?? []).map((day, dayIndex) => <article key={dayIndex}><header><span>{String(dayNumber(day, dayIndex)).padStart(2, "0")}</span><div><h3>{dayTitle(day, dayIndex)}</h3><p>{momentsOf(day).length} tappe</p></div></header><div>{momentsOf(day).map((moment, index) => <div key={index}><time>{momentTime(moment)}</time><strong>{momentTitle(moment)}</strong><small>{momentPlace(moment)}</small></div>)}</div></article>)}</div>
-      </section>}
-
       {lens === "budget" && trip && <section className="mr-lens-view mr-budget-lens">
         <div className="mr-lens-intro"><span>Money lens</span><h1>{L("Dove va il budget", "Where the budget goes")}</h1><p>{L("Ogni costo appartiene allo stesso viaggio, non a un foglio separato.", "Every cost belongs to the same trip, not a separate spreadsheet.")}</p></div>
         <div className="mr-budget-dashboard"><div className="mr-big-ring" style={{ background: `conic-gradient(#E86B52 0 42%,#7FA6B3 42% 70%,#D3A65A 70% 88%,#B8A7C9 88% 100%)` }}><span><strong>€{budget.total}</strong><small>di €{budget.target}</small></span></div><div className="mr-budget-bars">{budget.categories.map(item => <div key={item.label}><p><span>{item.label}</span><strong>€{item.value}</strong></p><i><b style={{ width: `${Math.max(8, item.value / Math.max(budget.total, 1) * 100)}%`, background: item.color }} /></i></div>)}</div></div>
       </section>}
 
-      {lens === "mood" && trip && <section className="mr-lens-view mr-mood-lens">
-        <div className="mr-lens-intro"><span>Experience lens</span><h1>{L("Che viaggio stai costruendo?", "What kind of trip are you building?")}</h1><p>{trip.whyYours || L("Atmosfere, immagini e intenzioni che danno carattere al piano.", "Atmospheres, images and intentions that give the plan its character.")}</p></div>
-        <div className="mr-mood-wall">{images.map((image, index) => <figure key={`${image}-${index}`}><img src={image} alt="" /><figcaption>{index === 0 ? trip.destinationName : ["ritmo", "luce", "quartieri", "sapori", "spazio"][index % 5]}</figcaption></figure>)}{!images.length && <div className="mr-lens-empty"><ImageIcon size={26} /><p>{L("Aggiungi fotografie dal Canvas per definire l'atmosfera.", "Add photos from Canvas to shape the atmosphere.")}</p></div>}</div>
-      </section>}
-
       <nav className="mr-lens-dock">
         {([
-          ["canvas", <BoxSelect size={15} />, "Canvas"], ["map", <MapIcon size={15} />, L("Mappa", "Map")],
-          ["timeline", <CalendarDays size={15} />, "Timeline"], ["budget", <CircleDollarSign size={15} />, "Budget"],
-          ["mood", <Sparkles size={15} />, "Mood"],
+          ["canvas", <BoxSelect size={15} />, L("Piano", "Plan")], ["map", <MapIcon size={15} />, L("Mappa", "Map")],
+          ["budget", <CircleDollarSign size={15} />, "Budget"],
         ] as [Lens, ReactNode, string][]).map(([id, icon, label]) => <button key={id} className={lens === id ? "on" : ""} onClick={() => setLens(id)}>{icon}<span>{label}</span></button>)}
       </nav>
 
@@ -595,13 +664,43 @@ function TravelStudioInner() {
       {selectedIds.length > 0 && lens === "canvas" && <div className="mr-selection-bar"><span>{selectedIds.length} {selectedIds.length === 1 ? L("oggetto", "object") : L("oggetti", "objects")}</span><button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Chiedi all'AI", "Ask AI")}</button>{selectedIds.length > 1 && <button onClick={groupSelection}><BoxSelect size={14} />{L("Raggruppa", "Group")}</button>}<button onClick={deleteSelection}><Trash2 size={14} /></button></div>}
 
       {inspectorOpen && selectedNode && !aiOpen && <aside className="mr-inspector-float">
-        <header><div><span>{selectedNode.data.kind}</span><strong>{selectedNodeIsSemantic ? L("Dal tuo itinerario", "From your itinerary") : L("Modifica elemento", "Edit object")}</strong></div><button onClick={() => setInspectorOpen(false)}><PanelRightClose size={16} /></button></header>
-        {selectedNodeIsSemantic ? <div className="mr-semantic-notice"><strong>{selectedNode.data.title}</strong><p>{L("Questa card riflette il viaggio completo. Puoi spostarla liberamente; per cambiarne il contenuto usa MindRoute AI oppure apri l'itinerario.", "This card reflects the full trip. Move it freely; to change its content use MindRoute AI or open the itinerary.")}</p></div> : <label>{L("Titolo", "Title")}<input value={selectedNode.data.title ?? ""} onChange={event => updateSelectedData({ title: event.target.value })} /></label>}
-        {!selectedNodeIsSemantic && <label>{L("Contenuto", "Content")}<textarea value={selectedNode.data.text ?? ""} onChange={event => updateSelectedData({ text: event.target.value })} /></label>}
+        <header><div><span>{selectedNode.data.kind}</span><strong>{L("Modifica il viaggio", "Edit the trip")}</strong></div><button onClick={() => setInspectorOpen(false)}><PanelRightClose size={16} /></button></header>
+        {!['map','budget','mood','group'].includes(selectedNode.data.kind) && <label>{L("Titolo", "Title")}<input value={selectedNode.data.title ?? ""} onChange={event => updateSelectedData({ title: event.target.value })} /></label>}
+        {selectedNode.data.kind === "trip" && <>
+          <label>{L("Paese o area", "Country or area")}<input value={selectedNode.data.country ?? ""} onChange={event => updateSelectedData({ country: event.target.value })} /></label>
+          <label>{L("Perché questo viaggio", "Why this trip")}<textarea value={selectedNode.data.text ?? ""} onChange={event => updateSelectedData({ text: event.target.value })} /></label>
+          <label>{L("Descrizione generale", "Trip overview")}<textarea value={selectedNode.data.summary ?? ""} onChange={event => updateSelectedData({ summary: event.target.value })} /></label>
+          <label>{L("Immagine di copertina", "Cover image")}<input value={selectedNode.data.image ?? ""} onChange={event => updateSelectedData({ image: event.target.value })} placeholder="https://…" /></label>
+        </>}
+        {selectedNode.data.kind === "day" && <>
+          <label>{L("Sottotitolo del giorno", "Day subtitle")}<input value={selectedNode.data.subtitle ?? ""} onChange={event => updateSelectedData({ subtitle: event.target.value })} /></label>
+          <label>{L("Immagine del giorno", "Day image")}<input value={selectedNode.data.image ?? ""} onChange={event => updateSelectedData({ image: event.target.value })} placeholder="https://…" /></label>
+          <div className="mr-moment-editor"><span>{L("Tappe operative", "Operational stops")}</span>{(selectedNode.data.moments ?? []).map((moment: any, index: number) => <article key={moment.id ?? index}>
+            <div><input value={moment.time ?? ""} onChange={event => updateDayMoment(index, { time: event.target.value })} placeholder={L("Orario", "Time")} /><button onClick={() => updateSelectedData({ moments: selectedNode.data.moments.filter((_: any, i: number) => i !== index) })}><Trash2 size={12} /></button></div>
+            <input value={moment.title ?? ""} onChange={event => updateDayMoment(index, { title: event.target.value })} placeholder={L("Cosa fare", "What to do")} />
+            <input value={moment.place ?? ""} onChange={event => updateDayMoment(index, { place: event.target.value })} placeholder={L("Luogo preciso", "Exact place")} />
+            <textarea value={moment.description ?? ""} onChange={event => updateDayMoment(index, { description: event.target.value })} placeholder={L("Spiega cosa è, perché vale la pena e come viverla", "Explain what it is, why it matters and how to experience it")} />
+          </article>)}<button onClick={addDayMoment}><Plus size={13} />{L("Aggiungi tappa", "Add stop")}</button></div>
+        </>}
+        {!['trip','day','map','budget','mood','group','social'].includes(selectedNode.data.kind) && <label>{L("Contenuto", "Content")}<textarea value={selectedNode.data.text ?? ""} onChange={event => updateSelectedData({ text: event.target.value })} /></label>}
         {selectedNode.data.kind === "photo" && <label>URL immagine<input value={selectedNode.data.image ?? ""} onChange={event => updateSelectedData({ image: event.target.value })} placeholder="https://…" /></label>}
         {selectedNode.data.kind === "maybe" && <label>{L("Idee, una per riga", "Ideas, one per line")}<textarea value={(selectedNode.data.items ?? []).join("\n")} onChange={event => updateSelectedData({ items: event.target.value.split("\n").filter(Boolean) })} /></label>}
+        {selectedNode.data.kind === "social" && <>
+          <div className="mr-semantic-notice"><strong>{L("Inbox Ispirazioni", "Inspiration Inbox")}</strong><p>{L("Salva un link pubblico. Il contenuto resta alla fonte; qui conservi il perché e decidi se trasformarlo in una tappa.", "Save a public link. Content remains at its source; here you keep the reason and decide whether to turn it into a stop.")}</p></div>
+          <label>URL Instagram, TikTok o web<input value={selectedNode.data.url ?? ""} onChange={event => { const url = event.target.value; updateSelectedData({ url, ...inspirationMeta(url) }); }} placeholder="https://…" /></label>
+          <label>{L("Perché ti interessa", "Why it matters")}<textarea value={selectedNode.data.text ?? ""} onChange={event => updateSelectedData({ text: event.target.value })} /></label>
+          <label>{L("Inserisci nel giorno", "Add to day")}<select value={selectedNode.data.assignedDay ?? ""} onChange={event => updateSelectedData({ assignedDay: event.target.value === "" ? null : Number(event.target.value) })}><option value="">{L("Resta nell'Inbox", "Keep in Inbox")}</option>{(trip?.days ?? []).map((day, index) => <option key={index} value={index}>{L("Giorno", "Day")} {index + 1} · {dayTitle(day, index)}</option>)}</select></label>
+          <button className="mr-open-itinerary" disabled={selectedNode.data.assignedDay == null} onClick={insertInspirationIntoDay}>{L("Trasforma in tappa", "Turn into a stop")}<ChevronRight size={14} /></button>
+        </>}
+        {selectedNode.data.kind === "budget" && <div className="mr-budget-editor">
+          <label>{L("Costi prenotabili", "Bookable costs")}<input type="number" min="0" value={trip?.tripMeta?.total_cost_bookable ?? 0} onChange={event => updateSelectedData({ bookable: Number(event.target.value) })} /></label>
+          <label>{L("Costi in loco", "On-site costs")}<input type="number" min="0" value={trip?.tripMeta?.total_cost_onsite_estimate ?? 0} onChange={event => updateSelectedData({ onsite: Number(event.target.value) })} /></label>
+          <label>{L("Tetto desiderato", "Target budget")}<input type="number" min="0" value={trip?.tripMeta?.studio_budget_target ?? budget.target} onChange={event => updateSelectedData({ target: Number(event.target.value) })} /></label>
+        </div>}
+        {selectedNode.data.kind === "mood" && <label>{L("Immagini, una URL per riga", "Images, one URL per line")}<textarea value={(selectedNode.data.images ?? []).join("\n")} onChange={event => updateSelectedData({ images: event.target.value.split("\n").map(value => value.trim()).filter(Boolean) })} /></label>}
+        {selectedNode.data.kind === "map" && <div className="mr-semantic-notice"><strong>{selectedNode.data.points?.length ?? 0} {L("luoghi riconosciuti", "recognised places")}</strong><p>{L("La mappa si aggiorna dai luoghi precisi inseriti nelle tappe dei giorni.", "The map updates from exact places entered in day stops.")}</p></div>}
         {!['trip','day','map','budget','mood','group'].includes(selectedNode.data.kind) && <div className="mr-status-control"><span>{L("Stato", "Status")}</span>{(["idea", "chosen", "booked"] as ObjectStatus[]).map(status => <button key={status} className={selectedNode.data.status === status ? "on" : ""} onClick={() => updateSelectedData({ status })}>{status === "idea" ? "Idea" : status === "chosen" ? L("Scelto", "Chosen") : L("Prenotato", "Booked")}</button>)}</div>}
-        {selectedNodeIsSemantic && <button className="mr-open-itinerary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Apri l'itinerario completo", "Open full itinerary")}<ChevronRight size={14} /></button>}
+        {['trip','day'].includes(selectedNode.data.kind) && <button className="mr-open-itinerary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Vedi nell'itinerario operativo", "View in operational itinerary")}<ChevronRight size={14} /></button>}
         <button className="mr-inspector-ai" onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Lavora su questo con MindRoute", "Work on this with MindRoute")}</button>
       </aside>}
 
@@ -611,7 +710,7 @@ function TravelStudioInner() {
         <h2>{L("Lo stesso viaggio, un modo più libero di pensarlo.", "The same trip, a freer way to think about it.")}</h2>
         <p>{L("L'itinerario resta il documento completo. Qui organizzi idee, alternative e decisioni nello spazio, poi chiedi all'AI di intervenire sugli elementi che selezioni.", "The itinerary remains the complete document. Here you organise ideas, alternatives and decisions spatially, then ask AI to act on what you select.")}</p>
         <div className="mr-guide-steps">
-          <article><b>01</b><MousePointer2 size={18} /><strong>{L("Organizza", "Organise")}</strong><small>{L("Trascina le card e collegale per dare forma al viaggio.", "Drag and connect cards to shape the trip.")}</small></article>
+          <article><b>01</b><MousePointer2 size={18} /><strong>{L("Organizza", "Organise")}</strong><small>{L("Trascina le card per dare spazio a piano, idee e alternative. La sequenza dei giorni resta automatica.", "Drag cards to make room for the plan, ideas and alternatives. Day sequence stays automatic.")}</small></article>
           <article><b>02</b><BoxSelect size={18} /><strong>{L("Seleziona", "Select")}</strong><small>{L("Una o più card diventano il contesto preciso della richiesta.", "One or more cards become the exact context for your request.")}</small></article>
           <article><b>03</b><Sparkles size={18} /><strong>{L("Chiedi all'AI", "Ask AI")}</strong><small>{L("Confronta scenari o applica modifiche al vero itinerario.", "Compare scenarios or apply changes to the real itinerary.")}</small></article>
         </div>
@@ -625,13 +724,6 @@ function TravelStudioInner() {
         {!aiReply && <div className="mr-ai-quick"><button onClick={() => setAiInput(L("Rendi questa parte più rilassata", "Make this part more relaxed"))}>{L("Più rilassato", "More relaxed")}</button><button onClick={() => setAiInput(L("Mostrami due scenari alternativi", "Show me two alternative scenarios"))}>{L("Due scenari", "Two scenarios")}</button><button onClick={() => setAiInput(L("Ha veramente senso? Valuta tempo, costi e ritmo", "Does this really make sense? Assess time, cost and pace"))}>{L("Ha senso?", "Does it make sense?")}</button></div>}
       </section>}
 
-      {newTripOpen && <div className="mr-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setNewTripOpen(false); }}><form className="mr-new-trip-modal" onSubmit={createBlankTrip}>
-        <button type="button" className="close" onClick={() => setNewTripOpen(false)}><X size={17} /></button><span>New travel desk</span><h2>{L("Da dove vuoi iniziare?", "Where do you want to begin?")}</h2><p>{L("Bastano una destinazione o un desiderio. La struttura può emergere dopo, insieme.", "A destination or a desire is enough. The structure can emerge later, together.")}</p>
-        <label>{L("Destinazione o desiderio", "Destination or desire")}<input autoFocus required minLength={2} value={newTrip.destinationName} onChange={event => setNewTrip(previous => ({ ...previous, destinationName: event.target.value }))} placeholder={L("Tokyo, oppure: voglio sentirmi lontano", "Tokyo, or: I want to feel far away")} /></label>
-        <div><label>{L("Paese o area", "Country or area")}<input value={newTrip.country} onChange={event => setNewTrip(previous => ({ ...previous, country: event.target.value }))} placeholder={L("Opzionale", "Optional")} /></label><label>{L("Giorni", "Days")}<input type="number" min={1} max={30} value={newTrip.dayCount} onChange={event => setNewTrip(previous => ({ ...previous, dayCount: Math.max(1, Math.min(30, Number(event.target.value) || 1)) }))} /></label></div>
-        <label>{L("Partenza", "Start date")}<input type="date" value={newTrip.startDate} onChange={event => setNewTrip(previous => ({ ...previous, startDate: event.target.value }))} /></label>
-        <button type="submit" disabled={creatingTrip}>{creatingTrip ? L("Creo la scrivania…", "Creating desk…") : L("Apri la scrivania", "Open desk")}<ChevronRight size={15} /></button>
-      </form></div>}
     </main>
   </div>;
 }

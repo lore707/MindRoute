@@ -18,6 +18,10 @@ export interface IStorage {
   // Aggiorna SOLO il tripMeta (jsonb) — usato per consolidare le date reali del
   // viaggio senza toccare i giorni. Il chiamante passa il meta già fuso.
   updateItineraryTripMeta(id: number, tripMeta: any): Promise<void>;
+  updateItineraryStudioContent(id: number, patch: {
+    destinationName?: string; country?: string | null; heroImageUrl?: string | null;
+    whyYours?: string; tripSummary?: string; days?: any[]; tripMeta?: any;
+  }): Promise<void>;
   // Raffinamento L2: rigenera l'intero itinerario v2 e ne riscrive i campi
   // (giorni + meta + profilo accumulato + testi top-level). L'id/URL resta stabile.
   updateItineraryRefine(id: number, patch: {
@@ -132,6 +136,14 @@ async updateItineraryMapPoints(id: number, updatedDays: any[]): Promise<void> {
     if (idx >= 0) {
       this.itineraries[idx] = { ...this.itineraries[idx], tripMeta } as Itinerary;
     }
+  }
+
+  async updateItineraryStudioContent(id: number, patch: {
+    destinationName?: string; country?: string | null; heroImageUrl?: string | null;
+    whyYours?: string; tripSummary?: string; days?: any[]; tripMeta?: any;
+  }): Promise<void> {
+    const idx = this.itineraries.findIndex(i => i.id === id);
+    if (idx >= 0) this.itineraries[idx] = { ...this.itineraries[idx], ...patch } as Itinerary;
   }
 
   async updateItineraryRefine(id: number, patch: {

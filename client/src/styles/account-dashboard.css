@@ -253,6 +253,7 @@
   background:var(--teal);box-shadow:0 6px 18px -6px rgba(111,180,168,.7)}
 .account-dash .c-taken::before{content:"✓";font-size:11px;font-weight:900;line-height:1}
 .account-dash .c-body{position:absolute;inset:0;padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;z-index:2}
+.account-dash .c-copy{display:flex;flex-direction:column;align-items:flex-start}
 .account-dash .c-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:600}
 .account-dash .c-top .when{display:flex;align-items:center;gap:7px}
 .account-dash .c-top .region{padding:4px 9px;border-radius:999px;background:rgba(13,7,13,.5);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.12)}
@@ -260,6 +261,10 @@
 .account-dash .c-name{font-family:var(--serif);font-size:23px;color:#fff;line-height:1.08;letter-spacing:-.01em;margin-bottom:6px;text-wrap:balance;text-shadow:0 2px 18px rgba(0,0,0,.6)}
 .account-dash .c-blurb{font-family:var(--serif);font-style:italic;font-size:12.5px;color:rgba(255,255,255,.76);line-height:1.42;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-wrap:pretty}
+.account-dash .c-actions{display:flex;gap:7px;margin-top:15px;opacity:0;transform:translateY(5px);transition:opacity .2s,transform .2s}
+.account-dash .c-card:hover .c-actions,.account-dash .c-card:focus-within .c-actions{opacity:1;transform:none}
+.account-dash .c-actions a{display:inline-flex;align-items:center;min-height:34px;padding:0 11px;border:1px solid rgba(255,255,255,.24);border-radius:999px;color:#fff;background:rgba(13,7,13,.62);font:700 9px/1 var(--sans);text-decoration:none;backdrop-filter:blur(8px)}
+.account-dash .c-actions a:first-child{color:#1a070b;border-color:var(--accent);background:var(--accent)}
 .account-dash .c-status{position:absolute;top:18px;right:18px;z-index:3;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
   background:rgba(13,7,13,.6);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);font-size:11px}
 .account-dash .c-empty{grid-column:1/-1;padding:50px;text-align:center;font-family:var(--serif);font-style:italic;color:var(--ink-faint);font-size:16px}
@@ -589,6 +594,7 @@
   .account-dash .coll2-filters{align-items:stretch}
   .account-dash .coll-status{width:100%;overflow-x:auto}
   .account-dash .coll-status button{flex:1}
+  .account-dash .c-actions{opacity:1;transform:none}
 }
 
 /* ════════════ HOME v2 (redesign 2026-07 dal mockup) ════════════ */

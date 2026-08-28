@@ -632,8 +632,9 @@ export function AccountDashboard({ data }: { data: AccountData }) {
     </div>
   );
 
-  const TripCard = ({ tr }: { tr: AccountData["trips"][number] }) => (
-    <a className={"c-card status-" + (tr.status ?? (tr.taken ? "confirmed" : "planned"))} href={tr.href ?? "#"}>
+  const TripCard = ({ tr }: { tr: AccountData["trips"][number] }) => {
+    const studioHref = tr.href?.replace("/itinerary/", "/studio/") ?? "/studio";
+    return <article className={"c-card status-" + (tr.status ?? (tr.taken ? "confirmed" : "planned"))}>
       <div className="ph" style={{ backgroundImage: bg(tr.img, cardW) }} />
       <span className="c-taken">
         {(tr.status ?? (tr.taken ? "confirmed" : "planned")) === "confirmed"
@@ -647,13 +648,14 @@ export function AccountDashboard({ data }: { data: AccountData }) {
           <span className="when">{tr.date}<span className="region">{regionLabel(tr.continent)}</span></span>
           <span className="days">{daysOf(tr.duration)} {plural(daysOf(tr.duration), "acd.unit.day", "acd.unit.days")}</span>
         </div>
-        <div>
+        <div className="c-copy">
           <div className="c-name">{tr.dest}</div>
           {tr.quote && <div className="c-blurb">{tr.quote}</div>}
+          <div className="c-actions"><a href={tr.href ?? "#"}>{lang === "it" ? "Apri itinerario" : "Open itinerary"}</a><a href={studioHref}>{lang === "it" ? "Lavora in Studio" : "Work in Studio"}</a></div>
         </div>
       </div>
-    </a>
-  );
+    </article>;
+  };
 
   /* ──────────────── HOME (redesign 2026-07 dal mockup) ──────────────── */
 
@@ -1328,6 +1330,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
                 : "Create a new itinerary or reopen one of the plans you have already built.")}</p>
             <div className="coll2-command-actions">
               {continueCard && <a className="coll2-command-primary" href={continueCard.href}>{lang === "it" ? "Apri itinerario" : "Open itinerary"} <span>→</span></a>}
+              {continueCard?.itineraryId && <a className="coll2-command-secondary" href={`/studio/${continueCard.itineraryId}`}>{lang === "it" ? "Lavora in Studio" : "Work in Studio"} <span>→</span></a>}
               <button className={continueCard ? "coll2-command-secondary" : "coll2-command-primary"} onClick={data.onNewItinerary}>
                 {lang === "it" ? "Crea un nuovo viaggio" : "Create a new trip"} <span>→</span>
               </button>
@@ -1564,9 +1567,6 @@ export function AccountDashboard({ data }: { data: AccountData }) {
                 {t(n.key)}
               </button>
             ))}
-            <button className="h4-nav-i h4-studio" onClick={() => setLocation("/studio")}>
-              {lang === "it" ? "Studio AI" : "AI Studio"}<span>Beta</span>
-            </button>
           </nav>
 
           {continueCard?.progress && (
@@ -1608,10 +1608,6 @@ export function AccountDashboard({ data }: { data: AccountData }) {
             <span className="lab">{t(n.key)}</span>
           </button>
         ))}
-        <button className="mnav-i" onClick={() => setLocation("/studio")}>
-          <Icon name="studio" />
-          <span className="lab">Studio</span>
-        </button>
         <button className="mnav-i" onClick={() => window.dispatchEvent(new Event("mindroute:open-companion"))}>
           <Icon name={CHAT_TAB.ic} />
           <span className="lab">{t(CHAT_TAB.key)}</span>

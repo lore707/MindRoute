@@ -99,6 +99,9 @@ function Router() {
           <Route path="/i/:token" component={SharedItinerary} />
           <Route path="/privacy" component={Privacy} />
           <Route path="/my-account" component={MyAccount} />
+          <Route path="/studio/:id">
+            <RequireAuth><TravelStudio /></RequireAuth>
+          </Route>
           <Route path="/studio">
             <RequireAuth><TravelStudio /></RequireAuth>
           </Route>
