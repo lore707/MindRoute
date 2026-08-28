@@ -67,7 +67,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   //    Uguale per loggati e anonimi — nessuna nav marketing durante quiz e scelta.
   const isItinerary = location.startsWith("/itinerary/") && !location.startsWith("/itinerary/stream");
   const isFlow = location === "/start" || location === "/profiling" || location === "/destinations";
-  const isDashboard = location === "/my-account" || location === "/studio" || isItinerary || isFlow || (location === "/" && !!user)
+  const isDashboard = location === "/my-account" || location.startsWith("/studio") || isItinerary || isFlow || (location === "/" && !!user)
     || location.startsWith("/__preview"); // preview dev della dashboard: porta la sua shell
 
   return (

@@ -9,8 +9,8 @@ import {
 import "@xyflow/react/dist/style.css";
 import {
   ArrowLeft, BoxSelect, Check, ChevronDown, ChevronRight,
-  CircleDollarSign, CircleHelp, Compass, FileImage, Hand,
-  Image as ImageIcon, Instagram, Layers3, Link2, Map as MapIcon, MapPin, Maximize2,
+  CircleHelp, Compass, FileImage, Hand,
+  Image as ImageIcon, Instagram, Layers3, Link2, Maximize2,
   MessageCircleQuestion, MousePointer2, MoveRight, PanelRightClose,
   Plane, Plus, Save, Sparkles, StickyNote, Trash2, Undo2, X,
   ZoomIn, ZoomOut,
@@ -35,7 +35,6 @@ type RawTrip = {
   tripMeta?: Record<string, any>;
 };
 
-type Lens = "canvas" | "map" | "budget";
 type Tool = "select" | "hand";
 type ObjectKind =
   | "trip" | "day" | "note" | "question" | "photo" | "booking"
@@ -216,6 +215,7 @@ function NodeShell({ data, selected, children }: { data: TravelNodeData; selecte
   const status = data.status ?? "idea";
   return (
     <article className={`mr-cnode kind-${data.kind} status-${status}${selected ? " is-selected" : ""}`}>
+      <span className="mr-node-edit">Modifica</span>
       {children}
     </article>
   );
@@ -294,7 +294,6 @@ function TravelStudioInner() {
   const [nodes, setNodes, onNodesChangeBase] = useNodesState<TravelNode>([]);
   const [edges, setEdges, onEdgesChangeBase] = useEdgesState<Edge>([]);
   const [loading, setLoading] = useState(true);
-  const [lens, setLens] = useState<Lens>("canvas");
   const [tool, setTool] = useState<Tool>("select");
   const [zoom, setZoom] = useState(1);
   const [dirty, setDirty] = useState(false);
@@ -572,7 +571,6 @@ function TravelStudioInner() {
 
   const applyAiProposal = () => runCanvasAi(L("Confermo. Applica ora le modifiche proposte agli oggetti selezionati.", "I confirm. Apply the proposed changes to the selected objects now."));
 
-  const points = trip ? mapPoints(trip) : [];
   const budget = trip ? budgetData(trip) : { total: 0, target: 0, categories: [] };
 
   if (loading) return <div className="mr-studio-loading"><span /><p>{L("Apro la tua scrivania di viaggio…", "Opening your travel desk…")}</p></div>;
@@ -618,12 +616,13 @@ function TravelStudioInner() {
         <button data-label={L("Come funziona", "How it works")} onClick={() => setGuideOpen(true)} title={L("Come funziona", "How it works")}><CircleHelp size={18} /></button>
       </nav>
 
-      {lens === "canvas" && <div className="mr-flow-wrap">
+      <div className="mr-flow-wrap">
         {trip ? <ReactFlow<TravelNode, Edge>
           nodes={nodes} edges={edges} nodeTypes={nodeTypes}
           onNodesChange={onNodesChange} onEdgesChange={changes => { onEdgesChangeBase(changes); if (changes.some(change => change.type !== "select")) setDirty(true); }}
           onInit={instance => { flowRef.current = instance; setTimeout(() => instance.fitView({ padding: .13 }), 80); }}
           onMove={(_, viewport) => setZoom(viewport.zoom)}
+          onNodeClick={(_, node) => { setSelectedIds([node.id]); setInspectorOpen(true); }}
           onSelectionChange={({ nodes: selected }) => { const ids = selected.map(node => node.id); setSelectedIds(ids); if (ids.length === 1) setInspectorOpen(true); }}
           onNodeDoubleClick={(_, node) => { setSelectedIds([node.id]); setInspectorOpen(true); }}
           onPaneClick={() => { setSelectedIds([]); setInspectorOpen(false); }}
@@ -636,32 +635,15 @@ function TravelStudioInner() {
           <Background gap={24} size={1} color="rgba(30,28,25,.10)" />
           <MiniMap pannable zoomable className="mr-minimap" nodeColor={node => node.data.kind === "day" ? "#E86B52" : node.data.kind === "map" ? "#7FA6B3" : "#C7B9A8"} />
         </ReactFlow> : <div className="mr-empty-desk"><Compass size={34} /><span>MindRoute Studio</span><h1>{L("Prima crea il tuo viaggio.", "Create your trip first.")}</h1><p>{L("Il quiz genera un solo itinerario completo. Da qui potrai poi lavorarci manualmente o con l'AI.", "The quiz generates one complete itinerary. You can then work on it here manually or with AI.")}</p><button onClick={() => setLocation("/start")}><Plus size={15} />{L("Crea il primo viaggio", "Create first trip")}</button></div>}
-      </div>}
+      </div>
 
-      {lens === "canvas" && trip && !selectedIds.length && !aiOpen && !guideOpen && <div className="mr-canvas-hint"><MousePointer2 size={14} /><span>{L("Trascina per organizzare. Seleziona una card per modificarla o lavorarci con l'AI.", "Drag to organise. Select a card to edit it or work on it with AI.")}</span></div>}
+      {trip && !selectedIds.length && !aiOpen && !guideOpen && <div className="mr-canvas-hint"><MousePointer2 size={14} /><span>{L("Clicca una card per modificarne tutti i contenuti. Trascinala per organizzare lo spazio.", "Click a card to edit all its content. Drag it to organise the space.")}</span></div>}
 
-      {lens === "canvas" && trip && !selectedIds.length && !aiOpen && !inspectorOpen && !guideOpen && <button className="mr-ai-launcher" onClick={() => setAiOpen(true)}><Sparkles size={17} /><span><strong>{L("Chiedi a MindRoute", "Ask MindRoute")}</strong><small>{L("Lavora su tutto il viaggio", "Work on the whole trip")}</small></span><ChevronRight size={15} /></button>}
+      {trip && !selectedIds.length && !aiOpen && !inspectorOpen && !guideOpen && <button className="mr-ai-launcher" onClick={() => setAiOpen(true)}><Sparkles size={17} /><span><strong>{L("Chiedi a MindRoute", "Ask MindRoute")}</strong><small>{L("Lavora su tutto il viaggio", "Work on the whole trip")}</small></span><ChevronRight size={15} /></button>}
 
-      {lens === "map" && trip && <section className="mr-lens-view mr-map-lens">
-        <div className="mr-lens-intro"><span>Spatial lens</span><h1>{trip.destinationName}</h1><p>{L("Gli stessi luoghi del canvas, ricomposti nello spazio.", "The same canvas places, rearranged in space.")}</p></div>
-        <div className="mr-map-stage"><svg viewBox="0 0 1000 600" preserveAspectRatio="none"><path d="M90 430 C250 120 510 520 890 160" />{points.slice(0, 8).map((point, index) => <g key={`${point.lat}-${point.lng}-${index}`}><circle cx={110 + index * (760 / Math.max(points.length - 1, 1))} cy={index % 2 ? 345 : 230} r="13" /><text x={110 + index * (760 / Math.max(points.length - 1, 1))} y={(index % 2 ? 345 : 230) - 24}>{point.label}</text></g>)}</svg>{!points.length && <div className="mr-lens-empty"><MapPin size={25} /><p>{L("Aggiungi luoghi alle tappe: appariranno qui automaticamente.", "Add places to stops and they will appear here automatically.")}</p></div>}</div>
-      </section>}
+      <div className="mr-zoom-tools"><button onClick={() => flowRef.current?.zoomOut()}><ZoomOut size={14} /></button><span>{Math.round(zoom * 100)}%</span><button onClick={() => flowRef.current?.zoomIn()}><ZoomIn size={14} /></button><button onClick={() => flowRef.current?.fitView({ padding: .13, duration: 350 })}><Maximize2 size={14} /></button></div>
 
-      {lens === "budget" && trip && <section className="mr-lens-view mr-budget-lens">
-        <div className="mr-lens-intro"><span>Money lens</span><h1>{L("Dove va il budget", "Where the budget goes")}</h1><p>{L("Ogni costo appartiene allo stesso viaggio, non a un foglio separato.", "Every cost belongs to the same trip, not a separate spreadsheet.")}</p></div>
-        <div className="mr-budget-dashboard"><div className="mr-big-ring" style={{ background: `conic-gradient(#E86B52 0 42%,#7FA6B3 42% 70%,#D3A65A 70% 88%,#B8A7C9 88% 100%)` }}><span><strong>€{budget.total}</strong><small>di €{budget.target}</small></span></div><div className="mr-budget-bars">{budget.categories.map(item => <div key={item.label}><p><span>{item.label}</span><strong>€{item.value}</strong></p><i><b style={{ width: `${Math.max(8, item.value / Math.max(budget.total, 1) * 100)}%`, background: item.color }} /></i></div>)}</div></div>
-      </section>}
-
-      <nav className="mr-lens-dock">
-        {([
-          ["canvas", <BoxSelect size={15} />, L("Piano", "Plan")], ["map", <MapIcon size={15} />, L("Mappa", "Map")],
-          ["budget", <CircleDollarSign size={15} />, "Budget"],
-        ] as [Lens, ReactNode, string][]).map(([id, icon, label]) => <button key={id} className={lens === id ? "on" : ""} onClick={() => setLens(id)}>{icon}<span>{label}</span></button>)}
-      </nav>
-
-      {lens === "canvas" && <div className="mr-zoom-tools"><button onClick={() => flowRef.current?.zoomOut()}><ZoomOut size={14} /></button><span>{Math.round(zoom * 100)}%</span><button onClick={() => flowRef.current?.zoomIn()}><ZoomIn size={14} /></button><button onClick={() => flowRef.current?.fitView({ padding: .13, duration: 350 })}><Maximize2 size={14} /></button></div>}
-
-      {selectedIds.length > 0 && lens === "canvas" && <div className="mr-selection-bar"><span>{selectedIds.length} {selectedIds.length === 1 ? L("oggetto", "object") : L("oggetti", "objects")}</span><button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Chiedi all'AI", "Ask AI")}</button>{selectedIds.length > 1 && <button onClick={groupSelection}><BoxSelect size={14} />{L("Raggruppa", "Group")}</button>}<button onClick={deleteSelection}><Trash2 size={14} /></button></div>}
+      {selectedIds.length > 0 && <div className="mr-selection-bar"><span>{selectedIds.length} {selectedIds.length === 1 ? L("oggetto", "object") : L("oggetti", "objects")}</span><button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Chiedi all'AI", "Ask AI")}</button>{selectedIds.length > 1 && <button onClick={groupSelection}><BoxSelect size={14} />{L("Raggruppa", "Group")}</button>}<button onClick={deleteSelection}><Trash2 size={14} /></button></div>}
 
       {inspectorOpen && selectedNode && !aiOpen && <aside className="mr-inspector-float">
         <header><div><span>{selectedNode.data.kind}</span><strong>{L("Modifica il viaggio", "Edit the trip")}</strong></div><button onClick={() => setInspectorOpen(false)}><PanelRightClose size={16} /></button></header>

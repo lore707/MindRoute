@@ -33,7 +33,7 @@ function isHiddenRoute(path: string): boolean {
   // NB: "/" non è più nascosto — per l'utente loggato è la dashboard (e gli
   // anonimi sono già esclusi da `!loggedIn`). Restano nascoste le superfici del
   // funnel/marketing e lo stream di generazione.
-  if (path === "/come-funziona" || path === "/start" || path === "/profiling" || path === "/destinations" || path === "/privacy" || path === "/studio") return true;
+  if (path === "/come-funziona" || path === "/start" || path === "/profiling" || path === "/destinations" || path === "/privacy" || path.startsWith("/studio")) return true;
   if (path.startsWith("/itinerary/stream")) return true;
   if (path.startsWith("/i/")) return true; // public shared view
   return false;
