@@ -39,6 +39,53 @@ function ownsItinerary(itin: any, req: any): boolean {
 }
 
 export function registerItineraryDetailRoutes(app: Express) {
+  const blankStudioTripSchema = z.object({
+    destinationName: z.string().trim().min(1).max(140),
+    country: z.string().trim().max(100).optional(),
+    days: z.number().int().min(1).max(30).default(5),
+    lang: z.enum(["it", "en"]).default("it"),
+  });
+
+  // Manual lane: creates the same canonical itinerary used by the guided
+  // generator, but with an intentionally light scaffold ready for Studio.
+  app.post("/api/studio/itineraries", requireAuth, async (req, res) => {
+    try {
+      const input = blankStudioTripSchema.parse(req.body ?? {});
+      const userId = (req.user as any)?.id ?? null;
+      const days = Array.from({ length: input.days }, (_, index) => ({
+        day_number: index + 1,
+        title: input.lang === "it" ? `Giorno ${index + 1}` : `Day ${index + 1}`,
+        title_evocative: input.lang === "it" ? `Giorno ${index + 1}` : `Day ${index + 1}`,
+        subtitle: "",
+        moments: [],
+      }));
+      const saved = await storage.createItinerary({
+        destinationId: 0,
+        userId,
+        createdAt: new Date().toISOString(),
+        destinationName: input.destinationName,
+        country: input.country || null,
+        schemaVersion: 2,
+        lang: input.lang,
+        days,
+        budgetSummary: "",
+        packingList: "",
+        bestTime: "",
+        gettingThere: "",
+        closingMessage: "",
+        whyYours: "",
+        tripSummary: "",
+        highlights: [],
+        tripMeta: { studio_budget_target: 0 } as any,
+      });
+      res.status(201).json(saved);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: "Dati non validi", issues: err.issues });
+      console.error("blank Studio trip error:", err);
+      res.status(500).json({ message: "Creazione viaggio non riuscita" });
+    }
+  });
+
   const studioCanvasSchema = z.object({
     version: z.number().int().min(1).max(10),
     nodes: z.array(z.object({

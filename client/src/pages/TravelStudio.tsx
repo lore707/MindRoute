@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useRoute } from "wouter";
 import {
   ReactFlow, ReactFlowProvider, Background, MiniMap,
@@ -8,11 +8,11 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  ArrowLeft, BoxSelect, Check, ChevronDown, ChevronRight,
-  CircleHelp, Compass, FileImage, Hand,
+  BoxSelect, Check, ChevronDown, ChevronRight,
+  CalendarDays, CircleHelp, ClipboardList, Clock3, Compass, Copy, Euro, GripVertical, Hand,
   Image as ImageIcon, Instagram, Layers3, Link2, Maximize2,
-  MessageCircleQuestion, MousePointer2, MoveRight, PanelRightClose,
-  Plane, Plus, Save, Sparkles, StickyNote, Trash2, Undo2, X,
+  Map as MapIcon, MessageCircleQuestion, MoreHorizontal, MousePointer2, MoveRight, PanelRightClose,
+  Plane, Plus, Redo2, Save, Share2, Sparkles, StickyNote, Trash2, Undo2, UserRound, X,
   ZoomIn, ZoomOut,
 } from "lucide-react";
 import { FlowNavLogo } from "@/components/FlowNav";
@@ -20,6 +20,8 @@ import LangDropdown from "@/components/LangDropdown";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import "@/styles/travel-studio.css";
+
+const RouteMap = lazy(() => import("@/components/RouteMap"));
 
 type RawTrip = {
   id: number;
@@ -36,8 +38,9 @@ type RawTrip = {
 };
 
 type Tool = "select" | "hand";
+type StudioView = "plan" | "map" | "rhythm" | "budget" | "logistics";
 type ObjectKind =
-  | "trip" | "day" | "note" | "question" | "photo" | "booking"
+  | "trip" | "day" | "place" | "note" | "question" | "photo" | "booking"
   | "budget" | "map" | "mood" | "maybe" | "social" | "proposal" | "group";
 type ObjectStatus = "idea" | "chosen" | "booked";
 type TravelNodeData = Record<string, any> & {
@@ -93,6 +96,24 @@ function mapPoints(trip: RawTrip) {
   }));
   const all = [...metaPoints, ...momentPoints];
   return all.filter((point, index) => all.findIndex(other => Math.abs(Number(other.lat) - Number(point.lat)) < .0001 && Math.abs(Number(other.lng) - Number(point.lng)) < .0001) === index);
+}
+
+function routePoints(trip: RawTrip) {
+  return mapPoints(trip).map((point: any, index) => ({
+    ...point,
+    label: point.label || `Tappa ${index + 1}`,
+    day: Number(point.day ?? 1),
+    category: point.category ?? "custom",
+  }));
+}
+
+function rhythmData(trip: RawTrip) {
+  return (trip.days ?? []).map((day, index) => {
+    const moments = momentsOf(day);
+    const transfers = moments.filter(moment => /transport|transfer|train|flight|ferry|bus/i.test(String(moment?.type ?? ""))).length;
+    const intensity = Math.min(100, moments.length * 17 + transfers * 12);
+    return { index, title: dayTitle(day, index), count: moments.length, transfers, intensity };
+  });
 }
 
 function ambientImages(trip: RawTrip) {
@@ -215,7 +236,7 @@ function NodeShell({ data, selected, children }: { data: TravelNodeData; selecte
   const status = data.status ?? "idea";
   return (
     <article className={`mr-cnode kind-${data.kind} status-${status}${selected ? " is-selected" : ""}`}>
-      <span className="mr-node-edit">Modifica</span>
+      <span className="mr-card-hover-actions"><b>Apri</b><i><MoreHorizontal size={13} /></i><em><GripVertical size={13} /></em></span>
       {children}
     </article>
   );
@@ -246,6 +267,7 @@ function TravelCanvasNode({ data, selected }: NodeProps<TravelNode>) {
   if (data.kind === "question") return <NodeShell data={data} selected={selected}><CircleHelp size={20} /><small>Domanda aperta</small><h3>{data.title}</h3><p>{data.text}</p></NodeShell>;
   if (data.kind === "photo") return <NodeShell data={data} selected={selected}><div className="mr-photo-img" style={data.image ? { backgroundImage: `url(${data.image})` } : undefined}><ImageIcon size={22} /></div><h3>{data.title}</h3><p>{data.text}</p></NodeShell>;
   if (data.kind === "booking") return <NodeShell data={data} selected={selected}><div className="mr-booking-icon"><Plane size={20} /></div><small>{data.bookingType || "Prenotazione"}</small><h3>{data.title}</h3><p>{data.text}</p><span className="mr-status-chip">{data.status === "booked" ? "Confermato" : data.status === "chosen" ? "Scelto" : "Idea"}</span></NodeShell>;
+  if (data.kind === "place") return <NodeShell data={data} selected={selected}><div className="mr-booking-icon"><MapIcon size={20} /></div><small>Luogo</small><h3>{data.title}</h3><p>{data.text}</p>{data.place && <span className="mr-place-chip">{data.place}</span>}</NodeShell>;
 
   if (data.kind === "budget") {
     const percentage = Math.min(100, Math.round((Number(data.total) / Math.max(Number(data.target), 1)) * 100));
@@ -285,7 +307,7 @@ function TravelStudioInner() {
   const [, setLocation] = useLocation();
   const [, routeParams] = useRoute("/studio/:id");
   const preferredTripId = routeParams?.id ? Number(routeParams.id) : undefined;
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const { toast } = useToast();
   const it = lang === "it";
   const L = useCallback((italian: string, english: string) => it ? italian : english, [it]);
@@ -294,12 +316,20 @@ function TravelStudioInner() {
   const [nodes, setNodes, onNodesChangeBase] = useNodesState<TravelNode>([]);
   const [edges, setEdges, onEdgesChangeBase] = useEdgesState<Edge>([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<StudioView>("plan");
   const [tool, setTool] = useState<Tool>("select");
   const [zoom, setZoom] = useState(1);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [history, setHistory] = useState<Array<{ nodes: TravelNode[]; edges: Edge[] }>>([]);
+  const [futureHistory, setFutureHistory] = useState<Array<{ nodes: TravelNode[]; edges: Edge[] }>>([]);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [tripMenuOpen, setTripMenuOpen] = useState(false);
+  const [newTripOpen, setNewTripOpen] = useState(false);
+  const [blankTripForm, setBlankTripForm] = useState({ destinationName: "", country: "", days: 5 });
+  const [creatingTrip, setCreatingTrip] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiInput, setAiInput] = useState("");
@@ -340,7 +370,10 @@ function TravelStudioInner() {
     requestAnimationFrame(() => flowRef.current?.fitView({ padding: .13, duration: 450 }));
   };
 
-  const pushHistory = useCallback(() => setHistory(previous => [...previous.slice(-19), { nodes: clone(nodes), edges: clone(edges) }]), [edges, nodes]);
+  const pushHistory = useCallback(() => {
+    setHistory(previous => [...previous.slice(-19), { nodes: clone(nodes), edges: clone(edges) }]);
+    setFutureHistory([]);
+  }, [edges, nodes]);
   const markChanged = useCallback(() => setDirty(true), []);
   const onNodesChange = useCallback((changes: NodeChange<TravelNode>[]) => {
     onNodesChangeBase(changes);
@@ -395,15 +428,26 @@ function TravelStudioInner() {
   const undo = () => {
     const snapshot = history[history.length - 1];
     if (!snapshot) return;
+    setFutureHistory(previous => [...previous.slice(-19), { nodes: clone(nodes), edges: clone(edges) }]);
     setNodes(snapshot.nodes); setEdges(snapshot.edges); setHistory(previous => previous.slice(0, -1)); setDirty(true);
+  };
+
+  const redo = () => {
+    const snapshot = futureHistory[futureHistory.length - 1];
+    if (!snapshot) return;
+    setHistory(previous => [...previous.slice(-19), { nodes: clone(nodes), edges: clone(edges) }]);
+    setNodes(snapshot.nodes); setEdges(snapshot.edges); setFutureHistory(previous => previous.slice(0, -1)); setDirty(true);
   };
 
   const addObject = (kind: Exclude<ObjectKind, "trip" | "day" | "budget" | "map" | "mood" | "proposal" | "group">) => {
     pushHistory();
+    setView("plan");
+    setAddMenuOpen(false);
     const center = flowRef.current?.screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 }) ?? { x: 500, y: 350 };
     const id = `${kind}-${Date.now().toString(36)}`;
     const defaults: Record<string, TravelNodeData> = {
       note: { kind, title: L("Nuova nota", "New note"), text: L("Scrivi qui un desiderio, un limite o un'intuizione.", "Write a wish, boundary or intuition here."), status: "idea" },
+      place: { kind, title: L("Nuovo luogo", "New place"), text: L("Spiega perché vuoi inserirlo nel viaggio.", "Explain why you want it in the trip."), place: "", assignedDay: null, status: "idea" },
       question: { kind, title: L("Domanda aperta", "Open question"), text: L("Cosa dobbiamo ancora decidere?", "What do we still need to decide?"), status: "idea" },
       photo: { kind, title: L("Ispirazione", "Inspiration"), text: L("Perché questa immagine ti attrae?", "Why does this image pull you in?"), image: "", status: "idea" },
       booking: { kind, title: L("Nuova prenotazione", "New booking"), text: L("Aggiungi orario, riferimento e dettagli.", "Add time, reference and details."), bookingType: "Volo / hotel / attività", status: "idea" },
@@ -412,6 +456,60 @@ function TravelStudioInner() {
     };
     setNodes(previous => [...previous, { id, type: "travel", position: { x: center.x - 120, y: center.y - 80 }, data: defaults[kind] }]);
     setSelectedIds([id]); setInspectorOpen(true); setDirty(true);
+  };
+
+  const addDay = () => {
+    if (!trip) return;
+    pushHistory();
+    const index = trip.days?.length ?? 0;
+    const day = { day_number: index + 1, title: L(`Giorno ${index + 1}`, `Day ${index + 1}`), title_evocative: L(`Giorno ${index + 1}`, `Day ${index + 1}`), subtitle: "", moments: [] };
+    const data = dayNodeData(trip, day, index);
+    setTrip(previous => previous ? { ...previous, days: [...(previous.days ?? []), day] } : previous);
+    setNodes(previous => [...previous, { id: `day-${index}`, type: "travel", position: { x: 440 + index * 282, y: 330 }, data }]);
+    if (index > 0) setEdges(previous => [...previous, { id: `route-${index - 1}-${index}`, source: `day-${index - 1}`, target: `day-${index}`, type: "smoothstep", style: { stroke: "#2B2927", strokeWidth: 1.5 } }]);
+    setView("plan"); setAddMenuOpen(false); setSelectedIds([`day-${index}`]); setInspectorOpen(true); setDirty(true);
+  };
+
+  const duplicateSelection = () => {
+    if (!selectedNode || ["trip", "day", "map", "budget", "mood"].includes(selectedNode.data.kind)) return;
+    pushHistory();
+    const id = `${selectedNode.data.kind}-${Date.now().toString(36)}`;
+    setNodes(previous => [...previous, { ...clone(selectedNode), id, selected: false, position: { x: selectedNode.position.x + 34, y: selectedNode.position.y + 34 } }]);
+    setSelectedIds([id]); setContextMenu(null); setDirty(true);
+  };
+
+  const createBlankTrip = async () => {
+    if (!blankTripForm.destinationName.trim() || creatingTrip) return;
+    setCreatingTrip(true);
+    try {
+      const response = await fetch("/api/studio/itineraries", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...blankTripForm, lang }),
+      });
+      if (!response.ok) throw new Error("create");
+      const created = await response.json() as RawTrip;
+      setNewTripOpen(false);
+      setBlankTripForm({ destinationName: "", country: "", days: 5 });
+      await loadLibrary(created.id);
+      setLocation(`/studio/${created.id}`);
+      toast({ title: L("Viaggio creato. Ora costruiamolo insieme.", "Trip created. Now let's build it together.") });
+    } catch {
+      toast({ title: L("Creazione non riuscita", "Creation failed"), variant: "destructive" });
+    } finally { setCreatingTrip(false); }
+  };
+
+  const shareTrip = async () => {
+    if (!trip) return;
+    try {
+      if (dirty) await saveCanvas(true);
+      const response = await fetch(`/api/itinerary/${trip.id}/share`, { method: "POST" });
+      if (!response.ok) throw new Error("share");
+      const data = await response.json();
+      if (navigator.share) await navigator.share({ title: trip.destinationName, url: data.url });
+      else { await navigator.clipboard.writeText(data.url); toast({ title: L("Link copiato", "Link copied") }); }
+    } catch (error) {
+      if ((error as Error)?.name !== "AbortError") toast({ title: L("Condivisione non riuscita", "Share failed"), variant: "destructive" });
+    }
   };
 
   const deleteSelection = () => {
@@ -482,6 +580,18 @@ function TravelStudioInner() {
     setDirty(true);
   };
 
+  const updateBudgetValue = (field: "bookable" | "onsite" | "target", value: number) => {
+    const key = field === "bookable" ? "total_cost_bookable" : field === "onsite" ? "total_cost_onsite_estimate" : "studio_budget_target";
+    setTrip(previous => {
+      if (!previous) return previous;
+      const next = { ...previous, tripMeta: { ...(previous.tripMeta ?? {}), [key]: Math.max(0, value || 0) } };
+      const nextBudget = budgetData(next);
+      setNodes(current => current.map(node => node.data.kind === "budget" ? { ...node, data: { ...node.data, ...nextBudget } } : node));
+      return next;
+    });
+    setDirty(true);
+  };
+
   const selectedNodes = useMemo(() => nodes.filter(node => selectedIds.includes(node.id)), [nodes, selectedIds]);
   const selectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
   const updateDayMoment = (momentIndex: number, patch: Record<string, any>) => {
@@ -512,6 +622,37 @@ function TravelStudioInner() {
     setNodes(previous => previous.map(node => node.id === `day-${dayIndex}` ? { ...node, data: { ...node.data, moments: updatedMoments, status: "chosen" } } : node));
     updateSelectedData({ status: "chosen" });
     toast({ title: L(`Ispirazione inserita nel giorno ${dayIndex + 1}`, `Inspiration added to day ${dayIndex + 1}`) });
+  };
+
+  const insertNodeIntoDay = (source: TravelNode, dayIndex: number) => {
+    if (!trip || source.data.kind === "day") return;
+    const day = trip.days?.[dayIndex];
+    if (!day) return;
+    const moment = updateMomentFields({
+      id: `studio-${Date.now()}`, type: source.data.kind === "booking" ? "transport" : "experience",
+      description_short: source.data.text ?? "", cta_url: source.data.url ?? "",
+    }, { title: source.data.title, time: "", place: source.data.place ?? "", image: source.data.image ?? "" });
+    const updatedMoments = [...momentsOf(day), moment];
+    setTrip(previous => previous ? { ...previous, days: (previous.days ?? []).map((item, index) => index === dayIndex ? {
+      ...item, ...(Array.isArray(item?.moments) ? { moments: updatedMoments } : { editedMoments: updatedMoments }),
+    } : item) } : previous);
+    setNodes(previous => previous.map(node => node.id === `day-${dayIndex}`
+      ? { ...node, data: { ...node.data, moments: updatedMoments, status: "chosen" } }
+      : node.id === source.id ? { ...node, data: { ...node.data, assignedDay: dayIndex, status: "chosen" } } : node));
+    setDirty(true);
+    toast({ title: L(`Aggiunto al giorno ${dayIndex + 1}`, `Added to day ${dayIndex + 1}`) });
+  };
+
+  const moveSelectedToMaybe = () => {
+    if (!selectedNode) return;
+    const maybe = nodes.find(node => node.data.kind === "maybe");
+    if (!maybe) return;
+    pushHistory();
+    setNodes(previous => previous.map(node => node.id === maybe.id
+      ? { ...node, data: { ...node.data, items: [...(node.data.items ?? []), selectedNode.data.title] } }
+      : node.id === selectedNode.id ? { ...node, data: { ...node.data, status: "idea" } } : node));
+    setContextMenu(null); setDirty(true);
+    toast({ title: L("Salvato in Maybe", "Saved to Maybe") });
   };
 
   const closeGuide = () => {
@@ -572,26 +713,48 @@ function TravelStudioInner() {
   const applyAiProposal = () => runCanvasAi(L("Confermo. Applica ora le modifiche proposte agli oggetti selezionati.", "I confirm. Apply the proposed changes to the selected objects now."));
 
   const budget = trip ? budgetData(trip) : { total: 0, target: 0, categories: [] };
+  const points = trip ? routePoints(trip) : [];
+  const rhythm = trip ? rhythmData(trip) : [];
+  const logistics = trip ? (trip.days ?? []).flatMap((day, dayIndex) => momentsOf(day)
+    .filter(moment => /transport|accommodation|flight|train|bus|ferry|hotel|transfer/i.test(String(moment?.type ?? "")))
+    .map(moment => ({ ...moment, dayIndex, title: momentTitle(moment), time: momentTime(moment), place: momentPlace(moment) }))) : [];
+  const contextualPrompts = selectedNode?.data.kind === "day"
+    ? [L("Alleggerisci questo giorno", "Lighten this day"), L("Ottimizza gli spostamenti", "Optimise transfers"), L("Rendilo più locale", "Make it more local"), L("Riduci il costo", "Reduce cost")]
+    : selectedNode?.data.kind === "place"
+      ? [L("Trova un'alternativa", "Find an alternative"), L("Valuta se vale la deviazione", "Assess whether it is worth the detour"), L("Inseriscilo nel giorno migliore", "Place it on the best day")]
+      : selectedIds.length > 1
+        ? [L(`Riorganizza questi ${selectedIds.length} elementi`, `Reorganise these ${selectedIds.length} items`), L("Confronta due scenari", "Compare two scenarios")]
+        : [L("Analizza il viaggio", "Analyse the trip"), L("Controlla ritmo e spostamenti", "Check pace and transfers"), L("Trova incoerenze", "Find inconsistencies")];
+
+  const openDay = (index: number) => {
+    const id = `day-${index}`;
+    setView("plan"); setSelectedIds([id]); setInspectorOpen(true);
+    requestAnimationFrame(() => flowRef.current?.fitView({ nodes: [{ id }], padding: .65, duration: 450 }));
+  };
 
   if (loading) return <div className="mr-studio-loading"><span /><p>{L("Apro la tua scrivania di viaggio…", "Opening your travel desk…")}</p></div>;
 
   return <div className="mr-studio">
     <header className="mr-studio-topbar">
       <div className="mr-studio-brand">
-        <button onClick={() => setLocation("/my-account")} aria-label={L("Torna ai viaggi", "Back to trips")}><ArrowLeft size={17} /></button>
         <FlowNavLogo size={25} />
         <span>mindroute</span>
       </div>
+      <nav className="mr-product-nav"><button className="on">Studio</button><button onClick={() => setLocation("/my-account?view=portrait")}>{L("Profilo", "Profile")}</button></nav>
       <div className="mr-trip-switcher">
-        <span>{L("I miei viaggi", "My trips")}</span><i>/</i>
-        <select value={trip?.id ?? ""} onChange={event => { const next = library.find(item => item.id === Number(event.target.value)); if (next) openTrip(next); }}>
-          {library.map(item => <option key={item.id} value={item.id}>{item.destinationName ?? L("Viaggio", "Trip")}</option>)}
-        </select><ChevronDown size={14} />
+        <button onClick={() => setTripMenuOpen(value => !value)}><span>{L("Viaggio attivo", "Active trip")}</span><strong>{trip?.destinationName ?? L("Nessun viaggio", "No trip")}</strong><ChevronDown size={14} /></button>
+        {tripMenuOpen && <div className="mr-trip-library-popover">
+          <header><span>{L("I tuoi viaggi", "Your trips")}</span><small>{library.length}</small></header>
+          <div>{library.map(item => <button key={item.id} className={item.id === trip?.id ? "on" : ""} onClick={() => { openTrip(item); setTripMenuOpen(false); }}><span style={item.heroImageUrl ? { backgroundImage: `url(${item.heroImageUrl})` } : undefined} /><p><strong>{item.destinationName ?? L("Viaggio", "Trip")}</strong><small>{item.days?.length ?? 0} {L("giorni", "days")}</small></p>{item.id === trip?.id && <Check size={14} />}</button>)}</div>
+          <footer><button onClick={() => { setTripMenuOpen(false); setNewTripOpen(true); }}><Plus size={14} />{L("Nuovo viaggio", "New trip")}</button></footer>
+        </div>}
       </div>
       <div className="mr-top-actions">
-        {trip && <button className="mr-classic-mode" onClick={() => setLocation(`/itinerary/${trip.id}`)}><Compass size={14} /><span>{L("Itinerario", "Itinerary")}</span></button>}
-        <button className="share"><Link2 size={14} />{L("Condividi", "Share")}</button>
+        <button className="mr-global-ai" onClick={() => setAiOpen(true)}><Sparkles size={14} /><span>{L("Lavora con l'AI", "Work with AI")}</span></button>
+        <button className="share" onClick={shareTrip} disabled={!trip}><Share2 size={14} />{L("Condividi", "Share")}</button>
+        {trip && <button className="mr-classic-mode" onClick={() => setLocation(`/itinerary/${trip.id}`)}><ClipboardList size={14} /><span>{L("Riepiloga viaggio", "Trip summary")}</span></button>}
         <button onClick={undo} disabled={!history.length} aria-label={L("Annulla", "Undo")}><Undo2 size={16} /></button>
+        <button onClick={redo} disabled={!futureHistory.length} aria-label={L("Ripristina", "Redo")}><Redo2 size={16} /></button>
         <button className="mr-save-state" onClick={() => saveCanvas()} disabled={!trip || saving}><Save size={15} /><span>{saving ? L("Salvo", "Saving") : dirty ? L("Salva", "Save") : L("Salvato", "Saved")}</span></button>
         <LangDropdown variant="dark" />
       </div>
@@ -599,33 +762,41 @@ function TravelStudioInner() {
 
     <main className="mr-studio-main">
       <nav className="mr-object-toolbar" aria-label={L("Strumenti canvas", "Canvas tools")}>
-        <button className="new" onClick={() => setLocation("/start")}><Plus size={19} /><span>{L("Nuovo", "New")}</span></button>
+        <button className="new" onClick={() => setAddMenuOpen(value => !value)}><Plus size={19} /><span>{L("Aggiungi", "Add")}</span></button>
+        {addMenuOpen && <div className="mr-add-menu">
+          <button onClick={addDay}><CalendarDays size={15} /><span><strong>{L("Giorno", "Day")}</strong><small>{L("Estendi il piano", "Extend the plan")}</small></span></button>
+          <button onClick={() => addObject("place")}><MapIcon size={15} /><span><strong>{L("Luogo", "Place")}</strong><small>{L("Una tappa da valutare", "A stop to consider")}</small></span></button>
+          <button onClick={() => addObject("maybe")}><Layers3 size={15} /><span><strong>{L("Idea / Maybe", "Idea / Maybe")}</strong><small>{L("Non entra ancora nel piano", "Not in the plan yet")}</small></span></button>
+          <button onClick={() => addObject("note")}><StickyNote size={15} /><span><strong>{L("Nota", "Note")}</strong><small>{L("Desiderio o vincolo", "Wish or constraint")}</small></span></button>
+          <button onClick={() => addObject("booking")}><Plane size={15} /><span><strong>{L("Logistica", "Logistics")}</strong><small>{L("Volo, hotel o trasporto", "Flight, hotel or transport")}</small></span></button>
+          <button onClick={() => addObject("social")}><Instagram size={15} /><span><strong>{L("Ispirazione", "Inspiration")}</strong><small>Instagram, TikTok, web</small></span></button>
+        </div>}
         <div className="sep" />
         <button data-label={L("Seleziona", "Select")} className={tool === "select" ? "on" : ""} onClick={() => setTool("select")} title={L("Seleziona", "Select")}><MousePointer2 size={18} /></button>
         <button data-label={L("Sposta", "Pan")} className={tool === "hand" ? "on" : ""} onClick={() => setTool("hand")} title={L("Sposta canvas", "Pan canvas")}><Hand size={18} /></button>
         <div className="sep" />
-        <button data-label={L("Nota", "Note")} onClick={() => addObject("note")} title={L("Nota", "Note")}><StickyNote size={18} /></button>
-        <button data-label={L("Domanda", "Question")} onClick={() => addObject("question")} title={L("Domanda", "Question")}><MessageCircleQuestion size={18} /></button>
-        <button data-label={L("Immagine", "Image")} onClick={() => addObject("photo")} title={L("Immagine", "Image")}><FileImage size={18} /></button>
-        <button data-label={L("Prenotazione", "Booking")} onClick={() => addObject("booking")} title={L("Prenotazione", "Booking")}><Plane size={18} /></button>
-        <button data-label={L("Ispirazione", "Inspiration")} onClick={() => addObject("social")} title={L("Salva link Instagram, TikTok o web", "Save an Instagram, TikTok or web link")}><Instagram size={18} /></button>
-        <button data-label="Maybe" onClick={() => addObject("maybe")} title="Maybe"><Layers3 size={18} /></button>
-        <div className="sep" />
         <button data-label={L("Raggruppa", "Group")} onClick={groupSelection} disabled={selectedIds.length < 2} title={L("Raggruppa", "Group")}><BoxSelect size={18} /></button>
         <button data-label={L("Elimina", "Delete")} onClick={deleteSelection} disabled={!selectedIds.length} title={L("Elimina", "Delete")}><Trash2 size={18} /></button>
         <button data-label={L("Come funziona", "How it works")} onClick={() => setGuideOpen(true)} title={L("Come funziona", "How it works")}><CircleHelp size={18} /></button>
+        <button data-label={L("Profilo", "Profile")} onClick={() => setLocation("/my-account?view=portrait")} title={L("Profilo", "Profile")}><UserRound size={18} /></button>
       </nav>
 
-      <div className="mr-flow-wrap">
+      {view === "plan" && <div className="mr-flow-wrap">
         {trip ? <ReactFlow<TravelNode, Edge>
           nodes={nodes} edges={edges} nodeTypes={nodeTypes}
           onNodesChange={onNodesChange} onEdgesChange={changes => { onEdgesChangeBase(changes); if (changes.some(change => change.type !== "select")) setDirty(true); }}
           onInit={instance => { flowRef.current = instance; setTimeout(() => instance.fitView({ padding: .13 }), 80); }}
           onMove={(_, viewport) => setZoom(viewport.zoom)}
           onNodeClick={(_, node) => { setSelectedIds([node.id]); setInspectorOpen(true); }}
+          onNodeContextMenu={(event, node) => { event.preventDefault(); setSelectedIds([node.id]); setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id }); }}
+          onNodeDragStart={() => pushHistory()}
+          onNodeDragStop={(_, node) => {
+            const target = flowRef.current?.getIntersectingNodes(node).find(item => item.data.kind === "day" && item.id !== node.id);
+            if (target?.data.dayIndex != null && ["place", "social", "photo", "note", "booking"].includes(node.data.kind)) insertNodeIntoDay(node, Number(target.data.dayIndex));
+          }}
           onSelectionChange={({ nodes: selected }) => { const ids = selected.map(node => node.id); setSelectedIds(ids); if (ids.length === 1) setInspectorOpen(true); }}
           onNodeDoubleClick={(_, node) => { setSelectedIds([node.id]); setInspectorOpen(true); }}
-          onPaneClick={() => { setSelectedIds([]); setInspectorOpen(false); }}
+          onPaneClick={() => { setSelectedIds([]); setInspectorOpen(false); setContextMenu(null); setAddMenuOpen(false); }}
           panOnDrag={tool === "hand" ? true : [1, 2]}
           nodesDraggable={tool === "select"} selectionOnDrag={tool === "select"}
           selectionMode={SelectionMode.Partial} multiSelectionKeyCode={["Shift", "Meta", "Control"]}
@@ -634,16 +805,39 @@ function TravelStudioInner() {
         >
           <Background gap={24} size={1} color="rgba(30,28,25,.10)" />
           <MiniMap pannable zoomable className="mr-minimap" nodeColor={node => node.data.kind === "day" ? "#E86B52" : node.data.kind === "map" ? "#7FA6B3" : "#C7B9A8"} />
-        </ReactFlow> : <div className="mr-empty-desk"><Compass size={34} /><span>MindRoute Studio</span><h1>{L("Prima crea il tuo viaggio.", "Create your trip first.")}</h1><p>{L("Il quiz genera un solo itinerario completo. Da qui potrai poi lavorarci manualmente o con l'AI.", "The quiz generates one complete itinerary. You can then work on it here manually or with AI.")}</p><button onClick={() => setLocation("/start")}><Plus size={15} />{L("Crea il primo viaggio", "Create first trip")}</button></div>}
-      </div>
+        </ReactFlow> : <div className="mr-empty-desk"><Compass size={34} /><span>MindRoute Studio</span><h1>{L("Da dove vuoi partire?", "Where do you want to start?")}</h1><p>{L("Fatti guidare dal quiz oppure costruisci liberamente un viaggio già chiaro nella tua testa.", "Use the guided quiz or freely build a trip already clear in your mind.")}</p><div><button onClick={() => setLocation("/start")}><Sparkles size={15} />{L("Quiz guidato", "Guided quiz")}</button><button className="secondary" onClick={() => setNewTripOpen(true)}><Plus size={15} />{L("Parti da zero", "Start from scratch")}</button></div></div>}
+      </div>}
 
-      {trip && !selectedIds.length && !aiOpen && !guideOpen && <div className="mr-canvas-hint"><MousePointer2 size={14} /><span>{L("Clicca una card per modificarne tutti i contenuti. Trascinala per organizzare lo spazio.", "Click a card to edit all its content. Drag it to organise the space.")}</span></div>}
+      {view === "map" && trip && <section className="mr-work-view mr-map-workspace">
+        <header><span>{L("Vista geografica", "Geographic view")}</span><h1>{L("Dove accade il viaggio", "Where the trip happens")}</h1><p>{L("Luoghi reali, ordine dei giorni e distanze nello stesso piano.", "Real places, day order and distances in the same plan.")}</p></header>
+        {points.length ? <div className="mr-real-map"><Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} onOpenDay={(day: number) => openDay(Math.max(0, day - 1))} /></Suspense></div>
+          : <div className="mr-view-empty"><MapIcon size={25} /><h2>{L("Mancano luoghi precisi", "Exact places are missing")}</h2><p>{L("Apri un giorno e inserisci il luogo nelle sue tappe. La mappa si costruirà automaticamente.", "Open a day and add exact places to its stops. The map will build automatically.")}</p><button onClick={() => setView("plan")}>{L("Torna al Piano", "Back to Plan")}</button></div>}
+      </section>}
 
-      {trip && !selectedIds.length && !aiOpen && !inspectorOpen && !guideOpen && <button className="mr-ai-launcher" onClick={() => setAiOpen(true)}><Sparkles size={17} /><span><strong>{L("Chiedi a MindRoute", "Ask MindRoute")}</strong><small>{L("Lavora su tutto il viaggio", "Work on the whole trip")}</small></span><ChevronRight size={15} /></button>}
+      {view === "rhythm" && trip && <section className="mr-work-view mr-rhythm-workspace">
+        <header><span>{L("Lettura del ritmo", "Pace reading")}</span><h1>{L("Quanto respira ogni giorno", "How each day breathes")}</h1><p>{L("MindRoute evidenzia giornate dense, trasferimenti e spazi vuoti senza cambiare nulla al posto tuo.", "MindRoute highlights dense days, transfers and breathing room without changing anything for you.")}</p></header>
+        <div className="mr-rhythm-list">{rhythm.map(day => <button key={day.index} onClick={() => openDay(day.index)}><span><small>{L("Giorno", "Day")} {day.index + 1}</small><strong>{day.title}</strong></span><div><i><b style={{ width: `${Math.max(6, day.intensity)}%` }} /></i><em>{day.intensity >= 75 ? L("Intenso", "Intense") : day.intensity >= 45 ? L("Equilibrato", "Balanced") : L("Lento", "Slow")}</em></div><p>{day.count} {L("momenti", "moments")} · {day.transfers} {L("spostamenti", "transfers")}</p><ChevronRight size={15} /></button>)}</div>
+      </section>}
 
-      <div className="mr-zoom-tools"><button onClick={() => flowRef.current?.zoomOut()}><ZoomOut size={14} /></button><span>{Math.round(zoom * 100)}%</span><button onClick={() => flowRef.current?.zoomIn()}><ZoomIn size={14} /></button><button onClick={() => flowRef.current?.fitView({ padding: .13, duration: 350 })}><Maximize2 size={14} /></button></div>
+      {view === "budget" && trip && <section className="mr-work-view mr-budget-workspace">
+        <header><span>{L("Controllo dei costi", "Cost control")}</span><h1>{L("Il budget resta dentro il viaggio", "The budget stays inside the trip")}</h1><p>{L("Modifica le stime: il totale e l'itinerario operativo restano sincronizzati.", "Edit estimates: the total and operational itinerary stay in sync.")}</p></header>
+        <div className="mr-budget-premium"><div className="mr-budget-total"><span>{L("Stima attuale", "Current estimate")}</span><strong>€{budget.total.toLocaleString(lang === "it" ? "it-IT" : "en-US")}</strong><small>{budget.target ? `${Math.round(budget.total / Math.max(budget.target, 1) * 100)}% ${L("del tetto", "of target")}` : L("Imposta un tetto", "Set a target")}</small><i><b style={{ width: `${Math.min(100, budget.total / Math.max(budget.target, 1) * 100)}%` }} /></i></div><div className="mr-budget-fields"><label>{L("Prenotabile", "Bookable")}<span>€<input type="number" min="0" value={trip.tripMeta?.total_cost_bookable ?? 0} onChange={event => updateBudgetValue("bookable", Number(event.target.value))} /></span></label><label>{L("In loco", "On site")}<span>€<input type="number" min="0" value={trip.tripMeta?.total_cost_onsite_estimate ?? 0} onChange={event => updateBudgetValue("onsite", Number(event.target.value))} /></span></label><label>{L("Tetto desiderato", "Target")}<span>€<input type="number" min="0" value={trip.tripMeta?.studio_budget_target ?? 0} onChange={event => updateBudgetValue("target", Number(event.target.value))} /></span></label></div></div>
+      </section>}
 
-      {selectedIds.length > 0 && <div className="mr-selection-bar"><span>{selectedIds.length} {selectedIds.length === 1 ? L("oggetto", "object") : L("oggetti", "objects")}</span><button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Chiedi all'AI", "Ask AI")}</button>{selectedIds.length > 1 && <button onClick={groupSelection}><BoxSelect size={14} />{L("Raggruppa", "Group")}</button>}<button onClick={deleteSelection}><Trash2 size={14} /></button></div>}
+      {view === "logistics" && trip && <section className="mr-work-view mr-logistics-workspace">
+        <header><span>{L("Parte operativa", "Operational layer")}</span><h1>{L("Spostamenti e prenotazioni", "Transfers and bookings")}</h1><p>{L("Tutto ciò che deve essere confermato prima di partire, organizzato per giorno.", "Everything that must be confirmed before departure, organised by day.")}</p></header>
+        <div className="mr-logistics-grid">{logistics.map((item: any, index: number) => <button key={item.id ?? index} onClick={() => openDay(item.dayIndex)}><span><Plane size={16} /></span><p><small>{L("Giorno", "Day")} {item.dayIndex + 1} · {item.time || L("Orario da definire", "Time TBD")}</small><strong>{item.title}</strong><em>{item.place || L("Luogo da definire", "Place TBD")}</em></p><ChevronRight size={15} /></button>)}{nodes.filter(node => node.data.kind === "booking").map(node => <button key={node.id} onClick={() => { setView("plan"); setSelectedIds([node.id]); setInspectorOpen(true); }}><span><ClipboardList size={16} /></span><p><small>{L("Prenotazione", "Booking")}</small><strong>{node.data.title}</strong><em>{node.data.status === "booked" ? L("Confermata", "Confirmed") : L("Da completare", "To complete")}</em></p><ChevronRight size={15} /></button>)}{!logistics.length && !nodes.some(node => node.data.kind === "booking") && <div className="mr-view-empty"><Plane size={24} /><h2>{L("Nessuna logistica ancora", "No logistics yet")}</h2><p>{L("Aggiungi un volo, un hotel o un trasferimento dal pulsante Aggiungi.", "Add a flight, hotel or transfer from the Add button.")}</p></div>}</div>
+      </section>}
+
+      <nav className="mr-lens-dock" aria-label={L("Viste del viaggio", "Trip views")}>
+        {([ ["plan", <BoxSelect size={15} />, L("Piano", "Plan")], ["map", <MapIcon size={15} />, L("Mappa", "Map")], ["rhythm", <Clock3 size={15} />, L("Ritmo", "Pace")], ["budget", <Euro size={15} />, "Budget"], ["logistics", <Plane size={15} />, L("Logistica", "Logistics")] ] as [StudioView, ReactNode, string][]).map(([id, icon, label]) => <button key={id} className={view === id ? "on" : ""} onClick={() => { setView(id); setInspectorOpen(false); setContextMenu(null); }}>{icon}<span>{label}</span></button>)}
+      </nav>
+
+      {view === "plan" && trip && !selectedIds.length && !aiOpen && !guideOpen && <div className="mr-canvas-hint"><MousePointer2 size={14} /><span>{L("Clicca una card per modificarla. Trascina un luogo dentro un giorno per inserirlo nel piano.", "Click a card to edit it. Drag a place into a day to add it to the plan.")}</span></div>}
+
+      {view === "plan" && <div className="mr-zoom-tools"><button onClick={() => flowRef.current?.zoomOut()}><ZoomOut size={14} /></button><span>{Math.round(zoom * 100)}%</span><button onClick={() => flowRef.current?.zoomIn()}><ZoomIn size={14} /></button><button onClick={() => flowRef.current?.fitView({ padding: .13, duration: 350 })}><Maximize2 size={14} /></button></div>}
+
+      {view === "plan" && selectedIds.length > 0 && <div className="mr-selection-bar"><span>{selectedIds.length} {selectedIds.length === 1 ? L("oggetto", "object") : L("oggetti", "objects")}</span><button onClick={() => setAiOpen(true)}><Sparkles size={14} />{selectedIds.length === 1 ? L("Migliora questo", "Improve this") : L(`Lavora su questi ${selectedIds.length}`, `Work on these ${selectedIds.length}`)}</button>{selectedIds.length > 1 && <button onClick={groupSelection}><BoxSelect size={14} />{L("Raggruppa", "Group")}</button>}<button onClick={deleteSelection}><Trash2 size={14} /></button></div>}
 
       {inspectorOpen && selectedNode && !aiOpen && <aside className="mr-inspector-float">
         <header><div><span>{selectedNode.data.kind}</span><strong>{L("Modifica il viaggio", "Edit the trip")}</strong></div><button onClick={() => setInspectorOpen(false)}><PanelRightClose size={16} /></button></header>
@@ -674,6 +868,11 @@ function TravelStudioInner() {
           <label>{L("Inserisci nel giorno", "Add to day")}<select value={selectedNode.data.assignedDay ?? ""} onChange={event => updateSelectedData({ assignedDay: event.target.value === "" ? null : Number(event.target.value) })}><option value="">{L("Resta nell'Inbox", "Keep in Inbox")}</option>{(trip?.days ?? []).map((day, index) => <option key={index} value={index}>{L("Giorno", "Day")} {index + 1} · {dayTitle(day, index)}</option>)}</select></label>
           <button className="mr-open-itinerary" disabled={selectedNode.data.assignedDay == null} onClick={insertInspirationIntoDay}>{L("Trasforma in tappa", "Turn into a stop")}<ChevronRight size={14} /></button>
         </>}
+        {selectedNode.data.kind === "place" && <>
+          <label>{L("Luogo preciso", "Exact place")}<input value={selectedNode.data.place ?? ""} onChange={event => updateSelectedData({ place: event.target.value })} placeholder={L("Nome, quartiere o indirizzo", "Name, neighbourhood or address")} /></label>
+          <label>{L("Inserisci nel giorno", "Add to day")}<select value={selectedNode.data.assignedDay ?? ""} onChange={event => updateSelectedData({ assignedDay: event.target.value === "" ? null : Number(event.target.value) })}><option value="">Maybe</option>{(trip?.days ?? []).map((day, index) => <option key={index} value={index}>{L("Giorno", "Day")} {index + 1} · {dayTitle(day, index)}</option>)}</select></label>
+          <button className="mr-open-itinerary" disabled={selectedNode.data.assignedDay == null} onClick={() => insertNodeIntoDay(selectedNode, Number(selectedNode.data.assignedDay))}>{L("Aggiungi al piano", "Add to plan")}<ChevronRight size={14} /></button>
+        </>}
         {selectedNode.data.kind === "budget" && <div className="mr-budget-editor">
           <label>{L("Costi prenotabili", "Bookable costs")}<input type="number" min="0" value={trip?.tripMeta?.total_cost_bookable ?? 0} onChange={event => updateSelectedData({ bookable: Number(event.target.value) })} /></label>
           <label>{L("Costi in loco", "On-site costs")}<input type="number" min="0" value={trip?.tripMeta?.total_cost_onsite_estimate ?? 0} onChange={event => updateSelectedData({ onsite: Number(event.target.value) })} /></label>
@@ -682,19 +881,34 @@ function TravelStudioInner() {
         {selectedNode.data.kind === "mood" && <label>{L("Immagini, una URL per riga", "Images, one URL per line")}<textarea value={(selectedNode.data.images ?? []).join("\n")} onChange={event => updateSelectedData({ images: event.target.value.split("\n").map(value => value.trim()).filter(Boolean) })} /></label>}
         {selectedNode.data.kind === "map" && <div className="mr-semantic-notice"><strong>{selectedNode.data.points?.length ?? 0} {L("luoghi riconosciuti", "recognised places")}</strong><p>{L("La mappa si aggiorna dai luoghi precisi inseriti nelle tappe dei giorni.", "The map updates from exact places entered in day stops.")}</p></div>}
         {!['trip','day','map','budget','mood','group'].includes(selectedNode.data.kind) && <div className="mr-status-control"><span>{L("Stato", "Status")}</span>{(["idea", "chosen", "booked"] as ObjectStatus[]).map(status => <button key={status} className={selectedNode.data.status === status ? "on" : ""} onClick={() => updateSelectedData({ status })}>{status === "idea" ? "Idea" : status === "chosen" ? L("Scelto", "Chosen") : L("Prenotato", "Booked")}</button>)}</div>}
+        <div className="mr-context-actions"><span>{L("Azioni intelligenti", "Smart actions")}</span>{contextualPrompts.slice(0, 4).map(prompt => <button key={prompt} onClick={() => { setAiInput(prompt); setAiOpen(true); }}><Sparkles size={12} />{prompt}</button>)}</div>
         {['trip','day'].includes(selectedNode.data.kind) && <button className="mr-open-itinerary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Vedi nell'itinerario operativo", "View in operational itinerary")}<ChevronRight size={14} /></button>}
         <button className="mr-inspector-ai" onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Lavora su questo con MindRoute", "Work on this with MindRoute")}</button>
       </aside>}
 
+      {contextMenu && <div className="mr-context-menu" style={{ left: Math.min(contextMenu.x, window.innerWidth - 210), top: Math.min(contextMenu.y - 62, window.innerHeight - 250) }}>
+        <button onClick={() => { setInspectorOpen(true); setContextMenu(null); }}><ChevronRight size={13} />{L("Apri", "Open")}</button>
+        <button onClick={duplicateSelection} disabled={selectedNode?.data.kind === "day" || selectedNode?.data.kind === "trip"}><Copy size={13} />{L("Duplica", "Duplicate")}</button>
+        {selectedNode && ["place", "social", "photo", "note"].includes(selectedNode.data.kind) && <button onClick={moveSelectedToMaybe}><Layers3 size={13} />{L("Salva in Maybe", "Save to Maybe")}</button>}
+        {selectedNode?.data.kind === "place" && <button onClick={() => { setView("map"); setContextMenu(null); }}><MapIcon size={13} />{L("Vedi sulla mappa", "View on map")}</button>}
+        <button onClick={() => { setAiOpen(true); setContextMenu(null); }}><Sparkles size={13} />{L("Chiedi a MindRoute", "Ask MindRoute")}</button>
+        <button className="danger" onClick={() => { deleteSelection(); setContextMenu(null); }}><Trash2 size={13} />{L("Elimina", "Delete")}</button>
+      </div>}
+
+      {newTripOpen && <div className="mr-new-trip-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setNewTripOpen(false); }}><section className="mr-new-trip-modal">
+        <button className="close" onClick={() => setNewTripOpen(false)}><X size={17} /></button><span>{L("Nuovo viaggio", "New trip")}</span><h2>{L("Come vuoi cominciare?", "How do you want to begin?")}</h2><p>{L("Entrambe le strade portano allo stesso Studio e allo stesso itinerario operativo.", "Both paths lead to the same Studio and operational itinerary.")}</p>
+        <div className="mr-new-trip-paths"><button onClick={() => setLocation("/start")}><Sparkles size={19} /><strong>{L("Fatti guidare", "Get guided")}</strong><small>{L("Quiz rapido, tre destinazioni spiegate, viaggio completo.", "Quick quiz, three explained destinations, complete trip.")}</small><em>{L("Inizia il quiz", "Start quiz")}<ChevronRight size={14} /></em></button><div><Plus size={19} /><strong>{L("Parti da zero", "Start from scratch")}</strong><small>{L("Hai già una direzione? Crea la struttura e lavoraci subito.", "Already have a direction? Create the structure and work on it now.")}</small><label>{L("Destinazione o idea", "Destination or idea")}<input autoFocus value={blankTripForm.destinationName} onChange={event => setBlankTripForm(value => ({ ...value, destinationName: event.target.value }))} placeholder={L("Es. Giappone", "E.g. Japan")} /></label><div><label>{L("Paese / area", "Country / area")}<input value={blankTripForm.country} onChange={event => setBlankTripForm(value => ({ ...value, country: event.target.value }))} /></label><label>{L("Giorni", "Days")}<input type="number" min="1" max="30" value={blankTripForm.days} onChange={event => setBlankTripForm(value => ({ ...value, days: Number(event.target.value) }))} /></label></div><button disabled={!blankTripForm.destinationName.trim() || creatingTrip} onClick={createBlankTrip}>{creatingTrip ? L("Creo…", "Creating…") : L("Apri nello Studio", "Open in Studio")}<ChevronRight size={14} /></button></div></div>
+      </section></div>}
+
       {guideOpen && trip && <div className="mr-guide-backdrop"><section className="mr-studio-guide">
         <button className="close" onClick={closeGuide}><X size={17} /></button>
-        <span>{L("Studio visuale", "Visual Studio")}</span>
-        <h2>{L("Lo stesso viaggio, un modo più libero di pensarlo.", "The same trip, a freer way to think about it.")}</h2>
-        <p>{L("L'itinerario resta il documento completo. Qui organizzi idee, alternative e decisioni nello spazio, poi chiedi all'AI di intervenire sugli elementi che selezioni.", "The itinerary remains the complete document. Here you organise ideas, alternatives and decisions spatially, then ask AI to act on what you select.")}</p>
+        <span>MindRoute Studio</span>
+        <h2>{L("Un solo viaggio. Tutto sotto controllo.", "One trip. Everything under control.")}</h2>
+        <p>{L("Qui costruisci e modifichi. L'itinerario operativo resta la versione completa da leggere e usare durante il viaggio. Ogni modifica è condivisa tra le due modalità.", "Build and edit here. The operational itinerary remains the complete version to read and use while travelling. Every change is shared between both modes.")}</p>
         <div className="mr-guide-steps">
-          <article><b>01</b><MousePointer2 size={18} /><strong>{L("Organizza", "Organise")}</strong><small>{L("Trascina le card per dare spazio a piano, idee e alternative. La sequenza dei giorni resta automatica.", "Drag cards to make room for the plan, ideas and alternatives. Day sequence stays automatic.")}</small></article>
-          <article><b>02</b><BoxSelect size={18} /><strong>{L("Seleziona", "Select")}</strong><small>{L("Una o più card diventano il contesto preciso della richiesta.", "One or more cards become the exact context for your request.")}</small></article>
-          <article><b>03</b><Sparkles size={18} /><strong>{L("Chiedi all'AI", "Ask AI")}</strong><small>{L("Confronta scenari o applica modifiche al vero itinerario.", "Compare scenarios or apply changes to the real itinerary.")}</small></article>
+          <article><b>01</b><MousePointer2 size={18} /><strong>{L("Apri e modifica", "Open and edit")}</strong><small>{L("Ogni card apre contenuti e strumenti pertinenti, senza riempire lo schermo di comandi.", "Every card opens relevant content and tools without filling the screen with controls.")}</small></article>
+          <article><b>02</b><BoxSelect size={18} /><strong>{L("Cambia prospettiva", "Change perspective")}</strong><small>{L("Piano, mappa, ritmo, budget e logistica leggono sempre lo stesso viaggio.", "Plan, map, pace, budget and logistics always read the same trip.")}</small></article>
+          <article><b>03</b><Sparkles size={18} /><strong>{L("Lavora con l'AI", "Work with AI")}</strong><small>{L("Seleziona il contesto e MindRoute propone modifiche verificabili prima di applicarle.", "Select the context and MindRoute proposes reviewable changes before applying them.")}</small></article>
         </div>
         <footer><button className="secondary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Vai all'itinerario classico", "Open classic itinerary")}</button><button className="primary" onClick={closeGuide}>{L("Inizia a esplorare", "Start exploring")}<ChevronRight size={15} /></button></footer>
       </section></div>}
@@ -703,7 +917,7 @@ function TravelStudioInner() {
         <header><div><Sparkles size={15} /><span><strong>MindRoute AI</strong><small>{selectedIds.length ? `${selectedIds.length} oggetti nel contesto` : L("Intero viaggio", "Whole trip")}</small></span></div><button onClick={() => setAiOpen(false)}><X size={16} /></button></header>
         {aiReply && <div className="mr-ai-reply"><p>{aiReply}</p>{aiActions.map(action => <span key={action}><Check size={12} />{action}</span>)}{!aiStreaming && <button onClick={applyAiProposal}>{L("Applica modifiche", "Apply changes")}</button>}</div>}
         <form onSubmit={event => { event.preventDefault(); runCanvasAi(); }}><textarea autoFocus value={aiInput} onChange={event => setAiInput(event.target.value)} placeholder={L("Es. Rendimi questa parte più rilassata…", "E.g. Make this part more relaxed…")} /><button disabled={!aiInput.trim() || aiStreaming}>{aiStreaming ? <span className="mr-ai-pulse" /> : <MoveRight size={16} />}</button></form>
-        {!aiReply && <div className="mr-ai-quick"><button onClick={() => setAiInput(L("Rendi questa parte più rilassata", "Make this part more relaxed"))}>{L("Più rilassato", "More relaxed")}</button><button onClick={() => setAiInput(L("Mostrami due scenari alternativi", "Show me two alternative scenarios"))}>{L("Due scenari", "Two scenarios")}</button><button onClick={() => setAiInput(L("Ha veramente senso? Valuta tempo, costi e ritmo", "Does this really make sense? Assess time, cost and pace"))}>{L("Ha senso?", "Does it make sense?")}</button></div>}
+        {!aiReply && <div className="mr-ai-quick">{contextualPrompts.map(prompt => <button key={prompt} onClick={() => setAiInput(prompt)}>{prompt}</button>)}</div>}
       </section>}
 
     </main>

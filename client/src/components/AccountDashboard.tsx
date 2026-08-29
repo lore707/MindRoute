@@ -82,7 +82,6 @@ function Icon({ name }: { name: keyof typeof ICONS }) {
 // nella pillola contestuale della barra e nel CTA della home. Restano le due
 // cose che sono davvero luoghi: dove sono i tuoi viaggi, e chi sei.
 const NAV: Array<{ id: ViewId; ic: keyof typeof ICONS; key: string }> = [
-  { id: "trips", ic: "trips", key: "acd.nav.trips" },
   { id: "portrait", ic: "portrait", key: "acd.nav.portrait" },
 ];
 // Su telefono serve un bersaglio esplicito per la radice: il logo in alto e'
@@ -237,7 +236,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
       if (v === "home" || v === "resume") return "trips";
       if (v && ["portrait", "trips"].includes(v)) return v as ViewId;
     } catch { /* SSR/no window */ }
-    return "trips";
+    return "portrait";
   });
   // View Mode della collezione "I miei viaggi": griglia di card ↔ mappa Atlas.
   // Non è una route né una sezione: è un cambio di prospettiva sugli STESSI dati.
@@ -1559,9 +1558,10 @@ export function AccountDashboard({ data }: { data: AccountData }) {
           viaggio finisce. */}
       <main className="main">
         <div className={"topbar h4-bar" + (stuck ? " stuck" : "")}>
-          <button className="tb-brand" onClick={() => go("trips")} title="MindRoute"><FlowNavLogo size={22} /></button>
+          <button className="tb-brand" onClick={() => setLocation("/studio")} title="MindRoute Studio"><FlowNavLogo size={22} /></button>
 
           <nav className="h4-nav">
+            <button className="h4-nav-i" onClick={() => setLocation("/studio")}>Studio</button>
             {NAV.map(n => (
               <button key={n.id} className={"h4-nav-i" + (view === n.id ? " on" : "")} onClick={() => go(n.id)}>
                 {t(n.key)}
@@ -1602,6 +1602,10 @@ export function AccountDashboard({ data }: { data: AccountData }) {
       {/* Su telefono la barra in basso porta anche "Oggi": li' il logo non e'
           un bersaglio comodo. Tre voci, le stesse tre idee. */}
       <nav className="mnav">
+        <button className="mnav-i" onClick={() => setLocation("/studio")}>
+          <Icon name="studio" />
+          <span className="lab">Studio</span>
+        </button>
         {MNAV.map(n => (
           <button key={n.id} className={"mnav-i" + (view === n.id ? " on" : "")} onClick={() => go(n.id)}>
             <Icon name={n.ic} />

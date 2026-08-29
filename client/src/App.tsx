@@ -1,5 +1,6 @@
 import { Switch, Route } from "wouter";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -60,8 +61,12 @@ function PageFallback() {
 // un'attesa a vuoto per tutti.
 function Home() {
   const { user, loading } = useAuth();
-  if (loading) return lastKnownAuth() ? <MyAccount /> : <Landing />;
-  return user ? <MyAccount /> : <Landing />;
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    if (!loading && user) setLocation("/studio", { replace: true });
+  }, [loading, setLocation, user]);
+  if (loading) return lastKnownAuth() ? <PageFallback /> : <Landing />;
+  return user ? <PageFallback /> : <Landing />;
 }
 
 function Router() {
