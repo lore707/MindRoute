@@ -13,12 +13,13 @@
  *     rilascio la mappa torna pulita.
  *   · Il marker comunica impatto/emozione via DIMENSIONE, COLORE, GLOW.
  *
- * Stesso linguaggio grafico del Journey: tile CARTO dark, glow controllati,
+ * Stesso linguaggio grafico del Journey: OpenFreeMap, glow controllati,
  * pannello di dettaglio glass. Tutto DERIVATO da dati reali.
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { mapTileUrl, readMapStyle } from "@/lib/map-style";
+import { MAP_ATTR, readMapStyle } from "@/lib/map-style";
+import { createMapBaseLayer } from "@/lib/map-base-layer";
 import "@/styles/leaflet-chrome.css";
 import { attachAutoSize, fitToPoints, flyDuration } from "@/lib/leaflet-utils";
 import L from "leaflet";
@@ -30,8 +31,6 @@ import type { AccountData } from "./AccountCinematic";
 
 // Vista mondo: mostra DOVE sei stato, non come arrivarci → niente etichette,
 // che a questa scala sono rumore. Lo stile lo sceglie l'utente altrove.
-const tileUrl = () => mapTileUrl(readMapStyle(), { labels: false });
-const CARTO_ATTR = '&copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 export type Emotion = "life-changing" | "meaningful" | "loved" | "not-for-me" | "revisited";
 export const EMO_COLOR: Record<Emotion, string> = {
@@ -129,7 +128,9 @@ export function AtlasMap({ atlas, trips, savedMoments, onSaveEmotion, initialSel
     const map = L.map(mapEl.current, { zoomControl: false, attributionControl: true, worldCopyJump: true, minZoom: 2 });
     map.setView([25, 10], 2); // Leaflet richiede center+zoom prima di ogni proiezione/fitBounds
     mapRef.current = map;
-    L.tileLayer(tileUrl(), { attribution: CARTO_ATTR, subdomains: "abcd", maxZoom: 10 }).addTo(map);
+    createMapBaseLayer(readMapStyle()).addTo(map);
+    map.attributionControl.setPrefix(false);
+    map.attributionControl.addAttribution(MAP_ATTR);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     // Leaflet impila tutti i controlli di un angolo uno sotto l'altro: zoom e
     // attribuzione finivano entrambi in basso a destra e si fondevano in un

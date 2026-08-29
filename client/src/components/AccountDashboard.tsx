@@ -26,9 +26,7 @@ import type { AccountData } from "./AccountCinematic";
 import { PortraitScreen } from "@/components/PortraitScreen";
 import { computeConfidence, visibleInsights, type PortraitSignals } from "@shared/portrait-insights";
 import { deriveTravelRules } from "@shared/travel-rules";
-import { mapTileUrl, readMapStyle } from "@/lib/map-style";
 import "@/styles/leaflet-chrome.css";
-import { attachAutoSize, fitToPoints, safePoints } from "@/lib/leaflet-utils";
 
 const AccountAtlas = lazy(() => import("./AccountAtlas").then(m => ({ default: m.AccountAtlas })));
 const AtlasMap = lazy(() => import("./AtlasMap").then(m => ({ default: m.AtlasMap })));

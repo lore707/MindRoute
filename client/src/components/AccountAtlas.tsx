@@ -1,7 +1,7 @@
 /**
  * AccountAtlas.tsx
  * ───────────────────────────────────────────────────────────────
- * Capitolo V — "Il tuo atlante". Mappa-mondo VERA (Leaflet, tile CARTO dark)
+ * Capitolo V — "Il tuo atlante". Mappa-mondo VERA (Leaflet + OpenFreeMap)
  * che plotta ogni luogo per cui l'utente ha generato un itinerario. Dati reali
  * da GET /api/me/atlas (coordinate geocodificate lato server).
  *
@@ -11,7 +11,8 @@
  * ─────────────────────────────────────────────────────────────── */
 
 import { useEffect, useMemo, useRef } from "react";
-import { mapTileUrl, readMapStyle } from "@/lib/map-style";
+import { MAP_ATTR, readMapStyle } from "@/lib/map-style";
+import { createMapBaseLayer } from "@/lib/map-base-layer";
 import "@/styles/leaflet-chrome.css";
 import { attachAutoSize, fitToPoints } from "@/lib/leaflet-utils";
 import L from "leaflet";
@@ -39,9 +40,6 @@ export interface AtlasData {
 }
 
 // Fondo dallo stile SCELTO dall'utente (condiviso con itinerario e home).
-const tileUrl = () => mapTileUrl(readMapStyle());
-const CARTO_ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -99,7 +97,9 @@ export function AccountAtlas({
     });
     mapRef.current = map;
 
-    L.tileLayer(tileUrl(), { attribution: CARTO_ATTR, subdomains: "abcd", maxZoom: 18 }).addTo(map);
+    createMapBaseLayer(readMapStyle()).addTo(map);
+    map.attributionControl.setPrefix(false);
+    map.attributionControl.addAttribution(MAP_ATTR);
 
     const latlngs: L.LatLngExpression[] = [];
     for (const p of places) {

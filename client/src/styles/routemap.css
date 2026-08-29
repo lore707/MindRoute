@@ -13,13 +13,10 @@
    anche barra giorni, filtri e striscia-tappe in flusso). */
 .rmap-stage{position:relative}
 .rmap{width:100%;height:clamp(360px,52vh,560px);background:#11161f}
-/* basemap CARTO dark schiarito+contrastato: strade ed etichette leggibili, mood notturno preservato */
-/* Il filtro schiarente serviva a rendere leggibile la basemap NOTTE. Su
-   Voyager e sulla chiara laverebbe via i colori: si applica solo dove serve. */
-.rmap--dark .leaflet-tile{filter:brightness(1.5) contrast(1.08) saturate(1.22)}
-/* Voyager di suo e' un filo pallido: un soffio di saturazione e contrasto lo
-   porta al livello del resto del prodotto, senza farlo diventare un cartone. */
-.rmap--voyager .leaflet-tile{filter:saturate(1.12) contrast(1.04)}
+/* OpenFreeMap e' vettoriale: MapLibre disegna il fondo dentro il tile pane,
+   mentre Leaflet continua a gestire marker, percorsi e popup. */
+.rmap .maplibregl-map,.rmap .maplibregl-canvas-container{width:100%;height:100%}
+.rmap .maplibregl-canvas{outline:none}
 
 /* ── Scelta dello stile ────────────────────────────────────────────────────
    In alto a destra, sopra la mappa. Vetro scuro: si legge sia sul chiaro sia
@@ -210,4 +207,3 @@
   .rmap-icbtn{position:relative}
   .rmap-icbtn::before{content:"";position:absolute;inset:-6px;border-radius:50%}
 }
-

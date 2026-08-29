@@ -109,12 +109,48 @@ function mapPoints(trip: RawTrip) {
 }
 
 function routePoints(trip: RawTrip) {
-  return mapPoints(trip).map((point: any, index) => ({
-    ...point,
-    label: point.label || `Tappa ${index + 1}`,
-    day: Number(point.day ?? 1),
-    category: point.category ?? "custom",
-  }));
+  const moments = (trip.days ?? []).flatMap((day, dayIndex) => momentsOf(day).map(moment => ({ moment, day: dayIndex + 1 })));
+  const categoryOf = (moment: any, fallback?: string) => {
+    if (fallback && fallback !== "custom") return fallback;
+    const type = String(moment?.type ?? "").toLowerCase();
+    if (/hotel|stay|accommodation|alloggio/.test(type)) return "lodging";
+    if (/food|restaurant|lunch|dinner|cafe|cibo|pranzo|cena/.test(type)) return "food";
+    if (/beach|mare|spiaggia/.test(type)) return "beach";
+    if (/sight|museum|landmark|culture|visit|museo|visita/.test(type)) return "sight";
+    if (/experience|activity|tour|esperienza|attivita/.test(type)) return "experience";
+    return "custom";
+  };
+
+  return mapPoints(trip).map((point: any, index) => {
+    const day = Number(point.day ?? 1);
+    const match = moments.find(entry => {
+      if (entry.day !== day) return false;
+      const lat = Number(entry.moment?.location_lat ?? entry.moment?.lat);
+      const lng = Number(entry.moment?.location_lng ?? entry.moment?.lng);
+      return Number.isFinite(lat) && Number.isFinite(lng)
+        && Math.abs(lat - Number(point.lat)) < .0002
+        && Math.abs(lng - Number(point.lng)) < .0002;
+    })?.moment;
+    const booking = match?.booking ?? {};
+    const duration = Number(match?.duration_min ?? 0);
+    return {
+      ...point,
+      label: point.label || (match ? momentPlace(match) || momentTitle(match) : `Tappa ${index + 1}`),
+      day,
+      category: categoryOf(match, point.category),
+      momentId: match?.id ?? point.momentId,
+      imageUrl: point.imageUrl ?? momentImage(match),
+      durationLabel: point.durationLabel ?? (duration ? `${duration} min` : undefined),
+      bestTime: point.bestTime ?? momentTime(match),
+      kindLabel: point.kindLabel ?? String(match?.type ?? "").replace(/_/g, " "),
+      desc: point.desc ?? momentDescription(match) ?? match?.guide?.what_it_is,
+      bookable: point.bookable ?? Boolean(booking.affiliate_url),
+      ctaUrl: point.ctaUrl ?? point.affiliateUrl ?? booking.affiliate_url,
+      cta: point.cta ?? booking.display_label,
+      ctaProvider: point.ctaProvider ?? booking.provider,
+      type: point.type ?? match?.type,
+    };
+  });
 }
 
 function rhythmData(trip: RawTrip) {
@@ -796,6 +832,18 @@ function TravelStudioInner() {
     .filter(moment => /transport|accommodation|flight|train|bus|ferry|hotel|transfer/i.test(String(moment?.type ?? "")))
     .map(moment => ({ ...moment, dayIndex, title: momentTitle(moment), time: momentTime(moment), place: momentPlace(moment) }))) : [];
   const allMoments = trip ? (trip.days ?? []).flatMap(momentsOf) : [];
+  const mappedMomentCount = allMoments.filter(moment => {
+    const lat = Number(moment?.location_lat ?? moment?.lat);
+    const lng = Number(moment?.location_lng ?? moment?.lng);
+    return Number.isFinite(lat) && Number.isFinite(lng);
+  }).length;
+  const unmappedMomentCount = Math.max(0, allMoments.length - mappedMomentCount);
+  const mappedDayCount = new Set(points.map(point => point.day)).size;
+  const firstUnmappedDay = trip ? (trip.days ?? []).findIndex(day => momentsOf(day).some(moment => {
+    const lat = Number(moment?.location_lat ?? moment?.lat);
+    const lng = Number(moment?.location_lng ?? moment?.lng);
+    return !Number.isFinite(lat) || !Number.isFinite(lng);
+  })) : -1;
   const emptyDays = rhythm.filter(day => day.count === 0);
   const denseDays = rhythm.filter(day => day.intensity >= 75);
   const missingPlaces = allMoments.filter(moment => !momentPlace(moment).trim()).length;
@@ -1064,6 +1112,14 @@ function TravelStudioInner() {
 
       {view === "map" && trip && <section className="mr-work-view mr-map-workspace">
         <header><span>{L("Vista geografica", "Geographic view")}</span><h1>{L("Dove accade il viaggio", "Where the trip happens")}</h1><p>{L("Luoghi reali, ordine dei giorni e distanze nello stesso piano.", "Real places, day order and distances in the same plan.")}</p></header>
+        <div className="mr-map-summary">
+          <div><strong>{points.length}</strong><span>{L("luoghi sulla mappa", "places on the map")}</span></div>
+          <div><strong>{mappedDayCount}/{trip.days?.length ?? 0}</strong><span>{L("giorni geolocalizzati", "mapped days")}</span></div>
+          <div><strong>{unmappedMomentCount}</strong><span>{L("tappe da precisare", "stops to locate")}</span></div>
+          {firstUnmappedDay >= 0
+            ? <button onClick={() => openDay(firstUnmappedDay)}><MapIcon size={14} />{L("Completa la prossima tappa", "Complete the next stop")}</button>
+            : <button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Ottimizza gli spostamenti", "Optimise transfers")}</button>}
+        </div>
         {points.length ? <div className="mr-real-map"><Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} onOpenDay={(day: number) => openDay(Math.max(0, day - 1))} /></Suspense></div>
           : <div className="mr-view-empty"><MapIcon size={25} /><h2>{L("Mancano luoghi precisi", "Exact places are missing")}</h2><p>{L("Apri un giorno e inserisci il luogo nelle sue tappe. La mappa si costruirà automaticamente.", "Open a day and add exact places to its stops. The map will build automatically.")}</p><button onClick={() => setView("plan")}>{L("Torna al Piano", "Back to Plan")}</button></div>}
       </section>}

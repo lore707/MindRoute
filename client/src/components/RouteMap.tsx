@@ -11,7 +11,7 @@
  *   · collegamento alle altre sezioni: "Apri nel giorno" porta al Giorno
  *     corrispondente (onOpenDay) → stesso viaggio, prospettive diverse.
  *
- * Costo €0 (tile CARTO, geocoding Nominatim, OSM). Lazy da ItineraryDashboard.
+ * Costo €0 (OpenFreeMap/MapLibre, geocoding Nominatim, dati OSM).
  * ─────────────────────────────────────────────────────────────── */
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import L from "leaflet";
@@ -23,8 +23,9 @@ import "@/styles/routemap.css";
 import "@/styles/leaflet-chrome.css";
 // Il catalogo degli stili e la preferenza vivono in un modulo condiviso: la
 // scelta fatta qui vale anche per l'atlante e per il mini-atlante della home.
-import { MAP_STYLES, CARTO_ATTR, readMapStyle, saveMapStyle, mapTileUrl, type MapStyle } from "@/lib/map-style";
-import { attachAutoSize, attachTileHealth, fitToPoints, safePoints, flyDuration } from "@/lib/leaflet-utils";
+import { MAP_STYLES, MAP_ATTR, readMapStyle, saveMapStyle, type MapStyle } from "@/lib/map-style";
+import { createMapBaseLayer, attachMapBaseHealth, type MapBaseLayer } from "@/lib/map-base-layer";
+import { attachAutoSize, fitToPoints, safePoints, flyDuration } from "@/lib/leaflet-utils";
 
 export type PlaceCategory = "lodging" | "experience" | "food" | "sight" | "beach" | "custom";
 
@@ -243,12 +244,13 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
   const savedLayer = useRef<L.LayerGroup | null>(null);
   const searchLayer = useRef<L.LayerGroup | null>(null);
   const meLayer = useRef<L.LayerGroup | null>(null);
-  const tileRef = useRef<L.TileLayer | null>(null);
+  const tileRef = useRef<MapBaseLayer | null>(null);
+  const tileHealthDetach = useRef<(() => void) | null>(null);
   const [mapStyle, setMapStyle] = useState<MapStyle>(() => readMapStyle());
   // Ref parallelo: l'init della mappa gira UNA volta sola e non deve dipendere
   // dallo stato (rimonterebbe tutto a ogni cambio di stile).
   const styleRef = useRef<MapStyle>(mapStyle);
-  // Tile che non arrivano: meglio dirlo che mostrare un rettangolo vuoto.
+  // Risorse della mappa che non arrivano: meglio dirlo che mostrare il vuoto.
   const [tilesDown, setTilesDown] = useState(false);
   const detachRef = useRef<Array<() => void>>([]);
 
@@ -423,9 +425,9 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     const map = L.map(elRef.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false })
       .setView(first ? [first.lat, first.lng] : [41.9, 12.5], 13);
 
-    tileRef.current = L.tileLayer(mapTileUrl(styleRef.current), {
-      subdomains: "abcd", maxZoom: 20, attribution: CARTO_ATTR,
-    }).addTo(map);
+    tileRef.current = createMapBaseLayer(styleRef.current).addTo(map);
+    map.attributionControl.setPrefix(false);
+    map.attributionControl.addAttribution(MAP_ATTR);
 
     planLayer.current = L.layerGroup().addTo(map);
     savedLayer.current = L.layerGroup().addTo(map);
@@ -436,7 +438,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     // montaggio e nient'altro — poi bastava aprire un pannello per lasciare
     // fasce grigie dove le tile non erano mai state chieste.
     detachRef.current.push(attachAutoSize(map as any, elRef.current));
-    if (tileRef.current) detachRef.current.push(attachTileHealth(tileRef.current as any, ok => setTilesDown(!ok)));
+    if (tileRef.current) tileHealthDetach.current = attachMapBaseHealth(tileRef.current, ok => setTilesDown(!ok));
 
     // Zoom con Ctrl/Cmd+rotella (pattern standard delle mappe embedded): lo
     // scroll della pagina resta libero, ma la mappa non sembra più "inerte".
@@ -481,6 +483,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
         wheelEl?.removeEventListener("wheel", onWheel);
         detachRef.current.forEach(f => { try { f(); } catch { /* gia' staccato */ } });
         detachRef.current = [];
+        tileHealthDetach.current?.(); tileHealthDetach.current = null;
         map.remove(); mapRef.current = null;
       };
     }
@@ -488,6 +491,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
       wheelEl?.removeEventListener("wheel", onWheel);
       detachRef.current.forEach(f => { try { f(); } catch { /* gia' staccato */ } });
       detachRef.current = [];
+      tileHealthDetach.current?.(); tileHealthDetach.current = null;
       map.remove(); mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -594,11 +598,11 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     saveMapStyle(mapStyle);
     const map = mapRef.current;
     if (!map) return;
+    tileHealthDetach.current?.();
+    tileHealthDetach.current = null;
     if (tileRef.current) map.removeLayer(tileRef.current);
-    tileRef.current = L.tileLayer(mapTileUrl(mapStyle), {
-      subdomains: "abcd", maxZoom: 20, attribution: CARTO_ATTR,
-    }).addTo(map);
-    tileRef.current.bringToBack();
+    tileRef.current = createMapBaseLayer(mapStyle).addTo(map);
+    tileHealthDetach.current = attachMapBaseHealth(tileRef.current, ok => setTilesDown(!ok));
   }, [mapStyle]);
 
   // ── redraw pin salvati ──

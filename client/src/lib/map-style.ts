@@ -11,18 +11,22 @@
  * scelta è UNA e vale ovunque: se scegli "Colori" sull'itinerario, anche
  * l'atlante diventa colorato.
  *
- * Tutti gli stili vengono da CARTO — lo stesso fornitore già in uso: nessuna
- * chiave, nessun termine di licenza nuovo, stessa attribuzione, costo zero.
+ * Gli stili vettoriali vengono da OpenFreeMap: nessuna registrazione, chiave
+ * API o cookie. MapLibre li renderizza sotto i layer operativi di Leaflet.
  *
- * `noLabels` esiste perché le mappe decorative (mini-atlante, atlante mondo)
- * mostrano DOVE sei stato, non come arrivarci: i nomi delle città a quella
- * scala sono rumore.
+ * `urlNoLabels` resta nell'interfaccia per compatibilita' con gli atlanti. I
+ * preset pubblici mantengono le etichette, utili anche nella vista globale.
  * ─────────────────────────────────────────────────────────────── */
 
 export type MapStyle = "voyager" | "light" | "dark";
 
-export const CARTO_ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+export const MAP_ATTR =
+  '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org">OpenMapTiles</a> Data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
+
+// Backward-compatible alias while all map consumers migrate to MAP_ATTR.
+export const CARTO_ATTR = MAP_ATTR;
+
+const OPEN_FREE_MAP = "https://tiles.openfreemap.org/styles";
 
 export const MAP_STYLES: Record<MapStyle, {
   url: string;
@@ -30,18 +34,18 @@ export const MAP_STYLES: Record<MapStyle, {
   label: { it: string; en: string };
 }> = {
   voyager: {
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    urlNoLabels: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png",
-    label: { it: "Colori", en: "Colour" },
+    url: `${OPEN_FREE_MAP}/liberty`,
+    urlNoLabels: `${OPEN_FREE_MAP}/liberty`,
+    label: { it: "Mappa", en: "Map" },
   },
   light: {
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    urlNoLabels: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+    url: `${OPEN_FREE_MAP}/positron`,
+    urlNoLabels: `${OPEN_FREE_MAP}/positron`,
     label: { it: "Chiara", en: "Light" },
   },
   dark: {
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    urlNoLabels: "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
+    url: `${OPEN_FREE_MAP}/dark`,
+    urlNoLabels: `${OPEN_FREE_MAP}/dark`,
     label: { it: "Notte", en: "Night" },
   },
 };
@@ -65,8 +69,10 @@ export function saveMapStyle(s: MapStyle): void {
   try { localStorage.setItem(MAP_STYLE_KEY, s); } catch { /* private mode */ }
 }
 
-/** URL del fondo per lo stile corrente. */
+/** URL dello style JSON MapLibre per lo stile corrente. */
 export function mapTileUrl(style: MapStyle, opts: { labels?: boolean } = {}): string {
   const s = MAP_STYLES[style] ?? MAP_STYLES.voyager;
   return opts.labels === false ? s.urlNoLabels : s.url;
 }
+
+export const mapStyleUrl = mapTileUrl;

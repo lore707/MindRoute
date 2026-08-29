@@ -150,7 +150,8 @@ console.log("\n5. stili della mappa\n");
     const s = MAP_STYLES[k];
     check(`"${k}": url, variante senza etichette, etichetta IT+EN`,
       !!s.url && !!s.urlNoLabels && !!s.label.it && !!s.label.en, s);
-    check(`"${k}": le due varianti sono diverse`, s.url !== s.urlNoLabels, s.url);
+    check(`"${k}": usa HTTPS e non richiede una chiave API`,
+      s.url.startsWith("https://") && !/api[_-]?key|access[_-]?token/i.test(s.url), s.url);
   }
   check("labels:false → variante senza etichette",
     mapTileUrl("voyager", { labels: false }) === MAP_STYLES.voyager.urlNoLabels, mapTileUrl("voyager", { labels: false }));
