@@ -98,7 +98,7 @@
 .mrf-head {
   position: sticky; top: 0; z-index: 40;
   height: var(--head-h);
-  display: grid; grid-template-columns: var(--tap) 1fr var(--tap);
+  display: grid; grid-template-columns: minmax(var(--tap),1fr) minmax(0,560px) minmax(var(--tap),1fr);
   align-items: center; gap: 8px;
   padding: 0 max(10px, env(safe-area-inset-left)) 0 max(10px, env(safe-area-inset-right));
   transition: background .25s, backdrop-filter .25s, border-color .25s;
@@ -117,6 +117,7 @@
   border-radius: var(--r-pill);
   transition: background .18s, transform .18s;
 }
+.mrf-head>.mrf-hbtn { justify-self:start; }
 .mrf-hbtn:hover { background: rgba(255, 255, 255, .08); }
 .mrf-hbtn:active { transform: scale(.92); }
 .mrf-htitle { text-align: center; min-width: 0; }
@@ -129,6 +130,15 @@
   display: block; font-size: 10.5px; letter-spacing: .1em; color: var(--acc);
   margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.mrf-hactions { display:flex; align-items:center; justify-content:flex-end; gap:4px; }
+.mrf-studio-link {
+  min-height:36px; display:flex; align-items:center; gap:7px; padding:0 13px;
+  border:1px solid var(--acc-line); border-radius:var(--r-pill); color:#fff;
+  background:rgba(233,69,96,.14); font:600 11px/1 var(--sans); cursor:pointer;
+  transition:background .18s,border-color .18s,transform .18s;
+}
+.mrf-studio-link:hover { background:rgba(233,69,96,.24); border-color:rgba(233,69,96,.58); }
+.mrf-studio-link:active { transform:scale(.97); }
 
 /* ── contenitore di schermata ──────────────────────────────────────────── */
 .mrf-screen { padding-bottom: calc(40px + env(safe-area-inset-bottom)); }
@@ -668,6 +678,8 @@
 .mrf-mlabel .nm { display: block; font-size: 10px; color: rgba(245, 244, 242, .72); max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
 /* Su 390px due etichette vicine si accavallano: si stringono. */
 @media (max-width: 480px) {
+  .mrf-studio-link { width:var(--tap); height:var(--tap); min-height:var(--tap); justify-content:center; padding:0; border:0; background:transparent; }
+  .mrf-studio-link span { display:none; }
   .mrf-mlabel .nm, .mrf-mlabel .sb { max-width: 104px; }
 }
 .mrf-mlabel .sb { display: block; font-size: 9px; color: rgba(245, 244, 242, .48); max-width: 130px; overflow: hidden; text-overflow: ellipsis; }

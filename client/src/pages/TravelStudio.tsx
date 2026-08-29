@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import { useLocation, useRoute } from "wouter";
 import {
   ReactFlow, ReactFlowProvider, Background, MiniMap,
-  SelectionMode, addEdge, useEdgesState, useNodesState,
+  SelectionMode, useEdgesState, useNodesState,
   type Edge, type Node, type NodeChange, type NodeProps,
   type ReactFlowInstance,
 } from "@xyflow/react";
@@ -63,7 +63,7 @@ type TravelNodeData = Record<string, any> & {
 };
 type TravelNode = Node<TravelNodeData>;
 type CanvasDoc = { version: number; nodes: TravelNode[]; edges: Edge[]; updatedAt?: string };
-const STUDIO_GUIDE_KEY = "mindroute-studio-guide-seen-v1";
+const STUDIO_GUIDE_KEY = "mindroute-studio-guide-seen-v2";
 
 const clone = <T,>(value: T): T => {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -348,8 +348,14 @@ function TravelStudioInner() {
   const [aiReply, setAiReply] = useState("");
   const [aiActions, setAiActions] = useState<string[]>([]);
   const [aiStreaming, setAiStreaming] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(() => typeof window !== "undefined" && localStorage.getItem(STUDIO_GUIDE_KEY) !== "1");
+  const [aiProposalReady, setAiProposalReady] = useState(false);
+  const [aiProposalContextIds, setAiProposalContextIds] = useState<string[]>([]);
+  const [arrivalOpen, setArrivalOpen] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("created") === "1");
+  const [guideOpen, setGuideOpen] = useState(() => typeof window !== "undefined"
+    && localStorage.getItem(STUDIO_GUIDE_KEY) !== "1"
+    && new URLSearchParams(window.location.search).get("created") !== "1");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deepLinkHandled = useRef(false);
 
   const loadLibrary = useCallback(async (preferredId?: number) => {
     const response = await fetch(`/api/my-trips?lang=${lang}`);
@@ -728,29 +734,22 @@ function TravelStudioInner() {
     setGuideOpen(false);
   };
 
-  const createProposalNode = (text: string, actions: string[]) => {
-    const selected = selectedNodes;
-    const x = selected.length ? Math.max(...selected.map(node => node.position.x)) + 310 : 760;
-    const y = selected.length ? Math.min(...selected.map(node => node.position.y)) : 170;
-    const id = `proposal-${Date.now().toString(36)}`;
-    setNodes(previous => [...previous, { id, type: "travel", position: { x, y }, data: { kind: "proposal", title: L("Proposta MindRoute", "MindRoute proposal"), text: text.slice(0, 900), actions, status: "idea" } }]);
-    if (selected[0]) setEdges(previous => addEdge({ id: `proposal-link-${id}`, source: selected[0].id, target: id, type: "smoothstep", animated: true, style: { stroke: "#E86B52" } }, previous));
-    setSelectedIds([id]); setDirty(true);
-  };
-
   const runCanvasAi = async (message?: string) => {
     if (!trip || aiStreaming) return;
     const request = (message ?? aiInput).trim();
     if (!request) return;
     const isApplying = message?.startsWith("Confermo") || message?.startsWith("I confirm");
     if (isApplying && dirty) await saveCanvas();
-    const context = selectedNodes.map(node => JSON.stringify({
+    const contextIds = isApplying ? aiProposalContextIds : selectedIds;
+    const contextNodes = nodes.filter(node => contextIds.includes(node.id));
+    if (!isApplying) setAiProposalContextIds([...selectedIds]);
+    const context = contextNodes.map(node => JSON.stringify({
       kind: node.data.kind, title: node.data.title, note: node.data.text,
       url: node.data.url, assignedDay: node.data.assignedDay,
       dayIndex: node.data.dayIndex, moments: node.data.kind === "day" ? node.data.moments : undefined,
     })).join("; ");
-    const prompt = `${L("Oggetti selezionati sul canvas", "Selected canvas objects")}: ${context || L("intero viaggio", "whole trip")}. ${L("Richiesta", "Request")}: ${request}. ${L("Rispondi in modo breve con una proposta concreta. Non applicare cambiamenti finché non confermo.", "Reply briefly with a concrete proposal. Do not apply changes until I confirm.")}`;
-    setAiInput(""); setAiReply(""); setAiActions([]); setAiStreaming(true); setAiOpen(true);
+    const prompt = `${L("Contesto selezionato nel viaggio", "Selected trip context")}: ${context || L("intero viaggio", "whole trip")}. ${L("Richiesta", "Request")}: ${request}. ${L("Rispondi in modo breve con una proposta concreta. Non applicare cambiamenti finché non confermo.", "Reply briefly with a concrete proposal. Do not apply changes until I confirm.")}`;
+    setAiInput(""); setAiReply(""); setAiActions([]); setAiProposalReady(false); setAiStreaming(true); setAiOpen(true);
     let full = "";
     const actions: string[] = [];
     try {
@@ -770,14 +769,25 @@ function TravelStudioInner() {
           if (event === "tool" && data.label) { actions.push(data.label); setAiActions([...actions]); }
         });
       }
-      if (full && !isApplying) createProposalNode(full, actions);
-      if (actions.length && isApplying) await loadLibrary(trip.id);
+      if (full && !isApplying) setAiProposalReady(true);
+      if (isApplying) {
+        await loadLibrary(trip.id);
+        setAiProposalContextIds([]);
+        toast({ title: L("Modifiche applicate al viaggio", "Changes applied to the trip") });
+      }
     } catch {
       setAiReply(L("Non sono riuscito a preparare la proposta. Riprova tra poco.", "I couldn't prepare the proposal. Try again shortly."));
     } finally { setAiStreaming(false); }
   };
 
   const applyAiProposal = () => runCanvasAi(L("Confermo. Applica ora le modifiche proposte agli oggetti selezionati.", "I confirm. Apply the proposed changes to the selected objects now."));
+
+  const discardAiProposal = () => {
+    setAiReply("");
+    setAiActions([]);
+    setAiProposalReady(false);
+    setAiProposalContextIds([]);
+  };
 
   const budget = trip ? budgetData(trip) : { total: 0, target: 0, categories: [] };
   const points = trip ? routePoints(trip) : [];
@@ -847,6 +857,7 @@ function TravelStudioInner() {
   const noteNode = nodes.find(node => node.id === "intent-note") ?? nodes.find(node => node.data.kind === "note");
   const moodNode = nodes.find(node => node.data.kind === "mood");
   const maybeNode = nodes.find(node => node.data.kind === "maybe");
+  const budgetNode = nodes.find(node => node.data.kind === "budget");
   const planImages = (moodNode?.data.images ?? ambientImages(trip ?? ({ id: 0 } as RawTrip))).slice(0, 6);
   const openNode = (node?: TravelNode) => {
     if (!node) return;
@@ -864,6 +875,61 @@ function TravelStudioInner() {
     const id = `day-${index}`;
     setView("plan"); setSelectedIds([id]); setInspectorOpen(true);
   };
+
+  useEffect(() => {
+    if (!trip || !nodes.length || deepLinkHandled.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const day = Number(params.get("day"));
+    if (Number.isInteger(day) && day > 0 && day <= (trip.days?.length ?? 0)) {
+      setView("plan");
+      setSelectedIds([`day-${day - 1}`]);
+      setInspectorOpen(true);
+    } else if (params.get("view") === "control") {
+      setView("control");
+    }
+    if (params.get("ai") === "1") setAiOpen(true);
+    if (params.get("created") === "1") setArrivalOpen(true);
+    deepLinkHandled.current = true;
+    if (window.location.search) window.history.replaceState({}, "", window.location.pathname);
+  }, [nodes.length, trip]);
+
+  const resolveControlCheck = (item: typeof controlChecks[number]) => {
+    if (item.toggle) {
+      updateControlFlag(item.toggle);
+      return;
+    }
+    if (item.key === "plan") {
+      openDay(emptyDays[0]?.index ?? 0);
+      return;
+    }
+    if (item.key === "decisions") {
+      const question = nodes.find(node => node.data.kind === "question" && node.data.status !== "chosen");
+      if (question) openNode(question);
+      else openNode(maybeNode);
+      return;
+    }
+    if (item.key === "budget") {
+      openNode(budgetNode);
+      return;
+    }
+    if (item.key === "places") {
+      const dayIndex = (trip?.days ?? []).findIndex(day => momentsOf(day).some(moment => !momentPlace(moment).trim()));
+      openDay(Math.max(0, dayIndex));
+      return;
+    }
+    setAiInput(L(`Aiutami a risolvere: ${item.label}. ${item.detail}`, `Help me resolve: ${item.label}. ${item.detail}`));
+    setAiOpen(true);
+  };
+
+  const aiContextIds = aiProposalReady ? aiProposalContextIds : selectedIds;
+  const aiContextNodes = nodes.filter(node => aiContextIds.includes(node.id));
+  const aiContextLabel = aiContextNodes.length === 1 && aiContextNodes[0].data.kind === "day"
+    ? L(`Giorno ${(aiContextNodes[0].data.dayIndex ?? 0) + 1}`, `Day ${(aiContextNodes[0].data.dayIndex ?? 0) + 1}`)
+    : aiContextNodes.length === 1
+      ? aiContextNodes[0].data.title
+      : aiContextNodes.length > 1
+        ? L(`${aiContextNodes.length} elementi selezionati`, `${aiContextNodes.length} selected items`)
+        : L("Intero viaggio", "Whole trip");
 
   const dayReason = (day: any, index: number) => day?.why_this
     ?? day?.whyThis
@@ -895,9 +961,9 @@ function TravelStudioInner() {
         <button className="mr-global-ai" onClick={() => setAiOpen(true)}><Sparkles size={14} /><span>{L("Lavora con l'AI", "Work with AI")}</span></button>
         <button className="share" onClick={shareTrip} disabled={!trip}><Share2 size={14} />{L("Condividi", "Share")}</button>
         {trip && <button className="mr-classic-mode" onClick={() => setLocation(`/itinerary/${trip.id}`)}><ClipboardList size={14} /><span>{L("Apri itinerario", "Open itinerary")}</span></button>}
-        <button onClick={undo} disabled={!history.length} aria-label={L("Annulla", "Undo")}><Undo2 size={16} /></button>
-        <button onClick={redo} disabled={!futureHistory.length} aria-label={L("Ripristina", "Redo")}><Redo2 size={16} /></button>
-        <button className="mr-save-state" onClick={() => saveCanvas()} disabled={!trip || saving}><Save size={15} /><span>{saving ? L("Salvo", "Saving") : dirty ? L("Salva", "Save") : L("Salvato", "Saved")}</span></button>
+        <button className="mr-history-action" onClick={undo} disabled={!history.length} aria-label={L("Annulla", "Undo")}><Undo2 size={16} /></button>
+        <button className="mr-history-action" onClick={redo} disabled={!futureHistory.length} aria-label={L("Ripristina", "Redo")}><Redo2 size={16} /></button>
+        <button className={`mr-save-state ${saving ? "saving" : dirty ? "dirty" : "saved"}`} onClick={() => saveCanvas()} disabled={!trip || saving} aria-live="polite"><Save size={15} /><span>{saving ? L("Salvo…", "Saving…") : dirty ? L("Modifiche in corso", "Changes pending") : L("Salvato", "Saved")}</span></button>
         <LangDropdown variant="dark" />
       </div>
     </header>
@@ -947,6 +1013,13 @@ function TravelStudioInner() {
 
           <div className="mr-plan-scroll">
             <main className="mr-plan-editor">
+              {arrivalOpen && <section className="mr-studio-arrival">
+                <button className="close" onClick={() => setArrivalOpen(false)} aria-label={L("Chiudi", "Close")}><X size={14} /></button>
+                <span><Sparkles size={14} />{L("Il tuo piano è pronto", "Your plan is ready")}</span>
+                <h2>{L("Non è un risultato finale: è una base già ragionata da rendere tua.", "This is not a final result: it is a considered starting point to make your own.")}</h2>
+                <p>{trip.whyYours || L("Abbiamo organizzato giorni, luoghi e ritmo intorno alle risposte del quiz. Ora puoi controllare il perché, modificare ogni dettaglio o aprire la versione da usare in viaggio.", "We organised days, places and pace around your quiz answers. Now review the reasoning, edit any detail or open the version to use while travelling.")}</p>
+                <div><button onClick={() => { setArrivalOpen(false); openDay(0); }}>{L("Inizia dal Giorno 1", "Start with Day 1")}<ChevronRight size={13} /></button><button onClick={() => { setArrivalOpen(false); setView("control"); }}>{L("Controlla il viaggio", "Check the trip")}<FileCheck2 size={13} /></button><button onClick={() => setLocation(`/itinerary/${trip.id}`)}>{L("Apri modalità viaggio", "Open trip mode")}<ClipboardList size={13} /></button></div>
+              </section>}
               <button className={`mr-plan-hero${selectedIds.includes("trip-overview") ? " selected" : ""}`} onClick={() => openNode(overviewNode)}>
                 <span className="mr-plan-hero-image" style={trip.heroImageUrl ? { backgroundImage: `url(${trip.heroImageUrl})` } : undefined}>{!trip.heroImageUrl && <Compass size={28} />}</span>
                 <span className="mr-plan-hero-copy"><small>{trip.country || L("Profilo del viaggio", "Trip profile")}</small><strong>{trip.destinationName}</strong><p>{trip.tripSummary || L("Aggiungi una descrizione chiara del viaggio.", "Add a clear trip description.")}</p><em><CalendarDays size={13} />{trip.days?.length ?? 0} {L("giorni", "days")}<UserRound size={13} />{trip.tripMeta?.companions_label || L("Viaggiatori da definire", "Travellers TBD")}<Euro size={13} />€{budget.total.toLocaleString(lang === "it" ? "it-IT" : "en-US")}</em></span>
@@ -1004,8 +1077,8 @@ function TravelStudioInner() {
           <button onClick={() => { setAiInput(L("Aiutami a risolvere le priorità aperte prima della partenza", "Help me resolve the open priorities before departure")); setAiOpen(true); }}><Sparkles size={15} />{L("Risolvi con l'AI", "Resolve with AI")}</button>
         </div>
 
-        <div className="mr-control-checks">{controlChecks.map(item => <button key={item.key} className={item.ready ? "ready" : "attention"} onClick={() => { if (item.toggle) updateControlFlag(item.toggle); else if (!item.ready) { setAiInput(L(`Aiutami a risolvere: ${item.label}. ${item.detail}`, `Help me resolve: ${item.label}. ${item.detail}`)); setAiOpen(true); } }}>
-          <span>{item.ready ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}</span><p><strong>{item.label}</strong><small>{item.detail}</small></p>{item.toggle && <em>{item.ready ? L("Segna da rivedere", "Mark for review") : L("Segna verificato", "Mark verified")}</em>}
+        <div className="mr-control-checks">{controlChecks.map(item => <button key={item.key} className={item.ready ? "ready" : "attention"} onClick={() => resolveControlCheck(item)}>
+          <span>{item.ready ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}</span><p><strong>{item.label}</strong><small>{item.detail}</small></p><em>{item.toggle ? (item.ready ? L("Rivedi", "Review") : L("Conferma", "Confirm")) : item.ready ? L("Apri", "Open") : L("Sistema", "Fix")}</em>
         </button>)}</div>
 
         <div className="mr-control-detail-grid">
@@ -1063,7 +1136,7 @@ function TravelStudioInner() {
         {selectedNode.data.kind === "map" && <div className="mr-semantic-notice"><strong>{selectedNode.data.points?.length ?? 0} {L("luoghi riconosciuti", "recognised places")}</strong><p>{L("La mappa si aggiorna dai luoghi precisi inseriti nelle tappe dei giorni.", "The map updates from exact places entered in day stops.")}</p></div>}
         {!['trip','day','map','budget','mood','group'].includes(selectedNode.data.kind) && <div className="mr-status-control"><span>{L("Stato", "Status")}</span>{(["idea", "chosen", "booked"] as ObjectStatus[]).map(status => <button key={status} className={selectedNode.data.status === status ? "on" : ""} onClick={() => updateSelectedData({ status })}>{status === "idea" ? "Idea" : status === "chosen" ? L("Scelto", "Chosen") : L("Prenotato", "Booked")}</button>)}</div>}
         <div className="mr-context-actions"><span>{L("Azioni intelligenti", "Smart actions")}</span>{contextualPrompts.slice(0, 4).map(prompt => <button key={prompt} onClick={() => { setAiInput(prompt); setAiOpen(true); }}><Sparkles size={12} />{prompt}</button>)}</div>
-        {['trip','day'].includes(selectedNode.data.kind) && <button className="mr-open-itinerary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Vedi nell'itinerario operativo", "View in operational itinerary")}<ChevronRight size={14} /></button>}
+        {['trip','day'].includes(selectedNode.data.kind) && <button className="mr-open-itinerary" onClick={() => setLocation(selectedNode.data.kind === "day" ? `/itinerary/${trip?.id}/g/${(selectedNode.data.dayIndex ?? 0) + 1}` : `/itinerary/${trip?.id}`)}>{L("Vedi nell'itinerario operativo", "View in operational itinerary")}<ChevronRight size={14} /></button>}
         <button className="mr-inspector-ai" onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Lavora su questo con MindRoute", "Work on this with MindRoute")}</button>
         {selectedNode.data.kind === "day" && (trip?.days?.length ?? 0) > 1 && <button className="mr-inspector-delete" onClick={() => removeDay(Number(selectedNode.data.dayIndex))}><Trash2 size={13} />{L("Elimina questo giorno", "Delete this day")}</button>}
         {!['trip','day','map','budget','mood','maybe','group'].includes(selectedNode.data.kind) && <button className="mr-inspector-delete" onClick={deleteSelection}><Trash2 size={13} />{L("Elimina contenuto", "Delete content")}</button>}
@@ -1098,19 +1171,19 @@ function TravelStudioInner() {
       {guideOpen && trip && <div className="mr-guide-backdrop"><section className="mr-studio-guide">
         <button className="close" onClick={closeGuide}><X size={17} /></button>
         <span>MindRoute Studio</span>
-        <h2>{L("Un solo viaggio. Tutto sotto controllo.", "One trip. Everything under control.")}</h2>
-        <p>{L("Qui costruisci e modifichi. L'itinerario operativo resta la versione completa da leggere e usare durante il viaggio. Ogni modifica è condivisa tra le due modalità.", "Build and edit here. The operational itinerary remains the complete version to read and use while travelling. Every change is shared between both modes.")}</p>
+        <h2>{L("Costruisci qui. Vivi il viaggio nell'itinerario.", "Build here. Live the trip in the itinerary.")}</h2>
+        <p>{L("Studio e itinerario sono due viste dello stesso viaggio: qui prendi decisioni, nell'itinerario leggi e usi il piano. Ogni modifica è condivisa automaticamente.", "Studio and itinerary are two views of the same trip: make decisions here, then read and use the plan in the itinerary. Every change is shared automatically.")}</p>
         <div className="mr-guide-steps">
-          <article><b>01</b><MousePointer2 size={18} /><strong>{L("Apri e modifica", "Open and edit")}</strong><small>{L("Ogni card apre contenuti e strumenti pertinenti, senza riempire lo schermo di comandi.", "Every card opens relevant content and tools without filling the screen with controls.")}</small></article>
-          <article><b>02</b><BoxSelect size={18} /><strong>{L("Tre viste, un solo viaggio", "Three views, one trip")}</strong><small>{L("Piano per costruire, Mappa per capire lo spazio, Controllo per preparare la partenza.", "Plan to build, Map to understand space, Control to prepare departure.")}</small></article>
-          <article><b>03</b><Sparkles size={18} /><strong>{L("Lavora con l'AI", "Work with AI")}</strong><small>{L("Seleziona il contesto e MindRoute propone modifiche verificabili prima di applicarle.", "Select the context and MindRoute proposes reviewable changes before applying them.")}</small></article>
+          <article><b>01</b><MousePointer2 size={18} /><strong>{L("Scegli un giorno", "Choose a day")}</strong><small>{L("Aprilo per cambiare titolo, tappe, orari, luoghi e motivazioni.", "Open it to change title, stops, times, places and reasoning.")}</small></article>
+          <article><b>02</b><BoxSelect size={18} /><strong>{L("Controlla ciò che conta", "Check what matters")}</strong><small>{L("Mappa e Controllo ti riportano direttamente al dettaglio da sistemare.", "Map and Control take you straight to the detail that needs fixing.")}</small></article>
+          <article><b>03</b><Sparkles size={18} /><strong>{L("Approva l'AI", "Approve the AI")}</strong><small>{L("MindRoute prepara una proposta nel contesto selezionato. Tu decidi se applicarla.", "MindRoute prepares a proposal in the selected context. You decide whether to apply it.")}</small></article>
         </div>
         <footer><button className="secondary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Apri l'itinerario", "Open itinerary")}</button><button className="primary" onClick={closeGuide}>{L("Inizia a costruire", "Start building")}<ChevronRight size={15} /></button></footer>
       </section></div>}
 
       {aiOpen && <section className="mr-canvas-ai">
-        <header><div><Sparkles size={15} /><span><strong>MindRoute AI</strong><small>{selectedIds.length ? `${selectedIds.length} oggetti nel contesto` : L("Intero viaggio", "Whole trip")}</small></span></div><button onClick={() => setAiOpen(false)}><X size={16} /></button></header>
-        {aiReply && <div className="mr-ai-reply"><p>{aiReply}</p>{aiActions.map(action => <span key={action}><Check size={12} />{action}</span>)}{!aiStreaming && <button onClick={applyAiProposal}>{L("Applica modifiche", "Apply changes")}</button>}</div>}
+        <header><div><Sparkles size={15} /><span><strong>MindRoute AI</strong><small>{aiContextLabel}</small></span></div><button onClick={() => setAiOpen(false)}><X size={16} /></button></header>
+        {aiReply && <div className="mr-ai-reply"><div className="mr-ai-proposal-label"><span>{aiProposalReady ? L("Proposta · non ancora applicata", "Proposal · not applied yet") : L("Risultato", "Result")}</span></div><p>{aiReply}</p>{aiActions.map(action => <span key={action}><Check size={12} />{action}</span>)}{!aiStreaming && aiProposalReady && <div className="mr-ai-decision"><button className="secondary" onClick={discardAiProposal}>{L("Scarta", "Discard")}</button><button className="primary" onClick={applyAiProposal}>{L("Applica al viaggio", "Apply to trip")}</button></div>}</div>}
         <form onSubmit={event => { event.preventDefault(); runCanvasAi(); }}><textarea autoFocus value={aiInput} onChange={event => setAiInput(event.target.value)} placeholder={L("Es. Rendimi questa parte più rilassata…", "E.g. Make this part more relaxed…")} /><button disabled={!aiInput.trim() || aiStreaming}>{aiStreaming ? <span className="mr-ai-pulse" /> : <MoveRight size={16} />}</button></form>
         {!aiReply && <div className="mr-ai-quick">{contextualPrompts.map(prompt => <button key={prompt} onClick={() => setAiInput(prompt)}>{prompt}</button>)}</div>}
       </section>}

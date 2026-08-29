@@ -23,7 +23,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Settings2, MoreVertical, Map as MapIcon, X } from "lucide-react";
+import { ArrowLeft, Settings2, MoreVertical, Map as MapIcon, Sparkles, X } from "lucide-react";
 import { unsplashSized } from "@/lib/img";
 import { useI18n } from "@/lib/i18n";
 import type { ItineraryData, Moment } from "@/components/ItineraryCinematic";
@@ -55,6 +55,7 @@ type Props = {
   onDatesConfirmed?: () => void;
   onBookingUpdated?: () => void;
   onSaveDays?: (days: any[]) => Promise<void>;
+  onOpenStudio?: (day?: number) => void;
   /** Solo DevPreview: pilota lo stack senza toccare l'URL, così gli screenshot
    *  headless possono visitare le sei schermate senza login né DB. */
   previewPath?: string;
@@ -86,7 +87,7 @@ function parseScreen(path: string): Screen {
 export function ItineraryFlow({
   data, itinerary, affiliateUrls, profilingInput,
   onSavePdf, onShare, itineraryId, savedMomentIds, onToggleSaved,
-  onDatesConfirmed, onBookingUpdated, onSaveDays, previewPath,
+  onDatesConfirmed, onBookingUpdated, onSaveDays, onOpenStudio, previewPath,
 }: Props) {
   const { t, lang } = useI18n();
   const [routerLoc, routerNav] = useLocation();
@@ -332,7 +333,15 @@ export function ItineraryFlow({
             <span className="t">{head.title}</span>
             {head.sub && <span className="s">{head.sub}</span>}
           </div>
-          {rightAction()}
+          <div className="mrf-hactions">
+            {onOpenStudio && screen.k !== "edit" && (
+              <button className="mrf-studio-link" onClick={() => onOpenStudio(currentDayN ?? undefined)}>
+                <Sparkles size={15} />
+                <span>{L("Modifica in Studio", "Edit in Studio")}</span>
+              </button>
+            )}
+            {rightAction()}
+          </div>
         </header>
 
         {body}
