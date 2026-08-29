@@ -37,6 +37,16 @@ type RawTrip = {
   tripMeta?: Record<string, any>;
 };
 
+type StudioPortrait = {
+  available: boolean;
+  confidence: "nascent" | "forming" | "solid";
+  tripCount: number;
+  seek: string[];
+  avoid: string[];
+  ownWords: string | null;
+  narrative: { portrait: string; paradox: string | null } | null;
+};
+
 type StudioView = "plan" | "map" | "control";
 type StartMode = "menu" | "destination" | "blank" | "import";
 type ObjectKind =
@@ -314,6 +324,7 @@ function TravelStudioInner() {
   const L = useCallback((italian: string, english: string) => it ? italian : english, [it]);
   const [library, setLibrary] = useState<RawTrip[]>([]);
   const [trip, setTrip] = useState<RawTrip | null>(null);
+  const [portrait, setPortrait] = useState<StudioPortrait | null>(null);
   const [nodes, setNodes] = useNodesState<TravelNode>([]);
   const [edges, setEdges] = useEdgesState<Edge>([]);
   const [loading, setLoading] = useState(true);
@@ -360,6 +371,17 @@ function TravelStudioInner() {
     loadLibrary(preferredTripId).catch(() => {}).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [loadLibrary, preferredTripId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      fetch(`/api/me/portrait?lang=${lang}`)
+        .then(response => response.ok ? response.json() : null)
+        .then((data: StudioPortrait | null) => { if (!cancelled) setPortrait(data?.available ? data : null); })
+        .catch(() => { if (!cancelled) setPortrait(null); });
+    }, 80);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [lang]);
 
   const openTrip = (next: RawTrip) => {
     if (dirty && !window.confirm(L("Aprire un altro viaggio senza salvare le modifiche?", "Open another trip without saving changes?"))) return;
@@ -811,6 +833,16 @@ function TravelStudioInner() {
     },
   ];
   const readiness = Math.round(controlChecks.filter(item => item.ready).length / controlChecks.length * 100);
+  const strategySignals = Array.from(new Set([
+    ...(portrait?.seek ?? []),
+    ...(trip?.highlights ?? []),
+  ].map(value => String(value).trim()).filter(Boolean))).slice(0, 4);
+  const avoidSignals = Array.from(new Set((portrait?.avoid ?? []).map(value => String(value).trim()).filter(Boolean))).slice(0, 3);
+  const portraitConfidence = portrait?.confidence === "solid"
+    ? L("Profilo consolidato", "Established profile")
+    : portrait?.confidence === "forming"
+      ? L("Profilo in formazione", "Developing profile")
+      : L("Prime indicazioni", "Early signals");
   const overviewNode = nodes.find(node => node.data.kind === "trip");
   const noteNode = nodes.find(node => node.id === "intent-note") ?? nodes.find(node => node.data.kind === "note");
   const moodNode = nodes.find(node => node.data.kind === "mood");
@@ -832,6 +864,15 @@ function TravelStudioInner() {
     const id = `day-${index}`;
     setView("plan"); setSelectedIds([id]); setInspectorOpen(true);
   };
+
+  const dayReason = (day: any, index: number) => day?.why_this
+    ?? day?.whyThis
+    ?? day?.intent
+    ?? day?.subtitle
+    ?? L(
+      index === 0 ? "Introduce gradualmente il luogo senza sovraccaricare l'arrivo." : "Mantiene il ritmo del viaggio coerente con le tue priorità.",
+      index === 0 ? "Introduces the place gradually without overloading arrival." : "Keeps the trip pace aligned with your priorities.",
+    );
 
   if (loading) return <div className="mr-studio-loading"><span /><p>{L("Apro la tua scrivania di viaggio…", "Opening your travel desk…")}</p></div>;
 
@@ -862,7 +903,7 @@ function TravelStudioInner() {
     </header>
 
     <main className="mr-studio-main">
-      <nav className="mr-object-toolbar" aria-label={L("Strumenti del piano", "Plan tools")}>
+      {view !== "plan" && <nav className="mr-object-toolbar" aria-label={L("Strumenti del piano", "Plan tools")}>
         <button className="new" onClick={() => setAddMenuOpen(value => !value)}><Plus size={19} /><span>{L("Aggiungi", "Add")}</span></button>
         {addMenuOpen && <div className="mr-add-menu">
           <button onClick={addDay}><CalendarDays size={15} /><span><strong>{L("Giorno", "Day")}</strong><small>{L("Estendi il piano", "Extend the plan")}</small></span></button>
@@ -876,31 +917,75 @@ function TravelStudioInner() {
         <button data-label="Maybe" onClick={() => openNode(maybeNode)} title="Maybe"><Layers3 size={18} /></button>
         <button data-label={L("Come funziona", "How it works")} onClick={() => setGuideOpen(true)} title={L("Come funziona", "How it works")}><CircleHelp size={18} /></button>
         <button data-label={L("Profilo", "Profile")} onClick={() => setLocation("/my-account?view=portrait")} title={L("Profilo", "Profile")}><UserRound size={18} /></button>
-      </nav>
+      </nav>}
 
-      {view === "plan" && <div className="mr-structured-plan" onClick={() => setAddMenuOpen(false)}>
-        {trip ? <div className="mr-plan-board">
-          <button className={`mr-plan-overview${selectedIds.includes("trip-overview") ? " selected" : ""}`} onClick={() => openNode(overviewNode)}>
-            <span className="mr-plan-cover" style={trip.heroImageUrl ? { backgroundImage: `url(${trip.heroImageUrl})` } : undefined}>{!trip.heroImageUrl && <Compass size={26} />}</span>
-            <span className="mr-plan-overview-copy"><small>{trip.country || L("Profilo del viaggio", "Trip profile")}</small><strong>{trip.destinationName}</strong><p>{trip.tripSummary || trip.whyYours || L("Aggiungi una breve descrizione del viaggio.", "Add a short trip description.")}</p><em><CalendarDays size={13} />{trip.days?.length ?? 0} {L("giorni", "days")}<UserRound size={13} />{trip.tripMeta?.companions_label || L("Viaggiatori da definire", "Travellers TBD")}</em></span>
-            <i><ChevronRight size={16} /></i>
-          </button>
+      {view === "plan" && <div className="mr-structured-plan">
+        {trip ? <div className="mr-plan-workspace">
+          <aside className="mr-plan-outline">
+            <div className="mr-plan-add-wrap">
+              <button className="mr-plan-add" onClick={() => setAddMenuOpen(value => !value)}><Plus size={17} />{L("Aggiungi", "Add")}<ChevronDown size={13} /></button>
+              {addMenuOpen && <div className="mr-plan-add-menu">
+                <button onClick={addDay}><CalendarDays size={14} />{L("Giorno", "Day")}</button>
+                <button onClick={() => addObject("place")}><MapIcon size={14} />{L("Luogo", "Place")}</button>
+                <button onClick={() => addObject("maybe")}><Layers3 size={14} />Maybe</button>
+                <button onClick={() => addObject("note")}><StickyNote size={14} />{L("Nota", "Note")}</button>
+                <button onClick={() => addObject("booking")}><Plane size={14} />{L("Logistica", "Logistics")}</button>
+                <button onClick={() => addObject("social")}><Instagram size={14} />{L("Ispirazione", "Inspiration")}</button>
+              </div>}
+            </div>
+            <nav>
+              <button className={selectedIds.includes("trip-overview") ? "on" : ""} onClick={() => openNode(overviewNode)}><Compass size={14} /><span>{L("Panoramica", "Overview")}</span></button>
+              <div className="mr-outline-label">{L("Itinerario", "Itinerary")}</div>
+              {(trip.days ?? []).map((day, index) => <button key={index} className={selectedIds.includes(`day-${index}`) ? "on" : ""} onClick={() => openDay(index)}><span className="mr-outline-day">{index + 1}</span><span><strong>{dayTitle(day, index)}</strong><small>{momentsOf(day).length} {L("tappe", "stops")}</small></span></button>)}
+              <div className="mr-outline-label">{L("Strumenti", "Tools")}</div>
+              <button onClick={() => setView("map")}><MapIcon size={14} /><span>{L("Mappa", "Map")}</span></button>
+              <button onClick={() => setView("control")}><FileCheck2 size={14} /><span>{L("Controllo", "Control")}</span>{readiness < 100 && <em>{100 - readiness}%</em>}</button>
+              <button onClick={() => openNode(maybeNode)}><Layers3 size={14} /><span>Maybe</span><em>{maybeNode?.data.items?.length ?? 0}</em></button>
+            </nav>
+            <button className="mr-outline-portrait" onClick={() => setLocation("/my-account?view=portrait")}><UserRound size={14} /><span><strong>{L("Il tuo Portrait", "Your Portrait")}</strong><small>{portraitConfidence}</small></span><ChevronRight size={13} /></button>
+          </aside>
 
-          <section className="mr-plan-days">
-            <header><div><span>{L("Il piano", "The plan")}</span><strong>{L("Giorno per giorno", "Day by day")}</strong></div><button onClick={addDay}><Plus size={13} />{L("Aggiungi giorno", "Add day")}</button></header>
-            <div>{(trip.days ?? []).map((day, index) => {
-              const moments = momentsOf(day);
-              const dayId = `day-${index}`;
-              return <button key={dayId} className={`mr-plan-day${selectedIds.includes(dayId) ? " selected" : ""}`} onClick={() => openDay(index)}><small>{L("Giorno", "Day")} {index + 1}</small><strong>{dayTitle(day, index)}</strong><ul>{moments.slice(0, 3).map((moment, momentIndex) => <li key={moment.id ?? momentIndex}>{momentTitle(moment)}</li>)}{!moments.length && <li>{L("Aggiungi la prima tappa", "Add the first stop")}</li>}</ul><em>{moments.length} {L("tappe", "stops")}<ChevronRight size={13} /></em></button>;
-            })}</div>
-          </section>
+          <div className="mr-plan-scroll">
+            <main className="mr-plan-editor">
+              <button className={`mr-plan-hero${selectedIds.includes("trip-overview") ? " selected" : ""}`} onClick={() => openNode(overviewNode)}>
+                <span className="mr-plan-hero-image" style={trip.heroImageUrl ? { backgroundImage: `url(${trip.heroImageUrl})` } : undefined}>{!trip.heroImageUrl && <Compass size={28} />}</span>
+                <span className="mr-plan-hero-copy"><small>{trip.country || L("Profilo del viaggio", "Trip profile")}</small><strong>{trip.destinationName}</strong><p>{trip.tripSummary || L("Aggiungi una descrizione chiara del viaggio.", "Add a clear trip description.")}</p><em><CalendarDays size={13} />{trip.days?.length ?? 0} {L("giorni", "days")}<UserRound size={13} />{trip.tripMeta?.companions_label || L("Viaggiatori da definire", "Travellers TBD")}<Euro size={13} />€{budget.total.toLocaleString(lang === "it" ? "it-IT" : "en-US")}</em></span>
+                <i>{L("Modifica", "Edit")}<ChevronRight size={14} /></i>
+              </button>
 
-          <div className="mr-plan-modules">
-            <button className="mr-plan-module note" onClick={() => openNode(noteNode)}><header><span>{L("Note", "Notes")}</span><ChevronRight size={14} /></header><p>{noteNode?.data.text || L("Aggiungi desideri, vincoli o cose da ricordare.", "Add wishes, constraints or reminders.")}</p><small>{L("Modifica nota", "Edit note")}</small></button>
-            <button className="mr-plan-module mood" onClick={() => openNode(moodNode)}><header><span>Moodboard</span><Plus size={14} /></header><div>{planImages.map((image: string, index: number) => <i key={`${image}-${index}`} style={{ backgroundImage: `url(${image})` }} />)}{!planImages.length && <p>{L("Aggiungi immagini e riferimenti visivi.", "Add images and visual references.")}</p>}</div></button>
-            <article className="mr-plan-module map" role="button" tabIndex={0} onClick={() => setView("map")} onKeyDown={event => { if (event.key === "Enter") setView("map"); }}><header><span>{L("Mappa del viaggio", "Trip map")}</span><ChevronRight size={14} /></header>{points.length ? <div className="mr-plan-map-preview"><Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} bare hideDayBar /></Suspense></div> : <div className="mr-plan-map-empty"><MapIcon size={23} /><p>{L("I luoghi compariranno qui quando li aggiungi alle tappe.", "Places appear here when added to stops.")}</p></div>}</article>
-            <button className="mr-plan-module maybe" onClick={() => openNode(maybeNode)}><header><span>{L("Maybe / Alternative", "Maybe / Alternatives")}</span><Plus size={14} /></header><div>{(maybeNode?.data.items ?? []).slice(0, 4).map((item: string, index: number) => <p key={`${item}-${index}`}><span>{item}</span><ChevronRight size={12} /></p>)}{!(maybeNode?.data.items ?? []).length && <small>{L("Parcheggia qui ciò che non hai ancora deciso.", "Keep undecided ideas here.")}</small>}</div></button>
+              <section className="mr-plan-strategy">
+                <header><span><Sparkles size={14} />{L("La logica di questo viaggio", "The logic of this trip")}</span><button onClick={() => setLocation("/my-account?view=portrait")}>{L("Apri Portrait", "Open Portrait")}<ChevronRight size={13} /></button></header>
+                <p>{trip.whyYours || portrait?.narrative?.portrait || L("Aggiungi il motivo per cui questo viaggio è coerente con ciò che cerchi.", "Add why this trip matches what you are looking for.")}</p>
+                <div>{strategySignals.length ? strategySignals.map(signal => <span key={signal}><Check size={11} />{signal}</span>) : <span><Sparkles size={11} />{L("La personalizzazione crescerà con le tue scelte", "Personalisation grows with your choices")}</span>}{avoidSignals.map(signal => <span className="avoid" key={signal}>{L("Evita", "Avoid")}: {signal}</span>)}</div>
+              </section>
+
+              <section className="mr-plan-day-list">
+                <header><div><span>{L("Il piano", "The plan")}</span><h2>{L("Giorno per giorno", "Day by day")}</h2></div><button onClick={addDay}><Plus size={13} />{L("Aggiungi giorno", "Add day")}</button></header>
+                {(trip.days ?? []).map((day, index) => {
+                  const moments = momentsOf(day);
+                  const dayId = `day-${index}`;
+                  return <article key={dayId} className={`mr-plan-day-row${selectedIds.includes(dayId) ? " selected" : ""}`}>
+                    <header><span className="mr-day-index">{String(index + 1).padStart(2, "0")}</span><div><small>{L("Giorno", "Day")} {index + 1}</small><h3>{dayTitle(day, index)}</h3></div><button onClick={() => openDay(index)}>{L("Modifica", "Edit")}<ChevronRight size={13} /></button></header>
+                    <div className="mr-day-rationale"><Sparkles size={13} /><p><small>{L("Ruolo nel viaggio", "Role in the trip")}</small>{dayReason(day, index)}</p></div>
+                    <div className="mr-day-agenda">{moments.map((moment, momentIndex) => <button key={moment.id ?? momentIndex} onClick={() => openDay(index)}><time>{momentTime(moment) || L("Da definire", "TBD")}</time><span>{momentImage(moment) && <i style={{ backgroundImage: `url(${momentImage(moment)})` }} />}<p><strong>{momentTitle(moment)}</strong><small>{momentPlace(moment) || momentDescription(moment) || L("Dettagli da completare", "Details to complete")}</small></p></span><ChevronRight size={13} /></button>)}{!moments.length && <button className="empty" onClick={() => openDay(index)}><Plus size={14} /><span><strong>{L("Aggiungi la prima tappa", "Add the first stop")}</strong><small>{L("Luogo, orario e motivo della scelta", "Place, time and reason for the choice")}</small></span></button>}</div>
+                  </article>;
+                })}
+              </section>
+
+              <div className="mr-plan-support-grid">
+                <button className="mr-plan-support note" onClick={() => openNode(noteNode)}><header><span>{L("Note e vincoli", "Notes and constraints")}</span><ChevronRight size={13} /></header><p>{noteNode?.data.text || L("Aggiungi ciò che non dobbiamo dimenticare.", "Add what we must not forget.")}</p></button>
+                <button className="mr-plan-support mood" onClick={() => openNode(moodNode)}><header><span>Moodboard</span><Plus size={13} /></header><div>{planImages.slice(0, 4).map((image: string, index: number) => <i key={`${image}-${index}`} style={{ backgroundImage: `url(${image})` }} />)}{!planImages.length && <small>{L("Aggiungi riferimenti visivi", "Add visual references")}</small>}</div></button>
+                <button className="mr-plan-support maybe" onClick={() => openNode(maybeNode)}><header><span>{L("Maybe / Alternative", "Maybe / Alternatives")}</span><Plus size={13} /></header>{(maybeNode?.data.items ?? []).slice(0, 3).map((item: string, index: number) => <p key={`${item}-${index}`}>{item}<ChevronRight size={11} /></p>)}{!(maybeNode?.data.items ?? []).length && <small>{L("Idee ancora fuori dal piano", "Ideas still outside the plan")}</small>}</button>
+              </div>
+            </main>
           </div>
+
+          <aside className={`mr-plan-context-rail${inspectorOpen || aiOpen ? " is-covered" : ""}`}>
+            <section className="mr-context-personal"><span>{L("Perché è costruito così", "Why it is built this way")}</span><h2>{L("Un viaggio che segue il tuo modo di viaggiare.", "A trip shaped around how you travel.")}</h2><p>{trip.whyYours || portrait?.narrative?.portrait || L("Completa il Portrait per rendere visibili qui le ragioni delle scelte.", "Complete your Portrait to see the reasons behind choices here.")}</p><button onClick={() => openNode(overviewNode)}>{L("Vedi e modifica la logica", "View and edit the logic")}<ChevronRight size={13} /></button></section>
+            <section className="mr-context-status"><header><span>{L("Stato del viaggio", "Trip status")}</span><strong>{readiness}%</strong></header><i><b style={{ width: `${readiness}%` }} /></i><div><button onClick={() => setView("control")}><FileCheck2 size={14} /><span><strong>{controlChecks.filter(item => !item.ready).length} {L("cose da sistemare", "items to resolve")}</strong><small>{L("Apri Controllo", "Open Control")}</small></span><ChevronRight size={13} /></button><button onClick={() => openNode(maybeNode)}><Layers3 size={14} /><span><strong>{openQuestions} {L("decisioni aperte", "open decisions")}</strong><small>{pendingBookings} {L("prenotazioni da completare", "bookings to complete")}</small></span><ChevronRight size={13} /></button></div></section>
+            <section className="mr-context-map"><header><span>{L("Mappa del viaggio", "Trip map")}</span><button onClick={() => setView("map")}>{L("Apri", "Open")}<ChevronRight size={12} /></button></header>{points.length ? <div><Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} bare hideDayBar /></Suspense></div> : <p><MapIcon size={18} />{L("Aggiungi luoghi precisi alle tappe per costruire la mappa.", "Add exact places to stops to build the map.")}</p>}</section>
+            <button className="mr-context-ai" onClick={() => setAiOpen(true)}><Sparkles size={15} /><span><strong>{L("Analizza questo viaggio", "Analyse this trip")}</strong><small>{L("Ritmo, spostamenti e coerenza personale", "Pace, transfers and personal fit")}</small></span><ChevronRight size={14} /></button>
+          </aside>
         </div> : <div className="mr-empty-desk"><Compass size={34} /><span>MindRoute Studio</span><h1>{L("Crea il tuo prossimo viaggio", "Create your next trip")}</h1><p>{L("Scegli come iniziare. Qualunque strada porta allo stesso spazio di lavoro e allo stesso itinerario.", "Choose how to begin. Every path leads to the same workspace and itinerary.")}</p><div><button onClick={() => { setStartMode("menu"); setNewTripOpen(true); }}><Plus size={15} />{L("Nuovo viaggio", "New trip")}</button></div></div>}
       </div>}
 
@@ -934,8 +1019,6 @@ function TravelStudioInner() {
       <nav className="mr-lens-dock" aria-label={L("Viste del viaggio", "Trip views")}>
         {([ ["plan", <BoxSelect size={15} />, L("Piano", "Plan")], ["map", <MapIcon size={15} />, L("Mappa", "Map")], ["control", <FileCheck2 size={15} />, L("Controllo", "Control")] ] as [StudioView, ReactNode, string][]).map(([id, icon, label]) => <button key={id} className={view === id ? "on" : ""} onClick={() => { setView(id); setInspectorOpen(false); setContextMenu(null); }}>{icon}<span>{label}</span></button>)}
       </nav>
-
-      {view === "plan" && trip && !selectedIds.length && !aiOpen && !guideOpen && <div className="mr-canvas-hint"><MousePointer2 size={14} /><span>{L("Seleziona un contenitore per aggiungere, modificare o rimuovere i suoi contenuti.", "Select a container to add, edit or remove its content.")}</span></div>}
 
       {inspectorOpen && selectedNode && !aiOpen && <aside className="mr-inspector-float">
         <header><div><span>{selectedNode.data.kind}</span><strong>{selectedNode.data.kind === "day" ? L("Modifica giorno", "Edit day") : selectedNode.data.kind === "trip" ? L("Modifica viaggio", "Edit trip") : selectedNode.data.kind === "mood" ? L("Modifica moodboard", "Edit moodboard") : selectedNode.data.kind === "maybe" ? L("Modifica alternative", "Edit alternatives") : L("Modifica contenuto", "Edit content")}</strong></div><button onClick={() => { setInspectorOpen(false); setSelectedIds([]); }}><PanelRightClose size={16} /></button></header>
