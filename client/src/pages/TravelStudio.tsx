@@ -8,8 +8,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
-  BoxSelect, Check, ChevronDown, ChevronRight,
-  CalendarDays, CircleHelp, ClipboardList, Clock3, Compass, Copy, Euro, GripVertical, Hand,
+  AlertTriangle, BoxSelect, Check, CheckCircle2, ChevronDown, ChevronRight,
+  CalendarDays, CircleHelp, ClipboardList, Compass, Copy, Euro, FileCheck2, Gauge, GripVertical, Hand,
   Image as ImageIcon, Instagram, Layers3, Link2, Maximize2,
   Map as MapIcon, MessageCircleQuestion, MoreHorizontal, MousePointer2, MoveRight, PanelRightClose,
   Plane, Plus, Redo2, Save, Share2, Sparkles, StickyNote, Trash2, Undo2, UserRound, X,
@@ -38,7 +38,8 @@ type RawTrip = {
 };
 
 type Tool = "select" | "hand";
-type StudioView = "plan" | "map" | "rhythm" | "budget" | "logistics";
+type StudioView = "plan" | "map" | "control";
+type StartMode = "menu" | "destination" | "blank" | "import";
 type ObjectKind =
   | "trip" | "day" | "place" | "note" | "question" | "photo" | "booking"
   | "budget" | "map" | "mood" | "maybe" | "social" | "proposal" | "group";
@@ -182,8 +183,9 @@ function buildDefaultCanvas(trip: RawTrip, it: boolean): CanvasDoc {
     {
       id: "intent-note", type: "travel", position: { x: 80, y: 90 },
       data: {
-        kind: "note", title: it ? "Quello che conta" : "What matters",
-        text: trip.whyYours || (it ? "Aggiungi qui desideri, confini e priorità." : "Add wishes, boundaries and priorities here."),
+        kind: "note",
+        title: trip.tripMeta?.studio_import_source ? (it ? "Materiale importato" : "Imported material") : (it ? "Quello che conta" : "What matters"),
+        text: trip.whyYours || trip.tripMeta?.studio_import_source || (it ? "Aggiungi qui desideri, confini e priorità." : "Add wishes, boundaries and priorities here."),
         status: "idea",
       },
     },
@@ -327,7 +329,9 @@ function TravelStudioInner() {
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [tripMenuOpen, setTripMenuOpen] = useState(false);
   const [newTripOpen, setNewTripOpen] = useState(false);
+  const [startMode, setStartMode] = useState<StartMode>("menu");
   const [blankTripForm, setBlankTripForm] = useState({ destinationName: "", country: "", days: 5 });
+  const [importText, setImportText] = useState("");
   const [creatingTrip, setCreatingTrip] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
@@ -404,6 +408,7 @@ function TravelStudioInner() {
             total_cost_bookable: trip.tripMeta?.total_cost_bookable ?? 0,
             total_cost_onsite_estimate: trip.tripMeta?.total_cost_onsite_estimate ?? 0,
             studio_budget_target: trip.tripMeta?.studio_budget_target,
+            studio_control: trip.tripMeta?.studio_control ?? {},
             studio_canvas: { ...payload, updatedAt: new Date().toISOString() },
           },
         }),
@@ -478,24 +483,50 @@ function TravelStudioInner() {
     setSelectedIds([id]); setContextMenu(null); setDirty(true);
   };
 
-  const createBlankTrip = async () => {
-    if (!blankTripForm.destinationName.trim() || creatingTrip) return;
+  const createStudioTrip = async () => {
+    if (creatingTrip) return;
+    const destinationName = blankTripForm.destinationName.trim()
+      || (startMode === "blank" ? L("Viaggio senza titolo", "Untitled trip") : "");
+    if (!destinationName || (startMode === "import" && !importText.trim())) return;
     setCreatingTrip(true);
     try {
       const response = await fetch("/api/studio/itineraries", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...blankTripForm, lang }),
+        body: JSON.stringify({
+          ...blankTripForm,
+          destinationName,
+          days: startMode === "blank" ? Math.max(1, blankTripForm.days) : blankTripForm.days,
+          startingMode: startMode === "menu" ? "destination" : startMode,
+          ...(startMode === "import" ? { importText } : {}),
+          lang,
+        }),
       });
       if (!response.ok) throw new Error("create");
       const created = await response.json() as RawTrip;
       setNewTripOpen(false);
+      setStartMode("menu");
       setBlankTripForm({ destinationName: "", country: "", days: 5 });
+      setImportText("");
       await loadLibrary(created.id);
       setLocation(`/studio/${created.id}`);
       toast({ title: L("Viaggio creato. Ora costruiamolo insieme.", "Trip created. Now let's build it together.") });
     } catch {
       toast({ title: L("Creazione non riuscita", "Creation failed"), variant: "destructive" });
     } finally { setCreatingTrip(false); }
+  };
+
+  const updateControlFlag = (key: "documents_confirmed" | "risks_reviewed") => {
+    setTrip(previous => previous ? {
+      ...previous,
+      tripMeta: {
+        ...(previous.tripMeta ?? {}),
+        studio_control: {
+          ...(previous.tripMeta?.studio_control ?? {}),
+          [key]: !previous.tripMeta?.studio_control?.[key],
+        },
+      },
+    } : previous);
+    setDirty(true);
   };
 
   const shareTrip = async () => {
@@ -718,6 +749,54 @@ function TravelStudioInner() {
   const logistics = trip ? (trip.days ?? []).flatMap((day, dayIndex) => momentsOf(day)
     .filter(moment => /transport|accommodation|flight|train|bus|ferry|hotel|transfer/i.test(String(moment?.type ?? "")))
     .map(moment => ({ ...moment, dayIndex, title: momentTitle(moment), time: momentTime(moment), place: momentPlace(moment) }))) : [];
+  const allMoments = trip ? (trip.days ?? []).flatMap(momentsOf) : [];
+  const emptyDays = rhythm.filter(day => day.count === 0);
+  const denseDays = rhythm.filter(day => day.intensity >= 75);
+  const missingPlaces = allMoments.filter(moment => !momentPlace(moment).trim()).length;
+  const openQuestions = nodes.filter(node => node.data.kind === "question" && node.data.status !== "chosen").length;
+  const pendingBookings = nodes.filter(node => node.data.kind === "booking" && node.data.status !== "booked").length;
+  const controlFlags = trip?.tripMeta?.studio_control ?? {};
+  const controlChecks = [
+    {
+      key: "plan",
+      label: L("Piano giorno per giorno", "Day-by-day plan"),
+      detail: emptyDays.length ? L(`${emptyDays.length} giorni da completare`, `${emptyDays.length} days to complete`) : L("Tutti i giorni hanno una struttura", "Every day has a structure"),
+      ready: rhythm.length > 0 && emptyDays.length === 0,
+    },
+    {
+      key: "decisions",
+      label: L("Decisioni aperte", "Open decisions"),
+      detail: openQuestions ? L(`${openQuestions} richiedono una scelta`, `${openQuestions} need a decision`) : L("Nessuna decisione bloccante", "No blocking decisions"),
+      ready: openQuestions === 0,
+    },
+    {
+      key: "budget",
+      label: "Budget",
+      detail: budget.total ? `€${budget.total.toLocaleString(lang === "it" ? "it-IT" : "en-US")} / €${budget.target.toLocaleString(lang === "it" ? "it-IT" : "en-US")}` : L("Stima da completare", "Estimate to complete"),
+      ready: budget.total > 0 && budget.target > 0 && budget.total <= budget.target,
+    },
+    {
+      key: "places",
+      label: L("Luoghi e mappa", "Places and map"),
+      detail: missingPlaces ? L(`${missingPlaces} luoghi da precisare`, `${missingPlaces} places to specify`) : L("Luoghi riconosciuti", "Places recognised"),
+      ready: allMoments.length > 0 && missingPlaces === 0,
+    },
+    {
+      key: "documents",
+      label: L("Documenti", "Documents"),
+      detail: controlFlags.documents_confirmed ? L("Verificati da te", "Verified by you") : L("Da verificare prima di partire", "Verify before departure"),
+      ready: Boolean(controlFlags.documents_confirmed),
+      toggle: "documents_confirmed" as const,
+    },
+    {
+      key: "risks",
+      label: L("Rischi e avvisi", "Risks and notices"),
+      detail: controlFlags.risks_reviewed ? L("Controllati da te", "Reviewed by you") : L("Controlla requisiti e condizioni", "Review requirements and conditions"),
+      ready: Boolean(controlFlags.risks_reviewed),
+      toggle: "risks_reviewed" as const,
+    },
+  ];
+  const readiness = Math.round(controlChecks.filter(item => item.ready).length / controlChecks.length * 100);
   const contextualPrompts = selectedNode?.data.kind === "day"
     ? [L("Alleggerisci questo giorno", "Lighten this day"), L("Ottimizza gli spostamenti", "Optimise transfers"), L("Rendilo più locale", "Make it more local"), L("Riduci il costo", "Reduce cost")]
     : selectedNode?.data.kind === "place"
@@ -752,7 +831,7 @@ function TravelStudioInner() {
       <div className="mr-top-actions">
         <button className="mr-global-ai" onClick={() => setAiOpen(true)}><Sparkles size={14} /><span>{L("Lavora con l'AI", "Work with AI")}</span></button>
         <button className="share" onClick={shareTrip} disabled={!trip}><Share2 size={14} />{L("Condividi", "Share")}</button>
-        {trip && <button className="mr-classic-mode" onClick={() => setLocation(`/itinerary/${trip.id}`)}><ClipboardList size={14} /><span>{L("Riepiloga viaggio", "Trip summary")}</span></button>}
+        {trip && <button className="mr-classic-mode" onClick={() => setLocation(`/itinerary/${trip.id}`)}><ClipboardList size={14} /><span>{L("Apri itinerario", "Open itinerary")}</span></button>}
         <button onClick={undo} disabled={!history.length} aria-label={L("Annulla", "Undo")}><Undo2 size={16} /></button>
         <button onClick={redo} disabled={!futureHistory.length} aria-label={L("Ripristina", "Redo")}><Redo2 size={16} /></button>
         <button className="mr-save-state" onClick={() => saveCanvas()} disabled={!trip || saving}><Save size={15} /><span>{saving ? L("Salvo", "Saving") : dirty ? L("Salva", "Save") : L("Salvato", "Saved")}</span></button>
@@ -805,7 +884,7 @@ function TravelStudioInner() {
         >
           <Background gap={24} size={1} color="rgba(30,28,25,.10)" />
           <MiniMap pannable zoomable className="mr-minimap" nodeColor={node => node.data.kind === "day" ? "#E86B52" : node.data.kind === "map" ? "#7FA6B3" : "#C7B9A8"} />
-        </ReactFlow> : <div className="mr-empty-desk"><Compass size={34} /><span>MindRoute Studio</span><h1>{L("Da dove vuoi partire?", "Where do you want to start?")}</h1><p>{L("Fatti guidare dal quiz oppure costruisci liberamente un viaggio già chiaro nella tua testa.", "Use the guided quiz or freely build a trip already clear in your mind.")}</p><div><button onClick={() => setLocation("/start")}><Sparkles size={15} />{L("Quiz guidato", "Guided quiz")}</button><button className="secondary" onClick={() => setNewTripOpen(true)}><Plus size={15} />{L("Parti da zero", "Start from scratch")}</button></div></div>}
+        </ReactFlow> : <div className="mr-empty-desk"><Compass size={34} /><span>MindRoute Studio</span><h1>{L("Crea il tuo prossimo viaggio", "Create your next trip")}</h1><p>{L("Scegli come iniziare. Qualunque strada porta allo stesso spazio di lavoro e allo stesso itinerario.", "Choose how to begin. Every path leads to the same workspace and itinerary.")}</p><div><button onClick={() => { setStartMode("menu"); setNewTripOpen(true); }}><Plus size={15} />{L("Nuovo viaggio", "New trip")}</button></div></div>}
       </div>}
 
       {view === "map" && trip && <section className="mr-work-view mr-map-workspace">
@@ -814,23 +893,29 @@ function TravelStudioInner() {
           : <div className="mr-view-empty"><MapIcon size={25} /><h2>{L("Mancano luoghi precisi", "Exact places are missing")}</h2><p>{L("Apri un giorno e inserisci il luogo nelle sue tappe. La mappa si costruirà automaticamente.", "Open a day and add exact places to its stops. The map will build automatically.")}</p><button onClick={() => setView("plan")}>{L("Torna al Piano", "Back to Plan")}</button></div>}
       </section>}
 
-      {view === "rhythm" && trip && <section className="mr-work-view mr-rhythm-workspace">
-        <header><span>{L("Lettura del ritmo", "Pace reading")}</span><h1>{L("Quanto respira ogni giorno", "How each day breathes")}</h1><p>{L("MindRoute evidenzia giornate dense, trasferimenti e spazi vuoti senza cambiare nulla al posto tuo.", "MindRoute highlights dense days, transfers and breathing room without changing anything for you.")}</p></header>
-        <div className="mr-rhythm-list">{rhythm.map(day => <button key={day.index} onClick={() => openDay(day.index)}><span><small>{L("Giorno", "Day")} {day.index + 1}</small><strong>{day.title}</strong></span><div><i><b style={{ width: `${Math.max(6, day.intensity)}%` }} /></i><em>{day.intensity >= 75 ? L("Intenso", "Intense") : day.intensity >= 45 ? L("Equilibrato", "Balanced") : L("Lento", "Slow")}</em></div><p>{day.count} {L("momenti", "moments")} · {day.transfers} {L("spostamenti", "transfers")}</p><ChevronRight size={15} /></button>)}</div>
-      </section>}
+      {view === "control" && trip && <section className="mr-work-view mr-control-workspace">
+        <header><span>{L("Prontezza del viaggio", "Trip readiness")}</span><h1>{L("Prima di partire, guarda solo ciò che conta", "Before leaving, see only what matters")}</h1><p>{L("Ritmo, costi, logistica e verifiche leggono lo stesso viaggio. Qui emergono soltanto le cose da sistemare.", "Pace, costs, logistics and checks read the same trip. Only what needs attention appears here.")}</p></header>
 
-      {view === "budget" && trip && <section className="mr-work-view mr-budget-workspace">
-        <header><span>{L("Controllo dei costi", "Cost control")}</span><h1>{L("Il budget resta dentro il viaggio", "The budget stays inside the trip")}</h1><p>{L("Modifica le stime: il totale e l'itinerario operativo restano sincronizzati.", "Edit estimates: the total and operational itinerary stay in sync.")}</p></header>
-        <div className="mr-budget-premium"><div className="mr-budget-total"><span>{L("Stima attuale", "Current estimate")}</span><strong>€{budget.total.toLocaleString(lang === "it" ? "it-IT" : "en-US")}</strong><small>{budget.target ? `${Math.round(budget.total / Math.max(budget.target, 1) * 100)}% ${L("del tetto", "of target")}` : L("Imposta un tetto", "Set a target")}</small><i><b style={{ width: `${Math.min(100, budget.total / Math.max(budget.target, 1) * 100)}%` }} /></i></div><div className="mr-budget-fields"><label>{L("Prenotabile", "Bookable")}<span>€<input type="number" min="0" value={trip.tripMeta?.total_cost_bookable ?? 0} onChange={event => updateBudgetValue("bookable", Number(event.target.value))} /></span></label><label>{L("In loco", "On site")}<span>€<input type="number" min="0" value={trip.tripMeta?.total_cost_onsite_estimate ?? 0} onChange={event => updateBudgetValue("onsite", Number(event.target.value))} /></span></label><label>{L("Tetto desiderato", "Target")}<span>€<input type="number" min="0" value={trip.tripMeta?.studio_budget_target ?? 0} onChange={event => updateBudgetValue("target", Number(event.target.value))} /></span></label></div></div>
-      </section>}
+        <div className="mr-control-hero">
+          <div className="mr-readiness-ring" style={{ background: `conic-gradient(#63a58f 0 ${readiness}%,#e5ded4 ${readiness}% 100%)` }}><span><strong>{readiness}%</strong><small>{L("pronto", "ready")}</small></span></div>
+          <div><span>{readiness >= 80 ? L("Quasi pronto a partire", "Almost ready to go") : L("Il viaggio sta prendendo forma", "The trip is taking shape")}</span><h2>{readiness >= 80 ? L("Restano pochi dettagli da confermare.", "Only a few details remain.") : L("Risolvi prima le decisioni che hanno più impatto.", "Resolve the highest-impact decisions first.")}</h2><p>{denseDays.length ? L(`${denseDays.length} giornate hanno un ritmo intenso.`, `${denseDays.length} days have an intense pace.`) : L("Il ritmo non presenta criticità evidenti.", "The pace has no obvious issues.")}</p></div>
+          <button onClick={() => { setAiInput(L("Aiutami a risolvere le priorità aperte prima della partenza", "Help me resolve the open priorities before departure")); setAiOpen(true); }}><Sparkles size={15} />{L("Risolvi con l'AI", "Resolve with AI")}</button>
+        </div>
 
-      {view === "logistics" && trip && <section className="mr-work-view mr-logistics-workspace">
-        <header><span>{L("Parte operativa", "Operational layer")}</span><h1>{L("Spostamenti e prenotazioni", "Transfers and bookings")}</h1><p>{L("Tutto ciò che deve essere confermato prima di partire, organizzato per giorno.", "Everything that must be confirmed before departure, organised by day.")}</p></header>
-        <div className="mr-logistics-grid">{logistics.map((item: any, index: number) => <button key={item.id ?? index} onClick={() => openDay(item.dayIndex)}><span><Plane size={16} /></span><p><small>{L("Giorno", "Day")} {item.dayIndex + 1} · {item.time || L("Orario da definire", "Time TBD")}</small><strong>{item.title}</strong><em>{item.place || L("Luogo da definire", "Place TBD")}</em></p><ChevronRight size={15} /></button>)}{nodes.filter(node => node.data.kind === "booking").map(node => <button key={node.id} onClick={() => { setView("plan"); setSelectedIds([node.id]); setInspectorOpen(true); }}><span><ClipboardList size={16} /></span><p><small>{L("Prenotazione", "Booking")}</small><strong>{node.data.title}</strong><em>{node.data.status === "booked" ? L("Confermata", "Confirmed") : L("Da completare", "To complete")}</em></p><ChevronRight size={15} /></button>)}{!logistics.length && !nodes.some(node => node.data.kind === "booking") && <div className="mr-view-empty"><Plane size={24} /><h2>{L("Nessuna logistica ancora", "No logistics yet")}</h2><p>{L("Aggiungi un volo, un hotel o un trasferimento dal pulsante Aggiungi.", "Add a flight, hotel or transfer from the Add button.")}</p></div>}</div>
+        <div className="mr-control-checks">{controlChecks.map(item => <button key={item.key} className={item.ready ? "ready" : "attention"} onClick={() => { if (item.toggle) updateControlFlag(item.toggle); else if (!item.ready) { setAiInput(L(`Aiutami a risolvere: ${item.label}. ${item.detail}`, `Help me resolve: ${item.label}. ${item.detail}`)); setAiOpen(true); } }}>
+          <span>{item.ready ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}</span><p><strong>{item.label}</strong><small>{item.detail}</small></p>{item.toggle && <em>{item.ready ? L("Segna da rivedere", "Mark for review") : L("Segna verificato", "Mark verified")}</em>}
+        </button>)}</div>
+
+        <div className="mr-control-detail-grid">
+          <section className="mr-control-card mr-control-rhythm"><header><span><Gauge size={15} />{L("Ritmo", "Pace")}</span><small>{denseDays.length ? L(`${denseDays.length} da rivedere`, `${denseDays.length} to review`) : L("Equilibrato", "Balanced")}</small></header><div className="mr-rhythm-list">{rhythm.map(day => <button key={day.index} onClick={() => openDay(day.index)}><span><small>{L("Giorno", "Day")} {day.index + 1}</small><strong>{day.title}</strong></span><div><i><b style={{ width: `${Math.max(6, day.intensity)}%` }} /></i><em>{day.intensity >= 75 ? L("Intenso", "Intense") : day.intensity >= 45 ? L("Equilibrato", "Balanced") : L("Lento", "Slow")}</em></div><ChevronRight size={15} /></button>)}</div></section>
+          <section className="mr-control-card mr-control-budget"><header><span><Euro size={15} />Budget</span><small>{budget.total > budget.target ? L("Oltre il tetto", "Over target") : L("Sotto controllo", "Under control")}</small></header><div className="mr-budget-total"><span>{L("Stima attuale", "Current estimate")}</span><strong>€{budget.total.toLocaleString(lang === "it" ? "it-IT" : "en-US")}</strong><small>€{budget.target.toLocaleString(lang === "it" ? "it-IT" : "en-US")} {L("disponibili", "available")}</small><i><b style={{ width: `${Math.min(100, budget.total / Math.max(budget.target, 1) * 100)}%` }} /></i></div><div className="mr-budget-fields"><label>{L("Prenotabile", "Bookable")}<span>€<input type="number" min="0" value={trip.tripMeta?.total_cost_bookable ?? 0} onChange={event => updateBudgetValue("bookable", Number(event.target.value))} /></span></label><label>{L("In loco", "On site")}<span>€<input type="number" min="0" value={trip.tripMeta?.total_cost_onsite_estimate ?? 0} onChange={event => updateBudgetValue("onsite", Number(event.target.value))} /></span></label><label>{L("Tetto", "Target")}<span>€<input type="number" min="0" value={trip.tripMeta?.studio_budget_target ?? 0} onChange={event => updateBudgetValue("target", Number(event.target.value))} /></span></label></div></section>
+        </div>
+
+        <section className="mr-control-card mr-control-logistics"><header><span><Plane size={15} />{L("Logistica e prenotazioni", "Logistics and bookings")}</span><small>{pendingBookings ? L(`${pendingBookings} da completare`, `${pendingBookings} to complete`) : L("Vista operativa", "Operational view")}</small></header><div className="mr-logistics-grid">{logistics.map((item: any, index: number) => <button key={item.id ?? index} onClick={() => openDay(item.dayIndex)}><span><Plane size={16} /></span><p><small>{L("Giorno", "Day")} {item.dayIndex + 1} · {item.time || L("Orario da definire", "Time TBD")}</small><strong>{item.title}</strong><em>{item.place || L("Luogo da definire", "Place TBD")}</em></p><ChevronRight size={15} /></button>)}{nodes.filter(node => node.data.kind === "booking").map(node => <button key={node.id} onClick={() => { setView("plan"); setSelectedIds([node.id]); setInspectorOpen(true); }}><span><ClipboardList size={16} /></span><p><small>{L("Prenotazione", "Booking")}</small><strong>{node.data.title}</strong><em>{node.data.status === "booked" ? L("Confermata", "Confirmed") : L("Da completare", "To complete")}</em></p><ChevronRight size={15} /></button>)}{!logistics.length && !nodes.some(node => node.data.kind === "booking") && <div className="mr-view-empty"><Plane size={24} /><h2>{L("Nessuna logistica ancora", "No logistics yet")}</h2><p>{L("Aggiungi un volo, un hotel o un trasferimento dal pulsante Aggiungi.", "Add a flight, hotel or transfer from the Add button.")}</p></div>}</div></section>
       </section>}
 
       <nav className="mr-lens-dock" aria-label={L("Viste del viaggio", "Trip views")}>
-        {([ ["plan", <BoxSelect size={15} />, L("Piano", "Plan")], ["map", <MapIcon size={15} />, L("Mappa", "Map")], ["rhythm", <Clock3 size={15} />, L("Ritmo", "Pace")], ["budget", <Euro size={15} />, "Budget"], ["logistics", <Plane size={15} />, L("Logistica", "Logistics")] ] as [StudioView, ReactNode, string][]).map(([id, icon, label]) => <button key={id} className={view === id ? "on" : ""} onClick={() => { setView(id); setInspectorOpen(false); setContextMenu(null); }}>{icon}<span>{label}</span></button>)}
+        {([ ["plan", <BoxSelect size={15} />, L("Piano", "Plan")], ["map", <MapIcon size={15} />, L("Mappa", "Map")], ["control", <FileCheck2 size={15} />, L("Controllo", "Control")] ] as [StudioView, ReactNode, string][]).map(([id, icon, label]) => <button key={id} className={view === id ? "on" : ""} onClick={() => { setView(id); setInspectorOpen(false); setContextMenu(null); }}>{icon}<span>{label}</span></button>)}
       </nav>
 
       {view === "plan" && trip && !selectedIds.length && !aiOpen && !guideOpen && <div className="mr-canvas-hint"><MousePointer2 size={14} /><span>{L("Clicca una card per modificarla. Trascina un luogo dentro un giorno per inserirlo nel piano.", "Click a card to edit it. Drag a place into a day to add it to the plan.")}</span></div>}
@@ -895,9 +980,20 @@ function TravelStudioInner() {
         <button className="danger" onClick={() => { deleteSelection(); setContextMenu(null); }}><Trash2 size={13} />{L("Elimina", "Delete")}</button>
       </div>}
 
-      {newTripOpen && <div className="mr-new-trip-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setNewTripOpen(false); }}><section className="mr-new-trip-modal">
-        <button className="close" onClick={() => setNewTripOpen(false)}><X size={17} /></button><span>{L("Nuovo viaggio", "New trip")}</span><h2>{L("Come vuoi cominciare?", "How do you want to begin?")}</h2><p>{L("Entrambe le strade portano allo stesso Studio e allo stesso itinerario operativo.", "Both paths lead to the same Studio and operational itinerary.")}</p>
-        <div className="mr-new-trip-paths"><button onClick={() => setLocation("/start")}><Sparkles size={19} /><strong>{L("Fatti guidare", "Get guided")}</strong><small>{L("Quiz rapido, tre destinazioni spiegate, viaggio completo.", "Quick quiz, three explained destinations, complete trip.")}</small><em>{L("Inizia il quiz", "Start quiz")}<ChevronRight size={14} /></em></button><div><Plus size={19} /><strong>{L("Parti da zero", "Start from scratch")}</strong><small>{L("Hai già una direzione? Crea la struttura e lavoraci subito.", "Already have a direction? Create the structure and work on it now.")}</small><label>{L("Destinazione o idea", "Destination or idea")}<input autoFocus value={blankTripForm.destinationName} onChange={event => setBlankTripForm(value => ({ ...value, destinationName: event.target.value }))} placeholder={L("Es. Giappone", "E.g. Japan")} /></label><div><label>{L("Paese / area", "Country / area")}<input value={blankTripForm.country} onChange={event => setBlankTripForm(value => ({ ...value, country: event.target.value }))} /></label><label>{L("Giorni", "Days")}<input type="number" min="1" max="30" value={blankTripForm.days} onChange={event => setBlankTripForm(value => ({ ...value, days: Number(event.target.value) }))} /></label></div><button disabled={!blankTripForm.destinationName.trim() || creatingTrip} onClick={createBlankTrip}>{creatingTrip ? L("Creo…", "Creating…") : L("Apri nello Studio", "Open in Studio")}<ChevronRight size={14} /></button></div></div>
+      {newTripOpen && <div className="mr-new-trip-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) { setNewTripOpen(false); setStartMode("menu"); } }}><section className="mr-new-trip-modal">
+        <button className="close" onClick={() => { setNewTripOpen(false); setStartMode("menu"); }}><X size={17} /></button><span>{L("Nuovo viaggio", "New trip")}</span><h2>{startMode === "menu" ? L("Da dove vuoi iniziare?", "Where do you want to begin?") : startMode === "destination" ? L("Parti da una destinazione", "Start from a destination") : startMode === "blank" ? L("Costruisci da zero", "Build from scratch") : L("Importa ciò che hai già", "Import what you already have")}</h2><p>{L("Un solo viaggio, qualunque sia il punto di partenza.", "One trip, whatever your starting point.")}</p>
+        {startMode === "menu" ? <div className="mr-new-trip-options">
+          <button onClick={() => setLocation("/start")}><Sparkles size={19} /><strong>{L("Quiz rapido", "Quick quiz")}</strong><small>{L("Poche domande, tre destinazioni spiegate.", "A few questions, three explained destinations.")}</small><em>{L("Consigliato", "Recommended")}</em></button>
+          <button onClick={() => setStartMode("destination")}><MapIcon size={19} /><strong>{L("Ho una destinazione", "I have a destination")}</strong><small>{L("Imposta luogo e durata, poi costruisci.", "Set place and duration, then build.")}</small></button>
+          <button onClick={() => { setBlankTripForm(value => ({ ...value, destinationName: "", days: 1 })); setStartMode("blank"); }}><StickyNote size={19} /><strong>{L("Inizia da zero", "Start from scratch")}</strong><small>{L("Un piano vuoto, completamente libero.", "A blank, completely flexible plan.")}</small></button>
+          <button onClick={() => setStartMode("import")}><Link2 size={19} /><strong>{L("Importa idee", "Import ideas")}</strong><small>{L("Testo, link, note o una bozza esistente.", "Text, links, notes or an existing draft.")}</small></button>
+        </div> : <div className="mr-new-trip-form">
+          <button className="back" onClick={() => setStartMode("menu")}><ChevronRight size={14} />{L("Cambia modalità", "Change mode")}</button>
+          <label>{startMode === "blank" ? L("Nome del viaggio (opzionale)", "Trip name (optional)") : L("Destinazione o nome del viaggio", "Destination or trip name")}<input autoFocus value={blankTripForm.destinationName} onChange={event => setBlankTripForm(value => ({ ...value, destinationName: event.target.value }))} placeholder={startMode === "blank" ? L("Viaggio senza titolo", "Untitled trip") : L("Es. Giappone", "E.g. Japan")} /></label>
+          {startMode === "import" && <label>{L("Incolla qui idee, link o una bozza", "Paste ideas, links or a draft here")}<textarea value={importText} onChange={event => setImportText(event.target.value)} placeholder={L("Tokyo, massimo 1.500€, ritmi lenti…", "Tokyo, max €1,500, slow pace…")} /></label>}
+          <div><label>{L("Paese / area", "Country / area")}<input value={blankTripForm.country} onChange={event => setBlankTripForm(value => ({ ...value, country: event.target.value }))} /></label><label>{L("Giorni iniziali", "Starting days")}<input type="number" min="1" max="30" value={blankTripForm.days} onChange={event => setBlankTripForm(value => ({ ...value, days: Number(event.target.value) }))} /></label></div>
+          <button className="submit" disabled={creatingTrip || (startMode !== "blank" && !blankTripForm.destinationName.trim()) || (startMode === "import" && !importText.trim())} onClick={createStudioTrip}>{creatingTrip ? L("Creo…", "Creating…") : L("Apri nello Studio", "Open in Studio")}<ChevronRight size={14} /></button>
+        </div>}
       </section></div>}
 
       {guideOpen && trip && <div className="mr-guide-backdrop"><section className="mr-studio-guide">
@@ -907,10 +1003,10 @@ function TravelStudioInner() {
         <p>{L("Qui costruisci e modifichi. L'itinerario operativo resta la versione completa da leggere e usare durante il viaggio. Ogni modifica è condivisa tra le due modalità.", "Build and edit here. The operational itinerary remains the complete version to read and use while travelling. Every change is shared between both modes.")}</p>
         <div className="mr-guide-steps">
           <article><b>01</b><MousePointer2 size={18} /><strong>{L("Apri e modifica", "Open and edit")}</strong><small>{L("Ogni card apre contenuti e strumenti pertinenti, senza riempire lo schermo di comandi.", "Every card opens relevant content and tools without filling the screen with controls.")}</small></article>
-          <article><b>02</b><BoxSelect size={18} /><strong>{L("Cambia prospettiva", "Change perspective")}</strong><small>{L("Piano, mappa, ritmo, budget e logistica leggono sempre lo stesso viaggio.", "Plan, map, pace, budget and logistics always read the same trip.")}</small></article>
+          <article><b>02</b><BoxSelect size={18} /><strong>{L("Tre viste, un solo viaggio", "Three views, one trip")}</strong><small>{L("Piano per costruire, Mappa per capire lo spazio, Controllo per preparare la partenza.", "Plan to build, Map to understand space, Control to prepare departure.")}</small></article>
           <article><b>03</b><Sparkles size={18} /><strong>{L("Lavora con l'AI", "Work with AI")}</strong><small>{L("Seleziona il contesto e MindRoute propone modifiche verificabili prima di applicarle.", "Select the context and MindRoute proposes reviewable changes before applying them.")}</small></article>
         </div>
-        <footer><button className="secondary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Vai all'itinerario classico", "Open classic itinerary")}</button><button className="primary" onClick={closeGuide}>{L("Inizia a esplorare", "Start exploring")}<ChevronRight size={15} /></button></footer>
+        <footer><button className="secondary" onClick={() => setLocation(`/itinerary/${trip?.id}`)}>{L("Apri l'itinerario", "Open itinerary")}</button><button className="primary" onClick={closeGuide}>{L("Inizia a costruire", "Start building")}<ChevronRight size={15} /></button></footer>
       </section></div>}
 
       {aiOpen && <section className="mr-canvas-ai">

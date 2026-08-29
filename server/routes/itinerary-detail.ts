@@ -44,6 +44,8 @@ export function registerItineraryDetailRoutes(app: Express) {
     country: z.string().trim().max(100).optional(),
     days: z.number().int().min(1).max(30).default(5),
     lang: z.enum(["it", "en"]).default("it"),
+    startingMode: z.enum(["destination", "blank", "import"]).default("destination"),
+    importText: z.string().trim().max(5000).optional(),
   });
 
   // Manual lane: creates the same canonical itinerary used by the guided
@@ -76,7 +78,12 @@ export function registerItineraryDetailRoutes(app: Express) {
         whyYours: "",
         tripSummary: "",
         highlights: [],
-        tripMeta: { studio_budget_target: 0 } as any,
+        tripMeta: {
+          studio_budget_target: 0,
+          studio_starting_mode: input.startingMode,
+          ...(input.importText ? { studio_import_source: input.importText } : {}),
+          studio_control: { documents_confirmed: false, risks_reviewed: false },
+        } as any,
       });
       res.status(201).json(saved);
     } catch (err) {
@@ -136,6 +143,10 @@ export function registerItineraryDetailRoutes(app: Express) {
       total_cost_onsite_estimate: z.number().finite().min(0).optional(),
       studio_budget_target: z.number().finite().min(0).optional(),
       ambient: z.array(z.string().max(2000)).max(30).optional(),
+      studio_control: z.object({
+        documents_confirmed: z.boolean().optional(),
+        risks_reviewed: z.boolean().optional(),
+      }).strict().optional(),
       studio_canvas: studioCanvasSchema.optional(),
     }).strict().optional(),
   });

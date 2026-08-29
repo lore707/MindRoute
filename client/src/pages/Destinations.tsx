@@ -92,7 +92,7 @@ export default function Destinations() {
           const data = await r.json();
           if (data?.id) {
             clearPendingGen();
-            setLocation(`/itinerary/${data.id}`);
+            setLocation(`/studio/${data.id}`);
             return;
           }
         }
@@ -189,7 +189,7 @@ const generateItinerary = async (destId: number) => {
             track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v2" });
             /* checklist: nessun timer di messaggi da fermare */
             clearPendingGen();
-            setLocation(`/itinerary/${v2Data.id ?? destId}`);
+            setLocation(`/studio/${v2Data.id ?? destId}`);
             return;
           }
           console.warn("[v2] endpoint returned non-2xx, falling back to legacy stream");
@@ -237,7 +237,7 @@ const generateItinerary = async (destId: number) => {
                 track("itinerary_generated", { destination: selectedDest.name, days: profilingInput.days, schema: "v1" });
                 /* checklist: nessun timer di messaggi da fermare */
                 clearPendingGen();
-                setLocation(`/itinerary/${data.itineraryId ?? destId}`);
+                setLocation(`/studio/${data.itineraryId ?? destId}`);
                 return;
               } else if (currentEvent === "error") {
                 throw new Error(data.message);
@@ -253,7 +253,7 @@ const generateItinerary = async (destId: number) => {
 
       /* checklist: nessun timer di messaggi da fermare */
       clearPendingGen();
-      setLocation(`/itinerary/${destId}`);
+      setLocation(`/studio/${destId}`);
     } catch (err) {
       console.error(err);
       clearPendingGen();
