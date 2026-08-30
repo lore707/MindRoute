@@ -11,7 +11,7 @@
 /* stage = solo mappa + overlay essenziali (toolbar, risultati, card):
    tutto ciò che è absolute si ancora QUI, non al wrap (che ora contiene
    anche barra giorni, filtri e striscia-tappe in flusso). */
-.rmap-stage{position:relative}
+.rmap-stage{position:relative;z-index:1;isolation:isolate;overflow:hidden}
 .rmap{width:100%;height:clamp(360px,52vh,560px);background:#11161f}
 /* OpenFreeMap e' vettoriale: MapLibre disegna il fondo dentro il tile pane,
    mentre Leaflet continua a gestire marker, percorsi e popup. */
@@ -21,25 +21,14 @@
 /* ── Scelta dello stile ────────────────────────────────────────────────────
    In alto a destra, sopra la mappa. Vetro scuro: si legge sia sul chiaro sia
    sul notturno senza cambiare aspetto. */
-.rmap-styles{position:absolute;z-index:600;top:12px;right:12px;display:flex;gap:2px;padding:3px;
-  border-radius:999px;background:rgba(10,12,18,.76);border:1px solid rgba(255,255,255,.14);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.rmap-style{min-height:30px;padding:0 12px;border-radius:999px;border:none;background:transparent;
-  color:rgba(245,244,242,.62);font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;
-  transition:background .18s,color .18s;position:relative}
-/* Area tattile piena senza gonfiare la pastiglia. */
-.rmap-style::before{content:"";position:absolute;inset:-7px 0}
-.rmap-style:hover{color:#F5F4F2}
-.rmap-style.on{background:var(--accent,#E94560);color:#fff}
-
 /* ── Leggibilita' su fondo CHIARO ──────────────────────────────────────────
    I pin e il percorso erano disegnati per il nero. Su Voyager e sulla chiara
    servono un bordo e un'ombra, o si perdono dentro la mappa. */
-.rmap--voyager .rmap-pin,.rmap--light .rmap-pin{box-shadow:0 2px 10px rgba(0,0,0,.34);border:2px solid rgba(255,255,255,.92)}
-.rmap--voyager .rmap-leg,.rmap--light .rmap-leg{background:rgba(255,255,255,.94);color:#1a1a1a;border-color:rgba(0,0,0,.14)}
+.rmap--standard .rmap-pin{box-shadow:0 2px 10px rgba(0,0,0,.34);border:2px solid rgba(255,255,255,.96)}
+.rmap--standard .rmap-leg{background:rgba(255,255,255,.96);color:#1a1a1a;border-color:rgba(0,0,0,.14)}
 /* Le etichette orario restano vetro SCURO: su una mappa chiara il contrasto
    e' migliore di un'etichetta bianca su bianco. */
-.rmap--voyager .mrf-mlabel .in,.rmap--light .mrf-mlabel .in{border-color:rgba(0,0,0,.2);box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.rmap--standard .mrf-mlabel .in{border-color:rgba(0,0,0,.2);box-shadow:0 2px 10px rgba(0,0,0,.2)}
 .rmap-loading{display:grid;place-items:center;height:clamp(360px,52vh,560px);color:var(--ink-dim);font-family:var(--serif);font-style:italic;font-size:14px}
 /* fullscreen: colonna a tutto viewport — barra giorni / filtri / mappa
    (flex:1) / striscia-tappe. Safe-area per notch e home indicator. */
@@ -49,7 +38,7 @@
 .rmap-wrap--full .rmap{flex:1;height:auto;min-height:0;border-radius:0}
 .rmap-wrap--full .rmap-strip{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
 /* ── barra giorni: in flusso sopra la mappa, scroll orizzontale ── */
-.rmap-days{display:flex;gap:8px;align-items:center;padding:2px 22px 12px;overflow-x:auto;
+.rmap-days{position:relative;z-index:20;display:flex;gap:8px;align-items:center;padding:2px 22px 12px;overflow-x:auto;
   scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .rmap-days::-webkit-scrollbar{display:none}
 .rmap-day{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 16px;
@@ -79,7 +68,7 @@
 .rmap-results .rr-t{display:block;color:var(--ink);font-size:13px;font-weight:600}
 .rmap-results .rr-a{display:block;color:var(--ink-faint);font-size:11px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ── filtri: riga richiudibile in flusso (motore + categorie) ── */
-.rmap-filterrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 22px 12px}
+.rmap-filterrow{position:relative;z-index:20;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 22px 12px}
 .rmap-chip{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 13px;border-radius:999px;
   border:1px solid var(--stroke-2);background:rgba(255,255,255,.03);
   color:var(--ink-dim);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;line-height:1}
@@ -161,6 +150,12 @@
 .rmap-stop-t .l{font-size:12.5px;font-weight:600;color:var(--ink);max-width:150px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rmap-stop-t .m{font-size:11px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rmap-place-label{max-width:190px;padding:6px 9px!important;border:1px solid rgba(26,31,36,.15)!important;
+  border-radius:8px!important;background:rgba(255,255,255,.96)!important;color:#202124!important;
+  box-shadow:0 2px 8px rgba(34,40,45,.2)!important;font-size:11px!important;font-weight:700!important;
+  line-height:1.2!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rmap-place-label.leaflet-tooltip-right:before{border-right-color:rgba(255,255,255,.96)!important}
+.rmap-place-label.leaflet-tooltip-left:before{border-left-color:rgba(255,255,255,.96)!important}
 /* ── etichetta-tratta sul percorso: "🚶 12 min" ── */
 .rmap-leg-wrap{background:none;border:none}
 .rmap-leg{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;

@@ -23,7 +23,7 @@ import "@/styles/routemap.css";
 import "@/styles/leaflet-chrome.css";
 // Il catalogo degli stili e la preferenza vivono in un modulo condiviso: la
 // scelta fatta qui vale anche per l'atlante e per il mini-atlante della home.
-import { MAP_STYLES, MAP_ATTR, readMapStyle, saveMapStyle, type MapStyle } from "@/lib/map-style";
+import { MAP_ATTR, readMapStyle } from "@/lib/map-style";
 import { createMapBaseLayer, attachMapBaseHealth, type MapBaseLayer } from "@/lib/map-base-layer";
 import { attachAutoSize, fitToPoints, safePoints, flyDuration } from "@/lib/leaflet-utils";
 
@@ -93,6 +93,8 @@ type Props = {
    *  Etichette alternate destra/sinistra per non accavallarsi. Solo vista
    *  giorno singolo: sulla vista "Tutti" sarebbero una ragnatela illeggibile. */
   timeLabels?: boolean;
+  /** Studio: mantiene visibile il nome di ogni tappa accanto al pin. */
+  showPlaceLabels?: boolean;
   /** Flow: la mappa è già dentro una schermata sua → niente chrome interna
    *  (barra strumenti, ricerca, filtri). I controlli li mette il contenitore. */
   bare?: boolean;
@@ -235,7 +237,7 @@ function stopLabelIcon(time: string, name: string, sub: string, side: "l" | "r")
   });
 }
 
-export default function RouteMap({ points, center, destination, itineraryId, t, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, active = true, hideDayBar = false, timeLabels = false, bare = false }: Props) {
+export default function RouteMap({ points, center, destination, itineraryId, t, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, active = true, hideDayBar = false, timeLabels = false, showPlaceLabels = false, bare = false }: Props) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -246,10 +248,6 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
   const meLayer = useRef<L.LayerGroup | null>(null);
   const tileRef = useRef<MapBaseLayer | null>(null);
   const tileHealthDetach = useRef<(() => void) | null>(null);
-  const [mapStyle, setMapStyle] = useState<MapStyle>(() => readMapStyle());
-  // Ref parallelo: l'init della mappa gira UNA volta sola e non deve dipendere
-  // dallo stato (rimonterebbe tutto a ogni cambio di stile).
-  const styleRef = useRef<MapStyle>(mapStyle);
   // Risorse della mappa che non arrivano: meglio dirlo che mostrare il vuoto.
   const [tilesDown, setTilesDown] = useState(false);
   const detachRef = useRef<Array<() => void>>([]);
@@ -422,10 +420,17 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
   useEffect(() => {
     if (!elRef.current || mapRef.current) return;
     const first = points[0] ?? (center ? { lat: center.lat, lng: center.lng } : null);
-    const map = L.map(elRef.current, { zoomControl: true, attributionControl: true, scrollWheelZoom: false })
+    const map = L.map(elRef.current, {
+      zoomControl: true,
+      attributionControl: true,
+      scrollWheelZoom: true,
+      zoomSnap: 0.5,
+      wheelDebounceTime: 30,
+      wheelPxPerZoomLevel: 90,
+    })
       .setView(first ? [first.lat, first.lng] : [41.9, 12.5], 13);
 
-    tileRef.current = createMapBaseLayer(styleRef.current).addTo(map);
+    tileRef.current = createMapBaseLayer(readMapStyle()).addTo(map);
     map.attributionControl.setPrefix(false);
     map.attributionControl.addAttribution(MAP_ATTR);
 
@@ -439,16 +444,6 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     // fasce grigie dove le tile non erano mai state chieste.
     detachRef.current.push(attachAutoSize(map as any, elRef.current));
     if (tileRef.current) tileHealthDetach.current = attachMapBaseHealth(tileRef.current, ok => setTilesDown(!ok));
-
-    // Zoom con Ctrl/Cmd+rotella (pattern standard delle mappe embedded): lo
-    // scroll della pagina resta libero, ma la mappa non sembra più "inerte".
-    const onWheel = (ev: WheelEvent) => {
-      if (!ev.ctrlKey && !ev.metaKey) return;
-      ev.preventDefault();
-      const delta = ev.deltaY < 0 ? 1 : -1;
-      map.setZoomAround(map.mouseEventToLatLng(ev as any), map.getZoom() + delta);
-    };
-    elRef.current.addEventListener("wheel", onWheel, { passive: false });
 
     map.on("popupopen", (e: any) => {
       const root: HTMLElement = e.popup.getElement();
@@ -467,7 +462,6 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
       if (del) del.onclick = () => removeSaved(parseInt(del.dataset.id || "0", 10));
     });
 
-    const wheelEl = elRef.current;
     if (!first && destination) {
       let cancelled = false;
       fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(destination)}`, { headers: { Accept: "application/json" } })
@@ -480,7 +474,6 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
         .catch(() => {});
       return () => {
         cancelled = true;
-        wheelEl?.removeEventListener("wheel", onWheel);
         detachRef.current.forEach(f => { try { f(); } catch { /* gia' staccato */ } });
         detachRef.current = [];
         tileHealthDetach.current?.(); tileHealthDetach.current = null;
@@ -488,7 +481,6 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
       };
     }
     return () => {
-      wheelEl?.removeEventListener("wheel", onWheel);
       detachRef.current.forEach(f => { try { f(); } catch { /* gia' staccato */ } });
       detachRef.current = [];
       tileHealthDetach.current?.(); tileHealthDetach.current = null;
@@ -567,13 +559,32 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
 
     // Ancora alloggio.
     if (lodging) {
-      L.marker([lodging.lat, lodging.lng], { icon: hotelIcon(), keyboard: false, zIndexOffset: 1200 })
+      const marker = L.marker([lodging.lat, lodging.lng], { icon: hotelIcon(), keyboard: false, zIndexOffset: 1200 })
         .on("click", () => openCard(lodging)).addTo(layer);
+      if (showPlaceLabels && !timeLabels && lodging.label) {
+        marker.bindTooltip(lodging.label, {
+          permanent: true,
+          direction: "right",
+          offset: [20, 0],
+          opacity: 1,
+          className: "rmap-place-label",
+        });
+      }
     }
     // Tappe: numerate (giorno singolo) o categorizzate (vista "Tutti").
     ordered.forEach((p, i) => {
       const icon = singleDay ? numIcon(i + 1, p.bookable) : catIcon(normCat(p.category), p.bookable);
-      L.marker([p.lat, p.lng], { icon, keyboard: false }).on("click", () => openCard(p)).addTo(layer);
+      const marker = L.marker([p.lat, p.lng], { icon, keyboard: false }).on("click", () => openCard(p)).addTo(layer);
+      if (showPlaceLabels && !timeLabels && p.label) {
+        const right = i % 2 === 0;
+        marker.bindTooltip(p.label, {
+          permanent: true,
+          direction: right ? "right" : "left",
+          offset: [right ? 18 : -18, 0],
+          opacity: 1,
+          className: "rmap-place-label",
+        });
+      }
       // Orario + posto scritti sulla mappa (flow). Se il momento non ha un
       // orario, si mostra comunque il nome: mai un orario inventato.
       if (timeLabels && singleDay && (p.bestTime || p.label)) {
@@ -589,21 +600,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
       fallback: center ? { lat: center.lat, lng: center.lng, zoom: 12 } : undefined,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, activeDay, center, dayRoute, filtersActive, dayStops, timeLabels]);
-
-  // Cambio stile: si sostituisce SOLO il layer delle tile. Rimontare la mappa
-  // perderebbe zoom, selezione e la cache dei percorsi calcolati.
-  useEffect(() => {
-    styleRef.current = mapStyle;
-    saveMapStyle(mapStyle);
-    const map = mapRef.current;
-    if (!map) return;
-    tileHealthDetach.current?.();
-    tileHealthDetach.current = null;
-    if (tileRef.current) map.removeLayer(tileRef.current);
-    tileRef.current = createMapBaseLayer(mapStyle).addTo(map);
-    tileHealthDetach.current = attachMapBaseHealth(tileRef.current, ok => setTilesDown(!ok));
-  }, [mapStyle]);
+  }, [visible, activeDay, center, dayRoute, filtersActive, dayStops, timeLabels, showPlaceLabels]);
 
   // ── redraw pin salvati ──
   useEffect(() => {
@@ -681,8 +678,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     const map = mapRef.current;
     if (map) {
       setTimeout(() => map.invalidateSize(), 60);
-      // In fullscreen non c'è pagina da scrollare: rotella libera per lo zoom.
-      if (fullscreen) map.scrollWheelZoom.enable(); else map.scrollWheelZoom.disable();
+      map.scrollWheelZoom.enable();
     }
     if (!fullscreen) return;
     const onKey = (ev: KeyboardEvent) => { if (ev.key === "Escape") setFullscreen(false); };
@@ -821,20 +817,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
           </ul>
         )}
 
-        <div ref={elRef} className={`rmap rmap--${mapStyle}`} />
-
-        {/* Scelta dello stile: tre pastiglie, sempre raggiungibili. Una mappa
-            di viaggio deve poter essere letta, non solo ammirata. */}
-        <div className="rmap-styles" role="group" aria-label={lang === "it" ? "Stile mappa" : "Map style"}>
-          {(Object.keys(MAP_STYLES) as MapStyle[]).map(k => (
-            <button key={k} type="button"
-              className={"rmap-style" + (mapStyle === k ? " on" : "")}
-              aria-pressed={mapStyle === k}
-              onClick={() => setMapStyle(k)}>
-              {MAP_STYLES[k].label[lang === "it" ? "it" : "en"]}
-            </button>
-          ))}
-        </div>
+        <div ref={elRef} className="rmap rmap--standard" />
 
         {tilesDown && (
           <div className="rmap-offline" role="status">

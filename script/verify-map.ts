@@ -142,10 +142,11 @@ console.log("\n4. auto-size\n");
   check("contenitore assente → non lancia e restituisce un detach", !threw && typeof detach === "function", threw);
 }
 
-/* ── 5. stili: nessun fondo nero di default, tutti e tre completi ── */
+/* ── 5. stile unico: colorato, leggibile e senza chiave ── */
 console.log("\n5. stili della mappa\n");
 {
-  check("il default NON e' la notte", readMapStyle() !== "dark", readMapStyle());
+  check("esiste un solo stile operativo", Object.keys(MAP_STYLES).length === 1, Object.keys(MAP_STYLES));
+  check("lo stile standard e' il default", readMapStyle() === "standard", readMapStyle());
   for (const k of Object.keys(MAP_STYLES) as MapStyle[]) {
     const s = MAP_STYLES[k];
     check(`"${k}": url, variante senza etichette, etichetta IT+EN`,
@@ -153,10 +154,10 @@ console.log("\n5. stili della mappa\n");
     check(`"${k}": usa HTTPS e non richiede una chiave API`,
       s.url.startsWith("https://") && !/api[_-]?key|access[_-]?token/i.test(s.url), s.url);
   }
-  check("labels:false → variante senza etichette",
-    mapTileUrl("voyager", { labels: false }) === MAP_STYLES.voyager.urlNoLabels, mapTileUrl("voyager", { labels: false }));
-  check("stile ignoto → si degrada a voyager, non a schermo nero",
-    mapTileUrl("qualsiasi" as MapStyle) === MAP_STYLES.voyager.url, mapTileUrl("qualsiasi" as MapStyle));
+  check("labels:false conserva una mappa leggibile",
+    mapTileUrl("standard", { labels: false }) === MAP_STYLES.standard.urlNoLabels, mapTileUrl("standard", { labels: false }));
+  check("stile ignoto → si degrada allo standard",
+    mapTileUrl("qualsiasi" as MapStyle) === MAP_STYLES.standard.url, mapTileUrl("qualsiasi" as MapStyle));
 }
 
 console.log(fail === 0 ? "\nTutto verde.\n" : `\n${fail} controlli falliti.\n`);

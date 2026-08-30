@@ -1120,7 +1120,7 @@ function TravelStudioInner() {
             ? <button onClick={() => openDay(firstUnmappedDay)}><MapIcon size={14} />{L("Completa la prossima tappa", "Complete the next stop")}</button>
             : <button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Ottimizza gli spostamenti", "Optimise transfers")}</button>}
         </div>
-        {points.length ? <div className="mr-real-map"><Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} onOpenDay={(day: number) => openDay(Math.max(0, day - 1))} /></Suspense></div>
+        {points.length ? <div className="mr-real-map"><Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} showPlaceLabels onOpenDay={(day: number) => openDay(Math.max(0, day - 1))} /></Suspense></div>
           : <div className="mr-view-empty"><MapIcon size={25} /><h2>{L("Mancano luoghi precisi", "Exact places are missing")}</h2><p>{L("Apri un giorno e inserisci il luogo nelle sue tappe. La mappa si costruirà automaticamente.", "Open a day and add exact places to its stops. The map will build automatically.")}</p><button onClick={() => setView("plan")}>{L("Torna al Piano", "Back to Plan")}</button></div>}
       </section>}
 
