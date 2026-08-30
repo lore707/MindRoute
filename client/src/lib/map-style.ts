@@ -34,8 +34,8 @@ export const MAP_STYLES: Record<MapStyle, {
   label: { it: string; en: string };
 }> = {
   standard: {
-    url: `${OPEN_FREE_MAP}/bright`,
-    urlNoLabels: `${OPEN_FREE_MAP}/bright`,
+    url: `${OPEN_FREE_MAP}/liberty`,
+    urlNoLabels: `${OPEN_FREE_MAP}/liberty`,
     label: { it: "Mappa", en: "Map" },
   },
 };
