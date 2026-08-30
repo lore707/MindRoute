@@ -136,7 +136,7 @@ export function LandingEditorial({ onStart }: { onStart: () => void }) {
               <p className="led-feature-thesis">{t("led.understand.thesis")}</p>
             </Reveal>
             <Reveal as="div" className="led-product led-understand-product" role="img" aria-label={t("led.understand.visualAlt")}>
-              <div className="led-product-topline"><span>{t("led.preview")}</span><span className="led-product-live"><i />MindRoute</span></div>
+              <div className="led-product-topline"><span>{t("led.preview")}</span><span className="led-product-live"><i />Mindroute</span></div>
               <div className="led-understand-flow">
                 <div className="led-profile-snapshot">
                   <div className="led-profile-person"><span className="led-avatar">{I.user}</span><span><b>{t("led.understand.person")}</b><small>{t("led.understand.personMeta")}</small></span></div>
@@ -276,7 +276,7 @@ export function LandingEditorial({ onStart }: { onStart: () => void }) {
         </section>
 
         <footer className="led-footer"><div className="led-container"><div className="led-footer-grid">
-          <div><div className="led-footer-mark"><BrandMark size={26} idPrefix="foot" /> MindRoute</div><p className="led-footer-tag">{t("footer.tagline")}</p></div>
+          <div><div className="led-footer-mark"><BrandMark size={26} idPrefix="foot" /> Mindroute</div><p className="led-footer-tag">{t("footer.tagline")}</p></div>
           <div><div className="led-footer-head">{t("led.foot.product")}</div><Link href="/come-funziona" className="led-footer-link">{t("led.foot.how")}</Link><Link href="/start" className="led-footer-link">{t("led.foot.start")}</Link></div>
           <div><div className="led-footer-head">{t("led.foot.company")}</div><Link href="/privacy" className="led-footer-link">{t("led.foot.privacy")}</Link><a href="mailto:mindroutetravel@gmail.com" className="led-footer-link">{t("led.foot.contact")}</a></div>
           <div><div className="led-footer-head">{t("led.foot.follow")}</div><div className="led-footer-socials"><a href="https://instagram.com/mindroute.travel" target="_blank" rel="noopener noreferrer" className="led-footer-social" aria-label="Instagram">{I.ig}</a><a href="https://tiktok.com/@mindroute.travel" target="_blank" rel="noopener noreferrer" className="led-footer-social" aria-label="TikTok">{I.tiktok}</a></div></div>

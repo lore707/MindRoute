@@ -25,7 +25,7 @@ export function FlowNav({ hideLang = false }: { hideLang?: boolean }) {
     <nav className="fixed top-0 left-0 right-0 z-[100] px-3 py-2.5 md:px-8 md:py-4 flex items-center justify-between gap-2 backdrop-blur-xl transition-colors duration-300" style={{ background: 'var(--nav-bg)', borderBottom: '1px solid var(--nav-border)' }}>
       <Link href="/" className="flex items-center gap-2 md:gap-2.5 no-underline text-[var(--text-primary)] min-h-[44px]" data-testid="link-home">
         <FlowNavLogo size={26} />
-        <span className="font-serif text-[15px] md:text-[18px]">MindRoute</span>
+        <span className="font-serif text-[15px] md:text-[18px]">Mindroute</span>
       </Link>
       <div className="flex items-center gap-2 md:gap-3">
         {!hideLang && <LangDropdown />}

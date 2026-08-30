@@ -80,7 +80,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Link href="/" className="flex items-center gap-2 md:gap-2.5 text-[var(--text-primary)] no-underline min-h-[44px]">
           <BrandMark size={36} idPrefix="nav" className="w-8 h-8 md:w-9 md:h-9" />
           <span className="font-serif text-[15px] md:text-[20px] tracking-[-0.3px]">
-            MindRoute
+            Mindroute
           </span>
         </Link>
 
