@@ -1,22 +1,21 @@
-import type L from "leaflet";
-import { maplibreGL } from "@maplibre/maplibre-gl-leaflet";
-import "maplibre-gl/dist/maplibre-gl.css";
+import L from "leaflet";
 import { mapStyleUrl, type MapStyle } from "@/lib/map-style";
 
-export type MapBaseLayer = L.MaplibreGL;
+export type MapBaseLayer = L.TileLayer;
 
-/** Vector basemap hosted by OpenFreeMap, rendered below the existing Leaflet layers. */
+/** Raster basemap rendered natively by Leaflet: no WebGL or compatibility bridge. */
 export function createMapBaseLayer(style: MapStyle): MapBaseLayer {
-  return maplibreGL({
-    style: mapStyleUrl(style),
-    interactive: false,
-    attributionControl: false,
+  return L.tileLayer(mapStyleUrl(style), {
+    minZoom: 2,
+    maxZoom: 19,
+    keepBuffer: 4,
+    updateWhenIdle: false,
+    crossOrigin: true,
   });
 }
 
-/** MapLibre reports resource failures through its own map, not Leaflet tile events. */
+/** Report a real outage without hiding markers or controls. */
 export function attachMapBaseHealth(layer: MapBaseLayer, onChange: (healthy: boolean) => void): () => void {
-  const map = layer.getMaplibreMap();
   let failures = 0;
   let unhealthy = false;
   const fail = () => {
@@ -33,10 +32,10 @@ export function attachMapBaseHealth(layer: MapBaseLayer, onChange: (healthy: boo
       onChange(true);
     }
   };
-  map.on("error", fail);
-  map.on("idle", recover);
+  layer.on("tileerror", fail);
+  layer.on("tileload", recover);
   return () => {
-    map.off("error", fail);
-    map.off("idle", recover);
+    layer.off("tileerror", fail);
+    layer.off("tileload", recover);
   };
 }

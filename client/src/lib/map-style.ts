@@ -11,8 +11,8 @@
  * scelta è UNA e vale ovunque: se scegli "Colori" sull'itinerario, anche
  * l'atlante diventa colorato.
  *
- * Gli stili vettoriali vengono da OpenFreeMap: nessuna registrazione, chiave
- * API o cookie. MapLibre li renderizza sotto i layer operativi di Leaflet.
+ * La base raster standard viene renderizzata direttamente da Leaflet: niente
+ * WebGL, bridge o chiavi API che possano lasciare il canvas bianco.
  *
  * `urlNoLabels` resta nell'interfaccia per compatibilita' con gli atlanti. I
  * preset pubblici mantengono le etichette, utili anche nella vista globale.
@@ -21,12 +21,12 @@
 export type MapStyle = "standard";
 
 export const MAP_ATTR =
-  '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org">OpenMapTiles</a> Data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
 
 // Backward-compatible alias while all map consumers migrate to MAP_ATTR.
 export const CARTO_ATTR = MAP_ATTR;
 
-const OPEN_FREE_MAP = "https://tiles.openfreemap.org/styles";
+const STANDARD_MAP = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 export const MAP_STYLES: Record<MapStyle, {
   url: string;
@@ -34,8 +34,8 @@ export const MAP_STYLES: Record<MapStyle, {
   label: { it: string; en: string };
 }> = {
   standard: {
-    url: `${OPEN_FREE_MAP}/liberty`,
-    urlNoLabels: `${OPEN_FREE_MAP}/liberty`,
+    url: STANDARD_MAP,
+    urlNoLabels: STANDARD_MAP,
     label: { it: "Mappa", en: "Map" },
   },
 };
