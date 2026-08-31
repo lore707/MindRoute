@@ -952,6 +952,9 @@ function TravelStudioInner() {
   const activePlanDayIndex = selectedNode?.data.kind === "day"
     ? Math.max(0, Number(selectedNode.data.dayIndex ?? 0))
     : 0;
+  const openMapWorkspace = () => {
+    if (trip) setLocation(`/itinerary/${trip.id}/g/${activePlanDayIndex + 1}/mappa`);
+  };
   const activePlanDay = trip?.days?.[activePlanDayIndex];
   const activePlanMoments = activePlanDay ? momentsOf(activePlanDay) : [];
   const activePlanImage = activePlanDay?.hero_image_url
@@ -1126,7 +1129,7 @@ function TravelStudioInner() {
               <div className="mr-outline-label">{L("Itinerario", "Itinerary")}</div>
               {(trip.days ?? []).map((day, index) => <button key={index} className={selectedIds.includes(`day-${index}`) ? "on" : ""} onClick={() => selectDay(index)}><span className="mr-outline-day">{index + 1}</span><span><strong>{dayTitle(day, index)}</strong><small>{momentsOf(day).length} {L("tappe", "stops")}</small></span></button>)}
               <div className="mr-outline-label">{L("Strumenti", "Tools")}</div>
-              <button onClick={() => setView("map")}><MapIcon size={14} /><span>{L("Mappa", "Map")}</span></button>
+              <button onClick={openMapWorkspace}><MapIcon size={14} /><span>{L("Mappa", "Map")}</span></button>
               <button onClick={() => setView("control")}><FileCheck2 size={14} /><span>{L("Controllo", "Control")}</span>{readiness < 100 && <em>{100 - readiness}%</em>}</button>
               <button onClick={() => openNode(maybeNode)}><Layers3 size={14} /><span>Maybe</span><em>{maybeNode?.data.items?.length ?? 0}</em></button>
             </nav>
@@ -1199,20 +1202,6 @@ function TravelStudioInner() {
         </div> : <div className="mr-empty-desk"><Compass size={34} /><span>MindRoute Studio</span><h1>{L("Crea il tuo prossimo viaggio", "Create your next trip")}</h1><p>{L("Scegli come iniziare. Qualunque strada porta allo stesso spazio di lavoro e allo stesso itinerario.", "Choose how to begin. Every path leads to the same workspace and itinerary.")}</p><div><button onClick={() => { setStartMode("menu"); setNewTripOpen(true); }}><Plus size={15} />{L("Nuovo viaggio", "New trip")}</button></div></div>}
       </div>}
 
-      {view === "map" && trip && <section className="mr-work-view mr-map-workspace">
-        <header><span>{L("Vista geografica", "Geographic view")}</span><h1>{L("Dove accade il viaggio", "Where the trip happens")}</h1><p>{L("Luoghi reali, ordine dei giorni e distanze nello stesso piano.", "Real places, day order and distances in the same plan.")}</p></header>
-        <div className="mr-map-summary">
-          <div><strong>{points.length}</strong><span>{L("luoghi sulla mappa", "places on the map")}</span></div>
-          <div><strong>{mappedDayCount}/{trip.days?.length ?? 0}</strong><span>{L("giorni geolocalizzati", "mapped days")}</span></div>
-          <div><strong>{unmappedMomentCount}</strong><span>{L("tappe da precisare", "stops to locate")}</span></div>
-          {firstUnmappedDay >= 0
-            ? <button onClick={() => editDay(firstUnmappedDay)}><MapIcon size={14} />{L("Completa la prossima tappa", "Complete the next stop")}</button>
-            : <button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Ottimizza gli spostamenti", "Optimise transfers")}</button>}
-        </div>
-        {points.length ? <div className="mr-real-map"><Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} showPlaceLabels onOpenDay={(day: number) => selectDay(Math.max(0, day - 1))} /></Suspense></div>
-          : <div className="mr-view-empty"><MapIcon size={25} /><h2>{L("Mancano luoghi precisi", "Exact places are missing")}</h2><p>{L("Apri un giorno e inserisci il luogo nelle sue tappe. La mappa si costruirà automaticamente.", "Open a day and add exact places to its stops. The map will build automatically.")}</p><button onClick={() => setView("plan")}>{L("Torna al Piano", "Back to Plan")}</button></div>}
-      </section>}
-
       {view === "control" && trip && <section className="mr-work-view mr-control-workspace">
         <header><span>{L("Prontezza del viaggio", "Trip readiness")}</span><h1>{L("Prima di partire, guarda solo ciò che conta", "Before leaving, see only what matters")}</h1><p>{L("Ritmo, costi, logistica e verifiche leggono lo stesso viaggio. Qui emergono soltanto le cose da sistemare.", "Pace, costs, logistics and checks read the same trip. Only what needs attention appears here.")}</p></header>
 
@@ -1235,7 +1224,7 @@ function TravelStudioInner() {
       </section>}
 
       <nav className="mr-lens-dock" aria-label={L("Viste del viaggio", "Trip views")}>
-        {([ ["plan", <BoxSelect size={15} />, L("Piano", "Plan")], ["map", <MapIcon size={15} />, L("Mappa", "Map")], ["control", <FileCheck2 size={15} />, L("Controllo", "Control")] ] as [StudioView, ReactNode, string][]).map(([id, icon, label]) => <button key={id} className={view === id ? "on" : ""} onClick={() => { setView(id); setInspectorOpen(false); setContextMenu(null); }}>{icon}<span>{label}</span></button>)}
+        {([ ["plan", <BoxSelect size={15} />, L("Piano", "Plan")], ["map", <MapIcon size={15} />, L("Mappa", "Map")], ["control", <FileCheck2 size={15} />, L("Controllo", "Control")] ] as [StudioView, ReactNode, string][]).map(([id, icon, label]) => <button key={id} className={view === id ? "on" : ""} onClick={() => { if (id === "map") openMapWorkspace(); else setView(id); setInspectorOpen(false); setContextMenu(null); }}>{icon}<span>{label}</span></button>)}
       </nav>
 
       {inspectorOpen && selectedNode && !aiOpen && <aside className="mr-inspector-float">
@@ -1292,7 +1281,7 @@ function TravelStudioInner() {
         <button onClick={() => { setInspectorOpen(true); setContextMenu(null); }}><ChevronRight size={13} />{L("Apri", "Open")}</button>
         <button onClick={duplicateSelection} disabled={selectedNode?.data.kind === "day" || selectedNode?.data.kind === "trip"}><Copy size={13} />{L("Duplica", "Duplicate")}</button>
         {selectedNode && ["place", "social", "photo", "note"].includes(selectedNode.data.kind) && <button onClick={moveSelectedToMaybe}><Layers3 size={13} />{L("Salva in Maybe", "Save to Maybe")}</button>}
-        {selectedNode?.data.kind === "place" && <button onClick={() => { setView("map"); setContextMenu(null); }}><MapIcon size={13} />{L("Vedi sulla mappa", "View on map")}</button>}
+        {selectedNode?.data.kind === "place" && <button onClick={() => { openMapWorkspace(); setContextMenu(null); }}><MapIcon size={13} />{L("Vedi sulla mappa", "View on map")}</button>}
         <button onClick={() => { setAiOpen(true); setContextMenu(null); }}><Sparkles size={13} />{L("Chiedi a MindRoute", "Ask MindRoute")}</button>
         <button className="danger" onClick={() => { deleteSelection(); setContextMenu(null); }}><Trash2 size={13} />{L("Elimina", "Delete")}</button>
       </div>}

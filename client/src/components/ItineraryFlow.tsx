@@ -298,11 +298,6 @@ export function ItineraryFlow({
     if (!days.some(d => d.n === currentDayN)) nav.goDay(firstDay);
   }, [currentDayN, days, firstDay, nav]);
 
-  /* ── ≥1024px: la Mappa vive dentro il Giorno, non come destinazione a sé ── */
-  useEffect(() => {
-    if (isDesktop && screen.k === "map") nav.goDay(screen.n);
-  }, [isDesktop, screen, nav]);
-
   const body = (() => {
     switch (screen.k) {
       case "day": return <JourneyScreen n={screen.n} />;
