@@ -31,12 +31,11 @@ import {
   useBookings, buildBookingItems, computeStayAdvantage, bookIdForMoment,
 } from "@/lib/itinerary-booking";
 import { FlowContext, type FlowCtx } from "@/components/flow/context";
-import { OverviewScreen } from "@/components/flow/OverviewScreen";
-import { DayScreen } from "@/components/flow/DayScreen";
 import { MomentScreen } from "@/components/flow/MomentScreen";
 import { DayMapScreen } from "@/components/flow/DayMapScreen";
 import { LogisticsScreen } from "@/components/flow/LogisticsScreen";
 import { EditScreen } from "@/components/flow/EditScreen";
+import { JourneyScreen } from "@/components/flow/JourneyScreen";
 import "@/styles/flow.css";
 
 const bg = (url: string, w: number, q = 70) => (url ? `url(${unsplashSized(url, w, q)})` : "none");
@@ -242,7 +241,7 @@ export function ItineraryFlow({
     ...nav, back,
     // Un solo "ricarica": date confermate e prenotazioni aggiornate rileggono
     // entrambe l'itinerario dal server (il parent passa lo stesso refetch).
-    onSavePdf, onShare, refetch: () => { onDatesConfirmed?.(); onBookingUpdated?.(); },
+    onSavePdf, onShare, openStudio: onOpenStudio, refetch: () => { onDatesConfirmed?.(); onBookingUpdated?.(); },
     isDesktop,
   };
 
@@ -306,12 +305,12 @@ export function ItineraryFlow({
 
   const body = (() => {
     switch (screen.k) {
-      case "day": return <DayScreen n={screen.n} />;
+      case "day": return <JourneyScreen n={screen.n} />;
       case "moment": return <MomentScreen n={screen.n} momentId={screen.mid} />;
       case "map": return <DayMapScreen n={screen.n} />;
       case "logistics": return <LogisticsScreen />;
       case "edit": return <EditScreen initialDay={screen.n ?? firstDay} onSaveDays={onSaveDays} />;
-      default: return <OverviewScreen />;
+      default: return <JourneyScreen n={firstDay} />;
     }
   })();
 
@@ -327,7 +326,7 @@ export function ItineraryFlow({
         </div>
         <div className="mrf-grain" aria-hidden="true" />
 
-        <header className={"mrf-head" + (stuck ? " stuck" : "")}>
+        {screen.k !== "overview" && screen.k !== "day" && <header className={"mrf-head" + (stuck ? " stuck" : "")}>
           <button className="mrf-hbtn" onClick={back} aria-label={t("if.back")}><ArrowLeft size={20} /></button>
           <div className="mrf-htitle">
             <span className="t">{head.title}</span>
@@ -342,7 +341,7 @@ export function ItineraryFlow({
             )}
             {rightAction()}
           </div>
-        </header>
+        </header>}
 
         {body}
       </div>

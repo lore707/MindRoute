@@ -20,6 +20,7 @@ import LangDropdown from "@/components/LangDropdown";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { toEditedMoment } from "@shared/edited-moment";
+import { buildJourneyStages } from "@/lib/itinerary-stages";
 import "@/styles/travel-studio.css";
 
 const RouteMap = lazy(() => import("@/components/RouteMap"));
@@ -64,14 +65,6 @@ type TravelNodeData = Record<string, any> & {
 };
 type TravelNode = Node<TravelNodeData>;
 type CanvasDoc = { version: number; nodes: TravelNode[]; edges: Edge[]; updatedAt?: string };
-type PlanStage = {
-  key: string;
-  name: string;
-  startIndex: number;
-  endIndex: number;
-  dayIndexes: number[];
-  image: string;
-};
 const STUDIO_GUIDE_KEY = "mindroute-studio-guide-seen-v2";
 
 const clone = <T,>(value: T): T => {
@@ -88,67 +81,6 @@ const momentPlace = (moment: any) => moment?.location_name ?? moment?.locationNa
 const momentImage = (moment: any) => moment?.image_url ?? moment?.imageUrl ?? "";
 const momentDescription = (moment: any) => moment?.description_short ?? moment?.description ?? moment?.desc ?? "";
 const momentCost = (moment: any) => Number(moment?.cost_max ?? moment?.cost_min ?? moment?.cost ?? 0) || 0;
-
-const normalisePlace = (value: string) => value
-  .normalize("NFD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .replace(/[\s,.;:'’"()[\]{}\\/_-]+/g, " ")
-  .trim()
-  .toLowerCase();
-
-function placeBase(value: string, country = "") {
-  const parts = value.split(",").map(part => part.trim()).filter(Boolean);
-  if (parts.length > 1 && country && normalisePlace(parts.at(-1) ?? "") === normalisePlace(country)) {
-    return parts.at(-2) ?? parts[0];
-  }
-  return parts.at(-1) ?? value.trim();
-}
-
-function buildPlanStages(trip: RawTrip): PlanStage[] {
-  const days = trip.days ?? [];
-  const destinationBase = String(trip.destinationName ?? "Viaggio").split(",")[0].trim() || "Viaggio";
-  const rawNames = days.map(day => {
-    const explicit = day?.base_name ?? day?.baseName ?? day?.city ?? day?.destination ?? day?.location_name;
-    if (explicit) return placeBase(String(explicit), trip.country ?? "");
-
-    const candidates = momentsOf(day)
-      .map(moment => momentPlace(moment).trim())
-      .filter(Boolean)
-      .map(value => placeBase(value, trip.country ?? ""))
-      .filter(value => value.length > 1 && value.length < 42 && !/aeroporto|airport|stazione|station|hotel|ristorante|restaurant/i.test(value));
-    if (!candidates.length) return destinationBase;
-
-    const scores = new Map<string, { label: string; count: number; last: number }>();
-    candidates.forEach((label, index) => {
-      const key = normalisePlace(label);
-      const current = scores.get(key);
-      scores.set(key, { label, count: (current?.count ?? 0) + 1, last: index });
-    });
-    return Array.from(scores.values()).sort((a, b) => b.count - a.count || b.last - a.last)[0]?.label || destinationBase;
-  });
-
-  const names = rawNames.map((name, index) => {
-    const role = String(days[index]?.role ?? "").toLowerCase();
-    if (!/arriv|depart|partenz|transfer|trasfer/.test(role)) return name;
-    const neighbour = rawNames[index + 1] ?? rawNames[index - 1];
-    return neighbour || destinationBase;
-  });
-
-  const stages: PlanStage[] = [];
-  names.forEach((name, index) => {
-    const previous = stages.at(-1);
-    if (previous && normalisePlace(previous.name) === normalisePlace(name)) {
-      previous.endIndex = index;
-      previous.dayIndexes.push(index);
-      return;
-    }
-    const day = days[index];
-    const image = day?.hero_image_url || momentsOf(day).map(momentImage).find(Boolean) || trip.heroImageUrl || "";
-    stages.push({ key: `${normalisePlace(name) || "stage"}-${index}`, name, startIndex: index, endIndex: index, dayIndexes: [index], image });
-  });
-
-  return stages;
-}
 
 function budgetData(trip: RawTrip) {
   const bookable = Number(trip.tripMeta?.total_cost_bookable ?? 0) || 0;
@@ -1026,7 +958,7 @@ function TravelStudioInner() {
     || activePlanMoments.map(momentImage).find(Boolean)
     || trip?.heroImageUrl
     || "";
-  const planStages = useMemo(() => trip ? buildPlanStages(trip) : [], [trip]);
+  const planStages = useMemo(() => trip ? buildJourneyStages(trip) : [], [trip]);
   const strategyCards = [
     {
       icon: <Gauge size={18} />,

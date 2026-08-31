@@ -64,6 +64,7 @@ export type FlowCtx = {
 
   onSavePdf?: () => void;
   onShare?: () => void;
+  openStudio?: (day?: number) => void;
   refetch?: () => void;
 
   isDesktop: boolean;
