@@ -53,6 +53,7 @@ type Props = {
   hideCard?: boolean;
   hideBareControls?: boolean;
   showRoute?: boolean;
+  fitPadding?: { top: number; right: number; bottom: number; left: number };
 };
 
 type DayRoute = {
@@ -214,7 +215,7 @@ export default function RouteMap({
   points, center, destination, itineraryId, t, lang, initialDay = null,
   onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, onSelectPoint,
   active = true, hideDayBar = false, timeLabels = false, showPlaceLabels = false,
-  bare = false, hideCard = false, hideBareControls = false, showRoute = true,
+  bare = false, hideCard = false, hideBareControls = false, showRoute = true, fitPadding,
 }: Props) {
   const mapNodeRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -473,16 +474,16 @@ export default function RouteMap({
       const bounds = new maplibregl.LngLatBounds();
       fitPoints.forEach(point => bounds.extend([point.lng, point.lat]));
       map.fitBounds(bounds, {
-        padding: timeLabels || showPlaceLabels
+        padding: fitPadding ?? (timeLabels || showPlaceLabels
           ? { top: 96, right: 170, bottom: 110, left: 170 }
-          : { top: 70, right: 70, bottom: 80, left: 70 },
+          : { top: 70, right: 70, bottom: 80, left: 70 }),
         maxZoom: 15.5,
         duration: 720,
       });
     } else if (center) {
       map.easeTo({ center: [center.lng, center.lat], zoom: 12, duration: 500 });
     }
-  }, [mapReady, visiblePoints, activeDay, dayStops, selected, center, showPlaceLabels, timeLabels, onSelectMoment, onSelectPoint]);
+  }, [mapReady, visiblePoints, activeDay, dayStops, selected, center, showPlaceLabels, timeLabels, fitPadding, onSelectMoment, onSelectPoint]);
 
   useEffect(() => {
     if (!fullscreen) return;
