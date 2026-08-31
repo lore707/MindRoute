@@ -62,3 +62,22 @@ export function mapTileUrl(style: MapStyle, opts: { labels?: boolean } = {}): st
 }
 
 export const mapStyleUrl = mapTileUrl;
+
+/**
+ * Vector basemap used by the trip workspace. MapTiler is preferred in
+ * production because it gives us a dedicated style and predictable quotas;
+ * OpenFreeMap keeps local development and fresh deployments fully usable
+ * before a public browser key is configured.
+ */
+export const OPEN_VECTOR_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+
+export function vectorMapStyleUrl(): { url: string; provider: "maptiler" | "openfreemap" } {
+  const key = String(import.meta.env.VITE_MAPTILER_KEY ?? "").trim();
+  if (key) {
+    return {
+      url: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(key)}`,
+      provider: "maptiler",
+    };
+  }
+  return { url: OPEN_VECTOR_STYLE, provider: "openfreemap" };
+}

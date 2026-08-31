@@ -1,31 +1,12 @@
-/**
- * RouteMap.tsx — mappa-viaggio (non "GIS")
- * ───────────────────────────────────────────────────────────────
- * La mappa RACCONTA il viaggio, non mostra solo punti:
- *   · default su UN giorno alla volta → 🏨 alloggio come partenza, tappe
- *     NUMERATE 1→2→3 in sequenza, linea direzionale del percorso;
- *   · click su una tappa → CARD operativa (foto, durata, ora migliore,
- *     distanza dall'alloggio, [Apri nel giorno] [Google Maps] [Prenota]);
- *   · filtri-motore: per giorno, "vicino all'alloggio" (~15 min a piedi),
- *     "se piove" (al chiuso); + ricerca/salva, vicino-a-me, full-screen.
- *   · collegamento alle altre sezioni: "Apri nel giorno" porta al Giorno
- *     corrispondente (onOpenDay) → stesso viaggio, prospettive diverse.
- *
- * Costo €0 (OpenFreeMap/MapLibre, geocoding Nominatim, dati OSM).
- * ─────────────────────────────────────────────────────────────── */
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-// Gli stili della mappa viaggiano col componente: prima stavano dentro
-// itinerary-dashboard.css scopati su `.account-dash` e fuori da quel
-// contenitore la mappa restava nera.
+import { useEffect, useMemo, useRef, useState } from "react";
+import maplibregl, {
+  type GeoJSONSource,
+  type Map as MapLibreMap,
+  type Marker as MapLibreMarker,
+} from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import "@/styles/routemap.css";
-import "@/styles/leaflet-chrome.css";
-// Il catalogo degli stili e la preferenza vivono in un modulo condiviso: la
-// scelta fatta qui vale anche per l'atlante e per il mini-atlante della home.
-import { MAP_ATTR, readMapStyle } from "@/lib/map-style";
-import { createMapBaseLayer, attachMapBaseHealth, type MapBaseLayer } from "@/lib/map-base-layer";
-import { attachAutoSize, fitToPoints, safePoints, flyDuration } from "@/lib/leaflet-utils";
+import { OPEN_VECTOR_STYLE, vectorMapStyleUrl } from "@/lib/map-style";
 
 export type PlaceCategory = "lodging" | "experience" | "food" | "sight" | "beach" | "custom";
 
@@ -36,7 +17,6 @@ export type RoutePoint = {
   day?: number;
   slot?: string;
   category?: string;
-  // Campi ricchi (join col momento) per la card operativa.
   momentId?: string;
   imageUrl?: string;
   durationLabel?: string;
@@ -51,16 +31,6 @@ export type RoutePoint = {
   type?: string;
 };
 
-type SavedPlace = {
-  id: number;
-  label: string;
-  lat: number;
-  lng: number;
-  category?: PlaceCategory | null;
-  address?: string | null;
-  note?: string | null;
-};
-
 type Props = {
   points: RoutePoint[];
   center?: { lat: number; lng: number };
@@ -68,820 +38,572 @@ type Props = {
   itineraryId?: number;
   t: (k: string) => string;
   lang: "it" | "en";
-  /** Giorno iniziale (collegamento dalla sezione Giorni). null = tutti. */
   initialDay?: number | null;
-  /** Sync del giorno attivo verso il dashboard. */
   onDayChange?: (day: number | null) => void;
-  /** "Apri nel giorno": porta alla sezione Giorni su quel giorno/momento. */
   onOpenDay?: (day: number, momentId?: string) => void;
-  /** "Prenota" dalla card → aggiorna il progresso nella sezione Prenota. */
   onBook?: (type?: string, day?: number) => void;
-  /** Journey (redesign 2026-07): selezione CONTROLLATA dall'esterno. Quando
-   *  presente, la mappa evidenzia il punto col momentId corrispondente
-   *  (sync Story→Map) e notifica i click sui marker (sync Map→Story). */
   selectedMomentId?: string | null;
   onSelectMoment?: (momentId: string | null) => void;
-  /** Workspace mappa: espone l'intero punto selezionato al pannello esterno. */
   onSelectPoint?: (point: RoutePoint | null) => void;
-  /** Journey: il pannello mappa può stare in display:none (mobile parte su
-   *  Story). Quando torna visibile Leaflet ha misurato 0 → su false→true
-   *  rimisuriamo e re-inquadriamo il giorno. Default true (usi standalone). */
   active?: boolean;
-  /** Journey: il contenitore ha già i suoi day-tab → nasconde la barra giorni
-   *  interna (e con lei l'opzione "Tutti", che lì creava stati incoerenti). */
   hideDayBar?: boolean;
-  /** Flow (2026-08): accanto a ogni pin numerato, l'ORARIO e il nome del posto
-   *  scritti sulla mappa — così il percorso si legge senza aprire nulla.
-   *  Etichette alternate destra/sinistra per non accavallarsi. Solo vista
-   *  giorno singolo: sulla vista "Tutti" sarebbero una ragnatela illeggibile. */
   timeLabels?: boolean;
-  /** Studio: mantiene visibile il nome di ogni tappa accanto al pin. */
   showPlaceLabels?: boolean;
-  /** Flow: la mappa è già dentro una schermata sua → niente chrome interna
-   *  (barra strumenti, ricerca, filtri). I controlli li mette il contenitore. */
   bare?: boolean;
-  /** Il workspace fornisce scheda e controlli propri. */
   hideCard?: boolean;
   hideBareControls?: boolean;
-  /** Consente ai filtri esterni di nascondere solo il percorso. */
   showRoute?: boolean;
 };
 
-// Categoria → colore + glifo. Coerenti con i token editoriali del dashboard.
-const CAT: Record<PlaceCategory, { color: string; glyph: string }> = {
-  lodging:    { color: "#D4A853", glyph: "⌂" },
-  experience: { color: "#9D7EBC", glyph: "◆" },
-  food:       { color: "#C77B5A", glyph: "✦" },
-  sight:      { color: "#5E8CB6", glyph: "❖" },
-  beach:      { color: "#6FB4A8", glyph: "≈" },
-  custom:     { color: "#E94560", glyph: "•" },
-};
-const ALL_CATS: PlaceCategory[] = ["lodging", "experience", "food", "sight", "beach", "custom"];
-const ROUTE_COLOR = "#E94560";
-
-function normCat(c?: string | null): PlaceCategory {
-  return (c && (ALL_CATS as string[]).includes(c)) ? (c as PlaceCategory) : "custom";
-}
-
-const catLabel = (c: PlaceCategory, lang: "it" | "en") => {
-  const it: Record<PlaceCategory, string> = {
-    lodging: "Alloggio", experience: "Esperienze", food: "Food", sight: "Da vedere", beach: "Spiagge", custom: "Salvati",
-  };
-  const en: Record<PlaceCategory, string> = {
-    lodging: "Stay", experience: "Experiences", food: "Food", sight: "Sights", beach: "Beaches", custom: "Saved",
-  };
-  return (lang === "it" ? it : en)[c];
-};
-
-// Ordine delle fasce per numerare le tappe in sequenza nel giorno.
-const SLOT_ORDER: Record<string, number> = { morning: 0, mattina: 0, lunch: 1, pranzo: 1, afternoon: 2, pomeriggio: 2, evening: 3, sera: 3, night: 4, notte: 4 };
-const slotRank = (s?: string) => (s != null && SLOT_ORDER[s.toLowerCase()] != null ? SLOT_ORDER[s.toLowerCase()] : 9);
-
-// distanza in metri (haversine).
-function distMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const R = 6371000, toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
-  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
-}
-function walkLabel(m: number, lang: "it" | "en"): string {
-  const min = Math.max(1, Math.round(m / 80)); // ~80 m/min a piedi
-  if (min <= 60) return lang === "it" ? `${min} min a piedi` : `${min} min walk`;
-  return `${(m / 1000).toFixed(1)} km`;
-}
-
-// Pin categorizzato (overview / vista "Tutti").
-function catIcon(cat: PlaceCategory, bookable?: boolean) {
-  const { color, glyph } = CAT[cat];
-  return L.divIcon({
-    className: "rmap-pin-wrap",
-    html: `<div class="rmap-pin${bookable ? " rmap-pin--book" : ""}" style="background:${color}"><span>${glyph}</span></div>`,
-    iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16],
-  });
-}
-// Tappa numerata del percorso del giorno.
-function numIcon(n: number, bookable?: boolean) {
-  return L.divIcon({
-    className: "rmap-pin-wrap",
-    html: `<div class="rmap-pin rmap-pin--num${bookable ? " rmap-pin--book" : ""}" style="background:${ROUTE_COLOR}"><span>${n}</span></div>`,
-    iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -18],
-  });
-}
-// Ancora: l'alloggio = da dove parte ogni giornata.
-function hotelIcon() {
-  return L.divIcon({
-    className: "rmap-pin-wrap",
-    html: `<div class="rmap-pin rmap-pin--hotel" style="background:${CAT.lodging.color}"><span>⌂</span></div>`,
-    iconSize: [38, 38], iconAnchor: [19, 19], popupAnchor: [0, -20],
-  });
-}
-function savedIcon() {
-  return L.divIcon({
-    className: "rmap-pin-wrap",
-    html: `<div class="rmap-pin rmap-pin--saved"><span>★</span></div>`,
-    iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -16],
-  });
-}
-function meIcon() {
-  return L.divIcon({ className: "rmap-me-wrap", html: `<div class="rmap-me"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
-}
-function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-// ── Geometria del percorso ──────────────────────────────────────────────
-// Il server risolve strade VERE (Valhalla/OSRM, cache in tripMeta). Se non
-// risponde, si disegna una curva morbida tra le tappe: mai la retta secca.
 type DayRoute = {
   profile: "foot" | "car" | null;
   coords: Array<[number, number]> | null;
   legs: Array<{ t: number; m: number; mid: [number, number] }> | null;
 };
 
-// Arco quadratico tra due punti (fallback): ~14 punti con offset
-// perpendicolare proporzionale alla distanza — leggibile, dichiaratamente
-// "a volo d'uccello" ma senza tagliare la mappa con una riga dritta.
-function curvedArc(a: L.LatLngTuple, b: L.LatLngTuple): L.LatLngTuple[] {
-  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
-  const dx = b[0] - a[0], dy = b[1] - a[1];
-  const bend = 0.18;
-  const cx = mx - dy * bend, cy = my + dx * bend;
-  const out: L.LatLngTuple[] = [];
-  for (let i = 0; i <= 14; i++) {
-    const t = i / 14, u = 1 - t;
-    out.push([u * u * a[0] + 2 * u * t * cx + t * t * b[0], u * u * a[1] + 2 * u * t * cy + t * t * b[1]]);
+const CATEGORIES: Record<PlaceCategory, { color: string; glyph: string; it: string; en: string }> = {
+  lodging: { color: "#d6a747", glyph: "H", it: "Alloggio", en: "Stay" },
+  experience: { color: "#8b72b5", glyph: "E", it: "Esperienze", en: "Experiences" },
+  food: { color: "#e49335", glyph: "R", it: "Ristoranti", en: "Food" },
+  sight: { color: "#5f9463", glyph: "V", it: "Da vedere", en: "Sights" },
+  beach: { color: "#4b9eae", glyph: "M", it: "Spiagge", en: "Beaches" },
+  custom: { color: "#ef5d4f", glyph: "+", it: "Salvati", en: "Saved" },
+};
+const CATEGORY_KEYS = Object.keys(CATEGORIES) as PlaceCategory[];
+const ROUTE_COLOR = "#f05b4f";
+const SLOT_ORDER: Record<string, number> = {
+  morning: 0, mattina: 0, lunch: 1, pranzo: 1,
+  afternoon: 2, pomeriggio: 2, evening: 3, sera: 3, night: 4, notte: 4,
+};
+
+const normCategory = (category?: string | null): PlaceCategory =>
+  category && CATEGORY_KEYS.includes(category as PlaceCategory) ? category as PlaceCategory : "custom";
+const slotRank = (slot?: string) => SLOT_ORDER[String(slot ?? "").toLowerCase()] ?? 9;
+const pointKey = (point: RoutePoint) => point.momentId || `${point.lat}:${point.lng}:${point.label}`;
+
+function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const radius = 6371000;
+  const toRad = (value: number) => value * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const value = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return radius * 2 * Math.asin(Math.sqrt(value));
+}
+
+function walkingLabel(meters: number, lang: "it" | "en") {
+  const minutes = Math.max(1, Math.round(meters / 80));
+  if (minutes <= 60) return lang === "it" ? `${minutes} min a piedi` : `${minutes} min walk`;
+  return `${(meters / 1000).toFixed(1)} km`;
+}
+
+function curvedSegment(a: RoutePoint, b: RoutePoint): Array<[number, number]> {
+  const middleLat = (a.lat + b.lat) / 2;
+  const middleLng = (a.lng + b.lng) / 2;
+  const dLat = b.lat - a.lat;
+  const dLng = b.lng - a.lng;
+  const controlLat = middleLat - dLng * 0.14;
+  const controlLng = middleLng + dLat * 0.14;
+  return Array.from({ length: 15 }, (_, index) => {
+    const t = index / 14;
+    const u = 1 - t;
+    const lat = u * u * a.lat + 2 * u * t * controlLat + t * t * b.lat;
+    const lng = u * u * a.lng + 2 * u * t * controlLng + t * t * b.lng;
+    return [lng, lat];
+  });
+}
+
+function isWebGlAvailable() {
+  try {
+    const canvas = document.createElement("canvas");
+    return !!(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+  } catch {
+    return false;
   }
-  return out;
 }
 
-// Etichetta-tratta sulla linea: "12 min" (a piedi/auto). È la risposta alla
-// domanda vera della mappa: quanto ci metto dalla tappa prima?
-function legLabelIcon(minutes: number, profile: "foot" | "car"): L.DivIcon {
-  const glyph = profile === "car" ? "🚗" : "🚶";
-  return L.divIcon({
-    className: "rmap-leg-wrap",
-    html: `<span class="rmap-leg">${glyph} ${minutes} min</span>`,
-    iconSize: [0, 0], iconAnchor: [0, 0],
-  });
+function markerElement(
+  point: RoutePoint,
+  index: number,
+  isLodging: boolean,
+  selected: boolean,
+  showLabel: boolean,
+  showTime: boolean,
+) {
+  const category = normCategory(point.category);
+  const root = document.createElement("button");
+  root.type = "button";
+  root.className = `mrgl-marker mrgl-${category}${isLodging ? " is-lodging" : ""}${selected ? " is-selected" : ""}`;
+  root.setAttribute("aria-label", point.label);
+  root.style.setProperty("--marker-color", CATEGORIES[category].color);
+
+  const pin = document.createElement("span");
+  pin.className = "mrgl-pin";
+  pin.textContent = isLodging ? CATEGORIES.lodging.glyph : String(index);
+  root.appendChild(pin);
+
+  if (showLabel || showTime) {
+    const label = document.createElement("span");
+    label.className = `mrgl-label${index % 2 === 0 ? " is-right" : " is-left"}`;
+    if (showTime && point.bestTime) {
+      const time = document.createElement("time");
+      time.textContent = point.bestTime;
+      label.appendChild(time);
+    }
+    const name = document.createElement("strong");
+    name.textContent = point.label;
+    label.appendChild(name);
+    if (showTime && point.kindLabel) {
+      const kind = document.createElement("small");
+      kind.textContent = point.kindLabel;
+      label.appendChild(kind);
+    }
+    root.appendChild(label);
+  }
+  return root;
 }
 
-/* Etichetta-tappa: l'ORARIO sulla mappa, accanto al pin numerato, col nome del
- * posto sotto. Alternata destra/sinistra così due tappe vicine non si coprono.
- * Non interattiva: il click resta al pin, che è più grande dell'etichetta. */
-function stopLabelIcon(time: string, name: string, sub: string, side: "l" | "r"): L.DivIcon {
-  const rows = [
-    time ? `<span class="tm">${escapeHtml(time)}</span>` : "",
-    name ? `<span class="nm">${escapeHtml(name)}</span>` : "",
-    sub ? `<span class="sb">${escapeHtml(sub)}</span>` : "",
-  ].filter(Boolean).join("");
-  return L.divIcon({
-    className: `mrf-mlabel ${side}`,
-    html: `<span class="in">${rows}</span>`,
-    iconSize: [150, 0],
-    // Il punto di ancoraggio è la posizione del marker: negativo spinge
-    // l'etichetta a destra del pin, 166 la porta tutta a sinistra.
-    iconAnchor: side === "r" ? [-18, 16] : [168, 16],
-  });
+function addRouteLayers(map: MapLibreMap) {
+  if (!map.getSource("mindroute-route")) {
+    map.addSource("mindroute-route", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+  }
+  if (!map.getLayer("mindroute-route-casing")) {
+    map.addLayer({
+      id: "mindroute-route-casing",
+      type: "line",
+      source: "mindroute-route",
+      paint: {
+        "line-color": "rgba(255,255,255,.94)",
+        "line-width": ["case", ["==", ["get", "real"], true], 8, 7],
+        "line-opacity": 0.95,
+      },
+      layout: { "line-cap": "round", "line-join": "round" },
+    });
+  }
+  if (!map.getLayer("mindroute-route-real")) {
+    map.addLayer({
+      id: "mindroute-route-real",
+      type: "line",
+      source: "mindroute-route",
+      filter: ["==", ["get", "real"], true],
+      paint: { "line-color": ROUTE_COLOR, "line-width": 3.5, "line-opacity": 0.96 },
+      layout: { "line-cap": "round", "line-join": "round" },
+    });
+  }
+  if (!map.getLayer("mindroute-route-estimated")) {
+    map.addLayer({
+      id: "mindroute-route-estimated",
+      type: "line",
+      source: "mindroute-route",
+      filter: ["!=", ["get", "real"], true],
+      paint: {
+        "line-color": ROUTE_COLOR,
+        "line-width": 3,
+        "line-opacity": 0.82,
+        "line-dasharray": [1.2, 2.1],
+      },
+      layout: { "line-cap": "round", "line-join": "round" },
+    });
+  }
 }
 
-export default function RouteMap({ points, center, destination, itineraryId, t, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, onSelectPoint, active = true, hideDayBar = false, timeLabels = false, showPlaceLabels = false, bare = false, hideCard = false, hideBareControls = false, showRoute = true }: Props) {
-  const elRef = useRef<HTMLDivElement | null>(null);
+export default function RouteMap({
+  points, center, destination, itineraryId, t, lang, initialDay = null,
+  onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, onSelectPoint,
+  active = true, hideDayBar = false, timeLabels = false, showPlaceLabels = false,
+  bare = false, hideCard = false, hideBareControls = false, showRoute = true,
+}: Props) {
+  const mapNodeRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const planLayer = useRef<L.LayerGroup | null>(null);
-  const savedLayer = useRef<L.LayerGroup | null>(null);
-  const searchLayer = useRef<L.LayerGroup | null>(null);
-  const meLayer = useRef<L.LayerGroup | null>(null);
-  const tileRef = useRef<MapBaseLayer | null>(null);
-  const tileHealthDetach = useRef<(() => void) | null>(null);
-  // Risorse della mappa che non arrivano: meglio dirlo che mostrare il vuoto.
-  const [tilesDown, setTilesDown] = useState(false);
-  const detachRef = useRef<Array<() => void>>([]);
-
-  const days = useMemo(() => {
-    const s = new Set<number>();
-    points.forEach((p) => { if (typeof p.day === "number") s.add(p.day); });
-    return Array.from(s).sort((a, b) => a - b);
-  }, [points]);
-
-  // Default: il primo giorno (racconta un percorso), non "Tutti" (vista GIS).
-  const [activeDay, setActiveDay] = useState<number | null>(initialDay ?? days[0] ?? null);
-  const [activeCats, setActiveCats] = useState<Set<PlaceCategory>>(new Set());
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const pointMarkersRef = useRef<MapLibreMarker[]>([]);
+  const routeLabelsRef = useRef<MapLibreMarker[]>([]);
+  const userMarkerRef = useRef<MapLibreMarker | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const routeCacheRef = useRef<Map<string, DayRoute>>(new Map());
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [selected, setSelected] = useState<RoutePoint | null>(null);
+  const [activeCategories, setActiveCategories] = useState<Set<PlaceCategory>>(new Set());
   const [nearLodging, setNearLodging] = useState(false);
   const [rainPlan, setRainPlan] = useState(false);
-  const [selected, setSelected] = useState<RoutePoint | null>(null);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [saved, setSaved] = useState<SavedPlace[]>([]);
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Array<{ label: string; address: string; lat: number; lng: number }>>([]);
-  const [searching, setSearching] = useState(false);
-
-  const savedRef = useRef(saved);
-  savedRef.current = saved;
-  const dayWord = lang === "it" ? "Giorno" : "Day";
   const [filtersOpen, setFiltersOpen] = useState(false);
-  // Percorso su strada del giorno attivo (server, cache tripMeta) + cache di sessione.
   const [dayRoute, setDayRoute] = useState<DayRoute | null>(null);
-  const routeCache = useRef<Map<string, DayRoute>>(new Map());
 
-  const setDay = (d: number | null) => { setActiveDay(d); setSelected(null); onDayChange?.(d); };
+  const days = useMemo(() => Array.from(new Set(points
+    .map(point => point.day)
+    .filter((day): day is number => typeof day === "number"))).sort((a, b) => a - b), [points]);
+  const [activeDay, setActiveDay] = useState<number | null>(initialDay ?? days[0] ?? null);
+  const dayWord = lang === "it" ? "Giorno" : "Day";
 
-  // Sync CONTROLLATO del giorno (Journey): il giorno cambia dai day-tab del
-  // contenitore → allinea lo stato interno SENZA rimontare il componente
-  // (prima c'era un remount per giorno: mappa ricreata, tile ricaricate,
-  // cache rotte persa). Niente onDayChange qui: eviterebbe un rimbalzo.
   useEffect(() => {
-    if (initialDay == null) return;
-    setActiveDay(prev => (prev === initialDay ? prev : initialDay));
+    if (initialDay != null) setActiveDay(initialDay);
   }, [initialDay]);
 
-  // Sync CONTROLLATO (Journey): selectedMomentId dall'esterno → evidenzia il
-  // punto e vola su di esso. undefined = modalità non controllata (nessun sync).
-  useEffect(() => {
-    if (selectedMomentId === undefined) return;
-    const p = selectedMomentId ? points.find(x => x.momentId === selectedMomentId) ?? null : null;
-    setSelected(p);
-    if (p && mapRef.current) {
-      mapRef.current.flyTo([p.lat, p.lng], Math.max(mapRef.current.getZoom(), 15), { duration: flyDuration(0.4) });
-    }
-  }, [selectedMomentId, points]);
+  const lodgingPoint = useMemo(() => points.find(point =>
+    normCategory(point.category) === "lodging" && (activeDay == null || point.day === activeDay))
+    ?? points.find(point => normCategory(point.category) === "lodging"), [points, activeDay]);
 
-  // Il pannello torna visibile (Journey, mobile: Story→Mappa): Leaflet aveva
-  // misurato un contenitore a size 0 → rimisura e re-inquadra il giorno.
-  // Senza questo la mappa appariva grigia/mal centrata (il bug "mappa rotta").
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!active || !map) return;
-    const id = window.setTimeout(() => {
-      map.invalidateSize();
-      const pts = dayStops.length > 0 ? dayStops : visible;
-      const latlngs = pts.map(p => [p.lat, p.lng] as L.LatLngTuple);
-      if (latlngs.length === 1) map.setView(latlngs[0], 15);
-      else if (latlngs.length > 1) map.fitBounds(L.latLngBounds(latlngs), { padding: [60, 60], maxZoom: 16 });
-    }, 90); // dopo il reflow del display:none→block
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  const visiblePoints = useMemo(() => points.filter(point => {
+    if (activeDay != null && point.day !== activeDay) return false;
+    if (activeCategories.size && !activeCategories.has(normCategory(point.category))) return false;
+    if (nearLodging && lodgingPoint && distanceMeters(lodgingPoint, point) > 1200) return false;
+    if (rainPlan && ["beach", "experience"].includes(normCategory(point.category))) return false;
+    return Number.isFinite(point.lat) && Number.isFinite(point.lng);
+  }), [points, activeDay, activeCategories, nearLodging, rainPlan, lodgingPoint]);
 
-  // Alloggio (ancora): il pin lodging del giorno attivo, altrimenti globale.
-  const lodgingPt = useMemo(() => {
-    return points.find((p) => normCat(p.category) === "lodging" && (activeDay == null || p.day === activeDay))
-      ?? points.find((p) => normCat(p.category) === "lodging");
-  }, [points, activeDay]);
-
-  const presentCats = useMemo(() => {
-    const s = new Set<PlaceCategory>();
-    points.forEach((p) => s.add(normCat(p.category)));
-    return ALL_CATS.filter((c) => s.has(c));
-  }, [points]);
-
-  const visible = useMemo(() => points.filter((p) => {
-    if (activeDay != null && p.day !== activeDay) return false;
-    if (activeCats.size > 0 && !activeCats.has(normCat(p.category))) return false;
-    if (nearLodging && lodgingPt && distMeters(lodgingPt, p) > 1200) return false; // ~15 min a piedi
-    if (rainPlan) { const c = normCat(p.category); if (c === "beach" || c === "experience") return false; } // euristica "al chiuso"
-    return true;
-  }), [points, activeDay, activeCats, nearLodging, rainPlan, lodgingPt]);
-
-  const filtersActive = activeCats.size > 0 || nearLodging || rainPlan;
-
-  // Punti ORDINATI del giorno intero (NON filtrati): il percorso rappresenta
-  // il piano del giorno; i filtri servono solo a esplorare i pin.
   const dayStops = useMemo(() => {
-    if (activeDay == null) return [] as RoutePoint[];
-    const inDay = points.filter(p => p.day === activeDay);
-    const lodging = inDay.find(p => normCat(p.category) === "lodging")
-      ?? points.find(p => normCat(p.category) === "lodging");
-    const stops = inDay.filter(p => normCat(p.category) !== "lodging")
+    if (activeDay == null) return [];
+    const dayPoints = points.filter(point => point.day === activeDay);
+    const lodging = dayPoints.find(point => normCategory(point.category) === "lodging") ?? lodgingPoint;
+    const stops = dayPoints
+      .filter(point => normCategory(point.category) !== "lodging")
       .sort((a, b) => slotRank(a.slot) - slotRank(b.slot));
-    return (lodging ? [lodging, ...stops] : stops).slice(0, 14);
-  }, [points, activeDay]);
+    return (lodging ? [lodging, ...stops] : stops).slice(0, 16);
+  }, [points, activeDay, lodgingPoint]);
 
-  // Geometria su strada dal server (cache tripMeta) + cache di sessione.
+  const filtersActive = activeCategories.size > 0 || nearLodging || rainPlan;
+  const presentCategories = useMemo(() => CATEGORY_KEYS.filter(category =>
+    points.some(point => normCategory(point.category) === category)), [points]);
+
   useEffect(() => {
     setDayRoute(null);
-    if (activeDay == null || dayStops.length < 2 || !itineraryId) return;
-    const pts = dayStops.map(p => ({ lat: p.lat, lng: p.lng }));
-    const key = `${activeDay}:` + pts.map(p => `${p.lat.toFixed(4)},${p.lng.toFixed(4)}`).join(";");
-    const hit = routeCache.current.get(key);
-    if (hit) { setDayRoute(hit); return; }
+    if (!itineraryId || activeDay == null || dayStops.length < 2) return;
+    const routePoints = dayStops.map(point => ({ lat: point.lat, lng: point.lng }));
+    const key = `${activeDay}:${routePoints.map(point => `${point.lat.toFixed(5)},${point.lng.toFixed(5)}`).join(";")}`;
+    const cached = routeCacheRef.current.get(key);
+    if (cached) {
+      setDayRoute(cached);
+      return;
+    }
     let cancelled = false;
     fetch(`/api/itinerary/${itineraryId}/route`, {
-      method: "POST", credentials: "include",
+      method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ day: activeDay, points: pts }),
+      body: JSON.stringify({ day: activeDay, points: routePoints }),
     })
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => {
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
         if (cancelled) return;
-        const route: DayRoute = d && d.coords
-          ? { profile: d.profile, coords: d.coords, legs: d.legs }
+        const route: DayRoute = data?.coords
+          ? { profile: data.profile, coords: data.coords, legs: data.legs }
           : { profile: null, coords: null, legs: null };
-        routeCache.current.set(key, route);
+        routeCacheRef.current.set(key, route);
         setDayRoute(route);
       })
-      .catch(() => { if (!cancelled) setDayRoute({ profile: null, coords: null, legs: null }); });
+      .catch(() => !cancelled && setDayRoute({ profile: null, coords: null, legs: null }));
     return () => { cancelled = true; };
   }, [activeDay, dayStops, itineraryId]);
 
-  // ── load saved places ──
   useEffect(() => {
-    if (!itineraryId) return;
-    let cancelled = false;
-    fetch(`/api/itinerary/${itineraryId}/saved-places`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d) => { if (!cancelled && Array.isArray(d)) setSaved(d); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [itineraryId]);
+    if (!mapNodeRef.current || mapRef.current) return;
+    if (!isWebGlAvailable()) {
+      setMapError(lang === "it" ? "Il browser non supporta la mappa vettoriale." : "This browser does not support the vector map.");
+      return;
+    }
 
-  async function savePlace(p: { label: string; lat: number; lng: number; category: PlaceCategory; address?: string }) {
-    if (!itineraryId) return;
-    try {
-      const r = await fetch(`/api/itinerary/${itineraryId}/saved-places`, {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(p),
-      });
-      if (!r.ok) return;
-      const row: SavedPlace = await r.json();
-      setSaved((prev) => (prev.find((s) => s.id === row.id) ? prev : [row, ...prev]));
-      mapRef.current?.closePopup();
-      searchLayer.current?.clearLayers();
-      setResults([]);
-    } catch {}
-  }
+    const first = points[0] ?? center;
+    const vectorStyle = vectorMapStyleUrl();
+    let fallbackApplied = vectorStyle.provider === "openfreemap";
+    let consecutiveErrors = 0;
+    const map = new maplibregl.Map({
+      container: mapNodeRef.current,
+      style: vectorStyle.url,
+      center: first ? [first.lng, first.lat] : [12.4964, 41.9028],
+      zoom: first ? 12.5 : 5,
+      minZoom: 2,
+      maxZoom: 19,
+      attributionControl: false,
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
+      fadeDuration: 180,
+      cooperativeGestures: false,
+    });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false, visualizePitch: false }), "top-left");
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
 
-  async function removeSaved(id: number) {
-    if (!itineraryId) return;
-    try {
-      const r = await fetch(`/api/itinerary/${itineraryId}/saved-places/${id}`, { method: "DELETE", credentials: "include" });
-      if (!r.ok) return;
-      setSaved((prev) => prev.filter((s) => s.id !== id));
-      mapRef.current?.closePopup();
-    } catch {}
-  }
+    const markReady = () => {
+      consecutiveErrors = 0;
+      setMapError(null);
+      addRouteLayers(map);
+      setMapReady(true);
+    };
+    map.on("load", markReady);
+    map.on("style.load", () => {
+      addRouteLayers(map);
+      setMapReady(true);
+    });
+    map.on("click", () => {
+      setSelected(null);
+      onSelectMoment?.(null);
+      onSelectPoint?.(null);
+    });
+    map.on("error", () => {
+      consecutiveErrors += 1;
+      if (!fallbackApplied && consecutiveErrors >= 3) {
+        fallbackApplied = true;
+        setMapReady(false);
+        map.setStyle(OPEN_VECTOR_STYLE);
+      } else if (fallbackApplied && consecutiveErrors >= 8 && !map.isStyleLoaded()) {
+        setMapError(lang === "it" ? "La cartografia non e disponibile. Riprova tra poco." : "Map data is unavailable. Try again shortly.");
+      }
+    });
 
-  // ── init mappa ──
-  useEffect(() => {
-    if (!elRef.current || mapRef.current) return;
-    const first = points[0] ?? (center ? { lat: center.lat, lng: center.lng } : null);
-    const map = L.map(elRef.current, {
-      zoomControl: true,
-      attributionControl: true,
-      scrollWheelZoom: true,
-      zoomSnap: 0.5,
-      wheelDebounceTime: 30,
-      wheelPxPerZoomLevel: 90,
-    })
-      .setView(first ? [first.lat, first.lng] : [41.9, 12.5], 13);
-
-    tileRef.current = createMapBaseLayer(readMapStyle()).addTo(map);
-    map.attributionControl.setPrefix(false);
-    map.attributionControl.addAttribution(MAP_ATTR);
-
-    planLayer.current = L.layerGroup().addTo(map);
-    savedLayer.current = L.layerGroup().addTo(map);
-    searchLayer.current = L.layerGroup().addTo(map);
-    meLayer.current = L.layerGroup().addTo(map);
+    resizeObserverRef.current = new ResizeObserver(() => map.resize());
+    resizeObserverRef.current.observe(mapNodeRef.current);
     mapRef.current = map;
-    // Osservare batte indovinare: il vecchio setTimeout(80) copriva il primo
-    // montaggio e nient'altro — poi bastava aprire un pannello per lasciare
-    // fasce grigie dove le tile non erano mai state chieste.
-    detachRef.current.push(attachAutoSize(map as any, elRef.current));
-    if (tileRef.current) tileHealthDetach.current = attachMapBaseHealth(tileRef.current, ok => setTilesDown(!ok));
 
-    map.on("popupopen", (e: any) => {
-      const root: HTMLElement = e.popup.getElement();
-      if (!root) return;
-      root.querySelectorAll<HTMLElement>(".rmap-cat").forEach((btn) => {
-        btn.onclick = () => {
-          const row = btn.closest<HTMLElement>(".rmap-save-row");
-          if (!row) return;
-          savePlace({
-            label: row.dataset.label || "", lat: parseFloat(row.dataset.lat || "0"), lng: parseFloat(row.dataset.lng || "0"),
-            category: (btn.dataset.cat as PlaceCategory) || "custom", address: row.dataset.address || undefined,
-          });
-        };
-      });
-      const del = root.querySelector<HTMLElement>(".rmap-del");
-      if (del) del.onclick = () => removeSaved(parseInt(del.dataset.id || "0", 10));
-    });
-
-    if (!first && destination) {
-      let cancelled = false;
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(destination)}`, { headers: { Accept: "application/json" } })
-        .then((r) => r.json())
-        .then((d) => {
-          if (cancelled || !Array.isArray(d) || !d[0]) return;
-          const lat = parseFloat(d[0].lat), lng = parseFloat(d[0].lon);
-          if (!isNaN(lat) && !isNaN(lng)) map.setView([lat, lng], 12, { animate: true });
-        })
-        .catch(() => {});
-      return () => {
-        cancelled = true;
-        detachRef.current.forEach(f => { try { f(); } catch { /* gia' staccato */ } });
-        detachRef.current = [];
-        tileHealthDetach.current?.(); tileHealthDetach.current = null;
-        map.remove(); mapRef.current = null;
-      };
-    }
     return () => {
-      detachRef.current.forEach(f => { try { f(); } catch { /* gia' staccato */ } });
-      detachRef.current = [];
-      tileHealthDetach.current?.(); tileHealthDetach.current = null;
-      map.remove(); mapRef.current = null;
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+      pointMarkersRef.current.forEach(marker => marker.remove());
+      routeLabelsRef.current.forEach(marker => marker.remove());
+      userMarkerRef.current?.remove();
+      map.remove();
+      mapRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // The map instance intentionally lives for the lifetime of the component.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ── redraw pin del piano: percorso numerato del giorno + ancora alloggio ──
-  useEffect(() => {
-    const map = mapRef.current, layer = planLayer.current;
-    if (!map || !layer) return;
-    layer.clearLayers();
-
-    const singleDay = activeDay != null;
-    const lodging = visible.find((p) => normCat(p.category) === "lodging");
-    const stops = visible.filter((p) => normCat(p.category) !== "lodging");
-    const ordered = singleDay ? [...stops].sort((a, b) => slotRank(a.slot) - slotRank(b.slot)) : stops;
-
-    const latlngs: L.LatLngTuple[] = [];
-    if (lodging) latlngs.push([lodging.lat, lodging.lng]);
-    ordered.forEach((p) => latlngs.push([p.lat, p.lng]));
-
-    // Linea del percorso: SOLO nella vista giorno e senza filtri attivi (coi
-    // filtri i pin sono un sottoinsieme e la linea mentirebbe). Nella vista
-    // "Tutti" niente linee: la ragnatela tra giorni diversi non racconta nulla.
-    if (showRoute && singleDay && !filtersActive && dayStops.length > 1) {
-      const anchors: L.LatLngTuple[] = dayStops.map(p => [p.lat, p.lng]);
-      // Continua = percorso CALCOLATO sulle strade vere. Tratteggiata = solo
-      // un collegamento stimato fra due punti. La differenza si deve vedere:
-      // una linea piena che non corrisponde a nessuna strada è una bugia.
-      const draw = (path: L.LatLngTuple[], real: boolean) => {
-        L.polyline(path, { color: "#000", weight: real ? 9 : 8, opacity: 0.35, lineCap: "round", lineJoin: "round" }).addTo(layer);
-        L.polyline(path, {
-          color: ROUTE_COLOR, weight: real ? 4 : 3, opacity: real ? 0.95 : 0.8,
-          lineCap: "round", lineJoin: "round",
-          ...(real ? {} : { dashArray: "7 7" }),
-        }).addTo(layer);
-      };
-      if (dayRoute?.coords && dayRoute.coords.length > 1) {
-        // Strade vere (Valhalla/OSRM via server, cacheate in tripMeta).
-        draw(dayRoute.coords as L.LatLngTuple[], true);
-        const profile = dayRoute.profile === "car" ? "car" : "foot";
-        // Con le etichette-tappa attive (flow) le durate di tratta si
-        // tacciono: due strati di testo sulla stessa linea si accavallano.
-        (timeLabels ? [] : (dayRoute.legs ?? [])).forEach((leg) => {
-          const min = Math.max(1, Math.round(leg.t / 60));
-          // zIndex negativo: l'etichetta sta sopra la linea ma SOTTO i pin
-          // (tappe vicine → il pin numerato resta leggibile).
-          L.marker(leg.mid as L.LatLngTuple, { icon: legLabelIcon(min, profile), keyboard: false, interactive: false, zIndexOffset: -400 }).addTo(layer);
-        });
-      } else {
-        // Fallback (o geometria in arrivo): archi morbidi + stima a piedi.
-        for (let i = 1; i < anchors.length; i++) {
-          const arc = curvedArc(anchors[i - 1], anchors[i]);
-          draw(arc, false);
-          if (dayRoute && !dayRoute.coords && !timeLabels) {
-            const m = distMeters(
-              { lat: anchors[i - 1][0], lng: anchors[i - 1][1] },
-              { lat: anchors[i][0], lng: anchors[i][1] },
-            );
-            const min = Math.max(1, Math.round(m / 80));
-            if (min <= 90) {
-              L.marker(arc[7], { icon: legLabelIcon(min, "foot"), keyboard: false, interactive: false, zIndexOffset: -400 }).addTo(layer);
-            }
-          }
-        }
-      }
-    }
-
-    const openCard = (p: RoutePoint) => {
-      setSelected(p);
-      onSelectMoment?.(p.momentId ?? null); // sync Map→Story (Journey)
-      onSelectPoint?.(p);
-      map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: flyDuration(0.5) });
-    };
-
-    // Ancora alloggio.
-    if (lodging) {
-      const marker = L.marker([lodging.lat, lodging.lng], { icon: hotelIcon(), keyboard: false, zIndexOffset: 1200 })
-        .on("click", () => openCard(lodging)).addTo(layer);
-      if (showPlaceLabels && !timeLabels && lodging.label) {
-        marker.bindTooltip(lodging.label, {
-          permanent: true,
-          direction: "right",
-          offset: [20, 0],
-          opacity: 1,
-          className: "rmap-place-label",
-        });
-      }
-    }
-    // Tappe: numerate (giorno singolo) o categorizzate (vista "Tutti").
-    ordered.forEach((p, i) => {
-      const icon = singleDay ? numIcon(i + 1, p.bookable) : catIcon(normCat(p.category), p.bookable);
-      const marker = L.marker([p.lat, p.lng], { icon, keyboard: false }).on("click", () => openCard(p)).addTo(layer);
-      if (showPlaceLabels && !timeLabels && p.label) {
-        const right = i % 2 === 0;
-        marker.bindTooltip(p.label, {
-          permanent: true,
-          direction: right ? "right" : "left",
-          offset: [right ? 18 : -18, 0],
-          opacity: 1,
-          className: "rmap-place-label",
-        });
-      }
-      // Orario + posto scritti sulla mappa (flow). Se il momento non ha un
-      // orario, si mostra comunque il nome: mai un orario inventato.
-      if (timeLabels && singleDay && (p.bestTime || p.label)) {
-        L.marker([p.lat, p.lng], {
-          icon: stopLabelIcon(p.bestTime ?? "", p.label ?? "", p.kindLabel ?? "", i % 2 === 0 ? "r" : "l"),
-          keyboard: false, interactive: false, zIndexOffset: -200,
-        }).addTo(layer);
-      }
-    });
-
-    fitToPoints(L, map as any, latlngs.map(([lat, lng]) => ({ lat, lng })), {
-      padding: [60, 60], maxZoom: 16, singleZoom: 15,
-      fallback: center ? { lat: center.lat, lng: center.lng, zoom: 12 } : undefined,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, activeDay, center, dayRoute, filtersActive, dayStops, timeLabels, showPlaceLabels, showRoute]);
-
-  // ── redraw pin salvati ──
-  useEffect(() => {
-    const layer = savedLayer.current;
-    if (!layer) return;
-    layer.clearLayers();
-    const removeLabel = lang === "it" ? "Rimuovi" : "Remove";
-    const gmapsLabel = lang === "it" ? "Apri in Google Maps" : "Open in Google Maps";
-    saved.forEach((s) => {
-      const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`;
-      const html =
-        `<div class="rmap-pop">` +
-        `<div class="rmap-pop-t">★ ${escapeHtml(s.label)}</div>` +
-        (s.address ? `<div class="rmap-pop-m">${escapeHtml(s.address)}</div>` : "") +
-        `<a class="rmap-pop-a" href="${gmaps}" target="_blank" rel="noopener noreferrer">${gmapsLabel} ↗</a>` +
-        `<button class="rmap-del" data-id="${s.id}">✕ ${removeLabel}</button>` +
-        `</div>`;
-      L.marker([s.lat, s.lng], { icon: savedIcon(), keyboard: false }).bindPopup(html, { closeButton: true, className: "rmap-popup" }).addTo(layer);
-    });
-  }, [saved, lang]);
-
-  // ── search (Nominatim) ──
-  async function runSearch(e?: FormEvent) {
-    e?.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    setSearching(true);
-    try {
-      const bias = center ? `&lat=${center.lat}&lon=${center.lng}` : "";
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&q=${encodeURIComponent(q)}${bias}`, { headers: { Accept: "application/json" } });
-      const d = await r.json();
-      const list = (Array.isArray(d) ? d : []).map((it: any) => ({
-        label: (it.name || it.display_name || "").split(",")[0],
-        address: it.display_name || "", lat: parseFloat(it.lat), lng: parseFloat(it.lon),
-      })).filter((x: any) => !isNaN(x.lat) && !isNaN(x.lng));
-      setResults(list);
-    } catch { setResults([]); } finally { setSearching(false); }
-  }
-
-  function pickResult(res: { label: string; address: string; lat: number; lng: number }) {
-    const map = mapRef.current, layer = searchLayer.current;
-    if (!map || !layer) return;
-    layer.clearLayers();
-    const saveLabel = lang === "it" ? "Salva come" : "Save as";
-    const chips = ALL_CATS.map((c) => `<button class="rmap-cat" data-cat="${c}" title="${escapeHtml(catLabel(c, lang))}">${CAT[c].glyph}</button>`).join("");
-    const saveRow = itineraryId
-      ? `<div class="rmap-save-row" data-lat="${res.lat}" data-lng="${res.lng}" data-label="${escapeHtml(res.label)}" data-address="${escapeHtml(res.address)}">` +
-        `<span class="rmap-save-lbl">${saveLabel}</span>${chips}</div>`
-      : "";
-    const html =
-      `<div class="rmap-pop">` +
-      `<div class="rmap-pop-t">${escapeHtml(res.label)}</div>` +
-      (res.address ? `<div class="rmap-pop-m">${escapeHtml(res.address)}</div>` : "") + saveRow + `</div>`;
-    const m = L.marker([res.lat, res.lng], { icon: catIcon("custom"), keyboard: false }).bindPopup(html, { closeButton: true, className: "rmap-popup" }).addTo(layer);
-    map.flyTo([res.lat, res.lng], 16, { duration: flyDuration(0.6) });
-    m.openPopup();
-    setResults([]);
-  }
-
-  function locateMe() {
-    const map = mapRef.current, layer = meLayer.current;
-    if (!map || !layer || !navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        layer.clearLayers();
-        L.marker([latitude, longitude], { icon: meIcon(), keyboard: false }).addTo(layer);
-        map.flyTo([latitude, longitude], 15, { duration: flyDuration(0.6) });
-      },
-      () => {}, { enableHighAccuracy: true, timeout: 8000 },
-    );
-  }
 
   useEffect(() => {
     const map = mapRef.current;
-    if (map) {
-      setTimeout(() => map.invalidateSize(), 60);
-      map.scrollWheelZoom.enable();
+    if (!map || !active) return;
+    const timer = window.setTimeout(() => map.resize(), 80);
+    return () => window.clearTimeout(timer);
+  }, [active, fullscreen]);
+
+  useEffect(() => {
+    if (selectedMomentId === undefined) return;
+    const point = selectedMomentId ? points.find(item => item.momentId === selectedMomentId) ?? null : null;
+    setSelected(point);
+    if (point && mapRef.current) {
+      mapRef.current.easeTo({ center: [point.lng, point.lat], zoom: Math.max(mapRef.current.getZoom(), 15), duration: 650 });
     }
+  }, [selectedMomentId, points]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !map.isStyleLoaded()) return;
+    addRouteLayers(map);
+    const source = map.getSource("mindroute-route") as GeoJSONSource | undefined;
+    const features: GeoJSON.Feature<GeoJSON.LineString>[] = [];
+    if (showRoute && activeDay != null && !filtersActive && dayStops.length > 1) {
+      if (dayRoute?.coords?.length) {
+        features.push({
+          type: "Feature",
+          properties: { real: true },
+          geometry: { type: "LineString", coordinates: dayRoute.coords.map(([lat, lng]) => [lng, lat]) },
+        });
+      } else {
+        for (let index = 1; index < dayStops.length; index += 1) {
+          features.push({
+            type: "Feature",
+            properties: { real: false },
+            geometry: { type: "LineString", coordinates: curvedSegment(dayStops[index - 1], dayStops[index]) },
+          });
+        }
+      }
+    }
+    source?.setData({ type: "FeatureCollection", features });
+
+    routeLabelsRef.current.forEach(marker => marker.remove());
+    routeLabelsRef.current = [];
+    if (showRoute && !timeLabels && dayRoute?.legs?.length) {
+      routeLabelsRef.current = dayRoute.legs.map(leg => {
+        const element = document.createElement("span");
+        element.className = "mrgl-leg";
+        element.textContent = `${dayRoute.profile === "car" ? "Auto" : "A piedi"} ${Math.max(1, Math.round(leg.t / 60))} min`;
+        return new maplibregl.Marker({ element, anchor: "center" }).setLngLat([leg.mid[1], leg.mid[0]]).addTo(map);
+      });
+    }
+  }, [mapReady, activeDay, dayStops, dayRoute, filtersActive, showRoute, timeLabels]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    pointMarkersRef.current.forEach(marker => marker.remove());
+    pointMarkersRef.current = [];
+
+    const ordered = activeDay == null
+      ? visiblePoints
+      : [...visiblePoints].sort((a, b) => {
+        if (normCategory(a.category) === "lodging") return -1;
+        if (normCategory(b.category) === "lodging") return 1;
+        return slotRank(a.slot) - slotRank(b.slot);
+      });
+    let stopNumber = 0;
+    ordered.forEach(point => {
+      const lodging = normCategory(point.category) === "lodging";
+      if (!lodging) stopNumber += 1;
+      const isSelected = !!selected && pointKey(selected) === pointKey(point);
+      const element = markerElement(
+        point,
+        lodging ? 0 : stopNumber,
+        lodging,
+        isSelected,
+        showPlaceLabels && activeDay != null,
+        timeLabels && activeDay != null,
+      );
+      element.addEventListener("click", event => {
+        event.stopPropagation();
+        setSelected(point);
+        onSelectMoment?.(point.momentId ?? null);
+        onSelectPoint?.(point);
+        map.easeTo({ center: [point.lng, point.lat], zoom: Math.max(map.getZoom(), 15), duration: 620 });
+      });
+      pointMarkersRef.current.push(new maplibregl.Marker({ element, anchor: "center" })
+        .setLngLat([point.lng, point.lat])
+        .addTo(map));
+    });
+
+    const fitPoints = activeDay != null && dayStops.length ? dayStops : visiblePoints;
+    if (selected) {
+      map.easeTo({ center: [selected.lng, selected.lat], zoom: Math.max(map.getZoom(), 15), duration: 520 });
+    } else if (fitPoints.length === 1) {
+      map.easeTo({ center: [fitPoints[0].lng, fitPoints[0].lat], zoom: 15, duration: 560 });
+    } else if (fitPoints.length > 1) {
+      const bounds = new maplibregl.LngLatBounds();
+      fitPoints.forEach(point => bounds.extend([point.lng, point.lat]));
+      map.fitBounds(bounds, {
+        padding: timeLabels || showPlaceLabels
+          ? { top: 96, right: 170, bottom: 110, left: 170 }
+          : { top: 70, right: 70, bottom: 80, left: 70 },
+        maxZoom: 15.5,
+        duration: 720,
+      });
+    } else if (center) {
+      map.easeTo({ center: [center.lng, center.lat], zoom: 12, duration: 500 });
+    }
+  }, [mapReady, visiblePoints, activeDay, dayStops, selected, center, showPlaceLabels, timeLabels, onSelectMoment, onSelectPoint]);
+
+  useEffect(() => {
     if (!fullscreen) return;
-    const onKey = (ev: KeyboardEvent) => { if (ev.key === "Escape") setFullscreen(false); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const close = (event: KeyboardEvent) => event.key === "Escape" && setFullscreen(false);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
   }, [fullscreen]);
 
-  function toggleCat(c: PlaceCategory) {
-    setActiveCats((prev) => { const next = new Set(prev); next.has(c) ? next.delete(c) : next.add(c); return next; });
-  }
+  useEffect(() => {
+    if (!selected) return;
+    stripRef.current?.querySelector<HTMLElement>(".rmap-stop.on")
+      ?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [selected]);
 
-  // ── card operativa per la tappa selezionata ──
-  const selDist = selected && lodgingPt && selected !== lodgingPt ? walkLabel(distMeters(lodgingPt, selected), lang) : null;
+  const setDay = (day: number | null) => {
+    setActiveDay(day);
+    setSelected(null);
+    onDayChange?.(day);
+    onSelectPoint?.(null);
+  };
+  const toggleCategory = (category: PlaceCategory) => setActiveCategories(current => {
+    const next = new Set(current);
+    next.has(category) ? next.delete(category) : next.add(category);
+    return next;
+  });
+  const selectStop = (point: RoutePoint) => {
+    setSelected(point);
+    onSelectMoment?.(point.momentId ?? null);
+    onSelectPoint?.(point);
+    mapRef.current?.easeTo({ center: [point.lng, point.lat], zoom: 15.5, duration: 620 });
+  };
+  const locateUser = () => {
+    if (!navigator.geolocation || !mapRef.current) return;
+    navigator.geolocation.getCurrentPosition(position => {
+      const location: [number, number] = [position.coords.longitude, position.coords.latitude];
+      userMarkerRef.current?.remove();
+      const element = document.createElement("span");
+      element.className = "mrgl-user";
+      userMarkerRef.current = new maplibregl.Marker({ element }).setLngLat(location).addTo(mapRef.current!);
+      mapRef.current?.easeTo({ center: location, zoom: 15.5, duration: 700 });
+    }, () => {}, { enableHighAccuracy: true, timeout: 8000 });
+  };
+
+  const selectedDistance = selected && lodgingPoint && pointKey(selected) !== pointKey(lodgingPoint)
+    ? walkingLabel(distanceMeters(lodgingPoint, selected), lang)
+    : null;
   const card = selected && (
     <div className="rmap-card" data-testid="rmap-card">
-      <button className="rmap-card-x" onClick={() => setSelected(null)} aria-label={lang === "it" ? "Chiudi" : "Close"}>✕</button>
+      <button className="rmap-card-x" onClick={() => setSelected(null)} aria-label={lang === "it" ? "Chiudi" : "Close"}>x</button>
       {selected.imageUrl && <div className="rmap-card-img" style={{ backgroundImage: `url("${selected.imageUrl}")` }} />}
       <div className="rmap-card-body">
         <div className="rmap-card-meta">
-          {typeof selected.day === "number" && <span className="rmap-card-day">{dayWord} {selected.day}</span>}
+          {selected.day != null && <span className="rmap-card-day">{dayWord} {selected.day}</span>}
           {selected.kindLabel && <span className="rmap-card-kind">{selected.kindLabel}</span>}
         </div>
         <div className="rmap-card-t">{selected.label}</div>
         <div className="rmap-card-facts">
-          {selected.bestTime && <span>🕒 {selected.bestTime}</span>}
-          {selected.durationLabel && <span>⏱ {selected.durationLabel}</span>}
-          {selDist && <span>🏨 {selDist}</span>}
+          {selected.bestTime && <span>{selected.bestTime}</span>}
+          {selected.durationLabel && <span>{selected.durationLabel}</span>}
+          {selectedDistance && <span>{selectedDistance}</span>}
         </div>
         {selected.desc && <div className="rmap-card-desc">{selected.desc}</div>}
         <div className="rmap-card-acts">
-          {typeof selected.day === "number" && onOpenDay && (
-            <button className="rmap-card-btn rmap-card-btn--p" onClick={() => onOpenDay(selected.day!, selected.momentId)}>
-              {lang === "it" ? "Apri nel giorno" : "Open in the day"} →
-            </button>
-          )}
-          {selected.bookable && selected.ctaUrl && (
-            <a className="rmap-card-btn rmap-card-btn--book" href={selected.ctaUrl} target="_blank" rel="noopener noreferrer"
-              onClick={() => onBook?.(selected.type, selected.day)}>
-              {selected.cta || (lang === "it" ? "Prenota" : "Book")}{selected.ctaPrice ? ` · ${selected.ctaPrice}` : ""}
-            </a>
-          )}
-          <a className="rmap-card-btn" href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`} target="_blank" rel="noopener noreferrer">
-            {lang === "it" ? "Google Maps" : "Google Maps"} ↗
-          </a>
-          {itineraryId && (
-            <button className="rmap-card-btn" onClick={() => savePlace({ label: selected.label, lat: selected.lat, lng: selected.lng, category: normCat(selected.category) })}>
-              ☆ {lang === "it" ? "Salva" : "Save"}
-            </button>
-          )}
+          {selected.day != null && onOpenDay && <button className="rmap-card-btn rmap-card-btn--p" onClick={() => onOpenDay(selected.day!, selected.momentId)}>{lang === "it" ? "Apri nel giorno" : "Open in day"}</button>}
+          {selected.bookable && selected.ctaUrl && <a className="rmap-card-btn rmap-card-btn--book" href={selected.ctaUrl} target="_blank" rel="noopener noreferrer" onClick={() => onBook?.(selected.type, selected.day)}>{selected.cta || (lang === "it" ? "Prenota" : "Book")}</a>}
+          <a className="rmap-card-btn" href={`https://www.google.com/maps/dir/?api=1&destination=${selected.lat},${selected.lng}`} target="_blank" rel="noopener noreferrer">Google Maps</a>
         </div>
       </div>
     </div>
   );
 
-  const flyToStop = (p: RoutePoint) => {
-    const map = mapRef.current;
-    if (!map) return;
-    setSelected(p);
-    onSelectPoint?.(p);
-    map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: flyDuration(0.5) });
-  };
-
-  // Pin toccato sulla mappa → la striscia scorre fino alla tappa attiva
-  // (su phone se ne vedono 1-2: senza questo il sync mappa→striscia è invisibile).
-  useEffect(() => {
-    if (!selected) return;
-    const el = stripRef.current?.querySelector<HTMLElement>(".rmap-stop.on");
-    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-  }, [selected]);
-
-  const hasLodgingFirst = dayStops.length > 0 && normCat(dayStops[0].category) === "lodging";
+  const navigationUrl = dayStops.length
+    ? `https://www.google.com/maps/dir/?api=1&destination=${dayStops.at(-1)!.lat},${dayStops.at(-1)!.lng}${dayStops.length > 1 ? `&waypoints=${dayStops.slice(0, -1).map(point => `${point.lat},${point.lng}`).join("|")}` : ""}`
+    : "";
+  const hasLodgingFirst = dayStops.length > 0 && normCategory(dayStops[0].category) === "lodging";
 
   return (
-    <div ref={wrapRef} className={"rmap-wrap" + (fullscreen ? " rmap-wrap--full" : "")}>
-      {/* Barra giorni — IN FLUSSO sopra la mappa (mai flottante: su phone i
-          chip si sovrapponevano a toolbar e risultati di ricerca). Nascosta
-          nel Journey (hideDayBar): lì i giorni li governa il contenitore. */}
-      {!hideDayBar && days.length > 1 && (
-        <div className="rmap-days">
-          <button className={"rmap-day" + (activeDay == null ? " on" : "")} onClick={() => setDay(null)}>
-            {lang === "it" ? "Tutti" : "All"}
-          </button>
-          {days.map((d) => (
-            <button key={d} className={"rmap-day" + (activeDay === d ? " on" : "")} onClick={() => setDay(d)}>
-              <span className="w">{dayWord}</span><span className="n">{d}</span>
-            </button>
-          ))}
-        </div>
-      )}
+    <div ref={wrapRef} className={`rmap-wrap rmap-wrap--vector${fullscreen ? " rmap-wrap--full" : ""}`}>
+      {!hideDayBar && days.length > 1 && <div className="rmap-days">
+        <button className={`rmap-day${activeDay == null ? " on" : ""}`} onClick={() => setDay(null)}>{lang === "it" ? "Tutti" : "All"}</button>
+        {days.map(day => <button key={day} className={`rmap-day${activeDay === day ? " on" : ""}`} onClick={() => setDay(day)}><span className="w">{dayWord}</span><span className="n">{day}</span></button>)}
+      </div>}
 
-      {/* Filtri motore + categorie: riga richiudibile, sempre in flusso.
-          In modalità `bare` (schermata Mappa del flow) sparisce: lì la mappa
-          è la schermata, non un widget, e i controlli li mette il contenitore. */}
-      <div className="rmap-filterrow" hidden={bare} style={bare ? { display: "none" } : undefined}>
-        <button className={"rmap-chip rmap-chip--toggle" + (filtersOpen ? " on" : "")} onClick={() => setFiltersOpen(v => !v)}>
-          {lang === "it" ? "Filtri" : "Filters"}{filtersActive ? " •" : ""} {filtersOpen ? "▴" : "▾"}
-        </button>
-        {(filtersOpen || filtersActive) && (
-          <>
-            {lodgingPt && (
-              <button className={"rmap-chip rmap-chip--engine" + (nearLodging ? " on" : "")} onClick={() => setNearLodging((v) => !v)} title={lang === "it" ? "Entro ~15 min a piedi dall'alloggio" : "Within ~15 min walk of your stay"}>
-                🏨 {lang === "it" ? "Vicino all'alloggio" : "Near your stay"}
-              </button>
-            )}
-            <button className={"rmap-chip rmap-chip--engine" + (rainPlan ? " on" : "")} onClick={() => setRainPlan((v) => !v)} title={lang === "it" ? "Mostra le tappe al coperto" : "Show indoor stops"}>
-              🌧 {lang === "it" ? "Se piove" : "Rain plan"}
-            </button>
-            {presentCats.length > 1 && presentCats.map((c) => (
-              <button key={c} className={"rmap-chip rmap-chip--cat" + (activeCats.has(c) ? " on" : "")}
-                style={activeCats.has(c) ? { background: CAT[c].color, borderColor: CAT[c].color } : { borderColor: CAT[c].color }}
-                onClick={() => toggleCat(c)} title={catLabel(c, lang)}>
-                {CAT[c].glyph} {catLabel(c, lang)}
-              </button>
-            ))}
-          </>
-        )}
-      </div>
+      {!bare && <div className="rmap-filterrow">
+        <button className={`rmap-chip rmap-chip--toggle${filtersOpen ? " on" : ""}`} onClick={() => setFiltersOpen(value => !value)}>{lang === "it" ? "Filtri" : "Filters"}{filtersActive ? " *" : ""}</button>
+        {(filtersOpen || filtersActive) && <>
+          {lodgingPoint && <button className={`rmap-chip rmap-chip--engine${nearLodging ? " on" : ""}`} onClick={() => setNearLodging(value => !value)}>{lang === "it" ? "Vicino all'alloggio" : "Near your stay"}</button>}
+          <button className={`rmap-chip rmap-chip--engine${rainPlan ? " on" : ""}`} onClick={() => setRainPlan(value => !value)}>{lang === "it" ? "Se piove" : "Rain plan"}</button>
+          {presentCategories.map(category => <button key={category} className={`rmap-chip rmap-chip--cat${activeCategories.has(category) ? " on" : ""}`} style={activeCategories.has(category) ? { background: CATEGORIES[category].color, borderColor: CATEGORIES[category].color } : { borderColor: CATEGORIES[category].color }} onClick={() => toggleCategory(category)}>{CATEGORIES[category][lang]}</button>)}
+        </>}
+      </div>}
 
-      {/* Stage: mappa + soli controlli flottanti essenziali (⌕ ◎ ⤢) + card. */}
       <div className="rmap-stage">
-        <div className="rmap-toolbar" style={bare ? { display: "none" } : undefined}>
-          <form className="rmap-search" onSubmit={runSearch}>
-            <input value={query} onChange={(e) => setQuery(e.target.value)}
-              placeholder={lang === "it" ? "Cerca un posto…" : "Search a place…"}
-              aria-label={lang === "it" ? "Cerca un posto" : "Search a place"} />
-            <button type="submit" className="rmap-icbtn" title={lang === "it" ? "Cerca" : "Search"}>{searching ? "…" : "⌕"}</button>
-          </form>
-          <button className="rmap-icbtn" onClick={locateMe} title={lang === "it" ? "Vicino a me" : "Near me"}>◎</button>
-          <button className="rmap-icbtn" onClick={() => setFullscreen((v) => !v)} title={lang === "it" ? "Schermo intero" : "Fullscreen"}>{fullscreen ? "✕" : "⤢"}</button>
-        </div>
+        <div ref={mapNodeRef} className="rmap rmap--vector" aria-label={`${lang === "it" ? "Mappa di" : "Map of"} ${destination}`} />
+        {!mapReady && !mapError && <div className="rmap-vector-loading"><span />{lang === "it" ? "Preparo la mappa del viaggio" : "Preparing your trip map"}</div>}
+        {mapError && <div className="rmap-offline" role="status"><strong>{mapError}</strong><small>{lang === "it" ? "Le tappe e l'itinerario restano disponibili." : "Your stops and itinerary remain available."}</small></div>}
 
-        {results.length > 0 && (
-          <ul className="rmap-results">
-            {results.map((r, i) => (
-              <li key={i}><button onClick={() => pickResult(r)}><span className="rr-t">{r.label}</span><span className="rr-a">{r.address}</span></button></li>
-            ))}
-          </ul>
-        )}
+        {!bare && <div className="rmap-toolbar rmap-toolbar--vector">
+          <button className="rmap-icbtn" onClick={locateUser} title={lang === "it" ? "La mia posizione" : "My location"}>◎</button>
+          <button className="rmap-icbtn" onClick={() => setFullscreen(value => !value)} title={lang === "it" ? "Schermo intero" : "Fullscreen"}>{fullscreen ? "x" : "⛶"}</button>
+        </div>}
 
-        <div ref={elRef} className="rmap rmap--standard" />
-
-        {tilesDown && (
-          <div className="rmap-offline" role="status">
-            {lang === "it"
-              ? "Le mappe non si caricano — controlla la connessione. Le tappe restano tutte qui."
-              : "Map tiles aren't loading — check your connection. Your stops are all still here."}
-          </div>
-        )}
-
-        {/* Controlli della schermata Mappa (flow): legenda del percorso in
-            alto, "centra su di me" e apertura navigazione in basso. */}
-        {bare && !hideBareControls && (
-          <>
-            {activeDay != null && dayStops.length > 1 && (
-              <div className="mrf-map-legend">
-                <span><i />{t("if.map.realRoute")}</span>
-                <span><i className="est" />{t("if.map.estRoute")}</span>
-              </div>
-            )}
-            <div className="mrf-map-ctrls">
-              <button className="mrf-pill" onClick={locateMe}>◎ {t("if.map.center")}</button>
-              {dayStops.length > 0 && (
-                <a className="mrf-map-go" title={t("if.map.navigate")} aria-label={t("if.map.navigate")}
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${dayStops[dayStops.length - 1].lat},${dayStops[dayStops.length - 1].lng}` +
-                    (dayStops.length > 1
-                      ? `&waypoints=${dayStops.slice(0, -1).map(p => `${p.lat},${p.lng}`).join("|")}`
-                      : "")}
-                  target="_blank" rel="noopener noreferrer">➤</a>
-              )}
-            </div>
-          </>
-        )}
+        {bare && !hideBareControls && <div className="mrf-map-ctrls">
+          <button className="mrf-pill" onClick={locateUser}>◎ {t("if.map.center")}</button>
+          {navigationUrl && <a className="mrf-map-go" title={t("if.map.navigate")} aria-label={t("if.map.navigate")} href={navigationUrl} target="_blank" rel="noopener noreferrer">➤</a>}
+        </div>}
+        {bare && !hideBareControls && activeDay != null && dayStops.length > 1 && <div className="mrf-map-legend"><span><i />{t("if.map.realRoute")}</span><span><i className="est" />{t("if.map.estRoute")}</span></div>}
         {!hideCard && card}
       </div>
 
-      {/* Striscia-tappe del giorno: il ponte narrativo mappa↔giorni. Tap →
-          la mappa vola sulla tappa e apre la card operativa. */}
-      {!bare && activeDay != null && dayStops.length > 0 && (
-        <div className="rmap-strip" ref={stripRef}>
-          {dayStops.map((p, i) => {
-            const isLodging = i === 0 && hasLodgingFirst;
-            const num = hasLodgingFirst ? i : i + 1;
-            return (
-              <button key={`${p.lat}-${p.lng}-${i}`} className={"rmap-stop" + (selected === p ? " on" : "")} onClick={() => flyToStop(p)}>
-                <span className={"rmap-stop-n" + (isLodging ? " h" : "")}>{isLodging ? "⌂" : num}</span>
-                {p.imageUrl && <span className="rmap-stop-img" style={{ backgroundImage: `url("${p.imageUrl}")` }} />}
-                <span className="rmap-stop-t">
-                  <span className="l">{p.label}</span>
-                  {(p.bestTime || p.durationLabel) && <span className="m">{p.bestTime ?? p.durationLabel}</span>}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {!bare && activeDay != null && dayStops.length > 0 && <div className="rmap-strip" ref={stripRef}>
+        {dayStops.map((point, index) => {
+          const lodging = index === 0 && hasLodgingFirst;
+          const number = hasLodgingFirst ? index : index + 1;
+          return <button key={`${pointKey(point)}:${index}`} className={`rmap-stop${selected && pointKey(selected) === pointKey(point) ? " on" : ""}`} onClick={() => selectStop(point)}>
+            <span className={`rmap-stop-n${lodging ? " h" : ""}`}>{lodging ? "H" : number}</span>
+            {point.imageUrl && <span className="rmap-stop-img" style={{ backgroundImage: `url("${point.imageUrl}")` }} />}
+            <span className="rmap-stop-t"><span className="l">{point.label}</span>{(point.bestTime || point.durationLabel) && <span className="m">{point.bestTime ?? point.durationLabel}</span>}</span>
+          </button>;
+        })}
+      </div>}
     </div>
   );
 }
