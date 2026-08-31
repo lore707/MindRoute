@@ -326,7 +326,7 @@ export function ItineraryFlow({
         </div>
         <div className="mrf-grain" aria-hidden="true" />
 
-        {screen.k !== "overview" && screen.k !== "day" && <header className={"mrf-head" + (stuck ? " stuck" : "")}>
+        {screen.k !== "overview" && screen.k !== "day" && screen.k !== "map" && <header className={"mrf-head" + (stuck ? " stuck" : "")}>
           <button className="mrf-hbtn" onClick={back} aria-label={t("if.back")}><ArrowLeft size={20} /></button>
           <div className="mrf-htitle">
             <span className="t">{head.title}</span>

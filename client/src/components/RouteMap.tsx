@@ -81,6 +81,8 @@ type Props = {
    *  (sync Story→Map) e notifica i click sui marker (sync Map→Story). */
   selectedMomentId?: string | null;
   onSelectMoment?: (momentId: string | null) => void;
+  /** Workspace mappa: espone l'intero punto selezionato al pannello esterno. */
+  onSelectPoint?: (point: RoutePoint | null) => void;
   /** Journey: il pannello mappa può stare in display:none (mobile parte su
    *  Story). Quando torna visibile Leaflet ha misurato 0 → su false→true
    *  rimisuriamo e re-inquadriamo il giorno. Default true (usi standalone). */
@@ -98,6 +100,11 @@ type Props = {
   /** Flow: la mappa è già dentro una schermata sua → niente chrome interna
    *  (barra strumenti, ricerca, filtri). I controlli li mette il contenitore. */
   bare?: boolean;
+  /** Il workspace fornisce scheda e controlli propri. */
+  hideCard?: boolean;
+  hideBareControls?: boolean;
+  /** Consente ai filtri esterni di nascondere solo il percorso. */
+  showRoute?: boolean;
 };
 
 // Categoria → colore + glifo. Coerenti con i token editoriali del dashboard.
@@ -237,7 +244,7 @@ function stopLabelIcon(time: string, name: string, sub: string, side: "l" | "r")
   });
 }
 
-export default function RouteMap({ points, center, destination, itineraryId, t, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, active = true, hideDayBar = false, timeLabels = false, showPlaceLabels = false, bare = false }: Props) {
+export default function RouteMap({ points, center, destination, itineraryId, t, lang, initialDay = null, onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, onSelectPoint, active = true, hideDayBar = false, timeLabels = false, showPlaceLabels = false, bare = false, hideCard = false, hideBareControls = false, showRoute = true }: Props) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
@@ -507,7 +514,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     // Linea del percorso: SOLO nella vista giorno e senza filtri attivi (coi
     // filtri i pin sono un sottoinsieme e la linea mentirebbe). Nella vista
     // "Tutti" niente linee: la ragnatela tra giorni diversi non racconta nulla.
-    if (singleDay && !filtersActive && dayStops.length > 1) {
+    if (showRoute && singleDay && !filtersActive && dayStops.length > 1) {
       const anchors: L.LatLngTuple[] = dayStops.map(p => [p.lat, p.lng]);
       // Continua = percorso CALCOLATO sulle strade vere. Tratteggiata = solo
       // un collegamento stimato fra due punti. La differenza si deve vedere:
@@ -554,6 +561,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     const openCard = (p: RoutePoint) => {
       setSelected(p);
       onSelectMoment?.(p.momentId ?? null); // sync Map→Story (Journey)
+      onSelectPoint?.(p);
       map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: flyDuration(0.5) });
     };
 
@@ -600,7 +608,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
       fallback: center ? { lat: center.lat, lng: center.lng, zoom: 12 } : undefined,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, activeDay, center, dayRoute, filtersActive, dayStops, timeLabels, showPlaceLabels]);
+  }, [visible, activeDay, center, dayRoute, filtersActive, dayStops, timeLabels, showPlaceLabels, showRoute]);
 
   // ── redraw pin salvati ──
   useEffect(() => {
@@ -737,6 +745,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
     const map = mapRef.current;
     if (!map) return;
     setSelected(p);
+    onSelectPoint?.(p);
     map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 15), { duration: flyDuration(0.5) });
   };
 
@@ -829,7 +838,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
 
         {/* Controlli della schermata Mappa (flow): legenda del percorso in
             alto, "centra su di me" e apertura navigazione in basso. */}
-        {bare && (
+        {bare && !hideBareControls && (
           <>
             {activeDay != null && dayStops.length > 1 && (
               <div className="mrf-map-legend">
@@ -850,7 +859,7 @@ export default function RouteMap({ points, center, destination, itineraryId, t, 
             </div>
           </>
         )}
-        {card}
+        {!hideCard && card}
       </div>
 
       {/* Striscia-tappe del giorno: il ponte narrativo mappa↔giorni. Tap →
