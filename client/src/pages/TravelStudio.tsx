@@ -64,6 +64,14 @@ type TravelNodeData = Record<string, any> & {
 };
 type TravelNode = Node<TravelNodeData>;
 type CanvasDoc = { version: number; nodes: TravelNode[]; edges: Edge[]; updatedAt?: string };
+type PlanStage = {
+  key: string;
+  name: string;
+  startIndex: number;
+  endIndex: number;
+  dayIndexes: number[];
+  image: string;
+};
 const STUDIO_GUIDE_KEY = "mindroute-studio-guide-seen-v2";
 
 const clone = <T,>(value: T): T => {
@@ -80,6 +88,67 @@ const momentPlace = (moment: any) => moment?.location_name ?? moment?.locationNa
 const momentImage = (moment: any) => moment?.image_url ?? moment?.imageUrl ?? "";
 const momentDescription = (moment: any) => moment?.description_short ?? moment?.description ?? moment?.desc ?? "";
 const momentCost = (moment: any) => Number(moment?.cost_max ?? moment?.cost_min ?? moment?.cost ?? 0) || 0;
+
+const normalisePlace = (value: string) => value
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[\s,.;:'’"()[\]{}\\/_-]+/g, " ")
+  .trim()
+  .toLowerCase();
+
+function placeBase(value: string, country = "") {
+  const parts = value.split(",").map(part => part.trim()).filter(Boolean);
+  if (parts.length > 1 && country && normalisePlace(parts.at(-1) ?? "") === normalisePlace(country)) {
+    return parts.at(-2) ?? parts[0];
+  }
+  return parts.at(-1) ?? value.trim();
+}
+
+function buildPlanStages(trip: RawTrip): PlanStage[] {
+  const days = trip.days ?? [];
+  const destinationBase = String(trip.destinationName ?? "Viaggio").split(",")[0].trim() || "Viaggio";
+  const rawNames = days.map(day => {
+    const explicit = day?.base_name ?? day?.baseName ?? day?.city ?? day?.destination ?? day?.location_name;
+    if (explicit) return placeBase(String(explicit), trip.country ?? "");
+
+    const candidates = momentsOf(day)
+      .map(moment => momentPlace(moment).trim())
+      .filter(Boolean)
+      .map(value => placeBase(value, trip.country ?? ""))
+      .filter(value => value.length > 1 && value.length < 42 && !/aeroporto|airport|stazione|station|hotel|ristorante|restaurant/i.test(value));
+    if (!candidates.length) return destinationBase;
+
+    const scores = new Map<string, { label: string; count: number; last: number }>();
+    candidates.forEach((label, index) => {
+      const key = normalisePlace(label);
+      const current = scores.get(key);
+      scores.set(key, { label, count: (current?.count ?? 0) + 1, last: index });
+    });
+    return Array.from(scores.values()).sort((a, b) => b.count - a.count || b.last - a.last)[0]?.label || destinationBase;
+  });
+
+  const names = rawNames.map((name, index) => {
+    const role = String(days[index]?.role ?? "").toLowerCase();
+    if (!/arriv|depart|partenz|transfer|trasfer/.test(role)) return name;
+    const neighbour = rawNames[index + 1] ?? rawNames[index - 1];
+    return neighbour || destinationBase;
+  });
+
+  const stages: PlanStage[] = [];
+  names.forEach((name, index) => {
+    const previous = stages.at(-1);
+    if (previous && normalisePlace(previous.name) === normalisePlace(name)) {
+      previous.endIndex = index;
+      previous.dayIndexes.push(index);
+      return;
+    }
+    const day = days[index];
+    const image = day?.hero_image_url || momentsOf(day).map(momentImage).find(Boolean) || trip.heroImageUrl || "";
+    stages.push({ key: `${normalisePlace(name) || "stage"}-${index}`, name, startIndex: index, endIndex: index, dayIndexes: [index], image });
+  });
+
+  return stages;
+}
 
 function budgetData(trip: RawTrip) {
   const bookable = Number(trip.tripMeta?.total_cost_bookable ?? 0) || 0;
@@ -957,6 +1026,7 @@ function TravelStudioInner() {
     || activePlanMoments.map(momentImage).find(Boolean)
     || trip?.heroImageUrl
     || "";
+  const planStages = useMemo(() => trip ? buildPlanStages(trip) : [], [trip]);
   const strategyCards = [
     {
       icon: <Gauge size={18} />,
@@ -986,9 +1056,14 @@ function TravelStudioInner() {
         ? [L(`Riorganizza questi ${selectedIds.length} elementi`, `Reorganise these ${selectedIds.length} items`), L("Confronta due scenari", "Compare two scenarios")]
         : [L("Analizza il viaggio", "Analyse the trip"), L("Controlla ritmo e spostamenti", "Check pace and transfers"), L("Trova incoerenze", "Find inconsistencies")];
 
-  const openDay = (index: number) => {
+  const selectDay = (index: number) => {
     const id = `day-${index}`;
-    setView("plan"); setSelectedIds([id]); setInspectorOpen(true);
+    setView("plan"); setSelectedIds([id]); setInspectorOpen(false); setAiOpen(false);
+  };
+
+  const editDay = (index: number) => {
+    const id = `day-${index}`;
+    setView("plan"); setSelectedIds([id]); setInspectorOpen(true); setAiOpen(false);
   };
 
   useEffect(() => {
@@ -1014,7 +1089,7 @@ function TravelStudioInner() {
       return;
     }
     if (item.key === "plan") {
-      openDay(emptyDays[0]?.index ?? 0);
+      editDay(emptyDays[0]?.index ?? 0);
       return;
     }
     if (item.key === "decisions") {
@@ -1029,7 +1104,7 @@ function TravelStudioInner() {
     }
     if (item.key === "places") {
       const dayIndex = (trip?.days ?? []).findIndex(day => momentsOf(day).some(moment => !momentPlace(moment).trim()));
-      openDay(Math.max(0, dayIndex));
+      editDay(Math.max(0, dayIndex));
       return;
     }
     setAiInput(L(`Aiutami a risolvere: ${item.label}. ${item.detail}`, `Help me resolve: ${item.label}. ${item.detail}`));
@@ -1117,7 +1192,7 @@ function TravelStudioInner() {
             <nav>
               <button className={selectedIds.includes("trip-overview") ? "on" : ""} onClick={() => openNode(overviewNode)}><Compass size={14} /><span>{L("Panoramica", "Overview")}</span></button>
               <div className="mr-outline-label">{L("Itinerario", "Itinerary")}</div>
-              {(trip.days ?? []).map((day, index) => <button key={index} className={selectedIds.includes(`day-${index}`) ? "on" : ""} onClick={() => openDay(index)}><span className="mr-outline-day">{index + 1}</span><span><strong>{dayTitle(day, index)}</strong><small>{momentsOf(day).length} {L("tappe", "stops")}</small></span></button>)}
+              {(trip.days ?? []).map((day, index) => <button key={index} className={selectedIds.includes(`day-${index}`) ? "on" : ""} onClick={() => selectDay(index)}><span className="mr-outline-day">{index + 1}</span><span><strong>{dayTitle(day, index)}</strong><small>{momentsOf(day).length} {L("tappe", "stops")}</small></span></button>)}
               <div className="mr-outline-label">{L("Strumenti", "Tools")}</div>
               <button onClick={() => setView("map")}><MapIcon size={14} /><span>{L("Mappa", "Map")}</span></button>
               <button onClick={() => setView("control")}><FileCheck2 size={14} /><span>{L("Controllo", "Control")}</span>{readiness < 100 && <em>{100 - readiness}%</em>}</button>
@@ -1133,7 +1208,7 @@ function TravelStudioInner() {
                 <span><Sparkles size={14} />{L("Il tuo piano è pronto", "Your plan is ready")}</span>
                 <h2>{L("Non è un risultato finale: è una base già ragionata da rendere tua.", "This is not a final result: it is a considered starting point to make your own.")}</h2>
                 <p>{trip.whyYours || L("Abbiamo organizzato giorni, luoghi e ritmo intorno alle risposte del quiz. Ora puoi controllare il perché, modificare ogni dettaglio o aprire la versione da usare in viaggio.", "We organised days, places and pace around your quiz answers. Now review the reasoning, edit any detail or open the version to use while travelling.")}</p>
-                <div><button onClick={() => { setArrivalOpen(false); openDay(0); }}>{L("Inizia dal Giorno 1", "Start with Day 1")}<ChevronRight size={13} /></button><button onClick={() => { setArrivalOpen(false); setView("control"); }}>{L("Controlla il viaggio", "Check the trip")}<FileCheck2 size={13} /></button><button onClick={() => setLocation(`/itinerary/${trip.id}`)}>{L("Apri modalità viaggio", "Open trip mode")}<ClipboardList size={13} /></button></div>
+                <div><button onClick={() => { setArrivalOpen(false); selectDay(0); }}>{L("Inizia dal Giorno 1", "Start with Day 1")}<ChevronRight size={13} /></button><button onClick={() => { setArrivalOpen(false); setView("control"); }}>{L("Controlla il viaggio", "Check the trip")}<FileCheck2 size={13} /></button><button onClick={() => setLocation(`/itinerary/${trip.id}`)}>{L("Apri modalità viaggio", "Open trip mode")}<ClipboardList size={13} /></button></div>
               </section>}
               <button className={`mr-plan-hero${selectedIds.includes("trip-overview") ? " selected" : ""}`} onClick={() => openNode(overviewNode)}>
                 <span className="mr-plan-hero-image" style={trip.heroImageUrl ? { backgroundImage: `url(${trip.heroImageUrl})` } : undefined}>{!trip.heroImageUrl && <Compass size={28} />}</span>
@@ -1149,16 +1224,24 @@ function TravelStudioInner() {
 
               <section className="mr-plan-day-list">
                 <header><div><span>{L("Il tuo itinerario", "Your itinerary")}</span><h2>{L("Esplora il viaggio giorno per giorno", "Explore the trip day by day")}</h2></div><button onClick={addDay}><Plus size={13} />{L("Aggiungi giorno", "Add day")}</button></header>
-                <div className="mr-plan-stage-row">{(trip.days ?? []).map((day, index) => {
-                  const moments = momentsOf(day);
-                  const dayId = `day-${index}`;
-                  const image = day?.hero_image_url || moments.map(momentImage).find(Boolean) || trip.heroImageUrl || "";
-                  return <button key={dayId} className={`mr-plan-stage${activePlanDayIndex === index ? " selected" : ""}`} onClick={() => openDay(index)}>
-                    <i style={image ? { backgroundImage: `url(${image})` } : undefined} />
-                    <span><small>{L("Giorno", "Day")} {String(index + 1).padStart(2, "0")}</small><strong>{dayTitle(day, index)}</strong><em>{moments.length} {L("tappe", "stops")}</em></span>
-                  </button>;
-                })}</div>
-                <div className="mr-plan-day-tabs">{(trip.days ?? []).map((day, index) => <button key={index} className={activePlanDayIndex === index ? "on" : ""} onClick={() => openDay(index)}>{String(index + 1).padStart(2, "0")}</button>)}</div>
+                <div className="mr-plan-route-scroll">
+                  <div className="mr-plan-route-grid" style={{ minWidth: `${Math.max(100, (trip.days?.length ?? 1) * 54)}px` }}>
+                    <div className="mr-plan-stage-row" style={{ gridTemplateColumns: `repeat(${Math.max(1, trip.days?.length ?? 1)}, minmax(0, 1fr))` }}>
+                      {planStages.map(stage => <button
+                        key={stage.key}
+                        className={`mr-plan-stage${stage.dayIndexes.includes(activePlanDayIndex) ? " selected" : ""}`}
+                        style={{ gridColumn: `${stage.startIndex + 1} / ${stage.endIndex + 2}` }}
+                        onClick={() => selectDay(stage.startIndex)}
+                      >
+                        <i style={stage.image ? { backgroundImage: `url(${stage.image})` } : undefined} />
+                        <span><strong>{stage.name}</strong><em>{stage.dayIndexes.length} {stage.dayIndexes.length === 1 ? L("giorno", "day") : L("giorni", "days")}</em></span>
+                      </button>)}
+                    </div>
+                    <div className="mr-plan-day-tabs" style={{ gridTemplateColumns: `repeat(${Math.max(1, trip.days?.length ?? 1)}, minmax(0, 1fr))` }}>
+                      {(trip.days ?? []).map((day, index) => <button key={index} className={activePlanDayIndex === index ? "on" : ""} onClick={() => selectDay(index)} aria-label={`${L("Giorno", "Day")} ${index + 1}`}>{String(index + 1).padStart(2, "0")}</button>)}
+                    </div>
+                  </div>
+                </div>
               </section>
 
               <div className="mr-plan-support-grid">
@@ -1172,13 +1255,13 @@ function TravelStudioInner() {
 
           <aside className={`mr-plan-context-rail${inspectorOpen || aiOpen ? " is-covered" : ""}`}>
             <section className="mr-plan-day-detail">
-              <header><div><span>{L("Giorno", "Day")} {String(activePlanDayIndex + 1).padStart(2, "0")}</span><small>{activePlanMoments.length} {L("tappe", "stops")}</small></div><button onClick={() => openDay(activePlanDayIndex)}><MoreHorizontal size={16} /></button></header>
+              <header><div><span>{L("Giorno", "Day")} {String(activePlanDayIndex + 1).padStart(2, "0")}</span><small>{activePlanMoments.length} {L("tappe", "stops")}</small></div><button onClick={() => editDay(activePlanDayIndex)} aria-label={L("Modifica giorno", "Edit day")}><MoreHorizontal size={16} /></button></header>
               <h2>{activePlanDay ? dayTitle(activePlanDay, activePlanDayIndex) : L("Giornata da costruire", "A day to build")}</h2>
               <p>{activePlanDay?.subtitle || dayReason(activePlanDay, activePlanDayIndex)}</p>
-              <button className="mr-plan-day-photo" onClick={() => openDay(activePlanDayIndex)} style={activePlanImage ? { backgroundImage: `url(${activePlanImage})` } : undefined}><Maximize2 size={16} /></button>
-              <div className="mr-plan-timeline">{activePlanMoments.map((moment, index) => <button key={moment.id ?? index} onClick={() => openDay(activePlanDayIndex)}><time>{momentTime(moment) || "--:--"}</time><i /><span style={momentImage(moment) ? { backgroundImage: `url(${momentImage(moment)})` } : undefined}>{!momentImage(moment) && <MapIcon size={13} />}</span><p><strong>{momentTitle(moment)}</strong><small>{momentPlace(moment) || momentDescription(moment) || L("Dettagli da completare", "Details to complete")}</small></p><MoreHorizontal size={14} /></button>)}{!activePlanMoments.length && <div className="mr-plan-empty-day"><CalendarDays size={20} /><span>{L("Questa giornata è ancora vuota.", "This day is still empty.")}</span></div>}</div>
+              <button className="mr-plan-day-photo" onClick={() => editDay(activePlanDayIndex)} style={activePlanImage ? { backgroundImage: `url(${activePlanImage})` } : undefined} aria-label={L("Modifica giorno", "Edit day")}><Maximize2 size={16} /></button>
+              <div className="mr-plan-timeline">{activePlanMoments.map((moment, index) => <button key={moment.id ?? index} onClick={() => editDay(activePlanDayIndex)}><time>{momentTime(moment) || "--:--"}</time><i /><span style={momentImage(moment) ? { backgroundImage: `url(${momentImage(moment)})` } : undefined}>{!momentImage(moment) && <MapIcon size={13} />}</span><p><strong>{momentTitle(moment)}</strong><small>{momentPlace(moment) || momentDescription(moment) || L("Dettagli da completare", "Details to complete")}</small></p><MoreHorizontal size={14} /></button>)}{!activePlanMoments.length && <div className="mr-plan-empty-day"><CalendarDays size={20} /><span>{L("Questa giornata è ancora vuota.", "This day is still empty.")}</span></div>}</div>
               <button className="mr-plan-add-activity" onClick={() => addMomentToDay(activePlanDayIndex)}><Plus size={14} />{L("Aggiungi attività", "Add activity")}</button>
-              <div className="mr-plan-detail-map">{points.some(point => point.day === activePlanDayIndex + 1) ? <Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points.filter(point => point.day === activePlanDayIndex + 1) as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} bare hideDayBar /></Suspense> : <button onClick={() => openDay(activePlanDayIndex)}><MapIcon size={18} /><span>{L("Aggiungi i luoghi per vedere il percorso", "Add places to see the route")}</span></button>}</div>
+              <div className="mr-plan-detail-map">{points.some(point => point.day === activePlanDayIndex + 1) ? <Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points.filter(point => point.day === activePlanDayIndex + 1) as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} bare hideDayBar /></Suspense> : <button onClick={() => editDay(activePlanDayIndex)}><MapIcon size={18} /><span>{L("Aggiungi i luoghi per vedere il percorso", "Add places to see the route")}</span></button>}</div>
             </section>
           </aside>
         </div> : <div className="mr-empty-desk"><Compass size={34} /><span>MindRoute Studio</span><h1>{L("Crea il tuo prossimo viaggio", "Create your next trip")}</h1><p>{L("Scegli come iniziare. Qualunque strada porta allo stesso spazio di lavoro e allo stesso itinerario.", "Choose how to begin. Every path leads to the same workspace and itinerary.")}</p><div><button onClick={() => { setStartMode("menu"); setNewTripOpen(true); }}><Plus size={15} />{L("Nuovo viaggio", "New trip")}</button></div></div>}
@@ -1191,10 +1274,10 @@ function TravelStudioInner() {
           <div><strong>{mappedDayCount}/{trip.days?.length ?? 0}</strong><span>{L("giorni geolocalizzati", "mapped days")}</span></div>
           <div><strong>{unmappedMomentCount}</strong><span>{L("tappe da precisare", "stops to locate")}</span></div>
           {firstUnmappedDay >= 0
-            ? <button onClick={() => openDay(firstUnmappedDay)}><MapIcon size={14} />{L("Completa la prossima tappa", "Complete the next stop")}</button>
+            ? <button onClick={() => editDay(firstUnmappedDay)}><MapIcon size={14} />{L("Completa la prossima tappa", "Complete the next stop")}</button>
             : <button onClick={() => setAiOpen(true)}><Sparkles size={14} />{L("Ottimizza gli spostamenti", "Optimise transfers")}</button>}
         </div>
-        {points.length ? <div className="mr-real-map"><Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} showPlaceLabels onOpenDay={(day: number) => openDay(Math.max(0, day - 1))} /></Suspense></div>
+        {points.length ? <div className="mr-real-map"><Suspense fallback={<div className="mr-view-loading" />}><RouteMap points={points as any} destination={trip.destinationName ?? ""} itineraryId={trip.id} t={t} lang={lang} showPlaceLabels onOpenDay={(day: number) => selectDay(Math.max(0, day - 1))} /></Suspense></div>
           : <div className="mr-view-empty"><MapIcon size={25} /><h2>{L("Mancano luoghi precisi", "Exact places are missing")}</h2><p>{L("Apri un giorno e inserisci il luogo nelle sue tappe. La mappa si costruirà automaticamente.", "Open a day and add exact places to its stops. The map will build automatically.")}</p><button onClick={() => setView("plan")}>{L("Torna al Piano", "Back to Plan")}</button></div>}
       </section>}
 
@@ -1212,11 +1295,11 @@ function TravelStudioInner() {
         </button>)}</div>
 
         <div className="mr-control-detail-grid">
-          <section className="mr-control-card mr-control-rhythm"><header><span><Gauge size={15} />{L("Ritmo", "Pace")}</span><small>{denseDays.length ? L(`${denseDays.length} da rivedere`, `${denseDays.length} to review`) : L("Equilibrato", "Balanced")}</small></header><div className="mr-rhythm-list">{rhythm.map(day => <button key={day.index} onClick={() => openDay(day.index)}><span><small>{L("Giorno", "Day")} {day.index + 1}</small><strong>{day.title}</strong></span><div><i><b style={{ width: `${Math.max(6, day.intensity)}%` }} /></i><em>{day.intensity >= 75 ? L("Intenso", "Intense") : day.intensity >= 45 ? L("Equilibrato", "Balanced") : L("Lento", "Slow")}</em></div><ChevronRight size={15} /></button>)}</div></section>
+          <section className="mr-control-card mr-control-rhythm"><header><span><Gauge size={15} />{L("Ritmo", "Pace")}</span><small>{denseDays.length ? L(`${denseDays.length} da rivedere`, `${denseDays.length} to review`) : L("Equilibrato", "Balanced")}</small></header><div className="mr-rhythm-list">{rhythm.map(day => <button key={day.index} onClick={() => editDay(day.index)}><span><small>{L("Giorno", "Day")} {day.index + 1}</small><strong>{day.title}</strong></span><div><i><b style={{ width: `${Math.max(6, day.intensity)}%` }} /></i><em>{day.intensity >= 75 ? L("Intenso", "Intense") : day.intensity >= 45 ? L("Equilibrato", "Balanced") : L("Lento", "Slow")}</em></div><ChevronRight size={15} /></button>)}</div></section>
           <section className="mr-control-card mr-control-budget"><header><span><Euro size={15} />Budget</span><small>{budget.total > budget.target ? L("Oltre il tetto", "Over target") : L("Sotto controllo", "Under control")}</small></header><div className="mr-budget-total"><span>{L("Stima attuale", "Current estimate")}</span><strong>€{budget.total.toLocaleString(lang === "it" ? "it-IT" : "en-US")}</strong><small>€{budget.target.toLocaleString(lang === "it" ? "it-IT" : "en-US")} {L("disponibili", "available")}</small><i><b style={{ width: `${Math.min(100, budget.total / Math.max(budget.target, 1) * 100)}%` }} /></i></div><div className="mr-budget-fields"><label>{L("Prenotabile", "Bookable")}<span>€<input type="number" min="0" value={trip.tripMeta?.total_cost_bookable ?? 0} onChange={event => updateBudgetValue("bookable", Number(event.target.value))} /></span></label><label>{L("In loco", "On site")}<span>€<input type="number" min="0" value={trip.tripMeta?.total_cost_onsite_estimate ?? 0} onChange={event => updateBudgetValue("onsite", Number(event.target.value))} /></span></label><label>{L("Tetto", "Target")}<span>€<input type="number" min="0" value={trip.tripMeta?.studio_budget_target ?? 0} onChange={event => updateBudgetValue("target", Number(event.target.value))} /></span></label></div></section>
         </div>
 
-        <section className="mr-control-card mr-control-logistics"><header><span><Plane size={15} />{L("Logistica e prenotazioni", "Logistics and bookings")}</span><small>{pendingBookings ? L(`${pendingBookings} da completare`, `${pendingBookings} to complete`) : L("Vista operativa", "Operational view")}</small></header><div className="mr-logistics-grid">{logistics.map((item: any, index: number) => <button key={item.id ?? index} onClick={() => openDay(item.dayIndex)}><span><Plane size={16} /></span><p><small>{L("Giorno", "Day")} {item.dayIndex + 1} · {item.time || L("Orario da definire", "Time TBD")}</small><strong>{item.title}</strong><em>{item.place || L("Luogo da definire", "Place TBD")}</em></p><ChevronRight size={15} /></button>)}{nodes.filter(node => node.data.kind === "booking").map(node => <button key={node.id} onClick={() => { setView("plan"); setSelectedIds([node.id]); setInspectorOpen(true); }}><span><ClipboardList size={16} /></span><p><small>{L("Prenotazione", "Booking")}</small><strong>{node.data.title}</strong><em>{node.data.status === "booked" ? L("Confermata", "Confirmed") : L("Da completare", "To complete")}</em></p><ChevronRight size={15} /></button>)}{!logistics.length && !nodes.some(node => node.data.kind === "booking") && <div className="mr-view-empty"><Plane size={24} /><h2>{L("Nessuna logistica ancora", "No logistics yet")}</h2><p>{L("Aggiungi un volo, un hotel o un trasferimento dal pulsante Aggiungi.", "Add a flight, hotel or transfer from the Add button.")}</p></div>}</div></section>
+        <section className="mr-control-card mr-control-logistics"><header><span><Plane size={15} />{L("Logistica e prenotazioni", "Logistics and bookings")}</span><small>{pendingBookings ? L(`${pendingBookings} da completare`, `${pendingBookings} to complete`) : L("Vista operativa", "Operational view")}</small></header><div className="mr-logistics-grid">{logistics.map((item: any, index: number) => <button key={item.id ?? index} onClick={() => editDay(item.dayIndex)}><span><Plane size={16} /></span><p><small>{L("Giorno", "Day")} {item.dayIndex + 1} · {item.time || L("Orario da definire", "Time TBD")}</small><strong>{item.title}</strong><em>{item.place || L("Luogo da definire", "Place TBD")}</em></p><ChevronRight size={15} /></button>)}{nodes.filter(node => node.data.kind === "booking").map(node => <button key={node.id} onClick={() => { setView("plan"); setSelectedIds([node.id]); setInspectorOpen(true); }}><span><ClipboardList size={16} /></span><p><small>{L("Prenotazione", "Booking")}</small><strong>{node.data.title}</strong><em>{node.data.status === "booked" ? L("Confermata", "Confirmed") : L("Da completare", "To complete")}</em></p><ChevronRight size={15} /></button>)}{!logistics.length && !nodes.some(node => node.data.kind === "booking") && <div className="mr-view-empty"><Plane size={24} /><h2>{L("Nessuna logistica ancora", "No logistics yet")}</h2><p>{L("Aggiungi un volo, un hotel o un trasferimento dal pulsante Aggiungi.", "Add a flight, hotel or transfer from the Add button.")}</p></div>}</div></section>
       </section>}
 
       <nav className="mr-lens-dock" aria-label={L("Viste del viaggio", "Trip views")}>
