@@ -70,7 +70,7 @@ type Screen =
 
 /** URL → schermata. Unica fonte di verità sul "dove sono". */
 function parseScreen(path: string): Screen {
-  const p = path.replace(/\/+$/, "");
+  const p = path.split("?")[0].replace(/\/+$/, "");
   let m = p.match(/^\/itinerary\/\d+\/g\/(\d+)\/t\/(.+)$/);
   if (m) return { k: "moment", n: Number(m[1]), mid: decodeURIComponent(m[2]) };
   m = p.match(/^\/itinerary\/\d+\/g\/(\d+)\/mappa$/);
@@ -158,14 +158,14 @@ export function ItineraryFlow({
 
   /* ── navigazione ── */
   const nav = useMemo(() => ({
-    goOverview: () => setLocation(base),
-    goDay: (n: number) => setLocation(`${base}/g/${n}`),
+    goOverview: () => setLocation(`${base}/g/${firstDay}/mappa`),
+    goDay: (n: number) => setLocation(`${base}/g/${n}/mappa`),
     goMoment: (n: number, mid: string) => setLocation(`${base}/g/${n}/t/${encodeURIComponent(mid)}`),
     goMap: (n: number) => setLocation(`${base}/g/${n}/mappa`),
     goLogistics: () => setLocation(`${base}/logistica`),
     goEdit: (n?: number) => setLocation(n ? `${base}/modifica/${n}` : `${base}/modifica`),
     goHome: () => setLocation("/"),
-  }), [base, setLocation]);
+  }), [base, firstDay, setLocation]);
 
   // "Indietro" risale lo stack in modo prevedibile: non usa history.back(),
   // che dopo un deep-link o un refresh porterebbe fuori dal prodotto.
@@ -241,7 +241,7 @@ export function ItineraryFlow({
     ...nav, back,
     // Un solo "ricarica": date confermate e prenotazioni aggiornate rileggono
     // entrambe l'itinerario dal server (il parent passa lo stesso refetch).
-    onSavePdf, onShare, openStudio: onOpenStudio, refetch: () => { onDatesConfirmed?.(); onBookingUpdated?.(); },
+    onSavePdf, onShare, onSaveDays, openStudio: onOpenStudio, refetch: () => { onDatesConfirmed?.(); onBookingUpdated?.(); },
     isDesktop,
   };
 
@@ -298,48 +298,19 @@ export function ItineraryFlow({
     if (!days.some(d => d.n === currentDayN)) nav.goDay(firstDay);
   }, [currentDayN, days, firstDay, nav]);
 
-  const body = (() => {
-    switch (screen.k) {
-      case "day": return <JourneyScreen n={screen.n} />;
-      case "moment": return <MomentScreen n={screen.n} momentId={screen.mid} />;
-      case "map": return <DayMapScreen n={screen.n} />;
-      case "logistics": return <LogisticsScreen />;
-      case "edit": return <EditScreen initialDay={screen.n ?? firstDay} onSaveDays={onSaveDays} />;
-      default: return <JourneyScreen n={firstDay} />;
-    }
-  })();
+  const workspaceDay = "n" in screen && typeof screen.n === "number" ? screen.n : firstDay;
+  const initialPanel = screen.k === "edit" ? "edit" : screen.k === "logistics" ? "logistics" : "activity";
+  const initialMode = screen.k === "day" || screen.k === "moment" ? "travel" : "build";
+  const initialMomentId = screen.k === "moment" ? screen.mid : undefined;
 
   return (
     <FlowContext.Provider value={ctx}>
-      <div className="mrf">
-        <div className="mrf-bg" aria-hidden="true">
-          {ambient.map((src, i) => (
-            <div key={src + i}
-              className={"mrf-bg-ph" + (activeImgIdx === i ? " on" : "")}
-              style={{ backgroundImage: bg(src, isDesktop ? 1800 : 1100, 62) }} />
-          ))}
-        </div>
-        <div className="mrf-grain" aria-hidden="true" />
-
-        {screen.k !== "overview" && screen.k !== "day" && screen.k !== "map" && <header className={"mrf-head" + (stuck ? " stuck" : "")}>
-          <button className="mrf-hbtn" onClick={back} aria-label={t("if.back")}><ArrowLeft size={20} /></button>
-          <div className="mrf-htitle">
-            <span className="t">{head.title}</span>
-            {head.sub && <span className="s">{head.sub}</span>}
-          </div>
-          <div className="mrf-hactions">
-            {onOpenStudio && screen.k !== "edit" && (
-              <button className="mrf-studio-link" onClick={() => onOpenStudio(currentDayN ?? undefined)}>
-                <Sparkles size={15} />
-                <span>{L("Modifica in Studio", "Edit in Studio")}</span>
-              </button>
-            )}
-            {rightAction()}
-          </div>
-        </header>}
-
-        {body}
-      </div>
+      <DayMapScreen
+        n={workspaceDay}
+        initialMode={initialMode}
+        initialPanel={initialPanel}
+        initialMomentId={initialMomentId}
+      />
     </FlowContext.Provider>
   );
 }

@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useRoute } from "wouter";
 import { lazy, Suspense, useEffect } from "react";
 import { useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
@@ -27,7 +27,6 @@ const ItineraryStream = lazy(() => import("@/pages/ItineraryStream"));
 const Compare = lazy(() => import("@/pages/Compare"));
 const SharedItinerary = lazy(() => import("@/pages/SharedItinerary"));
 const HowItWorks = lazy(() => import("@/pages/HowItWorks"));
-const TravelStudio = lazy(() => import("@/pages/TravelStudio"));
 // SOLO sviluppo: preview della dashboard con dati mock, per gli screenshot
 // responsive senza login/DB. Esclusa dal bundle di produzione.
 const DevPreview = import.meta.env.DEV ? lazy(() => import("@/pages/DevPreview")) : null;
@@ -69,6 +68,32 @@ function Home() {
   return user ? <PageFallback /> : <Landing />;
 }
 
+function StudioTripRedirect() {
+  const [, params] = useRoute("/studio/:id");
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    if (params?.id) setLocation(`/itinerary/${params.id}/g/1/mappa`, { replace: true });
+  }, [params?.id, setLocation]);
+  return <PageFallback />;
+}
+
+function StudioHomeRedirect() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/my-trips?lang=it")
+      .then(response => response.ok ? response.json() : [])
+      .then((rows: Array<{ id?: number }>) => {
+        if (cancelled) return;
+        const id = rows.find(row => Number.isFinite(row.id))?.id;
+        setLocation(id ? `/itinerary/${id}/g/1/mappa` : "/start", { replace: true });
+      })
+      .catch(() => { if (!cancelled) setLocation("/start", { replace: true }); });
+    return () => { cancelled = true; };
+  }, [setLocation]);
+  return <PageFallback />;
+}
+
 function Router() {
   return (
     <Layout>
@@ -105,10 +130,10 @@ function Router() {
           <Route path="/privacy" component={Privacy} />
           <Route path="/my-account" component={MyAccount} />
           <Route path="/studio/:id">
-            <RequireAuth><TravelStudio /></RequireAuth>
+            <RequireAuth><StudioTripRedirect /></RequireAuth>
           </Route>
           <Route path="/studio">
-            <RequireAuth><TravelStudio /></RequireAuth>
+            <RequireAuth><StudioHomeRedirect /></RequireAuth>
           </Route>
           <Route path="/compare" component={Compare} />
           {DevPreview && <Route path="/__preview/dashboard" component={DevPreview} />}

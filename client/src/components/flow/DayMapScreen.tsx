@@ -1,15 +1,16 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import {
   AlertTriangle, Bookmark, CalendarDays, CheckCircle2, ChevronRight, Clock,
   Compass, Download, Euro, ExternalLink, Footprints, Gauge, Heart, HelpCircle,
-  Map as MapIcon, MoreHorizontal, Navigation, Plus, Search, Settings, Share2,
-  Sparkles, UserRound, X,
+  ListChecks, Map as MapIcon, MoreHorizontal, Navigation, Plus, Search, Settings,
+  Share2, Sparkles, Train, UserRound, X,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import type { RoutePoint } from "@/components/RouteMap";
 import { unsplashSized } from "@/lib/img";
 import { useFlow } from "./context";
+import { EditScreen } from "./EditScreen";
 
 const RouteMap = lazy(() => import("@/components/RouteMap"));
 const MAP_PADDING = { top: 80, right: 100, bottom: 255, left: 100 };
@@ -22,7 +23,15 @@ function isLodging(point: RoutePoint) {
   return String(point.category ?? "").toLowerCase() === "lodging";
 }
 
-export function DayMapScreen({ n }: { n: number }) {
+type WorkspaceMode = "build" | "travel";
+type WorkspacePanel = "activity" | "edit" | "logistics";
+
+export function DayMapScreen({ n, initialMode = "build", initialPanel = "activity", initialMomentId }: {
+  n: number;
+  initialMode?: WorkspaceMode;
+  initialPanel?: WorkspacePanel;
+  initialMomentId?: string;
+}) {
   const f = useFlow();
   const [, setLocation] = useLocation();
   const day = f.days.find(item => item.n === n) ?? f.days[0];
@@ -44,10 +53,24 @@ export function DayMapScreen({ n }: { n: number }) {
     .sort((a, b) => (momentOrder.get(a.momentId) ?? 99) - (momentOrder.get(b.momentId) ?? 99)),
   [points, n, momentOrder]);
   const [selectedPoint, setSelectedPoint] = useState<RoutePoint | null>(null);
+  const [mode, setMode] = useState<WorkspaceMode>(initialMode);
+  const [panel, setPanel] = useState<WorkspacePanel>(initialPanel);
 
   useEffect(() => {
-    setSelectedPoint(dayPoints.find(point => !isLodging(point)) ?? dayPoints[0] ?? null);
-  }, [n, dayPoints]);
+    const queryMoment = typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("moment")
+      : null;
+    const requested = initialMomentId || queryMoment;
+    setSelectedPoint(
+      dayPoints.find(point => requested && point.momentId === requested)
+      ?? dayPoints.find(point => !isLodging(point))
+      ?? dayPoints[0]
+      ?? null,
+    );
+  }, [n, dayPoints, initialMomentId]);
+
+  useEffect(() => setMode(initialMode), [initialMode]);
+  useEffect(() => setPanel(initialPanel), [initialPanel]);
 
   const selectedMoment = selectedPoint
     ? moments.find(moment => moment.id === selectedPoint.momentId)
@@ -116,7 +139,10 @@ export function DayMapScreen({ n }: { n: number }) {
         <div className="mrm2-top-actions">
           <button onClick={() => askCompanion(f.L(`Analizza e migliora il Giorno ${n}.`, `Analyse and improve Day ${n}.`))}><Sparkles size={14} /><span>{f.L("Lavora con l'AI", "Work with AI")}</span></button>
           <button onClick={() => f.onShare?.()}><Share2 size={14} /><span>{f.L("Condividi", "Share")}</span></button>
-          <button className="travel" onClick={() => f.goDay(n)}><Navigation size={14} /><span>{f.L("Apri modalità viaggio", "Open travel mode")}</span></button>
+          <div className="mrm2-mode" aria-label={f.L("Modalità workspace", "Workspace mode")}>
+            <button className={mode === "build" ? "on" : ""} onClick={() => setMode("build")}><Sparkles size={13} />{f.L("Costruisci", "Build")}</button>
+            <button className={mode === "travel" ? "on" : ""} onClick={() => setMode("travel")}><Navigation size={13} />{f.L("Viaggia", "Travel")}</button>
+          </div>
           <em><CheckCircle2 size={13} />{f.L("Salvato", "Saved")}</em>
           <button className="icon" onClick={f.onSavePdf} aria-label={f.L("Esporta", "Export")}><Download size={15} /></button>
           <button className="avatar" onClick={() => setLocation("/my-account?view=portrait")}>MR</button>
@@ -124,19 +150,19 @@ export function DayMapScreen({ n }: { n: number }) {
       </header>
 
       <aside className="mrm2-rail">
-        <button className="primary" onClick={() => f.openStudio?.(n)}><Plus size={20} /><span>{f.L("Aggiungi", "Add")}</span></button>
-        <button onClick={() => f.openStudio?.(n)}><Search size={19} /><span>{f.L("Cerca / Importa", "Search / Import")}</span></button>
-        <button onClick={() => f.openStudio?.(n)}><Heart size={19} /><span>{f.L("Forse", "Maybe")}</span></button>
+        <button className="primary" onClick={() => setPanel("edit")}><Plus size={20} /><span>{f.L("Aggiungi", "Add")}</span></button>
+        <button onClick={() => askCompanion(f.L("Cerca un luogo o importa un'idea in questo viaggio.", "Find a place or import an idea into this trip."))}><Search size={19} /><span>{f.L("Cerca / Importa", "Search / Import")}</span></button>
+        <button onClick={() => askCompanion(f.L("Mostrami alternative coerenti da tenere da parte.", "Show me relevant alternatives to keep aside."))}><Heart size={19} /><span>{f.L("Forse", "Maybe")}</span></button>
         <button onClick={() => setLocation("/my-account?view=portrait")}><UserRound size={19} /><span>{f.L("Ritratto", "Portrait")}</span></button>
         <div />
-        <button onClick={f.goLogistics}><Settings size={18} /><span>{f.L("Impostazioni", "Settings")}</span></button>
+        <button onClick={() => setPanel("logistics")}><Settings size={18} /><span>{f.L("Controllo", "Check")}</span></button>
         <button onClick={() => askCompanion(f.L("Aiutami a usare la mappa del viaggio.", "Help me use the trip map."))}><HelpCircle size={18} /></button>
       </aside>
 
       <main className="mrm2-shell">
         <aside className="mrm2-left">
           <section className="mrm2-strategy">
-            <header><span>{f.L("Strategia del viaggio", "Trip strategy")}</span><button onClick={() => f.openStudio?.(n)}>{f.L("Modifica", "Edit")}</button></header>
+            <header><span>{f.L("Strategia del viaggio", "Trip strategy")}</span><button onClick={() => setPanel("edit")}>{f.L("Modifica", "Edit")}</button></header>
             {strategy.map((item, index) => <article key={index}><i>{item.icon}</i><p><strong>{item.title}</strong><small>{item.text}</small></p></article>)}
           </section>
           <nav className="mrm2-days">
@@ -148,7 +174,7 @@ export function DayMapScreen({ n }: { n: number }) {
                 <MoreHorizontal size={14} />
               </button>;
             })}
-            <button className="add" onClick={() => f.openStudio?.(n)}><Plus size={14} />{f.L("Aggiungi giorno", "Add day")}</button>
+            <button className="add" onClick={() => setPanel("edit")}><Plus size={14} />{f.L("Modifica il piano", "Edit plan")}</button>
           </nav>
         </aside>
 
@@ -185,7 +211,7 @@ export function DayMapScreen({ n }: { n: number }) {
             {targetBudget > 0 && <i><b style={{ width: `${budgetProgress}%` }} /></i>}
             <article><span><Bookmark size={13} />{f.L("Prenotazioni mancanti", "Missing bookings")}</span><b>{pendingBookings}</b></article>
             <article className={dayIsDense ? "risk" : "ready"}><span>{dayIsDense ? <AlertTriangle size={13} /> : <CheckCircle2 size={13} />}{f.L("Ritmo", "Pace")}</span><b>{dayIsDense ? f.L("Intenso", "Busy") : f.L("Equilibrato", "Balanced")}</b></article>
-            <button onClick={f.goLogistics}>{f.L("Vedi dettagli", "View details")}<ChevronRight size={12} /></button>
+            <button onClick={() => setPanel("logistics")}>{f.L("Vedi dettagli", "View details")}<ChevronRight size={12} /></button>
           </section>
 
           <section className="mrm2-timeline">
@@ -204,14 +230,21 @@ export function DayMapScreen({ n }: { n: number }) {
           </section>
         </section>
 
-        <aside className="mrm2-detail">
-          {selectedPoint ? <>
+        <aside className={"mrm2-detail" + (panel === "edit" ? " mrm2-editor" : "")}>
+          {panel === "edit" ? <>
+            <header className="mrm2-editor-head">
+              <h2>{f.L("Modifica il piano", "Edit plan")}</h2>
+              <button onClick={() => setPanel("activity")}><X size={15} /></button>
+              <span>{f.L("Tutte le modifiche aggiornano questa stessa mappa.", "Every change updates this same map.")}</span>
+            </header>
+            <EditScreen initialDay={n} onSaveDays={f.onSaveDays} />
+          </> : selectedPoint ? <>
             <header><h2>{selectedPoint.label}</h2><button onClick={() => setSelectedPoint(null)}><X size={15} /></button><span><MapIcon size={12} />{f.L("Giorno", "Day")} {n}{selectedTime ? ` · ${selectedTime}${selectedEnd ? `–${selectedEnd}` : ""}` : ""}</span></header>
             <div className="mrm2-detail-image" style={{ backgroundImage: bg(selectedPoint.imageUrl || day.img || f.data.heroImg, 800) }} />
             <div className="mrm2-detail-actions">
               {selectedMoment?.id && f.onToggleSaved && <button className={selectedSaved ? "on" : ""} onClick={() => f.onToggleSaved?.(selectedMoment.id!, selectedMoment)}><Bookmark size={13} />{selectedSaved ? f.L("Salvato", "Saved") : f.L("Salva", "Save")}</button>}
               {mapUrl && <a href={mapUrl} target="_blank" rel="noopener noreferrer"><Navigation size={13} />{f.L("Naviga", "Navigate")}</a>}
-              <button onClick={() => f.openStudio?.(n)}><MoreHorizontal size={14} /></button>
+              <button onClick={() => setPanel("edit")}><MoreHorizontal size={14} /></button>
             </div>
             <div className="mrm2-detail-body">
               {(selectedMoment?.kindLabel || selectedPoint.kindLabel) && <span className="mrm-kind">{selectedMoment?.kindLabel || selectedPoint.kindLabel}</span>}
@@ -225,10 +258,33 @@ export function DayMapScreen({ n }: { n: number }) {
                 {selectedLocation && <Info icon={<MapIcon size={13} />} label={f.L("Luogo", "Location")} value={selectedLocation} />}
               </section>
               {nextPoint && <section className="mrm-next"><h3>{f.L("Dopo questa attività", "After this activity")}</h3><button onClick={() => setSelectedPoint(nextPoint)}><i style={{ backgroundImage: bg(nextPoint.imageUrl || day.img, 180) }} /><span><b>{nextPoint.label}</b><small>{moments.find(moment => moment.id === nextPoint.momentId)?.startTime || nextPoint.bestTime}</small></span><ChevronRight size={14} /></button></section>}
-              <button className="mrm-edit" onClick={() => f.openStudio?.(n)}><Sparkles size={14} />{f.L("Modifica attività", "Edit activity")}</button>
-              {selectedMoment?.id && <button className="mrm-open" onClick={() => f.goMoment(n, selectedMoment.id!)}>{f.L("Apri tutti i dettagli", "Open all details")}<ExternalLink size={12} /></button>}
+              <button className="mrm-edit" onClick={() => setPanel("edit")}><Sparkles size={14} />{f.L("Modifica attività", "Edit activity")}</button>
+              <button className="mrm-open" onClick={() => askCompanion(f.L(`Spiegami meglio perché ${selectedPoint.label} è nel viaggio.`, `Explain why ${selectedPoint.label} belongs in this trip.`))}>{f.L("Chiedi a MindRoute", "Ask MindRoute")}<Sparkles size={12} /></button>
             </div>
           </> : <div className="mrm-detail-empty"><MapIcon size={24} /><h2>{f.L("Seleziona una tappa", "Select a stop")}</h2><p>{f.L("Tocca un punto sulla mappa o una card nella timeline.", "Tap a point on the map or a card in the timeline.")}</p></div>}
+        </aside>
+
+        <aside className={"mrm2-logistics" + (panel === "logistics" ? " focus" : "")}>
+          <header>
+            <span>{f.L("Logistica e salute viaggio", "Trip logistics & health")}</span>
+            <button onClick={() => setPanel("activity")} aria-label={f.L("Chiudi evidenza", "Close highlight")}><X size={13} /></button>
+          </header>
+          <section className="mrm2-health">
+            <div><small>{f.L("Prontezza", "Readiness")}</small><strong>{f.pct}%</strong><em>{f.pct >= 75 ? f.L("Buona", "Good") : f.L("Da completare", "To complete")}</em></div>
+            <i style={{ "--score" : `${f.pct * 3.6}deg` } as CSSProperties}><Gauge size={23} /></i>
+          </section>
+          <section className="mrm2-log-list">
+            <Info icon={<Clock size={13} />} label={f.L("Attività oggi", "Today's activities")} value={String(moments.length)} />
+            <Info icon={<ListChecks size={13} />} label={f.L("Prenotazioni mancanti", "Missing bookings")} value={String(pendingBookings)} />
+            <Info icon={<Euro size={13} />} label={f.L("Budget stimato", "Estimated budget")} value={currentBudget ? `€${currentBudget.toLocaleString("it-IT")}` : "--"} />
+            <Info icon={<Navigation size={13} />} label={f.L("Percorso", "Route")} value={dayIsDense ? f.L("Da ottimizzare", "Review") : f.L("Equilibrato", "Balanced")} />
+          </section>
+          <section className="mrm2-transport">
+            <span>{f.L("Trasporti consigliati", "Recommended transport")}</span>
+            <article><i><Train size={16} /></i><p><strong>{selectedMoment?.transport || f.L("Percorso locale", "Local route")}</strong><small>{f.L("Collegato all'ordine delle tappe", "Connected to stop order")}</small></p></article>
+          </section>
+          <button className="mrm2-log-action" onClick={() => askCompanion(f.L(`Controlla logistica, tempi e budget del Giorno ${n}.`, `Check logistics, timings and budget for Day ${n}.`))}><Sparkles size={13} />{f.L("Controlla con l'AI", "Check with AI")}</button>
+          <button className="mrm2-portrait-link" onClick={() => setLocation("/my-account?view=portrait")}><UserRound size={14} /><span><strong>{f.L("Ritratto di viaggio", "Travel portrait")}</strong><small>{f.L("Aggiorna dalle tue scelte", "Update from your choices")}</small></span><ChevronRight size={13} /></button>
         </aside>
       </main>
     </div>

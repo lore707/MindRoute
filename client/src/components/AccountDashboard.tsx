@@ -630,7 +630,6 @@ export function AccountDashboard({ data }: { data: AccountData }) {
   );
 
   const TripCard = ({ tr }: { tr: AccountData["trips"][number] }) => {
-    const studioHref = tr.href?.replace("/itinerary/", "/studio/") ?? "/studio";
     return <article className={"c-card status-" + (tr.status ?? (tr.taken ? "confirmed" : "planned"))}>
       <div className="ph" style={{ backgroundImage: bg(tr.img, cardW) }} />
       <span className="c-taken">
@@ -648,7 +647,7 @@ export function AccountDashboard({ data }: { data: AccountData }) {
         <div className="c-copy">
           <div className="c-name">{tr.dest}</div>
           {tr.quote && <div className="c-blurb">{tr.quote}</div>}
-          <div className="c-actions"><a href={tr.href ?? "#"}>{lang === "it" ? "Apri itinerario" : "Open itinerary"}</a><a href={studioHref}>{lang === "it" ? "Lavora in Studio" : "Work in Studio"}</a></div>
+          <div className="c-actions"><a href={tr.href ?? "#"}>{lang === "it" ? "Apri viaggio" : "Open trip"}</a></div>
         </div>
       </div>
     </article>;
@@ -1327,7 +1326,6 @@ export function AccountDashboard({ data }: { data: AccountData }) {
                 : "Create a new itinerary or reopen one of the plans you have already built.")}</p>
             <div className="coll2-command-actions">
               {continueCard && <a className="coll2-command-primary" href={continueCard.href}>{lang === "it" ? "Apri itinerario" : "Open itinerary"} <span>→</span></a>}
-              {continueCard?.itineraryId && <a className="coll2-command-secondary" href={`/studio/${continueCard.itineraryId}`}>{lang === "it" ? "Lavora in Studio" : "Work in Studio"} <span>→</span></a>}
               <button className={continueCard ? "coll2-command-secondary" : "coll2-command-primary"} onClick={data.onNewItinerary}>
                 {lang === "it" ? "Crea un nuovo viaggio" : "Create a new trip"} <span>→</span>
               </button>
