@@ -23,6 +23,17 @@ const BANDS: Array<{ key: Band; it: string; en: string; slot: string }> = [
   { key: "sera", it: "Sera", en: "Evening", slot: "evening" },
 ];
 
+type DayMeta = { title: string; subtitle: string; arc: string; image: string };
+
+function dayMetaFromFlow(days: Array<{ n: number; title: string; sub: string; arc: string; img: string }>) {
+  return Object.fromEntries(days.map(day => [day.n, {
+    title: day.title ?? "",
+    subtitle: day.sub ?? "",
+    arc: day.arc ?? "",
+    image: day.img ?? "",
+  }])) as Record<number, DayMeta>;
+}
+
 export function EditScreen({ initialDay, onSaveDays }: {
   initialDay: number;
   onSaveDays?: (days: any[]) => Promise<void>;
@@ -30,6 +41,7 @@ export function EditScreen({ initialDay, onSaveDays }: {
   const f = useFlow();
   const [dayN, setDayN] = useState(initialDay);
   const [byDay, setByDay] = useState<Record<number, Moment[]>>(() => f.momentsByDay);
+  const [dayMeta, setDayMeta] = useState<Record<number, DayMeta>>(() => dayMetaFromFlow(f.days));
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [editIdx, setEditIdx] = useState<number | null>(null);
@@ -38,18 +50,32 @@ export function EditScreen({ initialDay, onSaveDays }: {
 
   // Il server è la verità: dopo un refetch ripartiamo da lì. Durante l'editing
   // l'identità dell'itinerario non cambia, quindi gli edit non si perdono.
-  useEffect(() => { setByDay(f.momentsByDay); /* eslint-disable-next-line */ }, [f.itinerary]);
+  useEffect(() => {
+    setByDay(f.momentsByDay);
+    setDayMeta(dayMetaFromFlow(f.days));
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [f.itinerary]);
 
   const moments = byDay[dayN] ?? [];
   const baseline = f.momentsByDay;
   const dirty = useMemo(
-    () => f.days.some(d => JSON.stringify(byDay[d.n] ?? []) !== JSON.stringify(baseline[d.n] ?? [])),
-    [byDay, baseline, f.days],
+    () => f.days.some(d =>
+      JSON.stringify(byDay[d.n] ?? []) !== JSON.stringify(baseline[d.n] ?? [])
+      || JSON.stringify(dayMeta[d.n]) !== JSON.stringify(dayMetaFromFlow(f.days)[d.n]),
+    ),
+    [byDay, baseline, dayMeta, f.days],
   );
 
   const patch = (fn: (ms: Moment[]) => Moment[]) =>
     setByDay(prev => ({ ...prev, [dayN]: fn(prev[dayN] ?? []) }));
   const update = (i: number, p: Partial<Moment>) => patch(ms => ms.map((m, j) => (j === i ? { ...m, ...p } : m)));
+  const updateGuide = (i: number, p: Partial<NonNullable<Moment["guide"]>>) => patch(ms => ms.map((m, j) => (
+    j === i ? { ...m, guide: { ...(m.guide ?? {}), ...p } } : m
+  )));
+  const updateDayMeta = (p: Partial<DayMeta>) => setDayMeta(prev => ({
+    ...prev,
+    [dayN]: { ...(prev[dayN] ?? { title: "", subtitle: "", arc: "", image: "" }), ...p },
+  }));
   const remove = (i: number) => { patch(ms => ms.filter((_, j) => j !== i)); setEditIdx(null); };
   const move = (from: number, to: number) => patch(ms => {
     if (to < 0 || to >= ms.length) return ms;
@@ -136,8 +162,26 @@ export function EditScreen({ initialDay, onSaveDays }: {
       const n = day.dayNumber ?? day.day_number ?? i + 1;
       const edited = byDay[n];
       const base = baseline[n];
-      if (!edited || JSON.stringify(edited) === JSON.stringify(base)) return day;
-      const next: any = { ...day, morning: "", lunch: "", afternoon: "", evening: "" };
+      const next: any = { ...day };
+      const meta = dayMeta[n];
+      if (meta) {
+        if (f.itinerary?.schemaVersion === 2) {
+          next.title_evocative = meta.title;
+          next.subtitle = meta.subtitle;
+          next.arc = meta.arc;
+          next.hero_image_url = meta.image;
+        } else {
+          next.title = meta.title;
+          next.subtitle = meta.subtitle;
+          next.arc = meta.arc;
+          next.dayImageUrl = meta.image;
+        }
+      }
+      if (!edited || JSON.stringify(edited) === JSON.stringify(base)) return next;
+      next.morning = "";
+      next.lunch = "";
+      next.afternoon = "";
+      next.evening = "";
       // Un solo elenco di campi, condiviso col lettore (shared/edited-moment.ts):
       // e' cosi' che l'editing smette di poter cancellare in silenzio l'insight,
       // gli orari e i costi delle tappe.
@@ -176,6 +220,32 @@ export function EditScreen({ initialDay, onSaveDays }: {
             </button>
           ))}
         </div>
+
+        <section className="mrf-ed-day">
+          <div className="mrf-ed-field">
+            <label htmlFor={`day-title-${dayN}`}>{f.L("Titolo del giorno", "Day title")}</label>
+            <input id={`day-title-${dayN}`} value={dayMeta[dayN]?.title ?? ""}
+              onChange={(e) => updateDayMeta({ title: e.target.value })} />
+          </div>
+          <div className="mrf-ed-field">
+            <label htmlFor={`day-subtitle-${dayN}`}>{f.L("Sottotitolo", "Subtitle")}</label>
+            <input id={`day-subtitle-${dayN}`} value={dayMeta[dayN]?.subtitle ?? ""}
+              onChange={(e) => updateDayMeta({ subtitle: e.target.value })} />
+          </div>
+          <div className="mrf-ed-field">
+            <label htmlFor={`day-arc-${dayN}`}>{f.L("Ruolo nel viaggio", "Role in the trip")}</label>
+            <textarea id={`day-arc-${dayN}`} value={dayMeta[dayN]?.arc ?? ""}
+              onChange={(e) => updateDayMeta({ arc: e.target.value })} />
+          </div>
+          <details className="mrf-ed-advanced">
+            <summary>{f.L("Immagine del giorno", "Day image")}</summary>
+            <div className="mrf-ed-field">
+              <label htmlFor={`day-image-${dayN}`}>URL</label>
+              <input id={`day-image-${dayN}`} value={dayMeta[dayN]?.image ?? ""}
+                onChange={(e) => updateDayMeta({ image: e.target.value })} />
+            </div>
+          </details>
+        </section>
 
         {moments.map((m, i) => {
           const band = bandOf(m);
@@ -230,8 +300,47 @@ export function EditScreen({ initialDay, onSaveDays }: {
                   </div>
                   <div className="mrf-ed-field">
                     <label htmlFor={`h-${i}`}>{f.t("if.ed.timeField")}</label>
-                    <input id={`h-${i}`} value={m.startTime ?? ""} placeholder="09:30"
-                      onChange={(e) => update(i, { startTime: e.target.value })} />
+                    <div className="mrf-ed-field-grid two">
+                      <input id={`h-${i}`} value={m.startTime ?? ""} placeholder={f.L("Inizio, es. 09:30", "Start, e.g. 09:30")}
+                        onChange={(e) => update(i, { startTime: e.target.value })} />
+                      <input value={m.endTime ?? ""} placeholder={f.L("Fine, es. 11:00", "End, e.g. 11:00")}
+                        onChange={(e) => update(i, { endTime: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="mrf-ed-field-grid two">
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Luogo", "Place")}</label>
+                      <input value={m.locationName ?? ""} onChange={(e) => update(i, { locationName: e.target.value })} />
+                    </div>
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Categoria", "Category")}</label>
+                      <input value={m.kindLabel ?? ""} onChange={(e) => update(i, { kindLabel: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="mrf-ed-field-grid two">
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Durata", "Duration")}</label>
+                      <input value={m.durationLabel ?? ""} placeholder="~1h 30 min"
+                        onChange={(e) => update(i, { durationLabel: e.target.value })} />
+                    </div>
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Costo", "Cost")}</label>
+                      <input value={m.costLabel ?? ""} placeholder="EUR 10-15"
+                        onChange={(e) => update(i, { costLabel: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="mrf-ed-field">
+                    <label>{f.L("Spostamento successivo", "Next transfer")}</label>
+                    <input value={m.transport ?? ""} placeholder={f.L("A piedi - 12 min", "Walk - 12 min")}
+                      onChange={(e) => update(i, { transport: e.target.value })} />
+                  </div>
+                  <div className="mrf-ed-field">
+                    <label>{f.L("Perche e nel tuo viaggio", "Why it is in your trip")}</label>
+                    <textarea value={m.why ?? ""} onChange={(e) => update(i, { why: e.target.value })} />
+                  </div>
+                  <div className="mrf-ed-field">
+                    <label>{f.L("Alternativa / Piano B", "Alternative / Plan B")}</label>
+                    <textarea value={m.planB ?? ""} onChange={(e) => update(i, { planB: e.target.value })} />
                   </div>
                   <div className="mrf-ed-field">
                     <label>{f.L("Fascia", "Time of day")}</label>
@@ -245,6 +354,38 @@ export function EditScreen({ initialDay, onSaveDays }: {
                       ))}
                     </div>
                   </div>
+                  <details className="mrf-ed-advanced">
+                    <summary>{f.L("Contesto e informazioni complete", "Full context and information")}</summary>
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Che cos'e", "What it is")}</label>
+                      <textarea value={m.guide?.whatItIs ?? ""}
+                        onChange={(e) => updateGuide(i, { whatItIs: e.target.value })} />
+                    </div>
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Dove si trova", "Where it is")}</label>
+                      <textarea value={m.guide?.whereItIs ?? ""}
+                        onChange={(e) => updateGuide(i, { whereItIs: e.target.value })} />
+                    </div>
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Perche visitarlo", "Why visit")}</label>
+                      <textarea value={m.guide?.whyVisit ?? ""}
+                        onChange={(e) => updateGuide(i, { whyVisit: e.target.value })} />
+                    </div>
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Storia e cultura", "History and culture")}</label>
+                      <textarea value={m.guide?.historyCulture ?? ""}
+                        onChange={(e) => updateGuide(i, { historyCulture: e.target.value })} />
+                    </div>
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Informazioni pratiche, una per riga", "Practical tips, one per line")}</label>
+                      <textarea value={(m.guide?.practicalTips ?? []).join("\n")}
+                        onChange={(e) => updateGuide(i, { practicalTips: e.target.value.split("\n").map(v => v.trim()).filter(Boolean) })} />
+                    </div>
+                    <div className="mrf-ed-field">
+                      <label>{f.L("Immagine attivita", "Activity image")}</label>
+                      <input value={m.imageUrl ?? ""} onChange={(e) => update(i, { imageUrl: e.target.value })} />
+                    </div>
+                  </details>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
                     <button className="mrf-pill sm" onClick={() => move(i, i - 1)} disabled={i === 0}>
                       <ChevronUp size={13} /> {f.t("if.ed.moveUp")}

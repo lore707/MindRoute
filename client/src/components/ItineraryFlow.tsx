@@ -158,8 +158,8 @@ export function ItineraryFlow({
 
   /* ── navigazione ── */
   const nav = useMemo(() => ({
-    goOverview: () => setLocation(`${base}/g/${firstDay}/mappa`),
-    goDay: (n: number) => setLocation(`${base}/g/${n}/mappa`),
+    goOverview: () => setLocation(base),
+    goDay: (n: number) => setLocation(`${base}/g/${n}`),
     goMoment: (n: number, mid: string) => setLocation(`${base}/g/${n}/t/${encodeURIComponent(mid)}`),
     goMap: (n: number) => setLocation(`${base}/g/${n}/mappa`),
     goLogistics: () => setLocation(`${base}/logistica`),
@@ -298,19 +298,48 @@ export function ItineraryFlow({
     if (!days.some(d => d.n === currentDayN)) nav.goDay(firstDay);
   }, [currentDayN, days, firstDay, nav]);
 
-  const workspaceDay = "n" in screen && typeof screen.n === "number" ? screen.n : firstDay;
-  const initialPanel = screen.k === "edit" ? "edit" : screen.k === "logistics" ? "logistics" : "activity";
-  const initialMode = screen.k === "day" || screen.k === "moment" ? "travel" : "build";
-  const initialMomentId = screen.k === "moment" ? screen.mid : undefined;
+  const body = (() => {
+    switch (screen.k) {
+      case "day": return <JourneyScreen n={screen.n} />;
+      case "moment": return <MomentScreen n={screen.n} momentId={screen.mid} />;
+      case "map": return <DayMapScreen n={screen.n} />;
+      case "logistics": return <LogisticsScreen />;
+      case "edit": return <EditScreen initialDay={screen.n ?? firstDay} onSaveDays={onSaveDays} />;
+      default: return <JourneyScreen n={firstDay} />;
+    }
+  })();
 
   return (
     <FlowContext.Provider value={ctx}>
-      <DayMapScreen
-        n={workspaceDay}
-        initialMode={initialMode}
-        initialPanel={initialPanel}
-        initialMomentId={initialMomentId}
-      />
+      <div className={"mrf" + (screen.k === "edit" ? " mrf--editor" : "")}>
+        <div className="mrf-bg" aria-hidden="true">
+          {ambient.map((src, i) => (
+            <div key={src + i}
+              className={"mrf-bg-ph" + (activeImgIdx === i ? " on" : "")}
+              style={{ backgroundImage: bg(src, isDesktop ? 1800 : 1100, 62) }} />
+          ))}
+        </div>
+        <div className="mrf-grain" aria-hidden="true" />
+
+        {screen.k !== "overview" && screen.k !== "day" && screen.k !== "map" && <header className={"mrf-head" + (stuck ? " stuck" : "")}>
+          <button className="mrf-hbtn" onClick={back} aria-label={t("if.back")}><ArrowLeft size={20} /></button>
+          <div className="mrf-htitle">
+            <span className="t">{head.title}</span>
+            {head.sub && <span className="s">{head.sub}</span>}
+          </div>
+          <div className="mrf-hactions">
+            {onOpenStudio && screen.k !== "edit" && (
+              <button className="mrf-studio-link" onClick={() => nav.goEdit(currentDayN ?? undefined)}>
+                <Sparkles size={15} />
+                <span>{L("Modifica piano", "Edit plan")}</span>
+              </button>
+            )}
+            {rightAction()}
+          </div>
+        </header>}
+
+        {body}
+      </div>
     </FlowContext.Provider>
   );
 }

@@ -227,7 +227,8 @@
 .mrgl-label time{color:#dc604d;font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .mrgl-label strong{max-width:170px;overflow:hidden;font-family:var(--serif);font-size:11px;font-weight:600;line-height:1.15;text-overflow:ellipsis;white-space:nowrap}
 .mrgl-label small{max-width:170px;overflow:hidden;color:#7b746c;font-size:7px;text-overflow:ellipsis;white-space:nowrap}
-.mrgl-leg{display:block;padding:5px 9px;border:1px solid rgba(42,37,32,.1);border-radius:999px;background:rgba(255,255,255,.94);color:#45403a;font-size:8px;font-weight:700;line-height:1;box-shadow:0 5px 16px rgba(42,37,32,.12);white-space:nowrap;pointer-events:none}
+.mrgl-leg{min-width:52px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 9px;border:1px solid rgba(42,37,32,.1);border-radius:11px;background:rgba(255,255,255,.96);color:#45403a;line-height:1;box-shadow:0 5px 16px rgba(42,37,32,.1);white-space:nowrap;pointer-events:none}
+.mrgl-leg strong{font-size:8px}.mrgl-leg small{color:#7d766f;font-size:6px;font-weight:600}
 .mrgl-user{width:18px;height:18px;border:3px solid #fff;border-radius:50%;background:#4389db;box-shadow:0 0 0 6px rgba(67,137,219,.2),0 4px 12px rgba(25,60,105,.3)}
 
 .rmap-vector-loading{position:absolute;inset:0;z-index:630;display:flex;align-items:center;justify-content:center;gap:10px;background:#edf0e9;color:#5e5851;font-family:var(--serif);font-size:14px;pointer-events:none}

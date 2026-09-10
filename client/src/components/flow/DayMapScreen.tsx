@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { lazy, startTransition, Suspense, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import {
   AlertTriangle, Bookmark, CalendarDays, CheckCircle2, ChevronRight, Clock,
@@ -25,8 +25,10 @@ function isLodging(point: RoutePoint) {
 
 type WorkspaceMode = "build" | "travel";
 type WorkspacePanel = "activity" | "edit" | "logistics";
+type MapLens = "route" | "zones" | "logistics";
+type DetailTab = "details" | "why" | "practical";
 
-export function DayMapScreen({ n, initialMode = "build", initialPanel = "activity", initialMomentId }: {
+export function DayMapScreen({ n: initialDay, initialMode = "build", initialPanel = "activity", initialMomentId }: {
   n: number;
   initialMode?: WorkspaceMode;
   initialPanel?: WorkspacePanel;
@@ -34,6 +36,7 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
 }) {
   const f = useFlow();
   const [, setLocation] = useLocation();
+  const [n, setDayNumber] = useState(initialDay);
   const day = f.days.find(item => item.n === n) ?? f.days[0];
   const moments = useMemo(() => f.momentsByDay[n] ?? [], [f.momentsByDay, n]);
   const points = useMemo<RoutePoint[]>(() => (f.data.mapPoints ?? [])
@@ -52,21 +55,23 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
     .filter(point => point.day === n)
     .sort((a, b) => (momentOrder.get(a.momentId) ?? 99) - (momentOrder.get(b.momentId) ?? 99)),
   [points, n, momentOrder]);
+  const activityPoints = useMemo(() => dayPoints.filter(point => !isLodging(point)), [dayPoints]);
   const [selectedPoint, setSelectedPoint] = useState<RoutePoint | null>(null);
   const [mode, setMode] = useState<WorkspaceMode>(initialMode);
   const [panel, setPanel] = useState<WorkspacePanel>(initialPanel);
+  const [mapLens, setMapLens] = useState<MapLens>("route");
+  const [detailTab, setDetailTab] = useState<DetailTab>("details");
+
+  useEffect(() => setDayNumber(initialDay), [initialDay]);
 
   useEffect(() => {
     const queryMoment = typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("moment")
       : null;
     const requested = initialMomentId || queryMoment;
-    setSelectedPoint(
-      dayPoints.find(point => requested && point.momentId === requested)
-      ?? dayPoints.find(point => !isLodging(point))
-      ?? dayPoints[0]
-      ?? null,
-    );
+    setSelectedPoint(requested
+      ? dayPoints.find(point => point.momentId === requested) ?? null
+      : null);
   }, [n, dayPoints, initialMomentId]);
 
   useEffect(() => setMode(initialMode), [initialMode]);
@@ -77,9 +82,9 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
       ?? moments.find(moment => moment.title === selectedPoint.label)
     : null;
   const selectedIndex = selectedPoint
-    ? dayPoints.findIndex(point => point === selectedPoint || point.momentId === selectedPoint.momentId)
+    ? activityPoints.findIndex(point => point === selectedPoint || point.momentId === selectedPoint.momentId)
     : -1;
-  const nextPoint = selectedIndex >= 0 ? dayPoints[selectedIndex + 1] : null;
+  const nextPoint = selectedIndex >= 0 ? activityPoints[selectedIndex + 1] : null;
   const selectedSaved = !!selectedMoment?.id && !!f.savedMomentIds?.has(selectedMoment.id);
   const selectedTime = selectedMoment?.startTime || selectedPoint?.bestTime || "";
   const selectedEnd = selectedMoment?.endTime || "";
@@ -125,6 +130,23 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
     window.dispatchEvent(new Event("mindroute:open-companion"));
   };
 
+  const selectDay = (nextDay: number) => {
+    if (nextDay === n) return;
+    setSelectedPoint(null);
+    setPanel("activity");
+    setDetailTab("details");
+    startTransition(() => setDayNumber(nextDay));
+    if (f.itineraryId && typeof window !== "undefined") {
+      window.history.replaceState(window.history.state, "", `/itinerary/${f.itineraryId}/g/${nextDay}/mappa`);
+    }
+  };
+
+  const selectActivity = (point: RoutePoint | null) => {
+    setSelectedPoint(point);
+    setPanel("activity");
+    setDetailTab("details");
+  };
+
   if (!day) return <div className="mrf-empty">{f.t("if.day.empty")}</div>;
 
   return (
@@ -168,7 +190,7 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
           <nav className="mrm2-days">
             {f.days.map(item => {
               const itemMoments = f.momentsByDay[item.n] ?? [];
-              return <button key={item.n} className={item.n === n ? "on" : ""} onClick={() => f.goMap(item.n)}>
+              return <button key={item.n} className={item.n === n ? "on" : ""} onClick={() => selectDay(item.n)}>
                 <i style={{ backgroundImage: bg(item.img || f.data.heroImg, 150) }} />
                 <span><small>{f.L("Giorno", "Day")} {item.n}{item.date ? ` · ${item.date}` : ""}</small><strong>{item.title}</strong><em>{itemMoments.length} {f.L("attività", "activities")} · {item.sub || f.data.destination}</em></span>
                 <MoreHorizontal size={14} />
@@ -180,6 +202,11 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
 
         <section className="mrm2-canvas">
           <div className="mrm2-map">
+            <nav className="mrm2-map-lenses" aria-label={f.L("Vista della mappa", "Map view")}>
+              <button className={mapLens === "route" ? "on" : ""} onClick={() => { setMapLens("route"); setPanel("activity"); }}><Navigation size={13} />{f.L("Percorso", "Route")}</button>
+              <button className={mapLens === "zones" ? "on" : ""} onClick={() => { setMapLens("zones"); setPanel("activity"); setSelectedPoint(null); }}><Compass size={13} />{f.L("Zone", "Areas")}</button>
+              <button className={mapLens === "logistics" ? "on" : ""} onClick={() => { setMapLens("logistics"); setPanel("logistics"); }}><Train size={13} />{f.L("Logistica", "Logistics")}</button>
+            </nav>
             {points.length > 0 ? <Suspense fallback={<div className="mrm-loading">{f.t("if.loading")}</div>}>
               <RouteMap
                 points={points}
@@ -188,19 +215,19 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
                 itineraryId={f.itineraryId}
                 t={f.t}
                 lang={f.lang}
-                initialDay={n}
+                initialDay={mapLens === "zones" ? null : n}
                 active
                 bare
                 hideDayBar
                 hideCard
                 hideBareControls
-                showRoute
+                showRoute={mapLens !== "zones"}
                 showPlaceLabels
                 fitPadding={MAP_PADDING}
                 selectedMomentId={selectedPoint?.momentId ?? null}
-                onSelectPoint={setSelectedPoint}
+                onSelectPoint={selectActivity}
                 onBook={(type, dayN) => f.markClicked(type, dayN ?? n)}
-                onOpenDay={(dayN, momentId) => momentId ? f.goMoment(dayN, momentId) : f.goDay(dayN)}
+                onOpenDay={(dayN) => selectDay(dayN)}
               />
             </Suspense> : <div className="mrm-loading">{f.t("if.map.noPoints")}</div>}
           </div>
@@ -217,21 +244,40 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
           <section className="mrm2-timeline">
             <header><span><small>{f.L("Giorno", "Day")} {n}{day.date ? ` · ${day.date}` : ""}</small><strong>{day.title}</strong></span><button onClick={() => askCompanion(f.L(`Ottimizza il Giorno ${n}.`, `Optimise Day ${n}.`))}><Sparkles size={13} />{f.L("Ottimizza con AI", "Optimise with AI")}</button></header>
             <div>
-              {dayPoints.filter(point => !isLodging(point)).map((point, index) => {
+              {activityPoints.map((point, index) => {
                 const moment = moments.find(item => item.id === point.momentId) ?? moments.find(item => item.title === point.label);
-                return <button key={`${point.lat}-${point.lng}`} className={selectedPoint?.momentId === point.momentId ? "on" : ""} onClick={() => setSelectedPoint(point)}>
+                const transfer = index > 0 ? (moment?.transport || f.L("Spostamento", "Transfer")) : "";
+                const transferMinutes = transfer.match(/\d+\s*(?:min|minute)/i)?.[0] || "";
+                return <div className="mrm2-timeline-step" key={`${point.lat}-${point.lng}`}>
+                  {index > 0 && <span className="mrm2-transfer"><b>{transferMinutes || transfer}</b><small>{/auto|car|taxi/i.test(transfer) ? "auto" : /bus|treno|train/i.test(transfer) ? f.L("trasporto", "transit") : f.L("a piedi", "walk")}</small></span>}
+                  <button className={selectedPoint?.momentId === point.momentId ? "on" : ""} onClick={() => selectActivity(point)}>
                   <time>{moment?.startTime || point.bestTime || "--:--"}</time>
                   <span style={{ backgroundImage: bg(point.imageUrl || day.img, 180) }} />
-                  <p><strong>{point.label}</strong><small>{moment?.kindLabel || point.kindLabel || point.category || ""}</small></p>
+                  <p><strong>{point.label}</strong><small>{moment?.kindLabel || point.kindLabel || point.category || ""}{moment?.durationLabel ? ` · ${moment.durationLabel}` : ""}</small></p>
                   <i>{index + 1}</i>
-                </button>;
+                  </button>
+                </div>;
               })}
             </div>
           </section>
         </section>
 
         <aside className={"mrm2-detail" + (panel === "edit" ? " mrm2-editor" : "")}>
-          {panel === "edit" ? <>
+          {panel === "logistics" ? <div className="mrm2-logistics inline">
+            <header><span>{f.L("Logistica e controllo", "Logistics & trip check")}</span><button onClick={() => setPanel("activity")}><X size={13} /></button></header>
+            <section className="mrm2-health">
+              <div><small>{f.L("Prontezza", "Readiness")}</small><strong>{f.pct}%</strong><em>{f.pct >= 75 ? f.L("Buona", "Good") : f.L("Da completare", "To complete")}</em></div>
+              <i style={{ "--score": `${f.pct * 3.6}deg` } as CSSProperties}><Gauge size={23} /></i>
+            </section>
+            <section className="mrm2-log-list">
+              <Info icon={<Clock size={13} />} label={f.L("Attività oggi", "Today's activities")} value={String(moments.length)} />
+              <Info icon={<ListChecks size={13} />} label={f.L("Prenotazioni mancanti", "Missing bookings")} value={String(pendingBookings)} />
+              <Info icon={<Euro size={13} />} label={f.L("Budget stimato", "Estimated budget")} value={currentBudget ? `€${currentBudget.toLocaleString("it-IT")}` : "--"} />
+              <Info icon={<Navigation size={13} />} label={f.L("Percorso", "Route")} value={dayIsDense ? f.L("Da ottimizzare", "Review") : f.L("Equilibrato", "Balanced")} />
+            </section>
+            <section className="mrm2-transport"><span>{f.L("Trasporti consigliati", "Recommended transport")}</span><article><i><Train size={16} /></i><p><strong>{selectedMoment?.transport || f.L("Percorso locale", "Local route")}</strong><small>{f.L("Collegato all'ordine delle tappe", "Connected to stop order")}</small></p></article></section>
+            <button className="mrm2-log-action" onClick={() => askCompanion(f.L(`Controlla logistica, tempi e budget del Giorno ${n}.`, `Check logistics, timings and budget for Day ${n}.`))}><Sparkles size={13} />{f.L("Controlla con l'AI", "Check with AI")}</button>
+          </div> : panel === "edit" ? <>
             <header className="mrm2-editor-head">
               <h2>{f.L("Modifica il piano", "Edit plan")}</h2>
               <button onClick={() => setPanel("activity")}><X size={15} /></button>
@@ -239,6 +285,7 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
             </header>
             <EditScreen initialDay={n} onSaveDays={f.onSaveDays} />
           </> : selectedPoint ? <>
+            <nav className="mrm2-detail-nav"><button onClick={() => setSelectedPoint(null)}>← {f.L("Indietro", "Back")}</button><span>{selectedIndex + 1} {f.L("di", "of")} {activityPoints.length}</span><button disabled={selectedIndex <= 0} onClick={() => selectActivity(activityPoints[selectedIndex - 1])}>‹</button><button disabled={!nextPoint} onClick={() => nextPoint && selectActivity(nextPoint)}>›</button></nav>
             <header><h2>{selectedPoint.label}</h2><button onClick={() => setSelectedPoint(null)}><X size={15} /></button><span><MapIcon size={12} />{f.L("Giorno", "Day")} {n}{selectedTime ? ` · ${selectedTime}${selectedEnd ? `–${selectedEnd}` : ""}` : ""}</span></header>
             <div className="mrm2-detail-image" style={{ backgroundImage: bg(selectedPoint.imageUrl || day.img || f.data.heroImg, 800) }} />
             <div className="mrm2-detail-actions">
@@ -248,43 +295,23 @@ export function DayMapScreen({ n, initialMode = "build", initialPanel = "activit
             </div>
             <div className="mrm2-detail-body">
               {(selectedMoment?.kindLabel || selectedPoint.kindLabel) && <span className="mrm-kind">{selectedMoment?.kindLabel || selectedPoint.kindLabel}</span>}
-              {selectedDescription && <p>{selectedDescription}</p>}
-              {selectedMoment?.why && <section className="mrm-why"><Sparkles size={14} /><div><h3>{f.L("Perché è nel tuo viaggio", "Why it is in your trip")}</h3><p>{selectedMoment.why}</p></div></section>}
-              <section className="mrm-info">
-                <h3>{f.L("Info utili", "Useful info")}</h3>
-                {selectedMoment?.durationLabel && <Info icon={<Clock size={13} />} label={f.L("Tempo di visita", "Visit time")} value={selectedMoment.durationLabel} />}
-                {selectedMoment?.transport && <Info icon={<Footprints size={13} />} label={f.L("Spostamento precedente", "Previous transfer")} value={selectedMoment.transport} />}
-                {selectedMoment?.costLabel && <Info icon={<Euro size={13} />} label={f.L("Budget stimato", "Estimated budget")} value={selectedMoment.costLabel} />}
-                {selectedLocation && <Info icon={<MapIcon size={13} />} label={f.L("Luogo", "Location")} value={selectedLocation} />}
-              </section>
-              {nextPoint && <section className="mrm-next"><h3>{f.L("Dopo questa attività", "After this activity")}</h3><button onClick={() => setSelectedPoint(nextPoint)}><i style={{ backgroundImage: bg(nextPoint.imageUrl || day.img, 180) }} /><span><b>{nextPoint.label}</b><small>{moments.find(moment => moment.id === nextPoint.momentId)?.startTime || nextPoint.bestTime}</small></span><ChevronRight size={14} /></button></section>}
+              <nav className="mrm2-detail-tabs"><button className={detailTab === "details" ? "on" : ""} onClick={() => setDetailTab("details")}>{f.L("Dettagli", "Details")}</button><button className={detailTab === "why" ? "on" : ""} onClick={() => setDetailTab("why")}>{f.L("Perché qui", "Why here")}</button><button className={detailTab === "practical" ? "on" : ""} onClick={() => setDetailTab("practical")}>{f.L("Info pratiche", "Practical info")}</button></nav>
+              {detailTab === "details" && <><section className="mrm-info">
+                  {selectedMoment?.durationLabel && <Info icon={<Clock size={13} />} label={f.L("Durata visita", "Visit duration")} value={selectedMoment.durationLabel} />}
+                  {selectedMoment?.costLabel && <Info icon={<Euro size={13} />} label={f.L("Costo stimato", "Estimated cost")} value={selectedMoment.costLabel} />}
+                  {selectedMoment?.transport && <Info icon={<Footprints size={13} />} label={f.L("Dalla tappa precedente", "From previous stop")} value={selectedMoment.transport} />}
+                  {selectedTime && <Info icon={<CalendarDays size={13} />} label={f.L("Orario consigliato", "Suggested time")} value={selectedTime} />}
+                </section>{selectedDescription && <p>{selectedDescription}</p>}</>}
+              {detailTab === "why" && <section className="mrm-why"><Sparkles size={14} /><div><h3>{f.L("Perché è nel tuo viaggio", "Why it is in your trip")}</h3><p>{selectedMoment?.why || selectedMoment?.guide?.whyVisit || f.L("Questa tappa è coerente con il ritmo e gli interessi scelti per il viaggio.", "This stop matches the pace and interests chosen for the trip.")}</p></div></section>}
+              {detailTab === "practical" && <section className="mrm-info">
+                {selectedLocation && <Info icon={<MapIcon size={13} />} label={f.L("Luogo", "Location")} value={selectedMoment?.locationAddress || selectedLocation} />}
+                {selectedMoment?.ctaStatus && <Info icon={<Bookmark size={13} />} label={f.L("Prenotazione", "Booking")} value={selectedMoment.ctaStatus === "reserve_recommended" ? f.L("Consigliata", "Recommended") : f.L("Disponibile", "Available")} />}
+                {(selectedMoment?.guide?.practicalTips ?? []).slice(0, 3).map((tip, index) => <p key={index}>{tip}</p>)}
+              </section>}
               <button className="mrm-edit" onClick={() => setPanel("edit")}><Sparkles size={14} />{f.L("Modifica attività", "Edit activity")}</button>
               <button className="mrm-open" onClick={() => askCompanion(f.L(`Spiegami meglio perché ${selectedPoint.label} è nel viaggio.`, `Explain why ${selectedPoint.label} belongs in this trip.`))}>{f.L("Chiedi a MindRoute", "Ask MindRoute")}<Sparkles size={12} /></button>
             </div>
-          </> : <div className="mrm-detail-empty"><MapIcon size={24} /><h2>{f.L("Seleziona una tappa", "Select a stop")}</h2><p>{f.L("Tocca un punto sulla mappa o una card nella timeline.", "Tap a point on the map or a card in the timeline.")}</p></div>}
-        </aside>
-
-        <aside className={"mrm2-logistics" + (panel === "logistics" ? " focus" : "")}>
-          <header>
-            <span>{f.L("Logistica e salute viaggio", "Trip logistics & health")}</span>
-            <button onClick={() => setPanel("activity")} aria-label={f.L("Chiudi evidenza", "Close highlight")}><X size={13} /></button>
-          </header>
-          <section className="mrm2-health">
-            <div><small>{f.L("Prontezza", "Readiness")}</small><strong>{f.pct}%</strong><em>{f.pct >= 75 ? f.L("Buona", "Good") : f.L("Da completare", "To complete")}</em></div>
-            <i style={{ "--score" : `${f.pct * 3.6}deg` } as CSSProperties}><Gauge size={23} /></i>
-          </section>
-          <section className="mrm2-log-list">
-            <Info icon={<Clock size={13} />} label={f.L("Attività oggi", "Today's activities")} value={String(moments.length)} />
-            <Info icon={<ListChecks size={13} />} label={f.L("Prenotazioni mancanti", "Missing bookings")} value={String(pendingBookings)} />
-            <Info icon={<Euro size={13} />} label={f.L("Budget stimato", "Estimated budget")} value={currentBudget ? `€${currentBudget.toLocaleString("it-IT")}` : "--"} />
-            <Info icon={<Navigation size={13} />} label={f.L("Percorso", "Route")} value={dayIsDense ? f.L("Da ottimizzare", "Review") : f.L("Equilibrato", "Balanced")} />
-          </section>
-          <section className="mrm2-transport">
-            <span>{f.L("Trasporti consigliati", "Recommended transport")}</span>
-            <article><i><Train size={16} /></i><p><strong>{selectedMoment?.transport || f.L("Percorso locale", "Local route")}</strong><small>{f.L("Collegato all'ordine delle tappe", "Connected to stop order")}</small></p></article>
-          </section>
-          <button className="mrm2-log-action" onClick={() => askCompanion(f.L(`Controlla logistica, tempi e budget del Giorno ${n}.`, `Check logistics, timings and budget for Day ${n}.`))}><Sparkles size={13} />{f.L("Controlla con l'AI", "Check with AI")}</button>
-          <button className="mrm2-portrait-link" onClick={() => setLocation("/my-account?view=portrait")}><UserRound size={14} /><span><strong>{f.L("Ritratto di viaggio", "Travel portrait")}</strong><small>{f.L("Aggiorna dalle tue scelte", "Update from your choices")}</small></span><ChevronRight size={13} /></button>
+          </> : <div className="mrm-detail-empty"><MapIcon size={24} /><h2>{day.title}</h2><p>{day.sub || f.L("Seleziona una tappa sulla mappa o nella timeline per vedere tutti i dettagli.", "Select a stop on the map or timeline to see its details.")}</p><button className="mrm-edit" onClick={() => askCompanion(f.L(`Analizza il Giorno ${n}.`, `Analyse Day ${n}.`))}><Sparkles size={14} />{f.L("Analizza il giorno", "Analyse day")}</button></div>}
         </aside>
       </main>
     </div>

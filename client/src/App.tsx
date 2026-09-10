@@ -72,7 +72,7 @@ function StudioTripRedirect() {
   const [, params] = useRoute("/studio/:id");
   const [, setLocation] = useLocation();
   useEffect(() => {
-    if (params?.id) setLocation(`/itinerary/${params.id}/g/1/mappa`, { replace: true });
+    if (params?.id) setLocation(`/itinerary/${params.id}`, { replace: true });
   }, [params?.id, setLocation]);
   return <PageFallback />;
 }
@@ -86,7 +86,7 @@ function StudioHomeRedirect() {
       .then((rows: Array<{ id?: number }>) => {
         if (cancelled) return;
         const id = rows.find(row => Number.isFinite(row.id))?.id;
-        setLocation(id ? `/itinerary/${id}/g/1/mappa` : "/start", { replace: true });
+        setLocation(id ? `/itinerary/${id}` : "/start", { replace: true });
       })
       .catch(() => { if (!cancelled) setLocation("/start", { replace: true }); });
     return () => { cancelled = true; };

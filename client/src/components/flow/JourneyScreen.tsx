@@ -1,7 +1,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { useLocation } from "wouter";
 import {
-  Bookmark, Clock, Compass, Download, Euro, Footprints,
+  Bookmark, CheckCircle2, Clock, Compass, Download, Euro, Footprints,
   Gauge, Map as MapIcon, MoreHorizontal, Plus, Share2, Sparkles, UserRound, Utensils,
 } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
@@ -67,8 +67,9 @@ export function JourneyScreen({ n }: { n: number }) {
       <aside className="mrj-side">
         <button className="mrj-brand" onClick={f.goHome}><BrandMark size={34} /><span>MindRoute</span></button>
         <nav>
-          <button onClick={() => f.openStudio?.(day.n)}><Sparkles size={19} /><span>Studio</span></button>
-          <button className="on" onClick={() => f.goDay(day.n)}><MapIcon size={19} /><span>{f.L("Itinerario", "Itinerary")}</span></button>
+          <button className="on" onClick={() => f.goDay(day.n)}><Sparkles size={19} /><span>{f.L("Piano", "Plan")}</span></button>
+          <button onClick={() => f.goMap(day.n)}><MapIcon size={19} /><span>{f.L("Mappa", "Map")}</span></button>
+          <button onClick={f.goLogistics}><CheckCircle2 size={19} /><span>{f.L("Controllo", "Check")}</span></button>
           <button onClick={() => setLocation("/my-account?view=portrait")}><UserRound size={19} /><span>Portrait</span></button>
         </nav>
         <button className="mrj-trip" onClick={f.goOverview}>
@@ -82,7 +83,7 @@ export function JourneyScreen({ n }: { n: number }) {
           <div className="mrj-hero-photo" style={{ backgroundImage: bg(f.data.heroImg, 2000, 78) }} />
           <div className="mrj-hero-veil" />
           <div className="mrj-actions">
-            <button className="primary" onClick={() => f.openStudio?.(day.n)}><Sparkles size={14} />{f.L("Modifica in Studio", "Edit in Studio")}</button>
+            <button className="primary" onClick={() => f.goEdit(day.n)}><Sparkles size={14} />{f.L("Modifica piano", "Edit plan")}</button>
             <button onClick={() => f.onShare?.()}><Share2 size={14} />{f.L("Condividi", "Share")}</button>
             <button onClick={() => f.onSavePdf?.()} aria-label={f.L("Esporta PDF", "Export PDF")}><Download size={15} /></button>
             <button onClick={f.goLogistics} aria-label={f.L("Logistica", "Logistics")}><MoreHorizontal size={16} /></button>
@@ -115,7 +116,7 @@ export function JourneyScreen({ n }: { n: number }) {
             {f.days.map(item => <button key={item.n} className={item.n === day.n ? "on" : ""} onClick={() => f.goDay(item.n)}>
               <small>{String(item.n).padStart(2, "0")}</small><strong>{item.title}</strong>
             </button>)}
-            <button className="add" onClick={() => f.goEdit(day.n)}><Plus size={14} />{f.L("Aggiungi giorno", "Add day")}</button>
+            <button className="add" onClick={() => f.goEdit(day.n)}><Plus size={14} />{f.L("Modifica il piano", "Edit plan")}</button>
           </nav>
 
           <main className="mrj-day">

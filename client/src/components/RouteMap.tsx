@@ -71,7 +71,7 @@ const CATEGORIES: Record<PlaceCategory, { color: string; glyph: string; it: stri
   custom: { color: "#ef5d4f", glyph: "+", it: "Salvati", en: "Saved" },
 };
 const CATEGORY_KEYS = Object.keys(CATEGORIES) as PlaceCategory[];
-const ROUTE_COLOR = "#f05b4f";
+const ROUTE_COLOR = "#FC5465";
 const SLOT_ORDER: Record<string, number> = {
   morning: 0, mattina: 0, lunch: 1, pranzo: 1,
   afternoon: 2, pomeriggio: 2, evening: 3, sera: 3, night: 4, notte: 4,
@@ -136,7 +136,7 @@ function markerElement(
   root.type = "button";
   root.className = `mrgl-marker mrgl-${category}${isLodging ? " is-lodging" : ""}${selected ? " is-selected" : ""}`;
   root.setAttribute("aria-label", point.label);
-  root.style.setProperty("--marker-color", CATEGORIES[category].color);
+  root.style.setProperty("--marker-color", isLodging ? CATEGORIES.lodging.color : ROUTE_COLOR);
 
   const pin = document.createElement("span");
   pin.className = "mrgl-pin";
@@ -211,6 +211,40 @@ function addRouteLayers(map: MapLibreMap) {
   }
 }
 
+function applyMindRouteMapStyle(map: MapLibreMap) {
+  const layers = map.getStyle().layers ?? [];
+  for (const layer of layers) {
+    const id = layer.id.toLowerCase();
+    try {
+      if (layer.type === "background") {
+        map.setPaintProperty(layer.id, "background-color", "#F7F4EE");
+      } else if (layer.type === "fill") {
+        if (/water/.test(id)) map.setPaintProperty(layer.id, "fill-color", "#DDE8E7");
+        else if (/park|wood|forest|grass|landcover|landuse/.test(id)) map.setPaintProperty(layer.id, "fill-color", "#E4EADF");
+        else if (/building/.test(id)) map.setPaintProperty(layer.id, "fill-color", "#E6E2DC");
+        map.setPaintProperty(layer.id, "fill-opacity", /water/.test(id) ? 0.72 : 0.5);
+      } else if (layer.type === "line") {
+        if (/road|street|highway|motorway|trunk/.test(id)) {
+          map.setPaintProperty(layer.id, "line-color", /motorway|trunk|primary/.test(id) ? "#C9C4BC" : "#D9D5CF");
+          map.setPaintProperty(layer.id, "line-opacity", /motorway|trunk|primary/.test(id) ? 0.72 : 0.42);
+        }
+      } else if (layer.type === "symbol") {
+        if (/poi|shop|amenity|housenumber/.test(id)) map.setLayoutProperty(layer.id, "visibility", "none");
+        else {
+          if (layer.layout?.["text-field"]) {
+            map.setPaintProperty(layer.id, "text-color", "#77716A");
+            map.setPaintProperty(layer.id, "text-halo-color", "rgba(247,244,238,.92)");
+            map.setPaintProperty(layer.id, "text-halo-width", 1.2);
+          }
+          map.setPaintProperty(layer.id, "icon-opacity", 0.42);
+        }
+      }
+    } catch {
+      // Public styles vary in layer capabilities; unsupported properties are skipped.
+    }
+  }
+}
+
 export default function RouteMap({
   points, center, destination, itineraryId, t, lang, initialDay = null,
   onDayChange, onOpenDay, onBook, selectedMomentId, onSelectMoment, onSelectPoint,
@@ -243,7 +277,7 @@ export default function RouteMap({
   const dayWord = lang === "it" ? "Giorno" : "Day";
 
   useEffect(() => {
-    if (initialDay != null) setActiveDay(initialDay);
+    setActiveDay(initialDay);
   }, [initialDay]);
 
   const lodgingPoint = useMemo(() => points.find(point =>
@@ -333,11 +367,13 @@ export default function RouteMap({
     const markReady = () => {
       consecutiveErrors = 0;
       setMapError(null);
+      applyMindRouteMapStyle(map);
       addRouteLayers(map);
       setMapReady(true);
     };
     map.on("load", markReady);
     map.on("style.load", () => {
+      applyMindRouteMapStyle(map);
       addRouteLayers(map);
       setMapReady(true);
     });
@@ -421,7 +457,11 @@ export default function RouteMap({
       routeLabelsRef.current = dayRoute.legs.map(leg => {
         const element = document.createElement("span");
         element.className = "mrgl-leg";
-        element.textContent = `${dayRoute.profile === "car" ? "Auto" : "A piedi"} ${Math.max(1, Math.round(leg.t / 60))} min`;
+        const duration = document.createElement("strong");
+        duration.textContent = `${Math.max(1, Math.round(leg.t / 60))} min`;
+        const mode = document.createElement("small");
+        mode.textContent = dayRoute.profile === "car" ? "auto" : lang === "it" ? "a piedi" : "walk";
+        element.append(duration, mode);
         return new maplibregl.Marker({ element, anchor: "center" }).setLngLat([leg.mid[1], leg.mid[0]]).addTo(map);
       });
     }
@@ -467,9 +507,9 @@ export default function RouteMap({
 
     const fitPoints = activeDay != null && dayStops.length ? dayStops : visiblePoints;
     if (selected) {
-      map.easeTo({ center: [selected.lng, selected.lat], zoom: Math.max(map.getZoom(), 15), duration: 520 });
+      map.easeTo({ center: [selected.lng, selected.lat], zoom: Math.max(map.getZoom(), 15), duration: 260 });
     } else if (fitPoints.length === 1) {
-      map.easeTo({ center: [fitPoints[0].lng, fitPoints[0].lat], zoom: 15, duration: 560 });
+      map.easeTo({ center: [fitPoints[0].lng, fitPoints[0].lat], zoom: 15, duration: 280 });
     } else if (fitPoints.length > 1) {
       const bounds = new maplibregl.LngLatBounds();
       fitPoints.forEach(point => bounds.extend([point.lng, point.lat]));
@@ -478,10 +518,10 @@ export default function RouteMap({
           ? { top: 96, right: 170, bottom: 110, left: 170 }
           : { top: 70, right: 70, bottom: 80, left: 70 }),
         maxZoom: 15.5,
-        duration: 720,
+        duration: 340,
       });
     } else if (center) {
-      map.easeTo({ center: [center.lng, center.lat], zoom: 12, duration: 500 });
+      map.easeTo({ center: [center.lng, center.lat], zoom: 12, duration: 280 });
     }
   }, [mapReady, visiblePoints, activeDay, dayStops, selected, center, showPlaceLabels, timeLabels, fitPadding, onSelectMoment, onSelectPoint]);
 

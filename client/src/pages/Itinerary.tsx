@@ -1245,7 +1245,7 @@ export default function Itinerary() {
             onToggleSaved={itinerary.schemaVersion === 2 ? handleToggleSaved : undefined}
             onDatesConfirmed={refetch}
             onBookingUpdated={refetch}
-            onOpenStudio={(day) => setLocation(`/itinerary/${itinerary.id}/g/${day ?? 1}/mappa`)}
+            onOpenStudio={(day) => setLocation(`/itinerary/${itinerary.id}/modifica/${day ?? 1}`)}
             onSaveDays={async (newDays) => {
               const res = await fetch(`/api/itinerary/${itinerary.id}/edit`, {
                 method: "PATCH",
