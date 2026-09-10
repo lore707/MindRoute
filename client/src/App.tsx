@@ -122,6 +122,8 @@ function Router() {
           <Route path="/itinerary/:id" component={Itinerary} />
           <Route path="/itinerary/:id/g/:n" component={Itinerary} />
           <Route path="/itinerary/:id/g/:n/t/:mid" component={Itinerary} />
+          <Route path="/itinerary/:id/mappa/:n" component={Itinerary} />
+          {/* Legacy map-first URLs now resolve to the Plan inside ItineraryFlow. */}
           <Route path="/itinerary/:id/g/:n/mappa" component={Itinerary} />
           <Route path="/itinerary/:id/logistica" component={Itinerary} />
           <Route path="/itinerary/:id/modifica" component={Itinerary} />

@@ -73,8 +73,11 @@ function parseScreen(path: string): Screen {
   const p = path.split("?")[0].replace(/\/+$/, "");
   let m = p.match(/^\/itinerary\/\d+\/g\/(\d+)\/t\/(.+)$/);
   if (m) return { k: "moment", n: Number(m[1]), mid: decodeURIComponent(m[2]) };
-  m = p.match(/^\/itinerary\/\d+\/g\/(\d+)\/mappa$/);
+  m = p.match(/^\/itinerary\/\d+\/mappa\/(\d+)$/);
   if (m) return { k: "map", n: Number(m[1]) };
+  // Old map-first tabs must reveal the redesigned Plan after a refresh.
+  m = p.match(/^\/itinerary\/\d+\/g\/(\d+)\/mappa$/);
+  if (m) return { k: "day", n: Number(m[1]) };
   m = p.match(/^\/itinerary\/\d+\/g\/(\d+)$/);
   if (m) return { k: "day", n: Number(m[1]) };
   if (/^\/itinerary\/\d+\/logistica$/.test(p)) return { k: "logistics" };
@@ -161,7 +164,7 @@ export function ItineraryFlow({
     goOverview: () => setLocation(base),
     goDay: (n: number) => setLocation(`${base}/g/${n}`),
     goMoment: (n: number, mid: string) => setLocation(`${base}/g/${n}/t/${encodeURIComponent(mid)}`),
-    goMap: (n: number) => setLocation(`${base}/g/${n}/mappa`),
+    goMap: (n: number) => setLocation(`${base}/mappa/${n}`),
     goLogistics: () => setLocation(`${base}/logistica`),
     goEdit: (n?: number) => setLocation(n ? `${base}/modifica/${n}` : `${base}/modifica`),
     goHome: () => setLocation("/"),

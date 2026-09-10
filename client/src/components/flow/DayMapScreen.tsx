@@ -137,7 +137,7 @@ export function DayMapScreen({ n: initialDay, initialMode = "build", initialPane
     setDetailTab("details");
     startTransition(() => setDayNumber(nextDay));
     if (f.itineraryId && typeof window !== "undefined") {
-      window.history.replaceState(window.history.state, "", `/itinerary/${f.itineraryId}/g/${nextDay}/mappa`);
+      window.history.replaceState(window.history.state, "", `/itinerary/${f.itineraryId}/mappa/${nextDay}`);
     }
   };
 
