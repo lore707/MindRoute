@@ -220,6 +220,20 @@ Path B still funnelled into the long form.
 only if `onSelectIntentional` is not passed — currently never in production.
 Candidate for the dead-code list if this holds.
 
+## 16. Evidence-backed personalization vertical slice (2026-09)
+
+**Decision:** personalizzazione in tre livelli: evidenze originali, modello
+utente derivato e contesto del viaggio corrente. La prima implementazione
+salva il quiz qualitativo, usa al massimo sei evidenze nella generazione v2 e
+registra la motivazione soltanto se gli ID citati sono validi. Conferma o
+correzione dell'utente diventano nuove evidenze.
+
+**Why:** MindRoute deve poter spiegare perche una scelta e personale senza
+trasformare inferenze o output AI in fatti sull'utente.
+
+**Rejected for now:** embeddings, vector database, nuovi orchestratori e
+registrazione di ogni micro-interazione. Il sistema precedente resta fallback.
+
 ## Known bottlenecks / scalability concerns (when growth comes)
 
 1. **Global `profilingInputs` slot** — a single-row table used as fallback for

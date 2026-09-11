@@ -18,6 +18,7 @@ const bg = (url: string | undefined, width: number, quality = 72) => url
 type InspectorView = "activity" | "map" | "why" | "control";
 type ActivityTab = "details" | "why" | "practical";
 type ExpandedPanel = "map" | "control" | null;
+type PersonalizationRationale = { reason: string; feedback?: string | null };
 
 export function JourneyScreen({ n }: { n: number }) {
   const f = useFlow();
@@ -29,6 +30,10 @@ export function JourneyScreen({ n }: { n: number }) {
   const [inspectorView, setInspectorView] = useState<InspectorView>("map");
   const [activityTab, setActivityTab] = useState<ActivityTab>("details");
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
+  const [rationale, setRationale] = useState<PersonalizationRationale | null>(null);
+  const [showCorrection, setShowCorrection] = useState(false);
+  const [correction, setCorrection] = useState("");
+  const [feedbackState, setFeedbackState] = useState<"idle" | "saving" | "saved">("idle");
 
   useEffect(() => {
     setSelectedMomentIndex(null);
@@ -50,6 +55,20 @@ export function JourneyScreen({ n }: { n: number }) {
       window.removeEventListener("keydown", closeOnEscape);
     };
   }, [expandedPanel]);
+
+  useEffect(() => {
+    if (!f.itineraryId) return;
+    let active = true;
+    setRationale(null);
+    setShowCorrection(false);
+    setCorrection("");
+    setFeedbackState("idle");
+    fetch(`/api/itinerary/${f.itineraryId}/personalization-rationale`)
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => { if (active) setRationale(payload?.rationale ?? null); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [f.itineraryId]);
 
   const selectedMoment = selectedMomentIndex === null ? null : moments[selectedMomentIndex] ?? null;
   const dayBookable = Number(raw?.cost_bookable_total ?? 0) || 0;
@@ -75,6 +94,24 @@ export function JourneyScreen({ n }: { n: number }) {
       detail: { itineraryId: f.itineraryId, text: seed, seed },
     }));
     window.dispatchEvent(new Event("mindroute:open-companion"));
+  };
+
+  const sendPersonalizationFeedback = async (feedback: "confirmed" | "corrected") => {
+    if (!f.itineraryId || feedbackState === "saving") return;
+    setFeedbackState("saving");
+    try {
+      const response = await fetch(`/api/itinerary/${f.itineraryId}/personalization-feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedback, correction: feedback === "corrected" ? correction : undefined }),
+      });
+      if (!response.ok) throw new Error("feedback failed");
+      setFeedbackState("saved");
+      setShowCorrection(false);
+      setRationale((current) => current ? { ...current, feedback } : current);
+    } catch {
+      setFeedbackState("idle");
+    }
   };
 
   const selectMoment = (index: number) => {
@@ -223,6 +260,19 @@ export function JourneyScreen({ n }: { n: number }) {
 
               {inspectorView === "why" && <div className="mrj-inspector-view why">
                 <header><span>{f.L("La logica del giorno", "The day's logic")}</span><h3>{f.L("Perché è costruito così", "Why it is built this way")}</h3></header>
+                {rationale && <section className="mrj-personalization">
+                  <span><Sparkles size={14} />{f.L("Perché ti somiglia", "Why it fits you")}</span>
+                  <p>{rationale.reason}</p>
+                  {!rationale.feedback && feedbackState !== "saved" && <div className="mrj-personalization-actions">
+                    <button onClick={() => sendPersonalizationFeedback("confirmed")}>{f.L("Sì, mi rappresenta", "Yes, that's me")}</button>
+                    <button onClick={() => setShowCorrection(true)}>{f.L("Non proprio", "Not quite")}</button>
+                  </div>}
+                  {showCorrection && <div className="mrj-personalization-correction">
+                    <textarea value={correction} onChange={(event) => setCorrection(event.target.value)} maxLength={500} placeholder={f.L("Cosa dovremmo capire meglio?", "What should we understand better?")} />
+                    <button disabled={!correction.trim() || feedbackState === "saving"} onClick={() => sendPersonalizationFeedback("corrected")}>{f.L("Salva correzione", "Save correction")}</button>
+                  </div>}
+                  {(rationale.feedback || feedbackState === "saved") && <small><CheckCircle2 size={13} />{f.L("Terrò conto di questo nel prossimo viaggio.", "I'll use this for your next trip.")}</small>}
+                </section>}
                 {dayWhy && <p className="mrj-day-why">{previewText(dayWhy, 520)}</p>}
                 <div className="mrj-strategy-list">{strategy.map((item, index) => <article key={index}><i>{item.icon}</i><span><strong>{item.label}</strong><small>{previewText(item.text, 130)}</small></span></article>)}</div>
                 <button className="mrj-inspector-action" onClick={() => askCompanion(f.L(`Spiegami perché il Giorno ${day.n} è costruito così.`, `Explain why Day ${day.n} is built this way.`))}><Sparkles size={15} />{f.L("Approfondisci con MindRoute", "Ask MindRoute")}</button>

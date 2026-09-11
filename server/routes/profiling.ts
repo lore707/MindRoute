@@ -14,6 +14,7 @@ import { buildPortraitPromptBlock } from "../portrait-signals";
 import { computeProfileDefaults } from "../profile-defaults";
 import { requireAuth } from "../auth";
 import { formatTravelRulesBlock } from "@shared/travel-rules";
+import { captureQuizEvidence, getPersonalizationContext } from "../personalization";
 
 export function registerProfilingRoutes(app: Express) {
   // STEP 1 — Genera 3 destinazioni leggere dal profiling.
@@ -22,6 +23,15 @@ export function registerProfilingRoutes(app: Express) {
     try {
       const input = api.profiling.submit.input.parse(req.body);
       const userIdForPrior = (req.user as any)?.id ?? null;
+      let evidenceBlock = "";
+      if (userIdForPrior) {
+        try {
+          await captureQuizEvidence(userIdForPrior, input);
+          evidenceBlock = (await getPersonalizationContext(userIdForPrior, input)).promptBlock;
+        } catch (error) {
+          console.warn("[personalization] quiz evidence unavailable, using legacy profile:", error);
+        }
+      }
       const prior = await getTraitPriorForUser(userIdForPrior);
       // 2A — vettore dell'utente da QUESTO quiz (deterministico, sempre
       // disponibile anche al primo viaggio) → shortlist di coerenza col catalogo.
@@ -47,7 +57,7 @@ export function registerProfilingRoutes(app: Express) {
         avoid: fast?.avoid ?? input.avoid,
         seek: fast ? [...fast.intentions, ...fast.interests] : input.answers,
       });
-      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(userVec) + rulesBlock + signalsBlock + feedbackBlock;
+      const priorBlock = (prior ? formatTraitPriorBlock(prior) : "") + formatDestinationCoherenceBlock(userVec) + rulesBlock + signalsBlock + feedbackBlock + evidenceBlock;
       const recentNames = await getRecentDestinationNames();
       const userSeenNames = await getProposedNamesForUser(userIdForPrior);
       const seed = weeklyExplorationSeed(userIdForPrior);

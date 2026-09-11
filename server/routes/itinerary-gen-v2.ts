@@ -24,6 +24,7 @@ import { buildGraphBlock } from "../graph-build";
 import type { DayV2, MomentV2, MapPointV2, TripMetaV2, PlaceCategory, DestinationContext } from "../../shared/schema";
 import { requireAuth } from "../auth";
 import { resolveAffiliateUrl, expediaStaySearchUrl, viatorExperienceSearchUrl, klookExperienceSearchUrl, civitatisExperienceSearchUrl, musementExperienceSearchUrl, experienceProviderForRegion, type AffiliateContext } from "../affiliate-config";
+import { getPersonalizationContext, recordPersonalizationDecision } from "../personalization";
 
 // Contesto affiliate esteso: oltre a checkin/checkout "di cortesia" (default a
 // +3 mesi, usati dagli altri provider come sempre), traccia le date REALI —
@@ -519,6 +520,7 @@ export function registerItineraryGenV2Routes(app: Express) {
         const userId = (req.user as any)?.id ?? null;
         const prior = await getTraitPriorForUser(userId);
         let priorBlock = prior ? formatTraitPriorBlock(prior) : "";
+        let personalizationEvidenceIds: number[] = [];
         const fast = input.fastProfile;
         priorBlock += formatTravelRulesBlock({
           vector: prior?.vector ?? null,
@@ -540,6 +542,13 @@ export function registerItineraryGenV2Routes(app: Express) {
         if (trustedDestinationContext) {
           priorBlock += `\n\nPLACE CONTEXT (factual orientation, do not contradict): ${JSON.stringify(trustedDestinationContext)}`;
         }
+        try {
+          const personal = await getPersonalizationContext(userId, input, destinationName);
+          priorBlock += personal.promptBlock;
+          personalizationEvidenceIds = personal.evidenceIds;
+        } catch (error) {
+          console.warn("[personalization] context unavailable, using legacy generation:", error);
+        }
         gen = (async () => {
           // Hero + pool foto partono ORA, in parallelo alla generazione LLM
           // (~2-3 min): quando l'enrichment ne ha bisogno sono già risolti.
@@ -560,6 +569,18 @@ export function registerItineraryGenV2Routes(app: Express) {
             userId, profilingInput: input, destinationName, itineraryId: saved.id,
             proposed: trioProposed,
           });
+          try {
+            await recordPersonalizationDecision({
+              userId,
+              itineraryId: saved.id,
+              destination: destinationName,
+              reason: (enriched as any).personalization?.reason,
+              evidenceIds: (enriched as any).personalization?.evidenceIds,
+              allowedEvidenceIds: personalizationEvidenceIds,
+            });
+          } catch (error) {
+            console.warn("[personalization] decision not recorded, itinerary remains valid:", error);
+          }
           return { id: saved.id, itinerary: enriched };
         })();
         inFlightV2.set(destIdNum, gen);

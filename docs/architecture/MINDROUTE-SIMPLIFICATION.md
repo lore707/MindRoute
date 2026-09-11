@@ -147,9 +147,9 @@ La complessità attuale è quindi soprattutto **storica e duplicata**, non neces
 
 ## 5. Parti da unificare
 
-### Una sola memoria personale
+### Una sola fonte di verità, con una sintesi derivata
 
-Ogni informazione utile sulla persona deve entrare attraverso un solo punto e mantenere la propria provenienza.
+Ogni informazione utile sulla persona deve entrare attraverso un solo punto e mantenere la propria provenienza. Questo non significa rileggere tutta la cronologia a ogni generazione.
 
 ```text
 Evidenza
@@ -164,6 +164,19 @@ Evidenza
 
 Una risposta esplicita e un comportamento non sono la stessa cosa. Un'inferenza dell'AI non è un fatto. Conservare questa distinzione permette a MindRoute di riconoscere contraddizioni senza trasformare una singola azione in una verità permanente.
 
+Il modello corretto ha tre livelli e una sola verità:
+
+```text
+EVIDENCE MEMORY
+cosa la persona ha realmente detto o fatto
+  -> DERIVED USER MODEL
+     sintesi compatta, contestuale e tracciabile
+       -> CURRENT TRIP CONTEXT
+          ciò che conta nel viaggio di oggi
+```
+
+La Evidence Memory è la fonte della verità. Il Derived User Model non compete con essa: è una sintesi ricostruibile, con confidence e riferimenti alle evidenze. Il Current Trip Context applica quella sintesi a compagnia, durata, destinazione, momento e vincoli attuali. La generazione riceve il modello compatto e soltanto poche evidenze rilevanti, non l'intera storia dell'utente.
+
 La memoria non sostituisce i vincoli operativi. “Budget massimo 1.500 euro” resta un dato strutturato; “preferisce spendere sul cibo piuttosto che sull'hotel” può emergere come pattern sostenuto da più evidenze.
 
 ### Un solo ingresso alla personalizzazione
@@ -174,7 +187,7 @@ Matching, generazione, Portrait e Companion non devono assemblare autonomamente 
 dammi le evidenze rilevanti per questa decisione e questo contesto
 ```
 
-All'inizio il recupero può usare contesto, tipo, data e parole chiave. Gli embedding potranno migliorarlo in seguito senza cambiare il contratto usato dal resto del prodotto.
+All'inizio il recupero usa soltanto utente, contesto, tipo di evento, viaggio e data. Embedding e vector database non fanno parte della prima implementazione e verranno valutati soltanto quando il volume reale li renderà necessari.
 
 ### Un solo percorso per i nuovi itinerari
 
@@ -195,7 +208,7 @@ Il Piano resta il prodotto. Mappa e Controllo sono lenti espandibili dello stess
 
 Non vanno cancellate nella prima fase. Vanno prima scollegate dalle decisioni, misurate e poi rimosse.
 
-- I cinque assi come cuore della generazione. Possono restare temporaneamente per compatibilità e, se davvero utili, come visualizzazione secondaria.
+- I cinque assi attuali come cuore della generazione. Il concetto di profilo sintetico resta, ma diventa un Derived User Model semplice, dinamico, contestuale, tracciabile e non limitato a cinque numeri.
 - La trasformazione automatica di ogni risposta qualitativa in un peso numerico.
 - L'uso contemporaneo di prior, Portrait e Graph come tre fonti separate nello stesso prompt.
 - La creazione di nuovi itinerari v1 e gli endpoint di streaming non più chiamati dal frontend.
@@ -283,26 +296,37 @@ INFERENZE -> ipotesi tracciabili e correggibili
 
 ## 9. Dati necessari
 
-Servono due contenitori nuovi, separati dai viaggi condivisibili.
+Servono tre contenitori piccoli e privati, separati dai viaggi condivisibili.
 
 ### Evidenze personali
 
 Campi minimi:
 
 - utente;
-- tipo: dichiarazione, comportamento o inferenza;
+- tipo: dichiarazione, comportamento o feedback;
 - contenuto originale;
 - fonte e identificativo della fonte;
 - contesto: viaggio, destinazione, compagnia, durata e momento;
-- forza: esplicita, osservata o ipotetica;
+- forza: esplicita o osservata;
 - stato: attiva, corretta o ignorata;
-- evidenze di origine per le inferenze;
-- data;
-- riferimento embedding opzionale per il futuro.
+- data.
 
 La coppia fonte + identificativo deve impedire duplicati quando una richiesta viene ritentata.
 
-### Decisioni personalizzate
+### Derived User Model
+
+È una sintesi compatta e sostituibile, non una nuova fonte di verità. Contiene:
+
+- un breve riassunto del modo di viaggiare emerso finora;
+- pochi pattern attivi;
+- confidence per ogni pattern;
+- contesti in cui il pattern vale;
+- identificativi delle evidenze che lo sostengono;
+- versione e data dell'ultimo aggiornamento.
+
+Il modello viene aggiornato quando arrivano evidenze significative, non reinterpretato da zero durante ogni generazione. Se viene eliminato può essere ricostruito dalla Evidence Memory.
+
+### Decisioni personalizzate significative
 
 Campi minimi:
 
@@ -315,6 +339,8 @@ Campi minimi:
 - data.
 
 Queste informazioni non devono entrare nei link pubblici o nel `tripMeta` condivisibile.
+
+Non si registra ogni scelta tecnica del generatore. Si registrano soltanto eventi utili all'apprendimento futuro, inizialmente limitati a: `destination_selected`, `destination_rejected`, `activity_removed`, `activity_replaced`, `day_regenerated`, `pace_changed`, `suggestion_confirmed`, `suggestion_rejected` e `trip_confirmed`.
 
 ### Compatibilità dati
 
@@ -426,9 +452,9 @@ QUIZ E AZIONI -> MEMORIA -> GENERAZIONE/MODIFICA -> RISULTATO -> NUOVA MEMORIA
 
 ### Fase 1: memoria parallela
 
-- Aggiungere le due tabelle private.
+- Aggiungere i tre contenitori privati: Evidence Memory, Derived User Model e decisioni significative.
 - Definire un solo formato Evidence e un solo write path.
-- Salvare in parallelo testo qualitativo del quiz e una piccola lista di eventi reali.
+- Salvare in parallelo il testo qualitativo del quiz e costruire una prima sintesi direttamente tracciabile.
 - Non cambiare ancora matching, generazione o Portrait.
 
 **Uscita:** i dati nuovi sono completi, idempotenti e isolati per utente.
@@ -438,7 +464,8 @@ QUIZ E AZIONI -> MEMORIA -> GENERAZIONE/MODIFICA -> RISULTATO -> NUOVA MEMORIA
 ```text
 testo qualitativo nel quiz
   -> evidenza salvata
-  -> evidenza recuperata per una decisione reale
+  -> Derived User Model aggiornato
+  -> contesto ed evidenze rilevanti recuperati per una decisione reale
   -> generatore v2 la usa
   -> “Perché qui?” mostra la motivazione
   -> conferma/correzione dell'utente viene salvata

@@ -288,6 +288,11 @@ const mapPointV2Schema: z.ZodType<MapPointV2> = z.object({
   label: z.string(),
 });
 
+const personalizationRationaleSchema = z.object({
+  reason: z.string().trim().min(1).max(500),
+  evidenceIds: z.array(z.number().int()).max(6).default([]),
+});
+
 export const itineraryV2Schema = z.object({
   destination: z.string(),
   country: z.string(),
@@ -303,6 +308,7 @@ export const itineraryV2Schema = z.object({
   total_cost_range: z.string(),
   closing_quote: z.string(),
   map_points: z.array(mapPointV2Schema).optional(),
+  personalization: personalizationRationaleSchema.optional(),
   // Sfondi del viaggio: paesaggi larghi della destinazione, riempiti
   // dall'enrichment (mai chiesti al modello, come tutte le altre immagini).
   ambient_images: z.array(z.string()).optional(),
@@ -745,6 +751,7 @@ Exactly ${days} days in the "days" array.
   "total_cost_onsite_estimate": 320,
   "total_cost_range": "€1.800–2.400/pp",
   "closing_quote": "1 poetic sentence — a promise, not a farewell.",
+  "personalization": { "reason": "One concise, concrete reason this plan fits this traveler", "evidenceIds": [1, 2] },
   "map_points": [
     { "day": 1, "lat": -42.8923, "lng": 147.3315, "label": "Battery Point" }
   ]
@@ -880,6 +887,7 @@ const skeletonV2Schema = z.object({
   highlights: z.array(highlightV2Schema),
   total_cost_range: z.string(),
   closing_quote: z.string(),
+  personalization: personalizationRationaleSchema.optional(),
   days: z.array(skeletonDayV2Schema),
 });
 
@@ -922,6 +930,7 @@ skeleton — NO moments — as STRICT JSON:
   "highlights": [ 4 items: { "icon": "emoji", "name": "...", "description": "1 short evocative sentence" } ],
   "total_cost_range": "€min-max/pp",
   "closing_quote": "...",
+  "personalization": { "reason": "One concise reason grounded in supplied evidence", "evidenceIds": [1, 2] },
   "days": [ exactly ${days} items: { "day_number": 1, "role": "arrivo|apice|esplorazione|riposo|decantazione|trasferimento|partenza", "arc": "...", "title_evocative": "...", "subtitle": "...", "energy_level": "low|medium|high" } ]
 }
 Every rule above (day roles §2b, arc doctrine, precision, grounding) applies

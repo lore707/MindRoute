@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, jsonb, timestamp, real, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, timestamp, real, varchar, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -338,6 +338,54 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Private personalization memory. Evidence is the source of truth; the user
+// model is only a rebuildable summary and decisions record how evidence was used.
+export const userEvidence = pgTable("user_evidence", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  kind: text("kind").notNull(),
+  eventType: text("event_type").notNull(),
+  content: text("content").notNull(),
+  source: text("source").notNull(),
+  sourceId: text("source_id").notNull(),
+  context: jsonb("context").$type<Record<string, unknown>>().notNull().default({}),
+  strength: text("strength").notNull(),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  sourceUnique: uniqueIndex("user_evidence_source_unique").on(table.userId, table.source, table.sourceId),
+  userCreatedIdx: index("user_evidence_user_created_idx").on(table.userId, table.createdAt),
+}));
+
+export const derivedUserModels = pgTable("derived_user_models", {
+  userId: integer("user_id").primaryKey().references(() => users.id),
+  summary: text("summary").notNull(),
+  patterns: jsonb("patterns").$type<Array<{
+    key: string;
+    statement: string;
+    confidence: "explicit" | "supported";
+    context: Record<string, unknown>;
+    evidenceIds: number[];
+  }>>().notNull().default([]),
+  evidenceThrough: timestamp("evidence_through"),
+  version: integer("version").notNull().default(1),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const personalizationDecisions = pgTable("personalization_decisions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  itineraryId: integer("itinerary_id").notNull().references(() => itineraries.id),
+  eventType: text("event_type").notNull(),
+  reason: text("reason").notNull(),
+  evidenceIds: jsonb("evidence_ids").$type<number[]>().notNull().default([]),
+  feedback: text("feedback"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  itineraryEventUnique: uniqueIndex("personalization_decision_itinerary_event_unique").on(table.itineraryId, table.eventType),
+  userCreatedIdx: index("personalization_decision_user_created_idx").on(table.userId, table.createdAt),
+}));
 
 export const recentDestinations = pgTable("recent_destinations", {
   id: serial("id").primaryKey(),

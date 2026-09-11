@@ -11,6 +11,7 @@ import { computeCoverage } from "@shared/profile-coverage";
 import { generateItineraryV2ForDestination } from "../matching-engine-v2";
 import { enrichItineraryV2, buildTripMetaV2 } from "./itinerary-gen-v2";
 import { getTraitPriorForUser, formatTraitPriorBlock } from "../trait-prior";
+import { getPersonalizationRationale, savePersonalizationFeedback } from "../personalization";
 
 // Ricostruisce la stringa `constraints` dai raffinamenti L2 nel formato che il
 // prompt v2 già sa leggere (accommodation/food/pace/avoid). Così rispondere a
@@ -296,6 +297,47 @@ export function registerItineraryDetailRoutes(app: Express) {
         return res.status(400).json({ message: 'Invalid destination ID' });
       }
       throw err;
+    }
+  });
+
+  app.get("/api/itinerary/:id/personalization-rationale", requireAuth, async (req, res) => {
+    try {
+      const itineraryId = z.coerce.number().parse(req.params.id);
+      const itinerary = await storage.getItineraryById(itineraryId);
+      if (!itinerary) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itinerary, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const userId = (req.user as any)?.id;
+      if (!userId) return res.json({ rationale: null });
+      const rationale = await getPersonalizationRationale(userId, itineraryId);
+      return res.json({ rationale });
+    } catch (error) {
+      console.warn("[personalization] rationale unavailable:", error);
+      return res.json({ rationale: null });
+    }
+  });
+
+  const personalizationFeedbackSchema = z.object({
+    feedback: z.enum(["confirmed", "corrected"]),
+    correction: z.string().trim().max(500).optional(),
+  }).refine((value) => value.feedback !== "corrected" || Boolean(value.correction), {
+    message: "Scrivi cosa non ti rappresenta",
+    path: ["correction"],
+  });
+
+  app.post("/api/itinerary/:id/personalization-feedback", requireAuth, async (req, res) => {
+    try {
+      const itineraryId = z.coerce.number().parse(req.params.id);
+      const body = personalizationFeedbackSchema.parse(req.body ?? {});
+      const itinerary = await storage.getItineraryById(itineraryId);
+      if (!itinerary) return res.status(404).json({ message: "Itinerario non trovato" });
+      if (!ownsItinerary(itinerary, req)) return res.status(403).json({ message: "Non autorizzato" });
+      const userId = (req.user as any)?.id;
+      const saved = userId ? await savePersonalizationFeedback({ userId, itineraryId, ...body }) : false;
+      return res.json({ saved });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: error.issues[0]?.message });
+      console.error("[personalization] feedback failed:", error);
+      return res.status(500).json({ message: "Feedback non salvato" });
     }
   });
 

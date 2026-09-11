@@ -8,6 +8,7 @@ import { serveStatic } from "./static";
 import { setupAuth } from "./auth";
 import { ensureRateLimitTable, globalApiLimiter } from "./rate-limiter";
 import { pool, ensureIndexes } from "./db";
+import { ensurePersonalizationTables } from "./personalization";
 import { createServer } from "http";
 
 // Top-level safety net: a stray unhandled rejection / uncaught exception would
@@ -189,6 +190,7 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
     // Best-effort DB maintenance AFTER the port is open — never blocks binding.
     ensureRateLimitTable()
+      .then(() => ensurePersonalizationTables())
       .then(() => ensureIndexes())
       .catch((e) => console.error("startup DB maintenance failed (non-fatal):", e));
   });
