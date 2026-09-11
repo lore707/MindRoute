@@ -1,6 +1,6 @@
 # MindRoute: piano di semplificazione
 
-**Stato:** analisi e piano, nessuna migrazione implementata  
+**Stato:** analisi e piano, nessuna migrazione implementata
 **Data:** 11 settembre 2026
 
 ## La frase che deve spiegare tutto
@@ -212,48 +212,48 @@ L'obiettivo non è creare sei cartelle, ma rendere evidente il proprietario di o
 
 ### 1. Capire la persona
 
-**Input:** quiz, testo libero, scelte, modifiche, feedback, Companion, Compass e stato reale del viaggio.  
-**Output:** evidenze immutabili e contestualizzate.  
+**Input:** quiz, testo libero, scelte, modifiche, feedback, Companion, Compass e stato reale del viaggio.
+**Output:** evidenze immutabili e contestualizzate.
 **Regola:** si conserva ciò che è accaduto o è stato detto, senza anticiparne il significato.
 
 Un unico modulo condiviso definisce il formato; un unico modulo server salva e recupera le evidenze. Le route esistenti lo chiamano, ma non interpretano da sole i dati.
 
 ### 2. Generare un viaggio personalizzato
 
-**Input:** vincoli strutturati del viaggio + evidenze rilevanti + cataloghi/fonti reali.  
-**Output:** tre destinazioni oppure un itinerario v2.  
+**Input:** vincoli strutturati del viaggio + evidenze rilevanti + cataloghi/fonti reali.
+**Output:** tre destinazioni oppure un itinerario v2.
 **Regola:** l'AI interpreta e compone; il codice verifica ciò che è misurabile.
 
 Il motore v2 resta il generatore. La semplificazione riguarda il contesto che riceve, non una sua riscrittura completa.
 
 ### 3. Permettere di modificare il viaggio
 
-**Input:** comando manuale o richiesta al Companion.  
-**Output:** modifica atomica della sola parte selezionata + evento osservabile.  
+**Input:** comando manuale o richiesta al Companion.
+**Output:** modifica atomica della sola parte selezionata + evento osservabile.
 **Regola:** ciò che l'utente non ha chiesto di cambiare resta invariato.
 
 Tutte le modifiche confluiscono nello stesso salvataggio validato dei giorni v1/v2, anche se l'interfaccia che le avvia è diversa.
 
 ### 4. Imparare dai pattern
 
-**Input:** evidenze dello stesso utente, filtrate per contesto.  
-**Output:** ipotesi con confidenza e riferimenti alle evidenze.  
+**Input:** evidenze dello stesso utente, filtrate per contesto.
+**Output:** ipotesi con confidenza e riferimenti alle evidenze.
 **Regola:** una singola azione non diventa una preferenza; le inferenze possono essere confermate, corrette, ignorate o superate.
 
 Il riconoscimento dei pattern può iniziare con soglie semplici e interpretazione AI su gruppi di eventi. Non serve progettare in anticipo tutte le categorie di viaggiatore.
 
 ### 5. Trasformare gli insight in viaggi migliori
 
-**Input:** decisione da prendere + contesto corrente + evidenze e pattern pertinenti.  
-**Output:** scelta concreta e motivazione tracciabile.  
+**Input:** decisione da prendere + contesto corrente + evidenze e pattern pertinenti.
+**Output:** scelta concreta e motivazione tracciabile.
 **Regola:** ogni motivazione importante cita evidenze realmente fornite al modello; riferimenti inesistenti vengono scartati dal codice.
 
 Il sistema deve salvare sia la decisione sia il suo “perché”. Il feedback dell'utente sul risultato torna nella memoria come nuova evidenza, chiudendo il ciclo.
 
 ### 6. Combinare più profili
 
-**Input futuro:** evidenze rilevanti di più persone, consenso esplicito e contesto condiviso.  
-**Output futuro:** punti comuni, tensioni e compromessi spiegati.  
+**Input futuro:** evidenze rilevanti di più persone, consenso esplicito e contesto condiviso.
+**Output futuro:** punti comuni, tensioni e compromessi spiegati.
 **Regola:** non fare la media di due profili e non esporre dati privati di una persona all'altra.
 
 Questa funzione non va implementata ora. Una memoria legata all'utente e contestualizzata rende però possibile aggiungerla senza cambiare il modello dati principale.
