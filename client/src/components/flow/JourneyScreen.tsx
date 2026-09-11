@@ -9,6 +9,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { unsplashSized } from "@/lib/img";
 import { useFlow } from "./context";
 import { DayMap } from "./DayMap";
+import { LogisticsScreen } from "./LogisticsScreen";
 
 const bg = (url: string | undefined, width: number, quality = 72) => url
   ? `url(${unsplashSized(url, width, quality)})`
@@ -16,6 +17,7 @@ const bg = (url: string | undefined, width: number, quality = 72) => url
 
 type InspectorView = "activity" | "map" | "why" | "control";
 type ActivityTab = "details" | "why" | "practical";
+type ExpandedPanel = "map" | "control" | null;
 
 export function JourneyScreen({ n }: { n: number }) {
   const f = useFlow();
@@ -26,12 +28,28 @@ export function JourneyScreen({ n }: { n: number }) {
   const [selectedMomentIndex, setSelectedMomentIndex] = useState<number | null>(null);
   const [inspectorView, setInspectorView] = useState<InspectorView>("map");
   const [activityTab, setActivityTab] = useState<ActivityTab>("details");
+  const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
 
   useEffect(() => {
     setSelectedMomentIndex(null);
     setInspectorView("map");
     setActivityTab("details");
+    setExpandedPanel(null);
   }, [day?.n]);
+
+  useEffect(() => {
+    if (!expandedPanel) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpandedPanel(null);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [expandedPanel]);
 
   const selectedMoment = selectedMomentIndex === null ? null : moments[selectedMomentIndex] ?? null;
   const dayBookable = Number(raw?.cost_bookable_total ?? 0) || 0;
@@ -200,7 +218,7 @@ export function JourneyScreen({ n }: { n: number }) {
               {inspectorView === "map" && <div className="mrj-inspector-view map">
                 <header><span>{f.L("Mappa del giorno", "Day map")}</span><h3>{day.title}</h3><p>{f.L("Tappe reali e ordine della giornata, nello stesso piano.", "Real stops and day order, in the same plan.")}</p></header>
                 <div className="mrj-map-frame"><DayMap n={day.n} /></div>
-                <button className="mrj-inspector-action" onClick={() => f.goMap(day.n)}><MapIcon size={15} />{f.L("Apri mappa completa", "Open full map")}</button>
+                <button className="mrj-inspector-action" onClick={() => setExpandedPanel("map")}><MapIcon size={15} />{f.L("Espandi mappa", "Expand map")}</button>
               </div>}
 
               {inspectorView === "why" && <div className="mrj-inspector-view why">
@@ -219,12 +237,25 @@ export function JourneyScreen({ n }: { n: number }) {
                   <p><span><Euro size={16} />{f.L("Budget giornata", "Daily budget")}</span><b>{dayBudget > 0 ? `€${dayBudget}` : f.L("Da stimare", "To estimate")}</b></p>
                 </div>
                 {dayBudget > 0 && <div className="mrj-budget-split"><span>{f.L("Prenotabile", "Bookable")}<b>€{Math.round(dayBookable)}</b></span><span>{f.L("In loco", "On site")}<b>€{Math.round(dayOnsite)}</b></span></div>}
-                <button className="mrj-inspector-action" onClick={f.goLogistics}><CheckCircle2 size={15} />{f.L("Apri controllo completo", "Open full check")}</button>
+                <button className="mrj-inspector-action" onClick={() => setExpandedPanel("control")}><CheckCircle2 size={15} />{f.L("Espandi controllo", "Expand check")}</button>
               </div>}
             </section>
           </aside>
         </section>
       </div>
+
+      {expandedPanel && <section className="mrj-expanded" role="dialog" aria-modal="true" aria-label={expandedPanel === "map" ? f.L("Mappa completa", "Full map") : f.L("Controllo completo", "Full check")}>
+        <header className="mrj-expanded-head">
+          <div>
+            {expandedPanel === "map" ? <MapIcon size={18} /> : <CheckCircle2 size={18} />}
+            <span><small>{f.L("Giorno", "Day")} {day.n}</small><strong>{expandedPanel === "map" ? f.L("Mappa del viaggio", "Trip map") : f.L("Controllo del viaggio", "Trip check")}</strong></span>
+          </div>
+          <button onClick={() => setExpandedPanel(null)} autoFocus><X size={18} />{f.L("Chiudi", "Close")}</button>
+        </header>
+        <div className={`mrj-expanded-body ${expandedPanel}`}>
+          {expandedPanel === "map" ? <DayMap n={day.n} active /> : <LogisticsScreen />}
+        </div>
+      </section>}
     </div>
   );
 }
