@@ -73,9 +73,7 @@ export function JourneyScreen({ n }: { n: number }) {
         <button className="mrj-brand" onClick={f.goHome}><BrandMark size={34} /><span>MindRoute</span></button>
         <nav>
           <button className="on" onClick={() => f.goDay(day.n)}><Sparkles size={20} /><span>{f.L("Piano", "Plan")}</span></button>
-          <button onClick={() => f.goMap(day.n)}><MapIcon size={20} /><span>{f.L("Mappa", "Map")}</span></button>
-          <button onClick={f.goLogistics}><CheckCircle2 size={20} /><span>{f.L("Controllo", "Check")}</span></button>
-          <button onClick={() => setLocation("/my-account?view=portrait")}><UserRound size={20} /><span>Portrait</span></button>
+          <button onClick={() => setLocation("/my-account?view=portrait")}><UserRound size={20} /><span>{f.L("Profilo", "Portrait")}</span></button>
         </nav>
         <button className="mrj-trip" onClick={f.goOverview}>
           <i style={{ backgroundImage: bg(f.data.heroImg, 260) }} />
